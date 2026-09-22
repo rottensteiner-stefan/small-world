@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 describe("WebGPU Shader Bindings & Layouts", () => {
-  it("should ensure StandardMaterial declares u_emissiveMap in its WebGPU layout", () => {
+  it("should ensure StandardMaterial and StandardWebGPULayout declare u_emissiveMap and u_opaqueMap in their WebGPU layout", () => {
     const mat = new StandardMaterial();
     const layout = mat.getShaderDefinition().layout;
 
@@ -14,6 +14,8 @@ describe("WebGPU Shader Bindings & Layouts", () => {
     // WebGPURenderer requires explicit declaration of textures in the layout
     expect(layout!.textures).toHaveProperty("u_emissiveMap");
     expect(layout!.textures!["u_emissiveMap"]!.type).toBe("texture");
+    expect(layout!.textures).toHaveProperty("u_opaqueMap");
+    expect(layout!.textures!["u_opaqueMap"]!.type).toBe("texture");
   });
 
   it("should have matching @binding(12) for u_emissiveMap in structs.wgsl", () => {
@@ -31,6 +33,7 @@ describe("WebGPU Shader Bindings & Layouts", () => {
     // 11: Skybox (Cube)
     // 12: Emissive Map
     expect(wgslContent).toContain("@group(1) @binding(12) var u_emissiveMap: texture_2d<f32>;");
+    expect(wgslContent).toContain("@group(1) @binding(14) var u_opaqueMap: texture_2d<f32>;");
   });
 
   it("should correctly rewrite base.vert.wgsl for instanced rendering without corrupting parameters", () => {

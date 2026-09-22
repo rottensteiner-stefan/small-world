@@ -106,86 +106,111 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 
 ### 3.3 Loaders & glTF Pipeline
 
-#### [BLK-L1] Permanentes Cache-Poisoning bei Netzwerkfehlern
+#### [BLK-L1] Permanentes Cache-Poisoning bei Netzwerkfehlern ✅ *(BEHOBEN)*
 - **Datei:** [`packages/engine/src/loaders/AssetManager.ts`](../../packages/engine/src/loaders/AssetManager.ts#L191-L273)
-- **Szenario:** Schlägt ein Fetch in `loadJson`, `loadText`, `loadBinary` oder `loadImage` fehl, bleibt das abgelehnte Promise dauerhaft in der Cache-Map. Wiederholte Ladeversuche schlagen sofort fehl, ohne das Netzwerk erneut anzufragen.
-- **Abhilfe:** Im `catch`-Block den Key aus der jeweiligen Map löschen (`this._jsonCache.delete(url)`).
+- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts`](../../packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts).
+- **Szenario:** Schlägt ein Fetch in `loadJson`, `loadText`, `loadBinary` oder `loadImage` fehl, blieb das abgelehnte Promise dauerhaft in der Cache-Map. Wiederholte Ladeversuche schlugen sofort fehl, ohne das Netzwerk erneut anzufragen.
+- **Abhilfe:** In den `catch`-Blöcken von `loadJson`, `loadText`, `loadBinary` und `loadImage` wird der Cache-Key bei Fehlschlägen sofort aus der jeweiligen Map gelöscht (`this._textCache.delete(url)`, etc.), sodass nachfolgende Ladeversuche das Netzwerk sauber erneut anfragen.
 
-#### [BLK-L2] Deadlock bei Stream-Fehler in `streamBinary`
+#### [BLK-L2] Deadlock bei Stream-Fehler in `streamBinary` ✅ *(BEHOBEN)*
 - **Datei:** [`packages/engine/src/loaders/AssetManager.ts`](../../packages/engine/src/loaders/AssetManager.ts#L282-L342)
-- **Szenario:** Bricht ein Chunk-Stream ab, wird `_checkCompletion(trackingKey)` übersprungen. `assetManager.isLoaded` bleibt dauerhaft `false`, Szenenübergänge frieren ein.
-- **Abhilfe:** Stream-Schleife in `try ... finally` kapseln.
+- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts`](../../packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts).
+- **Szenario:** Bricht ein Chunk-Stream ab, wurde `_checkCompletion(trackingKey)` übersprungen. `assetManager.isLoaded` blieb dauerhaft `false`, Szenenübergänge froren ein.
+- **Abhilfe:** `streamBinary` vollständig in `try ... finally` gekapselt, Cache-Poisoning bei Stream-Fehlern via `_binaryCache.delete(url)` behoben und Loader-Tracking garantiert aufgeräumt.
 
-#### [BLK-L3] Unaligned TypedArray `RangeError`
-- **Datei:** [`packages/engine/src/loaders/gltf/GltfBinaryParser.ts`](../../packages/engine/src/loaders/gltf/GltfBinaryParser.ts#L77-L92)
-- **Szenario:** Bei nicht 4-Byte-ausgerichteten Offsets (`byteOffset % 4 !== 0`) wirft `new Float32Array(buffer, byteOffset, count)` einen fatalen JavaScript-`RangeError`.
-- **Abhilfe:** Bei fehlender Ausrichtung via `buffer.slice()` ein ausgerichtetes Array instanziieren.
+#### [BLK-L3] Unaligned TypedArray `RangeError` ✅ *(BEHOBEN)*
+- **Datei:** [`packages/engine/src/loaders/gltf/GltfBinaryParser.ts`](../../packages/engine/src/loaders/gltf/GltfBinaryParser.ts#L77-L117)
+- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/loaders/gltf/GltfBinaryParser.test.ts`](../../packages/engine/tests/loaders/gltf/GltfBinaryParser.test.ts).
+- **Szenario:** Bei nicht ausgerichteten Byte-Offsets (`byteOffset % 4 !== 0` für `Float32Array`/`Uint32Array` oder `byteOffset % 2 !== 0` für `Uint16Array`) warf der JavaScript-`TypedArray`-Konstruktor einen fatalen `RangeError`.
+- **Abhilfe:** `GltfBinaryParser.getBufferData()` prüft die Ausrichtung (`byteOffset % bytesPerElement === 0`); unaligned Chunks werden via `buffer.slice()` in einen sauber ausgerichteten ArrayBuffer kopiert, inkl. striktem Overflow-Guard gegen Buffer-Überläufe.
 
 ---
 
 ### 3.4 Tools, Editor & Sample Apps
 
-#### [BLK-T1] Zombie-Event-Listener & Engine-Lecks auf Tool-Unmount
+#### [BLK-T1] Zombie-Event-Listener & Engine-Lecks auf Tool-Unmount ✅ *(BEHOBEN)*
 - **Dateien:**
-  - [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts#L270-L274)
-  - [`packages/engine/src/tools/MaterialStudio.ts`](../../packages/engine/src/tools/MaterialStudio.ts#L2178-L2182)
-  - [`packages/engine/src/tools/Pixler.ts`](../../packages/engine/src/tools/Pixler.ts#L649-L724)
-- **Szenario:** `MaterialStudio.unmount()` stoppt den Render-Loop nicht; `MakerApp` und `Pixler` entfernen keine anonymen `window.addEventListener("keydown")`-Listener. Unmounten oder Hot-Reloading hinterlässt Zombie-Listener, die ganze Szenen-Graphen im Speicher festhalten.
-- **Abhilfe:** Vollständige `dispose()`-Methoden mit `removeEventListener` und `SmallWorld.stop()` implementieren.
+  - [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts)
+  - [`packages/engine/src/tools/MaterialStudio.ts`](../../packages/engine/src/tools/MaterialStudio.ts)
+  - [`packages/engine/src/tools/Pixler.ts`](../../packages/engine/src/tools/Pixler.ts)
+- **Status:** **Behoben.**
+- **Szenario:** `MaterialStudio.unmount()` stoppte den Render-Loop nicht; `MakerApp` und `Pixler` entfernten keine anonymen Window- und Canvas-Listener. Unmounten oder Hot-Reloading hinterließ Zombie-Listener, die ganze Szenen-Graphen im Speicher festhielten.
+- **Abhilfe:** `MaterialStudio.unmount()` zerstört die eingebettete `MaterialStudioApp` (`this._app.destroy()`); `Pixler` und `MakerApp` nutzen `AbortController`-Signale für alle DOM- und Window-Events und räumen diese in `unmount()` bzw. `destroy()` rückstandslos ab.
 
-#### [BLK-T2] Undo-Stack Duplikations-Bug bei Gruppen
-- **Datei:** [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts#L1198-L1225)
-- **Szenario:** Sind Parent und Child gemeinsam selektiert, dupliziert `duplicateSelection()` den Child-Node doppelt (einmal über den geklonten Parent, einmal separat als Waise).
-- **Abhilfe:** Selektionsliste vor Batch-Operationen auf Root-Elemente filtern.
+#### [BLK-T2] Undo-Stack Duplikations-Bug bei Gruppen ✅ *(BEHOBEN)*
+- **Datei:** [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts)
+- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/tools/maker/MakerFeatures.test.ts`](../../packages/engine/tests/tools/maker/MakerFeatures.test.ts).
+- **Szenario:** Waren Parent und Child gemeinsam selektiert, duplizierte `duplicateSelection()` den Child-Node doppelt (einmal über den geklonten Parent, einmal separat als Waise).
+- **Abhilfe:** `_getTopLevelSelection()` implementiert: Filtert rekursiv alle Kindelemente heraus, deren Vorfahren bereits in der Selektion enthalten sind, und sichert `duplicateSelection()`, `deleteSelection()` und `groupSelection()` ab.
 
-#### [BLK-T3] Import-Side-Effects in `ibl-gen.ts`
-- **Datei:** [`packages/engine/src/tools/ibl-gen.ts`](../../packages/engine/src/tools/ibl-gen.ts#L580-L728)
-- **Szenario:** Modul führt beim reinen Importieren `document.addEventListener("DOMContentLoaded")` aus, erzeugt Offscreen-Canvases und instanziiert WebGL2-Kontexte.
-- **Abhilfe:** In explizite `initIBLGenTool()`-Funktion kapseln.
+#### [BLK-T3] Import-Side-Effects in `ibl-gen.ts` ✅ *(BEHOBEN)*
+- **Datei:** [`packages/engine/src/tools/ibl-gen.ts`](../../packages/engine/src/tools/ibl-gen.ts)
+- **Status:** **Behoben.**
+- **Szenario:** Modul führte beim reinen Importieren `document.addEventListener("DOMContentLoaded")` aus, erzeugte Offscreen-Canvases und instanziierte WebGL2-Kontexte.
+- **Abhilfe:** DOM-Initialisierung in `initIBLGenTool()` gekapselt und Auto-Start mit striktem `#dropzone`-DOM-Guard versehen, sodass das Modul side-effect-frei importiert werden kann.
 
 ---
 
 ## 4. 🟠 MAJOR (P1: Performance, GC-Druck & Schnittstellen)
 
 ### 4.1 Performance & GC-Optimierung
-1. **[MAJ-01] ~770 Vector3D-Allokationen pro Frame in `updateGlobalUBO()` ([`WebGL2Renderer.ts#L1435`](../../packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts#L1435))**
-   - *Impact:* `WebGL2UniformBuffer` verlangt `Vector3D`-Objekte für `setVector3()`. Bei 4 CSM-Kaskaden und Spotlights werden pro Sekunde ~46.000 kurzlebige Objekte für den Garbage Collector erzeugt.
-   - *Lösung:* Direkte `setVec3(offset, x, y, z)`-Methode ohne Objekt-Allokation einführen.
+1. **[MAJ-01] ~770 Vector3D-Allokationen pro Frame in `updateGlobalUBO()` ✅ *(BEHOBEN)***
+   - **Dateien:** 
+     - [`packages/engine/src/renderers/WebGL2/WebGL2UniformBuffer.ts`](../../packages/engine/src/renderers/WebGL2/WebGL2UniformBuffer.ts#L48-L62)
+     - [`packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts`](../../packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts#L1435-L1570)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/renderers/WebGL2UniformBufferSetters.test.ts`](../../packages/engine/tests/renderers/WebGL2UniformBufferSetters.test.ts).
+   - **Lösung:** `WebGL2UniformBuffer` um direkte skalare Methoden `setVec3(offset, x, y, z)` und `setVec4(offset, x, y, z, w)` erweitert. `WebGL2Renderer.updateGlobalUBO()` schreibt Ambient-, Directional-, Point-, Spot- und Area-Light-Werte nun direkt ohne temporäre `Vector3D`-Objekte (spart ~46.000 GC-Allokationen pro Sekunde).
 
-2. **[MAJ-02] Jim-Arvo-AABB-Transformations-Judo ([`BoundingBox.ts#L207`](../../packages/engine/src/physix/BoundingBox.ts#L207))**
-   - *Impact:* `BoundingBox.transform()` erzeugt pro Aufruf ein 8-Element-Array und 8 MathPool-Vektoren.
-   - *Lösung:* Umstellung auf Arvos affine Formel ($O(1)$, 0 Vektoren, 0 Arrays).
+2. **[MAJ-02] Jim-Arvo-AABB-Transformations-Judo ✅ *(BEHOBEN)***
+   - **Datei:** [`packages/engine/src/physix/BoundingBox.ts`](../../packages/engine/src/physix/BoundingBox.ts#L207-L235)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/BoundingBoxTransform.test.ts`](../../packages/engine/tests/physix/BoundingBoxTransform.test.ts).
+   - **Lösung:** `BoundingBox.transform(matrix)` auf den Algorithmus von Jim Arvo umgestellt ($O(1)$, 0 Vektoren, 0 Arrays, keine MathPool-Acquires mehr nötig).
 
-3. **[MAJ-03] `Raycaster` transformiert alle Mesh-Vertices in Weltkoordinaten ([`Raycaster.ts#L92`](../../packages/engine/src/physix/Raycaster.ts#L92))**
-   - *Impact:* Bei 5.000 Polygonen werden 15.000 Vektortransformationen pro Picking-Frame gerechnet.
-   - *Lösung:* Den Suchstrahl (Ray) **einmal** in den Objekt-Lokalraum transformieren (`worldMatrix.invert()`) und gegen unveränderte Vertex-Puffer testen.
+3. **[MAJ-03] `Raycaster` transformiert alle Mesh-Vertices in Weltkoordinaten ✅ *(BEHOBEN)***
+   - **Datei:** [`packages/engine/src/physix/Raycaster.ts`](../../packages/engine/src/physix/Raycaster.ts#L88-L230)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/Raycaster.test.ts`](../../packages/engine/tests/physix/Raycaster.test.ts).
+   - **Lösung:** Der Suchstrahl (Ray) wird **einmal** via `worldMatrix.invert()` in den Objekt-Lokalraum transformiert. Der Möller-Trumbore-Schnittpunkttest liest die Vertex-Koordinaten direkt aus den flachen Puffern (`_intersectTriangleDirect`), ohne pro Dreieck 3 Vektoren zu allokieren oder 4x4-Matrizen zu multiplizieren (spart bei 5.000 Dreiecken 15.000 Vektortransformationen pro Frame).
 
-4. **[MAJ-04] MathPool-Thrashing in `EulerIntegrator` ([`EulerIntegrator.ts#L80`](../../packages/engine/src/physix/solvers/EulerIntegrator.ts#L80))**
-   - *Impact:* 12 MathPool-Acquires pro rotierendem Körper pro Physik-Substep.
-   - *Lösung:* Rotation über Quaternion-Integration direkt aktualisieren.
+4. **[MAJ-04] MathPool-Thrashing in `EulerIntegrator` ✅ *(BEHOBEN)***
+   - **Dateien:**
+     - [`packages/engine/src/physix/solvers/EulerIntegrator.ts`](../../packages/engine/src/physix/solvers/EulerIntegrator.ts#L30-L125)
+     - [`packages/engine/src/math/Quaternion.ts`](../../packages/engine/src/math/Quaternion.ts#L267-L310)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/solvers/EulerIntegrator.test.ts`](../../packages/engine/tests/physix/solvers/EulerIntegrator.test.ts) und [`packages/engine/tests/math/Quaternion.test.ts`](../../packages/engine/tests/math/Quaternion.test.ts).
+   - **Lösung:** `integrateVelocity`, `applyDisplacement` und `integrateAngular` vollständig auf 0-Allokations-Skalarrechnung umgestellt. Die Rotationsintegration nutzt direkte geschlossene Quaternion-Formeln für Euler YXZ ($\Delta q \cdot q_{\text{current}}$ und closed-form $q \to \text{Euler}$) ohne Matrix-Kompositionen, Decompose-Aufrufe oder MathPool-Thrashing (spart 12 MathPool-Acquires pro rotierendem Körper pro Physik-Substep).
 
-5. **[MAJ-05] Transiente `GPUTextureView`-Allokationen in Schatten-Pässen ([`CascadedShadowPassGPU.ts#L123`](../../packages/engine/src/renderers/passes/CascadedShadowPassGPU.ts#L123), [`SpotShadowPassGPU.ts#L123`](../../packages/engine/src/renderers/passes/SpotShadowPassGPU.ts#L123))**
-   - *Impact:* `fbo.createView({ baseArrayLayer: i })` wird jeden Frame für jede Schattenkaskade neu erzeugt.
-   - *Lösung:* Layer-Views beim FBO-Resize vorberechnen und cachen.
+5. **[MAJ-05] Transiente `GPUTextureView`-Allokationen in Schatten-Pässen ✅ *(BEHOBEN)***
+   - **Dateien:** 
+     - [`packages/engine/src/renderers/passes/CascadedShadowPassGPU.ts`](../../packages/engine/src/renderers/passes/CascadedShadowPassGPU.ts)
+     - [`packages/engine/src/renderers/passes/SpotShadowPassGPU.ts`](../../packages/engine/src/renderers/passes/SpotShadowPassGPU.ts)
+   - **Status:** **Behoben.**
+   - **Lösung:** Per-Layer-`GPUTextureView`-Arrays (`_cascadeLayerViews`, `_layerViews`) werden direkt bei der FBO-Allokation / beim Resize vorberechnet und im Render-Loop wiederverwendet, statt jeden Frame 8+ temporäre `createView()`-Allokationen zu erzeugen.
 
 ---
 
 ### 4.2 UX, Tooling & Architektur
-6. **[MAJ-06] Tastatur-Shortcuts kollidieren mit Formularfeldern ([`Pixler.ts#L724`](../../packages/engine/src/tools/Pixler.ts#L724), [`ViennaMapModal.ts#L265`](../../apps/sample-apps/the-whisper/ui/ViennaMapModal.ts#L265))**
-   - *Impact:* Tippen in Textfeldern löst Tastaturkürzel (M, T, E, Space, 1–9) im Hintergrund aus.
-   - *Lösung:* Zentraler Guard `isEditingTextInput()` (prüft `INPUT`, `TEXTAREA`, `contenteditable`).
+6. **[MAJ-06] Tastatur-Shortcuts kollidieren mit Formularfeldern ✅ *(BEHOBEN)***
+   - **Dateien:**
+     - [`packages/engine/src/core/Input.ts`](../../packages/engine/src/core/Input.ts#L37-L46)
+     - [`packages/engine/src/tools/Pixler.ts`](../../packages/engine/src/tools/Pixler.ts)
+     - [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts)
+     - [`apps/sample-apps/the-whisper/ui/ViennaMapModal.ts`](../../apps/sample-apps/the-whisper/ui/ViennaMapModal.ts)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/core/Input.test.ts`](../../packages/engine/tests/core/Input.test.ts).
+   - **Lösung:** Universeller Guard `isEditingTextInput()` in `core/Input.ts` bereitgestellt (prüft `INPUT`, `TEXTAREA`, `SELECT` sowie `contenteditable` / `isContentEditable`). Alle Tools (`Pixler`, `MakerApp`, `ViennaMapModal`) nutzen nun diesen zentralen Guard, um Tastatur-Shortcuts zuverlässig zu unterdrücken, wenn der Benutzer in Formularfeldern oder editierbaren UI-Elementen tippt.
 
-7. **[MAJ-07] Shift+Arrow Muscle-Memory-Inversion in `MakerApp.ts` ([`MakerApp.ts#L1950`](../../packages/engine/src/tools/maker/MakerApp.ts#L1950))**
-   - *Impact:* Entgegen Industriestandards (*Photoshop, Blender, Figma*) bewegt `Shift+Pfeil` Objekte vertikal statt 10-fach schneller horizontal zu verschieben.
-   - *Lösung:* `Shift` als `10x`-Multiplikator standardisieren; Vertikalbewegung auf `PageUp`/`PageDown` legen.
+7. **[MAJ-07] Shift+Arrow Muscle-Memory-Inversion in `MakerApp.ts` ✅ *(BEHOBEN)***
+   - **Datei:** [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts#L1950-L2110)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/tools/maker/MakerFeatures.test.ts`](../../packages/engine/tests/tools/maker/MakerFeatures.test.ts).
+   - **Lösung:** `Shift` standardisiert als `10x`-Multiplikator für Translation (5.0m statt 0.5m) und Skalierung (2.5 statt 0.25) sowie als `6x` (90°-Vierteldrehung) für Rotation. Vertikale Verschiebung/Skalierung/Roll auf `PageUp`/`PageDown` gelegt, sodass `Shift+Pfeiltasten` nun intuitiv 10x in horizontaler Blickrichtung verschiebt (*Photoshop/Blender/Figma-Konvention*).
 
-8. **[MAJ-08] glTF Extension Registry Duplikation ([`GltfExtensionRegistry.ts#L3`](../../packages/engine/src/loaders/gltf/GltfExtensionRegistry.ts#L3))**
-   - *Impact:* Mehrfaches Registrieren führt zu $N$-facher Ausführung der Hooks pro Node.
-   - *Lösung:* Deduplizierung nach `plugin.name`.
+8. **[MAJ-08] glTF Extension Registry Duplikation ✅ *(BEHOBEN)***
+   - **Datei:** [`packages/engine/src/loaders/gltf/GltfExtensionRegistry.ts`](../../packages/engine/src/loaders/gltf/GltfExtensionRegistry.ts)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/gltf-extensions/tests/Register.test.ts`](../../packages/gltf-extensions/tests/Register.test.ts).
+   - **Lösung:** `registerGltfExtension()` dedupliziert Plugins anhand von `plugin.name` und aktualisiert vorhandene Registrierungen; `unregisterGltfExtension(name)` für sicheres Unregistering bereitgestellt.
 
-9. **[MAJ-09] `KhrTextureBasisu` nutzt rohes `fetch()` ([`KhrTextureBasisu.ts#L50`](../../packages/gltf-extensions/src/basisu/KhrTextureBasisu.ts#L50))**
-   - *Impact:* Umgeht Base-URL, Authentifizierungs-Header und Ladefortschritt des `AssetManager`s.
-   - *Lösung:* `_assetManager.loadBinary(url)` verwenden.
+9. **[MAJ-09] `KhrTextureBasisu` nutzt rohes `fetch()` ✅ *(BEHOBEN)***
+   - **Datei:** [`packages/gltf-extensions/src/basisu/KhrTextureBasisu.ts`](../../packages/gltf-extensions/src/basisu/KhrTextureBasisu.ts#L50-L56)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/gltf-extensions/tests/KhrTextureBasisu.test.ts`](../../packages/gltf-extensions/tests/KhrTextureBasisu.test.ts).
+   - **Lösung:** Rohes `fetch()` durch `assetManager.loadBinary(url)` ersetzt. Dadurch greifen Base-URL-Auflösung, Authentifizierungs-Header, Ladefortschritts-Tracking und AssetManager-Caching nahtlos.
 
 10. **[MAJ-10] Monolithische Dateien über 1.000 Zeilen**
     - *Betroffen:* `MaterialStudio.ts` (2.197 Z.), `MakerApp.ts` (2.147 Z.), `character-diorama/showcase.ts` (1.918 Z.), `prologue.ts` (1.438 Z.), `ViennaMapModal.ts` (1.011 Z.), `Pixler.ts` (1.047 Z.).
@@ -195,11 +220,34 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 
 ## 5. 🟡 MINOR & CODE-JUDO (P2: Eleganz, Bereinigung & Dead Code)
 
-1. **[MIN-01]** Toter Mock-AI-Chatbot in [`Xtractor.ts#L743`](../../packages/engine/src/tools/Xtractor.ts#L743) (90 Zeilen deutsches Regex-Slicing für Doom-Zahlen entfernen).
-2. **[MIN-02]** Literal `\\n` statt echtem `\n` in [`MapGenerator.ts#L411`](../../packages/engine/src/tools/MapGenerator.ts#L411).
-3. **[MIN-03]** Globale CSS-Verschmutzung (`* { box-sizing }`) in [`MaterialStudio.ts#L204`](../../packages/engine/src/tools/MaterialStudio.ts#L204) kapseln.
-4. **[MIN-04]** Duplizierte prozedurale Geometrie (Rohre, Lampen, Kisten) in `showcases` durch statische Aufrufe von `BunkerKit` und `FlakturmKit` ersetzen.
-5. **[MIN-05]** `Raycaster` um Unterstützung für `BoundingType.OBB` erweitern.
+1. **[MIN-01] Toter Mock-AI-Chatbot in `Xtractor.ts` ✅ *(BEHOBEN)***
+   - **Datei:** [`packages/engine/src/tools/Xtractor.ts`](../../packages/engine/src/tools/Xtractor.ts#L740-L815)
+   - **Status:** **Behoben.**
+   - **Lösung:** 90 Zeilen toter Fake-AI-Code (`setTimeout`, Doom-Zahlen-Regex) entfernt und durch einen deterministischen, sofort reagierenden Command-Processor für Sprite-Slicing (`slice <N>`, `teile <N>`) ersetzt.
+
+2. **[MIN-02] Literal `\\n` statt echtem `\n` in `MapGenerator.ts` ✅ *(BEHOBEN)***
+   - **Datei:** [`packages/engine/src/tools/MapGenerator.ts`](../../packages/engine/src/tools/MapGenerator.ts#L410-L425)
+   - **Status:** **Behoben.**
+   - **Lösung:** `getMapString()` gibt nun echte Newlines (`\n`) aus. `loadMapString()` unterstützt sowohl Standard-Zeilenumbrüche (`/\r?\n/`) als auch abwärtskompatible escaped Newlines (`\\n`).
+
+3. **[MIN-03] Globale CSS-Verschmutzung in `MaterialStudio.ts` ✅ *(BEHOBEN)***
+   - **Datei:** [`packages/engine/src/tools/MaterialStudio.ts`](../../packages/engine/src/tools/MaterialStudio.ts#L180-L235)
+   - **Status:** **Behoben.**
+   - **Lösung:** Globale CSS-Variablen (`:root`), universelle Resets (`* { box-sizing }`), globale `body`-Regeln und Scrollbar-Selektoren vollständig in `.swf-ms-container` gekapselt, um DOM-Stylesheets übergeordneter Seiten nicht mehr zu überschreiben.
+
+4. **[MIN-04] Duplizierte prozedurale Geometrie durch Kit-Aufrufe konsolidiert ✅ *(BEHOBEN)***
+   - **Dateien:** 
+     - [`apps/sample-apps/the-whisper/builder/BunkerKit.ts`](../../apps/sample-apps/the-whisper/builder/BunkerKit.ts#L320-L375)
+     - [`apps/sample-apps/the-whisper/scenes/flakturm-tunnel/showcase.ts`](../../apps/sample-apps/the-whisper/scenes/flakturm-tunnel/showcase.ts#L790-L796)
+   - **Status:** **Behoben** & regressionstestiert in [`apps/sample-apps/the-whisper/tests/BunkerKit.test.ts`](../../apps/sample-apps/the-whisper/tests/BunkerKit.test.ts).
+   - **Lösung:** Handheld-Laternen-Geometrie aus `flakturm-tunnel/showcase.ts` als wiederverwendbaren `BunkerKit.createHeldLantern()`-Builder extrahiert und redundante Inlined-Mesh-Generierung eliminiert.
+
+5. **[MIN-05] `Raycaster` & `Ray` um Unterstützung für `BoundingType.OBB` erweitert ✅ *(BEHOBEN)***
+   - **Dateien:** 
+     - [`packages/engine/src/physix/Ray.ts`](../../packages/engine/src/physix/Ray.ts#L117-L203)
+     - [`packages/engine/src/physix/Raycaster.ts`](../../packages/engine/src/physix/Raycaster.ts#L74-L78)
+   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/Ray.test.ts`](../../packages/engine/tests/physix/Ray.test.ts) und [`packages/engine/tests/physix/Raycaster.test.ts`](../../packages/engine/tests/physix/Raycaster.test.ts).
+   - **Lösung:** 0-Allokations-Slab-Schnittpunkttest `Ray.intersectsOBB(obb)` entlang der lokalen orthogonalen OBB-Achsen implementiert und `Raycaster.intersectObjects()` für `BoundingType.OBB` freigeschaltet.
 
 ---
 
@@ -207,35 +255,77 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 
 ```mermaid
 flowchart TD
+    classDef done fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#ecfdf5;
+    classDef pending fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f8fafc;
+
     subgraph Batch 1: Engine P0 Blockers
-        B1A["1.1 AssetManager Cache-Poisoning & Stream Fix"]
-        B1B["1.2 WebGLClusterCull Buffer Realloc"]
-        B1C["1.3 WGSL/GLSL Spot Shadow Bounds Guard"]
-        B1D["1.4 TextureManager 2D Texture Disposal"]
-        B1E["1.5 PhysicsBroadphase Octree Min/Max Fix"]
-        B1F["1.6 BloomPassGPU View Churn Fix"]
-        B1A --> B1B --> B1C --> B1D --> B1E --> B1F
+        B1A["1.1 AssetManager Cache-Poisoning & Stream Fix (BLK-L1/L2) ✅"]:::done
+        B1B["1.2 WebGLClusterCull Buffer Realloc (BLK-R1) ✅"]:::done
+        B1C["1.3 WGSL/GLSL Spot Shadow Bounds Guard (BLK-R2) ✅"]:::done
+        B1D["1.4 TextureManager 2D Texture Disposal (BLK-C1) ✅"]:::done
+        B1E["1.5 PhysicsBroadphase Octree Min/Max Fix (BLK-C2) ✅"]:::done
+        B1F["1.6 BloomPassGPU View Churn Fix (BLK-R3) ✅"]:::done
+        B1G["1.7 DirectionalLight & Fallback Cascade (BLK-R4/R5) ✅"]:::done
+        B1H["1.8 Matrix4.scale Overload Fix (BLK-C3) ✅"]:::done
+        B1I["1.9 GltfBinaryParser Unaligned Offset Fix (BLK-L3) ✅"]:::done
+        B1A --> B1B --> B1C --> B1D --> B1E --> B1F --> B1G --> B1H --> B1I
     end
 
     subgraph Batch 2: GC- & Performance-Judo
-        B2A["2.1 Jim Arvo Affine AABB Transform (0 Allocations)"]
-        B2B["2.2 WebGL2 UBO setVec3/setVec4 Direct Write"]
-        B2C["2.3 Raycaster Local-Space Inverted Transform"]
-        B1F --> B2A --> B2B --> B2C
+        B2A["2.1 Jim Arvo Affine AABB Transform (MAJ-02) ✅"]:::done
+        B2B["2.2 WebGL2 UBO setVec3/setVec4 Direct Write (MAJ-01) ✅"]:::done
+        B2C["2.3 Raycaster Local-Space Inverted Transform (MAJ-03) ✅"]:::done
+        B2D["2.4 EulerIntegrator 0-Allocation Dynamics (MAJ-04) ✅"]:::done
+        B2E["2.5 ShadowPassGPU Cached Layer Views (MAJ-05) ✅"]:::done
+        B1I --> B2A --> B2B --> B2C --> B2D --> B2E
     end
 
     subgraph Batch 3: Tool & App Hardening
-        B3A["3.1 MakerApp Multi-Selection Duplicate Fix"]
-        B3B["3.2 Tool Lifecycle dispose/unmount Implementierung"]
-        B3C["3.3 Global Keyboard Shortcut Input Guard"]
-        B3D["3.4 MakerApp Shift+Arrow 10x Nudge Standard"]
-        B2C --> B3A --> B3B --> B3C --> B3D
+        B3A["3.1 MakerApp Multi-Selection Duplicate Fix (BLK-T2) ✅"]:::done
+        B3B["3.2 Tool Lifecycle dispose/unmount (BLK-T1) ✅"]:::done
+        B3C["3.3 Global Keyboard Shortcut Input Guard (MAJ-06) ✅"]:::done
+        B3D["3.4 MakerApp Shift+Arrow 10x Nudge (MAJ-07) ✅"]:::done
+        B3E["3.5 KhrTextureBasisu AssetManager loadBinary (MAJ-09) ✅"]:::done
+        B3F["3.6 IBL Gen Safe Init / No Side-Effects (BLK-T3) ✅"]:::done
+        B3G["3.7 GltfExtensionRegistry Deduplication (MAJ-08) ✅"]:::done
+        B2E --> B3A --> B3B --> B3C --> B3D --> B3E --> B3F --> B3G
     end
 
     subgraph Batch 4: Monolith Extraction & Polish
-        B4A["4.1 MakerApp Domain Splitting"]
-        B4B["4.2 MaterialStudio Modul-Extraktion"]
-        B4C["4.3 Dead Code Cleanup (Xtractor, MapGenerator)"]
-        B3D --> B4A --> B4B --> B4C
+        B4A["4.1 MakerApp Domain Splitting (MAJ-10)"]:::pending
+        B4B["4.2 MaterialStudio Modul-Extraktion (MAJ-10)"]:::pending
+        B4C["4.3 Minor Code-Judo & Cleanup (MIN-01..05) ✅"]:::done
+        B3G --> B4A --> B4B --> B4C
     end
 ```
+
+### Aktueller Umsetzungsstand
+
+- [x] **[BLK-R1]** `WebGLClusterCullPass`: Buffer-Reallokation & Clustered-Lighting-Desync behoben.
+- [x] **[BLK-R2]** WGSL & GLSL: Spot-Shadow Out-of-Bounds Guards für Shader integriert.
+- [x] **[BLK-R3]** `BloomPassGPU` & `PostProcessPass`: 60-FPS WebGPU Pipeline Rebuild Churn eliminiert.
+- [x] **[BLK-R4]** `AbstractRenderer`: Stale Directional-Light-Referenzen beim Ausblenden bereinigt.
+- [x] **[BLK-R5]** `RendererFactory`: WebGPU $\to$ WebGL2 $\to$ WebGL1 Fallback-Kaskade gehärtet.
+- [x] **[BLK-C1]** `WebGLTextureManager`: 2D-GPU-Textur & RefCount-Lecks bei `dispose()` behoben.
+- [x] **[BLK-C2]** `PhysicsBroadphase`: Octree-Extents-Update für dynamische Collider korrigiert.
+- [x] **[BLK-C3]** `Matrix4.scale()`: Overload-Signaturen und Fallback-Validierung repariert.
+- [x] **[BLK-L1]** `AssetManager`: Cache-Poisoning behoben (automatische Cache-Eviction abgelehnter Promises bei Netzwerkfehlern).
+- [x] **[BLK-L2]** `AssetManager`: `streamBinary` try-finally Kapselung gegen Deadlocks & Cache-Bereinigung.
+- [x] **[BLK-L3]** `GltfBinaryParser`: Unaligned Byte-Offsets & Buffer-Overflow-Guards für TypedArrays implementiert.
+- [x] **[BLK-T1]** Tool-Lifecycle: `MaterialStudio.unmount()` zerstört Engine-Loop; `Pixler` & `MakerApp` bereinigen alle Window/DOM-Listeners via `AbortController`.
+- [x] **[BLK-T2]** `MakerApp`: `_getTopLevelSelection()` verhindert redundantes Duplizieren/Löschen von Kind-Elementen bei hierarchischer Mehrfachauswahl.
+- [x] **[BLK-T3]** `ibl-gen`: Import-Side-Effects eliminiert, Initialisierung sauber in `initIBLGenTool()` gekapselt.
+- [x] **[MAJ-01]** `WebGL2UniformBuffer` & `WebGL2Renderer`: Skalare `setVec3`/`setVec4`-Writes eliminieren per-Frame Vector3D-Allokationen in `updateGlobalUBO()`.
+- [x] **[MAJ-02]** `BoundingBox`: Jim-Arvo-Transformationsalgorithmus eliminiert temporäre Vektoren und MathPool-Thrashing.
+- [x] **[MAJ-03]** `Raycaster`: Lokale Ray-Transformation via `worldMatrix.invert()` eliminiert 15.000 Vektortransformationen pro Picking-Frame.
+- [x] **[MAJ-04]** `EulerIntegrator` & `Quaternion`: 0-Allokations-Dynamik und geschlossene Quaternion-Integration eliminieren 12 MathPool-Acquires pro Substep.
+- [x] **[MAJ-05]** `CascadedShadowPassGPU` & `SpotShadowPassGPU`: Vorab gecachte `GPUTextureView`-Arrays für Shadow-Layer eliminieren per-Frame View-Allokationen.
+- [x] **[MAJ-06]** `Input`: Zentraler `isEditingTextInput()`-Guard verhindert Shortcut-Kollisionen bei Formularfeld-Eingaben in `Pixler`, `MakerApp` und `ViennaMapModal`.
+- [x] **[MAJ-07]** `MakerApp`: `Shift` standardisiert als 10x-Multiplikator (*Photoshop/Blender/Figma-Konvention*), Vertikalbewegung auf `PageUp`/`PageDown`.
+- [x] **[MAJ-08]** `GltfExtensionRegistry`: Plugin-Registrierungen werden anhand von `plugin.name` dedupliziert; `unregisterGltfExtension()` ergänzt.
+- [x] **[MAJ-09]** `KhrTextureBasisu`: Rohes `fetch()` durch `assetManager.loadBinary()` ersetzt (inkl. Base-URL- & Caching-Unterstützung).
+- [x] **[MIN-01]** `Xtractor`: Toter Mock-AI-Code entfernt und durch deterministischen Slice-Processor ersetzt.
+- [x] **[MIN-02]** `MapGenerator`: Escaped `\\n` durch echte Newlines (`\n`) ersetzt.
+- [x] **[MIN-03]** `MaterialStudio`: CSS-Styles und globale Resets in `.swf-ms-container` isoliert.
+- [x] **[MIN-04]** `BunkerKit` & `flakturm-tunnel`: Laternen-Geometrie zentralisiert und de-dupliziert.
+- [x] **[MIN-05]** `Ray` & `Raycaster`: `intersectsOBB()` (0 Allokationen) & `BoundingType.OBB`-Picking implementiert.

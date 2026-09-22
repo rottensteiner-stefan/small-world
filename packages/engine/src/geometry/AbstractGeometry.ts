@@ -173,10 +173,27 @@ export abstract class AbstractGeometry implements Geometry {
       const otz: number = tz - nz * dot;
       const len: number = Math.sqrt(otx * otx + oty * oty + otz * otz);
 
-      if (len > 0) {
+      if (len > 0.00001) {
         this._tangents[i * 3] = otx / len;
         this._tangents[i * 3 + 1] = oty / len;
         this._tangents[i * 3 + 2] = otz / len;
+      } else {
+        const absNy = Math.abs(ny);
+        if (absNy < 0.999) {
+          const px = -nz;
+          const pz = nx;
+          const pLen = Math.sqrt(px * px + pz * pz);
+          this._tangents[i * 3] = px / pLen;
+          this._tangents[i * 3 + 1] = 0;
+          this._tangents[i * 3 + 2] = pz / pLen;
+        } else {
+          const py = nz;
+          const pz = -ny;
+          const pLen = Math.sqrt(py * py + pz * pz);
+          this._tangents[i * 3] = 0;
+          this._tangents[i * 3 + 1] = py / pLen;
+          this._tangents[i * 3 + 2] = pz / pLen;
+        }
       }
     }
   }

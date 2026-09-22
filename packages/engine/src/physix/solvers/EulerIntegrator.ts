@@ -1,5 +1,5 @@
 import { Object3D } from "../../core/Object3D.js";
-import { Vector3D, MathPool, MathUtils } from "../../math/index.js";
+import { Vector3D, MathUtils } from "../../math/index.js";
 
 /**
  * Shortest-path angular delta from `from` to `to` (radians, wrapped into (-PI, PI]).
@@ -33,18 +33,25 @@ export class EulerIntegrator {
     const rb = obj.rigidBody!;
 
     // acceleration = (forces / mass) + gravity
-    rb.acceleration.copyFrom(rb.forces).scale(rb.inverseMass).add(gravity);
+    rb.acceleration.x = rb.forces.x * rb.inverseMass + gravity.x;
+    rb.acceleration.y = rb.forces.y * rb.inverseMass + gravity.y;
+    rb.acceleration.z = rb.forces.z * rb.inverseMass + gravity.z;
 
     // v = v + a * dt
-    const deltaV = MathPool.acquireVector().copyFrom(rb.acceleration).scale(dt);
-    rb.velocity.add(deltaV);
-    MathPool.releaseVector(deltaV);
+    rb.velocity.x += rb.acceleration.x * dt;
+    rb.velocity.y += rb.acceleration.y * dt;
+    rb.velocity.z += rb.acceleration.z * dt;
 
     // Apply friction and fluid damping
-    rb.velocity.scale(rb.friction * fluidLinearDrag);
+    const damping = rb.friction * fluidLinearDrag;
+    rb.velocity.x *= damping;
+    rb.velocity.y *= damping;
+    rb.velocity.z *= damping;
 
     // deltaP = v * dt
-    outDeltaP.copyFrom(rb.velocity).scale(dt);
+    outDeltaP.x = rb.velocity.x * dt;
+    outDeltaP.y = rb.velocity.y * dt;
+    outDeltaP.z = rb.velocity.z * dt;
   }
 
   /**
@@ -53,7 +60,9 @@ export class EulerIntegrator {
    * @param deltaP Displacement vector.
    */
   public static applyDisplacement(obj: Object3D, deltaP: Vector3D): void {
-    obj.position.add(deltaP);
+    obj.position.x += deltaP.x;
+    obj.position.y += deltaP.y;
+    obj.position.z += deltaP.z;
   }
 
   /**
@@ -66,43 +75,80 @@ export class EulerIntegrator {
     const rb = obj.rigidBody!;
 
     // angularAcceleration = torque / inertia
-    rb.angularAcceleration.copyFrom(rb.torque).scale(rb.inverseInertia);
+    rb.angularAcceleration.x = rb.torque.x * rb.inverseInertia;
+    rb.angularAcceleration.y = rb.torque.y * rb.inverseInertia;
+    rb.angularAcceleration.z = rb.torque.z * rb.inverseInertia;
 
     // w = w + alpha * dt
-    const deltaW = MathPool.acquireVector().copyFrom(rb.angularAcceleration).scale(dt);
-    rb.angularVelocity.add(deltaW);
-    MathPool.releaseVector(deltaW);
+    rb.angularVelocity.x += rb.angularAcceleration.x * dt;
+    rb.angularVelocity.y += rb.angularAcceleration.y * dt;
+    rb.angularVelocity.z += rb.angularAcceleration.z * dt;
 
     // Apply angular damping
-    rb.angularVelocity.scale(rb.angularDamping * fluidAngularDrag);
+    const damping = rb.angularDamping * fluidAngularDrag;
+    rb.angularVelocity.x *= damping;
+    rb.angularVelocity.y *= damping;
+    rb.angularVelocity.z *= damping;
 
-    const wLength = rb.angularVelocity.length();
-    if (wLength > 0.000001) {
-      const axis = MathPool.acquireVector()
-        .copyFrom(rb.angularVelocity)
-        .scale(1.0 / wLength);
-      const deltaQ = MathPool.acquireQuaternion().setFromAxisAngle(axis, wLength * dt);
+    const wx = rb.angularVelocity.x;
+    const wy = rb.angularVelocity.y;
+    const wz = rb.angularVelocity.z;
+    const wLengthSq = wx * wx + wy * wy + wz * wz;
 
-      const zeroPos = MathPool.acquireVector().set(0, 0, 0);
-      const unitScale = MathPool.acquireVector().set(1, 1, 1);
-      const currentMatrix = MathPool.acquireMatrix().compose(zeroPos, obj.rotation, unitScale);
-      const currentQ = MathPool.acquireQuaternion().setFromRotationMatrix(currentMatrix);
+    if (wLengthSq > 1e-12) {
+      const wLength = Math.sqrt(wLengthSq);
+      const halfAngle = wLength * dt * 0.5;
+      const s = Math.sin(halfAngle) / wLength;
+      const dqX = wx * s;
+      const dqY = wy * s;
+      const dqZ = wz * s;
+      const dqW = Math.cos(halfAngle);
 
-      currentQ.premultiply(deltaQ).normalize();
+      // Current rotation to Quaternion (Euler YXZ -> Quaternion)
+      const rx = obj.rotation.x * 0.5;
+      const ry = obj.rotation.y * 0.5;
+      const rz = obj.rotation.z * 0.5;
+      const cx = Math.cos(rx),
+        sx = Math.sin(rx);
+      const cy = Math.cos(ry),
+        sy = Math.sin(ry);
+      const cz = Math.cos(rz),
+        sz = Math.sin(rz);
 
-      currentMatrix.setFromQuaternion(currentQ);
-      const outPos = MathPool.acquireVector();
-      const outScale = MathPool.acquireVector();
-      currentMatrix.decompose(outPos, obj.rotation, outScale);
+      const curX = cy * sx * cz + sy * cx * sz;
+      const curY = sy * cx * cz - cy * sx * sz;
+      const curZ = cy * cx * sz - sy * sx * cz;
+      const curW = cy * cx * cz + sy * sx * sz;
 
-      MathPool.releaseVector(axis);
-      MathPool.releaseVector(zeroPos);
-      MathPool.releaseVector(unitScale);
-      MathPool.releaseVector(outPos);
-      MathPool.releaseVector(outScale);
-      MathPool.releaseQuaternion(deltaQ);
-      MathPool.releaseQuaternion(currentQ);
-      MathPool.releaseMatrix(currentMatrix);
+      // deltaQ * currentQ (premultiply rotation)
+      let qx = dqW * curX + dqX * curW + dqY * curZ - dqZ * curY;
+      let qy = dqW * curY - dqX * curZ + dqY * curW + dqZ * curX;
+      let qz = dqW * curZ + dqX * curY - dqY * curX + dqZ * curW;
+      let qw = dqW * curW - dqX * curX - dqY * curY - dqZ * curZ;
+
+      // Normalize quaternion
+      const invLen = 1.0 / Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
+      qx *= invLen;
+      qy *= invLen;
+      qz *= invLen;
+      qw *= invLen;
+
+      if (obj.quaternion) {
+        obj.quaternion.set(qx, qy, qz, qw);
+      }
+
+      // Quaternion to Euler YXZ
+      const sinX = 2 * (qw * qx - qy * qz);
+      const clampedSinX = Math.max(-1, Math.min(1, sinX));
+      obj.rotation.x = Math.asin(clampedSinX);
+
+      if (Math.abs(clampedSinX) < 0.99999) {
+        obj.rotation.y = Math.atan2(2 * (qz * qx + qw * qy), 1 - 2 * (qx * qx + qy * qy));
+        obj.rotation.z = Math.atan2(2 * (qx * qy + qw * qz), 1 - 2 * (qx * qx + qz * qz));
+      } else {
+        obj.rotation.y = Math.atan2(2 * (qw * qy - qx * qz), 1 - 2 * (qy * qy + qz * qz));
+        obj.rotation.z = 0;
+      }
     }
   }
 

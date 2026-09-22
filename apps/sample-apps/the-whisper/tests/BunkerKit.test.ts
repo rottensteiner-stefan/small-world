@@ -104,4 +104,12 @@ describe("BunkerKit Prop Builder", () => {
     const bezelX = Math.abs(bezelBolts!.children[0]!.position.x);
     expect(caseCornerX).toBeGreaterThan(bezelX);
   });
+
+  it("creates a handheld lantern with handle, top cap, and glowing body", () => {
+    const lantern = BunkerKit.createHeldLantern({ name: "StormLantern" });
+    expect(lantern.name).toBe("StormLantern");
+    expect(lantern.getObjectByName("LanternHandle")).toBeDefined();
+    expect(lantern.getObjectByName("LanternTopCap")).toBeDefined();
+    expect(lantern.getObjectByName("LanternBody")).toBeDefined();
+  });
 });

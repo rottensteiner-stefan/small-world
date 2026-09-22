@@ -26,6 +26,8 @@ export class CascadedShadowPassGPU implements RenderPass {
    */
   private _dummyTargetViews = new Map<GPUTextureFormat, GPUTextureView>();
   private _dirShadowTexView?: GPUTextureView;
+  private _cascadeLayerViews: GPUTextureView[] = [];
+  private _cachedFbo?: GPUTexture;
   private _bindGroupNeedsShadowRebuild = true;
   private _depthMaterial?: DepthMaterial;
   /**
@@ -77,6 +79,20 @@ export class CascadedShadowPassGPU implements RenderPass {
       this._bindGroupNeedsShadowRebuild = true;
     }
 
+    if (this._cachedFbo !== fbo || this._cascadeLayerViews.length !== dLight.numCascades) {
+      this._cachedFbo = fbo;
+      this._cascadeLayerViews = [];
+      for (let i = 0; i < dLight.numCascades; i++) {
+        this._cascadeLayerViews.push(
+          fbo.createView({
+            dimension: "2d",
+            baseArrayLayer: i,
+            arrayLayerCount: 1,
+          }),
+        );
+      }
+    }
+
     // Temporarily swap back default fallback shadow views so the shadow caster bind group
     // does not reference fbo (which would create a WebGPU write/read usage conflict).
     const realDirShadow = renderer.defaultDirShadowTextureView;
@@ -120,11 +136,7 @@ export class CascadedShadowPassGPU implements RenderPass {
           },
         ],
         depthStencilAttachment: {
-          view: fbo.createView({
-            dimension: "2d",
-            baseArrayLayer: i,
-            arrayLayerCount: 1,
-          }),
+          view: this._cascadeLayerViews[i]!,
           depthClearValue: 1.0,
           depthLoadOp: "clear",
           depthStoreOp: "store",

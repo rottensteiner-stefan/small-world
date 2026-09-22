@@ -2,7 +2,7 @@ import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import type { OBB } from "./OBB.js";
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
-import { Vector3D, MathPool, Matrix4 } from "../math/index.js";
+import { Vector3D, Matrix4 } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 
 /**
@@ -200,31 +200,121 @@ export class BoundingBox implements BoundingVolume {
 
   /** @inheritdoc */
   public transform(matrix: Matrix4): void {
-    const min = this.min;
-    const max = this.max;
+    const e = matrix.data;
+    const minX = this.min.x;
+    const minY = this.min.y;
+    const minZ = this.min.z;
+    const maxX = this.max.x;
+    const maxY = this.max.y;
+    const maxZ = this.max.z;
 
-    // Corners of the box
-    const points = [
-      MathPool.acquireVector().set(min.x, min.y, min.z),
-      MathPool.acquireVector().set(min.x, min.y, max.z),
-      MathPool.acquireVector().set(min.x, max.y, min.z),
-      MathPool.acquireVector().set(min.x, max.y, max.z),
-      MathPool.acquireVector().set(max.x, min.y, min.z),
-      MathPool.acquireVector().set(max.x, min.y, max.z),
-      MathPool.acquireVector().set(max.x, max.y, min.z),
-      MathPool.acquireVector().set(max.x, max.y, max.z),
-    ];
+    // Translation component
+    let newMinX = e[12]!;
+    let newMaxX = e[12]!;
+    let newMinY = e[13]!;
+    let newMaxY = e[13]!;
+    let newMinZ = e[14]!;
+    let newMaxZ = e[14]!;
 
-    min.set(Infinity, Infinity, Infinity);
-    max.set(-Infinity, -Infinity, -Infinity);
-
-    for (const p of points) {
-      matrix.transformVector(p);
-      min.min(p);
-      max.max(p);
-      MathPool.releaseVector(p);
+    // X column contribution
+    let a = e[0]! * minX;
+    let b = e[0]! * maxX;
+    if (a < b) {
+      newMinX += a;
+      newMaxX += b;
+    } else {
+      newMinX += b;
+      newMaxX += a;
     }
 
-    this.center.copyFrom(min).add(max).scale(0.5);
+    a = e[1]! * minX;
+    b = e[1]! * maxX;
+    if (a < b) {
+      newMinY += a;
+      newMaxY += b;
+    } else {
+      newMinY += b;
+      newMaxY += a;
+    }
+
+    a = e[2]! * minX;
+    b = e[2]! * maxX;
+    if (a < b) {
+      newMinZ += a;
+      newMaxZ += b;
+    } else {
+      newMinZ += b;
+      newMaxZ += a;
+    }
+
+    // Y column contribution
+    a = e[4]! * minY;
+    b = e[4]! * maxY;
+    if (a < b) {
+      newMinX += a;
+      newMaxX += b;
+    } else {
+      newMinX += b;
+      newMaxX += a;
+    }
+
+    a = e[5]! * minY;
+    b = e[5]! * maxY;
+    if (a < b) {
+      newMinY += a;
+      newMaxY += b;
+    } else {
+      newMinY += b;
+      newMaxY += a;
+    }
+
+    a = e[6]! * minY;
+    b = e[6]! * maxY;
+    if (a < b) {
+      newMinZ += a;
+      newMaxZ += b;
+    } else {
+      newMinZ += b;
+      newMaxZ += a;
+    }
+
+    // Z column contribution
+    a = e[8]! * minZ;
+    b = e[8]! * maxZ;
+    if (a < b) {
+      newMinX += a;
+      newMaxX += b;
+    } else {
+      newMinX += b;
+      newMaxX += a;
+    }
+
+    a = e[9]! * minZ;
+    b = e[9]! * maxZ;
+    if (a < b) {
+      newMinY += a;
+      newMaxY += b;
+    } else {
+      newMinY += b;
+      newMaxY += a;
+    }
+
+    a = e[10]! * minZ;
+    b = e[10]! * maxZ;
+    if (a < b) {
+      newMinZ += a;
+      newMaxZ += b;
+    } else {
+      newMinZ += b;
+      newMaxZ += a;
+    }
+
+    this.min.set(newMinX, newMinY, newMinZ);
+    this.max.set(newMaxX, newMaxY, newMaxZ);
+    this.center.set(
+      (newMinX + newMaxX) * 0.5,
+      (newMinY + newMaxY) * 0.5,
+      (newMinZ + newMaxZ) * 0.5,
+    );
   }
 }

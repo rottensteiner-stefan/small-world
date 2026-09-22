@@ -88,7 +88,18 @@ export class DepthPrePassGPU implements RenderPass {
 
     for (let batchIdx = 0; batchIdx < renderList.opaqueBatches.length; batchIdx++) {
       const batch = renderList.opaqueBatches[batchIdx];
-      if (batch!.shaderId === MaterialType.SKYBOX || batch!.objects.length === 0) continue;
+      if (
+        batch!.shaderId === MaterialType.SKYBOX ||
+        batch!.shaderId === MaterialType.WIREFRAME ||
+        batch!.shaderId === MaterialType.SPRITE ||
+        batch!.shaderId === MaterialType.OPEN_WATER ||
+        batch!.shaderId === MaterialType.STYLIZED_WATER ||
+        batch!.shaderId === MaterialType.FLUID_SURFACE ||
+        batch!.shaderId.startsWith("CustomShaderMaterial_") ||
+        batch!.objects.length === 0
+      ) {
+        continue;
+      }
 
       let topology: GPUPrimitiveTopology = Topology.DEFAULT;
       if (batch!.topology === Topology.POINT_LIST) topology = Topology.POINT_LIST;
@@ -111,6 +122,14 @@ export class DepthPrePassGPU implements RenderPass {
       for (let i = 0; i < objects.length; i++) {
         const obj = objects[i]!;
         const objManifest = obj.material?.getRenderManifest();
+        if (
+          objManifest?.state?.depthWrite === false ||
+          objManifest?.state?.depthTest === false ||
+          obj.material?.depthWrite === false ||
+          obj.material?.depthTest === false
+        ) {
+          continue;
+        }
         const extraParams = objManifest?.properties["u_extraParams"] as number[] | undefined;
         const alphaTest = extraParams?.[1] ?? 0;
         const diffuseMap =

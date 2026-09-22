@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { Input } from "../../src/core/Input.js";
+import { Input, isEditingTextInput } from "../../src/core/Input.js";
 import { Keys } from "../../src/enums/Keys.js";
 
 describe("Input Gamepad Support", () => {
@@ -111,6 +111,24 @@ describe("Input Gamepad Support", () => {
       // Dispatch keydown after destroy
       window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyW" }));
       expect(liveInput.isPressed("KeyW")).toBe(false);
+    });
+  });
+
+  describe("isEditingTextInput Guard [MAJ-06]", () => {
+    it("correctly identifies input, textarea, select, and contenteditable elements", () => {
+      const inputEl = document.createElement("input");
+      const textareaEl = document.createElement("textarea");
+      const selectEl = document.createElement("select");
+      const divEl = document.createElement("div");
+      const editableDiv = document.createElement("div");
+      editableDiv.contentEditable = "true";
+
+      expect(isEditingTextInput(inputEl)).toBe(true);
+      expect(isEditingTextInput(textareaEl)).toBe(true);
+      expect(isEditingTextInput(selectEl)).toBe(true);
+      expect(isEditingTextInput(editableDiv)).toBe(true);
+      expect(isEditingTextInput(divEl)).toBe(false);
+      expect(isEditingTextInput(null)).toBe(false);
     });
   });
 });

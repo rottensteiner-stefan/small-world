@@ -21,6 +21,7 @@ import {
   BasicMaterial,
   StandardMaterial,
   Color,
+  isEditingTextInput,
 } from "../../core/index.js";
 import { Grid, Cube, Octahedron, Polyline } from "../../geometry/index.js";
 import { Raycaster, BoundingBox, BoundingSphere } from "../../physix/index.js";
@@ -184,6 +185,7 @@ export class MakerApp extends SmallWorld {
    * `update()` skips `_orbit.update()` while true so the orbit controller doesn't immediately
    * overwrite the thumbnail shot on the next frame. */
   private _thumbnailCaptureActive = false;
+  private _abortController = new AbortController();
 
   constructor(private readonly _makerOptions: MakerAppOptions) {
     super(_makerOptions);
@@ -266,15 +268,16 @@ export class MakerApp extends SmallWorld {
     this._setupCameraBookmarkToolbar();
     this._setupGizmoToolbar();
 
-    this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-    this.canvas.addEventListener("pointerdown", (e) => this._onPointerDown(e));
-    window.addEventListener("pointermove", (e) => this._onWindowPointerMove(e));
-    window.addEventListener("pointerup", (e) => this._onWindowPointerUp(e));
-    window.addEventListener("keydown", (e) => this._onMakerKeyDown(e));
+    const signal = this._abortController.signal;
+    this.canvas.addEventListener("contextmenu", (e) => e.preventDefault(), { signal });
+    this.canvas.addEventListener("pointerdown", (e) => this._onPointerDown(e), { signal });
+    window.addEventListener("pointermove", (e) => this._onWindowPointerMove(e), { signal });
+    window.addEventListener("pointerup", (e) => this._onWindowPointerUp(e), { signal });
+    window.addEventListener("keydown", (e) => this._onMakerKeyDown(e), { signal });
 
     // Prevent wheel scrolling on sidebars/panels from zooming the 3D editor viewport
     const isolateWheel = (el: HTMLElement | null | undefined): void => {
-      el?.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+      el?.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true, signal });
     };
     isolateWheel(this._makerOptions.hierarchyContainer);
     isolateWheel(this._makerOptions.propertyContainer);
@@ -1121,10 +1124,25 @@ export class MakerApp extends SmallWorld {
     });
   }
 
+  /** Filters the current selection to only return root nodes whose ancestors are not also selected,
+   * preventing duplicate recursive operations (e.g. duplicating or trashing a parent and child together). */
+  private _getTopLevelSelection(): Object3D[] {
+    const selectedSet = new Set(this._selection);
+    return Array.from(this._selection).filter((obj) => {
+      if (!obj.parent) return false;
+      let curr: Object3D | undefined = obj.parent;
+      while (curr) {
+        if (selectedSet.has(curr)) return false;
+        curr = curr.parent;
+      }
+      return true;
+    });
+  }
+
   /** Deletes every currently selected object as one batch undo step. Works the same for a single
    * selected object as it did before multi-selection existed. */
   public deleteSelection(): void {
-    const objs = Array.from(this._selection).filter((obj) => obj.parent);
+    const objs = this._getTopLevelSelection();
     if (0 === objs.length) return;
     const parents = objs.map((obj) => obj.parent!);
 
@@ -1196,7 +1214,7 @@ export class MakerApp extends SmallWorld {
    * right next to its original, then selects the whole new set of copies as one batch undo step.
    * Works the same for a single selected object as it did before multi-selection existed. */
   public duplicateSelection(): void {
-    const objs = Array.from(this._selection).filter((obj) => obj.parent);
+    const objs = this._getTopLevelSelection();
     if (0 === objs.length) return;
     const clones = objs.map((obj) => {
       const clone = obj.clone();
@@ -1229,7 +1247,7 @@ export class MakerApp extends SmallWorld {
    * object resets to identity within it, Blender/Unity's "Group Selected". Multiple selected
    * objects go through `_groupMultiple()` instead. */
   public groupSelection(): void {
-    const objs = Array.from(this._selection);
+    const objs = this._getTopLevelSelection();
     if (0 === objs.length) return;
     if (1 === objs.length) {
       this._groupSingle(objs[0]!);
@@ -1762,19 +1780,17 @@ export class MakerApp extends SmallWorld {
     }
   }
 
-  /** Whether the currently focused element is a text/dropdown input -- guards every single-key
-   * editor shortcut below from hijacking a key while the user is actually typing/selecting into
-   * a form field (a panel's name field, a dropdown, ...). Was previously re-checked inline at
-   * every call site (`"INPUT" === active.tagName || "TEXTAREA" === active.tagName`, one of them
-   * also including `"SELECT"`) -- unified here, and tightened everywhere to also guard SELECT,
-   * not just the one case that happened to already check it. */
-  private _isEditingField(): boolean {
-    const tag = document.activeElement?.tagName;
-    return "INPUT" === tag || "TEXTAREA" === tag || "SELECT" === tag;
+  /** Central guard so any shortcut checks `INPUT`/`TEXTAREA`/`SELECT`/`contenteditable`,
+   * preventing single-key shortcuts and undo from hijacking key events while typing in fields. */
+  private _isEditingField(
+    target: EventTarget | null = typeof document !== "undefined" ? document.activeElement : null,
+  ): boolean {
+    return isEditingTextInput(target) || isEditingTextInput();
   }
 
   private _onMakerKeyDown(event: KeyboardEvent): void {
     if ((event.ctrlKey || event.metaKey) && "z" === event.key.toLowerCase()) {
+      if (this._isEditingField(event.target)) return;
       event.preventDefault();
       if (event.shiftKey) this._undo.redo();
       else this._undo.undo();
@@ -1955,13 +1971,15 @@ export class MakerApp extends SmallWorld {
     const mode: GizmoMode = isAlt && isShift ? "scale" : isAlt ? "rotate" : this._gizmo.mode;
 
     if ("rotate" === mode) {
-      const snapAngle = this._gizmo.snap.enabled ? this._gizmo.snap.rotate : Math.PI / 12; // 15 deg
+      const baseAngle = this._gizmo.snap.enabled ? this._gizmo.snap.rotate : Math.PI / 12; // 15 deg
+      const multiplier = isShift ? 6 : 1; // 6x = 90 deg quarter turn
+      const snapAngle = baseAngle * multiplier;
       let rx = 0;
       let ry = 0;
       let rz = 0;
 
-      if ("PageUp" === key || ("ArrowLeft" === key && isShift)) rz = snapAngle;
-      else if ("PageDown" === key || ("ArrowRight" === key && isShift)) rz = -snapAngle;
+      if ("PageUp" === key) rz = snapAngle;
+      else if ("PageDown" === key) rz = -snapAngle;
       else if ("ArrowLeft" === key) ry = snapAngle;
       else if ("ArrowRight" === key) ry = -snapAngle;
       else if ("ArrowUp" === key) rx = -snapAngle;
@@ -2008,13 +2026,15 @@ export class MakerApp extends SmallWorld {
     }
 
     if ("scale" === mode) {
-      const step = this._gizmo.snap.enabled ? this._gizmo.snap.scale : 0.25;
+      const baseStep = this._gizmo.snap.enabled ? this._gizmo.snap.scale : 0.25;
+      const multiplier = isShift ? 10 : 1;
+      const step = baseStep * multiplier;
       let sx = 0;
       let sy = 0;
       let sz = 0;
 
-      if ("PageUp" === key || ("ArrowUp" === key && isShift)) sy = step;
-      else if ("PageDown" === key || ("ArrowDown" === key && isShift)) sy = -step;
+      if ("PageUp" === key) sy = step;
+      else if ("PageDown" === key) sy = -step;
       else if ("ArrowLeft" === key) sx = -step;
       else if ("ArrowRight" === key) sx = step;
       else if ("ArrowUp" === key) sz = -step;
@@ -2062,7 +2082,8 @@ export class MakerApp extends SmallWorld {
 
     // Default: Translate mode
     const baseStep = this._gizmo.snap.enabled ? this._gizmo.snap.translate : 0.5;
-    const step = baseStep;
+    const multiplier = isShift ? 10 : 1;
+    const step = baseStep * multiplier;
 
     // Camera-cardinal alignment: arrow directions match on-screen visual perspective
     const camFwd = this.camera.target.clone().sub(this.camera.position);
@@ -2087,9 +2108,9 @@ export class MakerApp extends SmallWorld {
     let dy = 0;
     let dz = 0;
 
-    if ("PageUp" === key || ("ArrowUp" === key && isShift)) {
+    if ("PageUp" === key) {
       dy = step;
-    } else if ("PageDown" === key || ("ArrowDown" === key && isShift)) {
+    } else if ("PageDown" === key) {
       dy = -step;
     } else if ("ArrowLeft" === key) {
       dx = -rgtX * step;
@@ -2142,5 +2163,13 @@ export class MakerApp extends SmallWorld {
         this._project.scheduleAutosave(() => this.scene.root);
       },
     });
+  }
+
+  public override destroy(): void {
+    this._abortController.abort();
+    this._abortController = new AbortController();
+    this._trashBin.remove(...this._trashBin.children);
+    this._undo.clear();
+    super.destroy();
   }
 }

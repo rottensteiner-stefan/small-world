@@ -1,4 +1,19 @@
-import { Object3D, Cube, Cylinder, StandardMaterial, Color, Texture } from "@small-world/engine";
+import {
+  Object3D,
+  Cube,
+  Cylinder,
+  Torus,
+  BasicMaterial,
+  StandardMaterial,
+  Color,
+  Texture,
+} from "@small-world/engine";
+
+export interface HeldLanternOptions {
+  name?: string;
+  brassColor?: Color;
+  glowColor?: Color;
+}
 
 export interface RivetOptions {
   name?: string;
@@ -305,5 +320,54 @@ export class BunkerKit {
       }),
     );
     return group;
+  }
+
+  /**
+   * Creates a handheld oil / kerosene lantern placeholder with a torus handle and brass casing.
+   */
+  public static createHeldLantern(options: HeldLanternOptions = {}): Object3D {
+    const lantern = new Object3D(options.name ?? "HeldLantern");
+    const brassMat = new BasicMaterial({
+      color: options.brassColor ?? new Color(0.9, 0.65, 0.25),
+    });
+    const glowGlassMat = new BasicMaterial({
+      color: options.glowColor ?? new Color(1.0, 0.9, 0.6),
+    });
+
+    const handle = new Object3D("LanternHandle");
+    handle.geometry = new Torus({
+      radius: 0.045,
+      tube: 0.006,
+      radialSegments: 8,
+    }).getGeometryData();
+    handle.material = brassMat;
+    handle.rotation.z = Math.PI / 2;
+    handle.position.set(0, -0.02, 0);
+    lantern.add(handle);
+
+    const topCap = new Object3D("LanternTopCap");
+    topCap.geometry = new Cylinder({
+      radiusTop: 0.02,
+      radiusBottom: 0.06,
+      height: 0.04,
+    }).getGeometryData();
+    topCap.material = brassMat;
+    topCap.position.set(0, -0.05, 0);
+    lantern.add(topCap);
+
+    const body = new Object3D("LanternBody");
+    body.geometry = new Cylinder({
+      radiusTop: 0.05,
+      radiusBottom: 0.07,
+      height: 0.18,
+    }).getGeometryData();
+    body.material = glowGlassMat;
+    body.position.set(0, -0.16, 0);
+    lantern.add(body);
+
+    lantern.position.set(0, 0, 0);
+    lantern.rotation.set(0, 0, 0);
+
+    return lantern;
   }
 }

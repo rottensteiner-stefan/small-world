@@ -41,7 +41,6 @@ import {
   PostProcessingEffectType,
 } from "../../enums/index.js";
 import {
-  MathPool,
   Vector3D,
   ClusterGridDims,
   computeClusterCounts,
@@ -1429,23 +1428,22 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   ): void {
     const ubo = this._globalUBO;
     ubo.setMatrix(0, vp);
-    ubo.setVector3(64, camPos);
+    ubo.setVec3(64, camPos.x, camPos.y, camPos.z);
 
-    // Scale colors by intensity
-    const aScaled = new Vector3D(
+    // Scale colors by intensity without Vector3D allocations
+    ubo.setVec3(
+      80,
       lights.aCol.r * lights.aIntensity,
       lights.aCol.g * lights.aIntensity,
       lights.aCol.b * lights.aIntensity,
     );
-    const dScaled = new Vector3D(
+    ubo.setVec3(
+      96,
       lights.dCol.r * lights.dIntensity,
       lights.dCol.g * lights.dIntensity,
       lights.dCol.b * lights.dIntensity,
     );
-
-    ubo.setVector3(80, aScaled);
-    ubo.setVector3(96, dScaled);
-    ubo.setVector3(112, lights.dDir);
+    ubo.setVec3(112, lights.dDir.x, lights.dDir.y, lights.dDir.z);
     // WebGL2's raw UBO light array still has 16 slots (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md);
     // clamp explicitly now that the scene-wide cap is 64.
     ubo.setInt(128, Math.min(lights.pLights.length, 16));
@@ -1458,21 +1456,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const offset = 160 + i * 32;
       if (i < lights.pLights.length) {
         const pl = lights.pLights[i]!;
-        ubo.setVector3(
-          offset,
-          new Vector3D(
-            pl.worldMatrix.data[12]!,
-            pl.worldMatrix.data[13]!,
-            pl.worldMatrix.data[14]!,
-          ),
-        );
-        ubo.setVector3(
+        const matData = pl.worldMatrix.data;
+        ubo.setVec3(offset, matData[12]!, matData[13]!, matData[14]!);
+        ubo.setVec3(
           offset + 16,
-          new Vector3D(
-            pl.color.r * pl.intensity,
-            pl.color.g * pl.intensity,
-            pl.color.b * pl.intensity,
-          ),
+          pl.color.r * pl.intensity,
+          pl.color.g * pl.intensity,
+          pl.color.b * pl.intensity,
         );
         ubo.setFloat(offset + 12, pl.distance);
         ubo.setFloat(offset + 28, pl.decay);
@@ -1483,29 +1473,21 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const offset = 672 + i * 64;
       if (i < lights.sLights.length) {
         const sl = lights.sLights[i]!;
-        const dir = MathPool.acquireVector().copyFrom(sl.direction).normalize();
-        ubo.setVector3(
-          offset,
-          new Vector3D(
-            sl.worldMatrix.data[12]!,
-            sl.worldMatrix.data[13]!,
-            sl.worldMatrix.data[14]!,
-          ),
-        );
-        ubo.setVector3(offset + 16, dir);
-        ubo.setVector3(
+        const slMat = sl.worldMatrix.data;
+        const dir = sl.direction;
+        const dirLen = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) || 1.0;
+        ubo.setVec3(offset, slMat[12]!, slMat[13]!, slMat[14]!);
+        ubo.setVec3(offset + 16, dir.x / dirLen, dir.y / dirLen, dir.z / dirLen);
+        ubo.setVec3(
           offset + 32,
-          new Vector3D(
-            sl.color.r * sl.intensity,
-            sl.color.g * sl.intensity,
-            sl.color.b * sl.intensity,
-          ),
+          sl.color.r * sl.intensity,
+          sl.color.g * sl.intensity,
+          sl.color.b * sl.intensity,
         );
         ubo.setFloat(offset + 48, Math.cos(sl.angle));
         ubo.setFloat(offset + 52, Math.cos(sl.angle * (1.0 - sl.penumbra)));
         ubo.setFloat(offset + 56, sl.distance);
         ubo.setFloat(offset + 60, sl.decay);
-        MathPool.releaseVector(dir);
       }
     }
 
@@ -1514,18 +1496,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (i < lights.aLights.length) {
         const al = lights.aLights[i]!;
         const mat = al.worldMatrix.data;
-        ubo.setVector3(offset, new Vector3D(mat[12]!, mat[13]!, mat[14]!));
-        ubo.setVector3(
+        ubo.setVec3(offset, mat[12]!, mat[13]!, mat[14]!);
+        ubo.setVec3(
           offset + 16,
-          new Vector3D(
-            al.color.r * al.intensity,
-            al.color.g * al.intensity,
-            al.color.b * al.intensity,
-          ),
+          al.color.r * al.intensity,
+          al.color.g * al.intensity,
+          al.color.b * al.intensity,
         );
-        ubo.setVector3(offset + 32, new Vector3D(mat[0]!, mat[1]!, mat[2]!));
-        ubo.setVector3(offset + 48, new Vector3D(mat[4]!, mat[5]!, mat[6]!));
-        ubo.setVector3(offset + 64, new Vector3D(mat[8]!, mat[9]!, mat[10]!));
+        ubo.setVec3(offset + 32, mat[0]!, mat[1]!, mat[2]!);
+        ubo.setVec3(offset + 48, mat[4]!, mat[5]!, mat[6]!);
+        ubo.setVec3(offset + 64, mat[8]!, mat[9]!, mat[10]!);
         ubo.setFloat(offset + 80, al.width / 2.0);
         ubo.setFloat(offset + 84, al.height / 2.0);
       }

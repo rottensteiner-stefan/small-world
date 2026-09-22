@@ -739,13 +739,6 @@ export class Xtractor extends ForgeTool {
       chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
-    /**
-     * @DEVELOPER_NOTE: MOCK AI UI
-     * This is a hardcoded mock UI mimicking an AI assistant.
-     * NO actual AI API (OpenAI/Gemini) is connected here!
-     * It uses simple regex matching to slice sprites for testing.
-     * Replace this logic with a real fetch() to a vision model backend if needed.
-     */
     btnSend.addEventListener("click", () => {
       const text = chatInput.value.trim();
       if (!text) return;
@@ -753,81 +746,68 @@ export class Xtractor extends ForgeTool {
       addMessage(text, "user");
       chatInput.value = "";
 
-      // Mock AI Response & Processing
-      setTimeout(() => {
-        if (currentRect) {
-          const lowerText = text.toLowerCase();
+      if (!currentRect) {
+        addMessage(
+          "Kein Bereich ausgewählt. Bitte ziehe zuerst ein Auswahl-Rechteck auf der Arbeitsfläche auf.",
+          "ai",
+        );
+        return;
+      }
 
-          // Smart keyword matching for slicing
-          const match10 = lowerText.match(/(?:10|zehn)/);
-          const matchSlice = lowerText.match(/(?:schneide|zerschneide|teile|slice|zahlen)/);
+      const sliceMatch = text.match(/(?:slice|teile|schneide|segmente?)\s*(\d+)?/i);
+      if (sliceMatch) {
+        const numSlices = sliceMatch[1]
+          ? Math.max(1, Math.min(64, parseInt(sliceMatch[1], 10)))
+          : 4;
+        const sliceWidth = currentRect.w / numSlices;
 
-          if (match10 || matchSlice) {
-            addMessage(
-              "Ich habe deinen Ausschnitt analysiert und in 10 gleichmäßige Segmente unterteilt. Hier ist das Ergebnis:",
-              "ai",
-            );
+        addMessage(`Bereich in ${numSlices} gleichmäßige Segmente unterteilt:`, "ai");
 
-            const numSlices = 10;
-            const sliceWidth = currentRect!.w / numSlices;
+        const gallery = document.createElement("div");
+        gallery.style.display = "flex";
+        gallery.style.gap = "5px";
+        gallery.style.flexWrap = "wrap";
+        gallery.style.marginTop = "10px";
 
-            const gallery = document.createElement("div");
-            gallery.style.display = "flex";
-            gallery.style.gap = "5px";
-            gallery.style.flexWrap = "wrap";
-            gallery.style.marginTop = "10px";
+        for (let i = 0; i < numSlices; i++) {
+          const sliceCanvas = document.createElement("canvas");
+          sliceCanvas.width = sliceWidth;
+          sliceCanvas.height = currentRect.h;
+          sliceCanvas.style.border = "1px solid #38bdf8";
+          sliceCanvas.style.background = "#0f172a";
+          sliceCanvas.title = `Sprite ${i + 1} (Klicken zum Speichern)`;
 
-            for (let i = 0; i < numSlices; i++) {
-              const sliceCanvas = document.createElement("canvas");
-              sliceCanvas.width = sliceWidth;
-              sliceCanvas.height = currentRect!.h;
-              sliceCanvas.style.border = "1px solid #38bdf8";
-              sliceCanvas.style.background = "#0f172a";
-              sliceCanvas.title = `Sprite ${i} (Klicken zum Speichern)`;
-
-              const sCtx = sliceCanvas.getContext("2d")!;
-              sCtx.drawImage(
-                canvas,
-                currentRect!.x + i * sliceWidth,
-                currentRect!.y,
-                sliceWidth,
-                currentRect!.h,
-                0,
-                0,
-                sliceWidth,
-                currentRect!.h,
-              );
-
-              // Click to download
-              sliceCanvas.style.cursor = "pointer";
-              sliceCanvas.addEventListener("click", () => {
-                const link = document.createElement("a");
-                link.download = `doom_num_${i}.png`;
-                link.href = sliceCanvas.toDataURL();
-                link.click();
-              });
-
-              gallery.appendChild(sliceCanvas);
-            }
-
-            chatHistory.lastChild!.appendChild(gallery);
-            addMessage(
-              "Klicke auf ein beliebiges Segment, um es direkt als PNG auf deinen Rechner herunterzuladen!",
-              "ai",
-            );
-          } else {
-            addMessage(
-              `Verstanden! Ich habe den Ausschnitt (${Math.round(currentRect!.w)}x${Math.round(currentRect!.h)}px) entgegengenommen. Was genau soll ich damit tun? (Tipp: Sag mir z.B. "Schneide es in 10 Teile").`,
-              "ai",
-            );
-          }
-        } else {
-          addMessage(
-            "Das werde ich machen! (Hinweis: Du hast aktuell keinen Bereich auf dem Bild markiert. Bitte ziehe zuerst ein Rechteck!).",
-            "ai",
+          const sCtx = sliceCanvas.getContext("2d")!;
+          sCtx.drawImage(
+            canvas,
+            currentRect.x + i * sliceWidth,
+            currentRect.y,
+            sliceWidth,
+            currentRect.h,
+            0,
+            0,
+            sliceWidth,
+            currentRect.h,
           );
+
+          sliceCanvas.style.cursor = "pointer";
+          sliceCanvas.addEventListener("click", () => {
+            const link = document.createElement("a");
+            link.download = `sprite_slice_${i + 1}.png`;
+            link.href = sliceCanvas.toDataURL();
+            link.click();
+          });
+
+          gallery.appendChild(sliceCanvas);
         }
-      }, 800);
+
+        chatHistory.lastChild!.appendChild(gallery);
+      } else {
+        addMessage(
+          `Auswahl: ${Math.round(currentRect.w)}x${Math.round(currentRect.h)}px. Verfügbare Befehle: 'slice <N>' (z.B. 'slice 8') zum Zerschneiden in Segmente.`,
+          "ai",
+        );
+      }
     });
 
     chatInput.addEventListener("keypress", (e: KeyboardEvent) => {

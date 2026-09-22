@@ -21,8 +21,12 @@ void main() {
     float roughness = clamp(u_roughness, 0.05, 1.0);
     
     vec3 V = normalize(u_viewPos - v_worldPos);
+    #ifdef USE_NORMAL_MAP
     vec3 rawNormal = texture(u_normalMap, v_uv).rgb * 2.0 - 1.0;
     vec3 N = normalize(v_tbn * rawNormal);
+    #else
+    vec3 N = normalize(v_normal);
+    #endif
     float dotNV = max(dot(N, V), 0.0001);
 
     vec3 F0 = vec3(0.04);

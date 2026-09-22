@@ -1251,7 +1251,7 @@ export class WebGPURenderer extends AbstractRenderer {
       });
       this._hdrTextureView = this._hdrTexture.createView();
     } else if (!this.postProcessing.enabled && this._hdrTexture) {
-      this._hdrTexture.destroy();
+      this._fallback.deferDestroyTexture(this._hdrTexture);
       this._hdrTexture = undefined;
       this._hdrTextureView = undefined;
     }
@@ -1483,7 +1483,7 @@ export class WebGPURenderer extends AbstractRenderer {
       cacheObj.height !== targetTex.height ||
       cacheObj.tex.format !== targetTex.format
     ) {
-      if (cacheObj) cacheObj.tex.destroy();
+      if (cacheObj) this._fallback.deferDestroyTexture(cacheObj.tex);
 
       const tex = this._device!.createTexture({
         size: [targetTex.width, targetTex.height, 1],
@@ -1520,7 +1520,7 @@ export class WebGPURenderer extends AbstractRenderer {
       this._opaqueDepthTexture.height !== srcTex.height ||
       this._opaqueDepthTexture.format !== srcTex.format
     ) {
-      if (this._opaqueDepthTexture) this._opaqueDepthTexture.destroy();
+      if (this._opaqueDepthTexture) this._fallback.deferDestroyTexture(this._opaqueDepthTexture);
 
       const tex = this._device!.createTexture({
         size: [srcTex.width, srcTex.height, 1],
@@ -2120,7 +2120,7 @@ export class WebGPURenderer extends AbstractRenderer {
     }
 
     if (this.postProcessing.enabled) {
-      if (this._hdrTexture) this._hdrTexture.destroy();
+      if (this._hdrTexture) this._fallback.deferDestroyTexture(this._hdrTexture);
       this._hdrTexture = this._device.createTexture({
         size: [this._context.canvas.width, this._context.canvas.height],
         format: "rgba16float",
@@ -2131,7 +2131,7 @@ export class WebGPURenderer extends AbstractRenderer {
       });
       this._hdrTextureView = this._hdrTexture.createView();
     } else if (this._hdrTexture) {
-      this._hdrTexture.destroy();
+      this._fallback.deferDestroyTexture(this._hdrTexture);
       this._hdrTexture = undefined;
       this._hdrTextureView = undefined;
     }

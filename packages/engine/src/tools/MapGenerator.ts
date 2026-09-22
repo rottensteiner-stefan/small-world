@@ -408,14 +408,16 @@ export class MapGenerator extends ForgeTool {
   }
 
   public getMapString(): string {
-    return this._grid.map((row) => row.join("")).join("\\n");
+    return this._grid.map((row) => row.join("")).join("\n");
   }
 
   public loadMapString(mapStr: string): void {
     if (!mapStr.trim()) return;
-    const lines = mapStr
+    const normalized =
+      mapStr.includes("\\n") && !mapStr.includes("\n") ? mapStr.replace(/\\n/g, "\n") : mapStr;
+    const lines = normalized
       .trim()
-      .split("\\n")
+      .split(/\r?\n/)
       .map((l) => l.trim());
     if (lines.length > 0) {
       this._gridHeight = lines.length;

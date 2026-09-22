@@ -99,8 +99,6 @@ export class BloomPassGPU {
     }
 
     if (this._bloomTexture) {
-      this._bloomTexture.destroy();
-      for (const buf of this._uniformBuffers) buf.destroy();
       this._uniformBuffers = [];
     }
 

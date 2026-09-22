@@ -77,18 +77,43 @@ export class GltfBinaryParser {
     const byteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
     const count = accessor.count * this.getComponentCount(accessor.type);
 
+    let bytesPerElement: number;
+    let ctor: new (buffer: ArrayBuffer, byteOffset: number, length: number) => TypedArray;
+
     switch (accessor.componentType) {
       case 5121:
-        return new Uint8Array(buffer, byteOffset, count);
+        bytesPerElement = 1;
+        ctor = Uint8Array;
+        break;
       case 5123:
-        return new Uint16Array(buffer, byteOffset, count);
+        bytesPerElement = 2;
+        ctor = Uint16Array;
+        break;
       case 5125:
-        return new Uint32Array(buffer, byteOffset, count);
+        bytesPerElement = 4;
+        ctor = Uint32Array;
+        break;
       case 5126:
-        return new Float32Array(buffer, byteOffset, count);
+        bytesPerElement = 4;
+        ctor = Float32Array;
+        break;
       default:
         return null;
     }
+
+    const totalBytes = count * bytesPerElement;
+    if (byteOffset + totalBytes > buffer.byteLength) {
+      return null;
+    }
+
+    if (byteOffset % bytesPerElement === 0) {
+      return new ctor(buffer, byteOffset, count);
+    }
+
+    // When byteOffset is unaligned (e.g. byteOffset % 4 !== 0), creating a TypedArray view directly
+    // on `buffer` throws a JavaScript RangeError. Copy the unaligned slice into an aligned ArrayBuffer.
+    const unalignedSlice = buffer.slice(byteOffset, byteOffset + totalBytes);
+    return new ctor(unalignedSlice, 0, count);
   }
 
   /**

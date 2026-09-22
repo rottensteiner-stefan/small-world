@@ -577,153 +577,166 @@ class IBLBaker {
   }
 }
 
-if (typeof document !== "undefined") {
-  document.addEventListener("DOMContentLoaded", (): void => {
-    const input = document.getElementById("skyboxInput") as HTMLInputElement;
-    const generateBtn = document.getElementById("generateBtn") as HTMLButtonElement;
-    const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
+/**
+ * Initializes the standalone IBL Generator tool UI.
+ * Only executes if #dropzone is present in the DOM.
+ */
+export function initIBLGenTool(): void {
+  if (typeof document === "undefined") return;
 
-    let baker: IBLBaker | null = null;
+  const dropzone = document.getElementById("dropzone");
+  if (!dropzone) return;
+
+  const input = document.getElementById("skyboxInput") as HTMLInputElement;
+  const generateBtn = document.getElementById("generateBtn") as HTMLButtonElement;
+  const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
+  if (!input || !generateBtn || !exportBtn) return;
+
+  let baker: IBLBaker | null = null;
+
+  try {
+    baker = new IBLBaker();
+  } catch (e: unknown) {
+    console.error(e);
+    alert("Initialization failed: " + (e as Error).message);
+  }
+
+  const dropzoneText = dropzone.querySelector(".dropzone-text") as HTMLElement;
+
+  function handleFileSelect(file: File): void {
+    if (file) {
+      dropzoneText.innerText = file.name;
+      generateBtn.disabled = false;
+    }
+  }
+
+  input.addEventListener("change", (): void => {
+    if (input.files && input.files.length > 0) {
+      handleFileSelect(input.files[0]!);
+    }
+  });
+
+  dropzone.addEventListener("click", () => input.click());
+
+  dropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropzone.classList.add("dragover");
+  });
+
+  dropzone.addEventListener("dragleave", (): void => {
+    dropzone.classList.remove("dragover");
+  });
+
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+      input.files = e.dataTransfer.files;
+      handleFileSelect(e.dataTransfer.files[0]!);
+    }
+  });
+
+  let generatedEnvCube: WebGLTexture | null = null;
+  let generatedIrradianceCube: WebGLTexture | null = null;
+  let generatedPrefilteredCube: WebGLTexture | null = null;
+
+  generateBtn.addEventListener("click", async (): Promise<void> => {
+    if (!baker || !input.files || input.files.length === 0) return;
+    generateBtn.disabled = true;
+    exportBtn.disabled = true;
+    const text = document.getElementById("progressText")!;
+    text.style.display = "block";
+    text.innerText = "Generating BRDF LUT...";
 
     try {
-      baker = new IBLBaker();
-    } catch (e: unknown) {
+      await baker.generateBRDF("brdfCanvas");
+      text.innerText = "BRDF LUT Generated! Equirectangular coming next...";
+
+      text.innerText = "Loading HDR/Panorama...";
+      const equiTex = await baker.loadEquirectangularImage(input.files[0]!);
+
+      text.innerText = "Generating Environment CubeMap...";
+      generatedEnvCube = await baker.generateEnvironmentCubemap(equiTex, "envCanvas");
+
+      text.innerText = "Base CubeMap Generated! Generating Irradiance Convolution...";
+      generatedIrradianceCube = await baker.generateIrradianceCubemap(
+        generatedEnvCube,
+        "irradianceCanvas",
+      );
+
+      text.innerText = "Irradiance Map Generated! Generating GGX Prefilter...";
+      generatedPrefilteredCube = await baker.generatePrefilteredCubemap(
+        generatedEnvCube,
+        "prefilterCanvas",
+      );
+
+      text.innerText = "All Maps Generated! Ready for Export.";
+      exportBtn.disabled = false;
+      exportBtn.style.opacity = "1";
+    } catch (e) {
       console.error(e);
-      alert("Initialization failed: " + (e as Error).message);
+      text.innerText = "Error occurred.";
     }
+  });
 
-    const dropzone = document.getElementById("dropzone");
-    if (!dropzone) {
-      console.warn("IBL Gen: Could not find #dropzone element. Aborting setup.");
+  exportBtn.addEventListener("click", async (): Promise<void> => {
+    if (!baker || !generatedEnvCube || !generatedIrradianceCube || !generatedPrefilteredCube)
       return;
-    }
-    const dropzoneText = dropzone.querySelector(".dropzone-text") as HTMLElement;
+    exportBtn.disabled = true;
+    const originalText = exportBtn.innerText;
+    exportBtn.innerText = "Zipping...";
 
-    function handleFileSelect(file: File): void {
-      if (file) {
-        dropzoneText.innerText = file.name;
-        generateBtn.disabled = false;
-      }
-    }
+    try {
+      // @ts-expect-error - JSZip is loaded globally
+      const zip = new JSZip();
 
-    input.addEventListener("change", (): void => {
-      if (input.files && input.files.length > 0) {
-        handleFileSelect(input.files[0]!);
-      }
-    });
+      zip.file("env.webp", await baker.exportCubemapToCross(generatedEnvCube, 512, 0));
+      zip.file("irradiance.webp", await baker.exportCubemapToCross(generatedIrradianceCube, 32, 0));
 
-    dropzone.addEventListener("click", () => input.click());
-
-    dropzone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropzone.classList.add("dragover");
-    });
-
-    dropzone.addEventListener("dragleave", (): void => {
-      dropzone.classList.remove("dragover");
-    });
-
-    dropzone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropzone.classList.remove("dragover");
-      if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-        input.files = e.dataTransfer.files;
-        handleFileSelect(e.dataTransfer.files[0]!);
-      }
-    });
-
-    let generatedEnvCube: WebGLTexture | null = null;
-    let generatedIrradianceCube: WebGLTexture | null = null;
-    let generatedPrefilteredCube: WebGLTexture | null = null;
-
-    generateBtn.addEventListener("click", async (): Promise<void> => {
-      if (!baker || !input.files || input.files.length === 0) return;
-      generateBtn.disabled = true;
-      exportBtn.disabled = true;
-      const text = document.getElementById("progressText")!;
-      text.style.display = "block";
-      text.innerText = "Generating BRDF LUT...";
-
-      try {
-        await baker.generateBRDF("brdfCanvas");
-        text.innerText = "BRDF LUT Generated! Equirectangular coming next...";
-
-        text.innerText = "Loading HDR/Panorama...";
-        const equiTex = await baker.loadEquirectangularImage(input.files[0]!);
-
-        text.innerText = "Generating Environment CubeMap...";
-        generatedEnvCube = await baker.generateEnvironmentCubemap(equiTex, "envCanvas");
-
-        text.innerText = "Base CubeMap Generated! Generating Irradiance Convolution...";
-        generatedIrradianceCube = await baker.generateIrradianceCubemap(
-          generatedEnvCube,
-          "irradianceCanvas",
+      // Export 5 mip levels for prefiltered
+      const prefilterFolder = zip.folder("prefilter");
+      let prefilterSize = 128;
+      for (let i = 0; i < 5; i++) {
+        prefilterFolder.file(
+          `mip${i}.png`,
+          await baker.exportCubemapToCross(generatedPrefilteredCube, prefilterSize, i),
         );
-
-        text.innerText = "Irradiance Map Generated! Generating GGX Prefilter...";
-        generatedPrefilteredCube = await baker.generatePrefilteredCubemap(
-          generatedEnvCube,
-          "prefilterCanvas",
-        );
-
-        text.innerText = "All Maps Generated! Ready for Export.";
-        exportBtn.disabled = false;
-        exportBtn.style.opacity = "1";
-      } catch (e) {
-        console.error(e);
-        text.innerText = "Error occurred.";
+        prefilterSize = Math.floor(prefilterSize / 2);
       }
-    });
 
-    exportBtn.addEventListener("click", async (): Promise<void> => {
-      if (!baker || !generatedEnvCube || !generatedIrradianceCube || !generatedPrefilteredCube)
-        return;
-      exportBtn.disabled = true;
-      const originalText = exportBtn.innerText;
-      exportBtn.innerText = "Zipping...";
+      zip.file("brdf_lut.webp", await baker.exportBRDFToBlob("brdfCanvas"));
 
-      try {
-        // @ts-expect-error - JSZip is loaded globally
-        const zip = new JSZip();
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ibl_maps.zip";
+      a.click();
+      URL.revokeObjectURL(url);
 
-        zip.file("env.webp", await baker.exportCubemapToCross(generatedEnvCube, 512, 0));
-        zip.file(
-          "irradiance.webp",
-          await baker.exportCubemapToCross(generatedIrradianceCube, 32, 0),
-        );
-
-        // Export 5 mip levels for prefiltered
-        const prefilterFolder = zip.folder("prefilter");
-        let prefilterSize = 128;
-        for (let i = 0; i < 5; i++) {
-          prefilterFolder.file(
-            `mip${i}.png`,
-            await baker.exportCubemapToCross(generatedPrefilteredCube, prefilterSize, i),
-          );
-          prefilterSize = Math.floor(prefilterSize / 2);
-        }
-
-        zip.file("brdf_lut.webp", await baker.exportBRDFToBlob("brdfCanvas"));
-
-        const content = await zip.generateAsync({ type: "blob" });
-        const url = URL.createObjectURL(content);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "ibl_maps.zip";
-        a.click();
-        URL.revokeObjectURL(url);
-
-        exportBtn.innerText = "Export Complete!";
-        setTimeout((): void => {
-          exportBtn.innerText = originalText;
-          exportBtn.disabled = false;
-        }, 2000);
-      } catch (e) {
-        console.error(e);
-        alert("Error during export.");
+      exportBtn.innerText = "Export Complete!";
+      setTimeout((): void => {
         exportBtn.innerText = originalText;
         exportBtn.disabled = false;
+      }, 2000);
+    } catch (e) {
+      console.error(e);
+      alert("Error during export.");
+      exportBtn.innerText = originalText;
+      exportBtn.disabled = false;
+    }
+  });
+}
+
+// Auto-run only when loaded inside public/tools/ibl-gen.html
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", (): void => {
+      if (document.getElementById("dropzone")) {
+        initIBLGenTool();
       }
     });
-  });
+  } else if (document.getElementById("dropzone")) {
+    initIBLGenTool();
+  }
 }

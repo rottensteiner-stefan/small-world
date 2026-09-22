@@ -63,6 +63,20 @@ export class WebGL2UniformBuffer {
   }
 
   /**
+   * Sets a vec3 value in the buffer from discrete components without object allocations.
+   * @param offset The byte offset.
+   * @param x X component.
+   * @param y Y component.
+   * @param z Z component.
+   */
+  public setVec3(offset: number, x: number, y: number, z: number): void {
+    const idx = offset / 4;
+    this._data[idx] = x;
+    this._data[idx + 1] = y;
+    this._data[idx + 2] = z;
+  }
+
+  /**
    * Sets a vec3 value in the buffer.
    * @param offset The byte offset.
    * @param vec The Vector3D value.
@@ -72,6 +86,22 @@ export class WebGL2UniformBuffer {
     this._data[idx] = vec.x;
     this._data[idx + 1] = vec.y;
     this._data[idx + 2] = vec.z;
+  }
+
+  /**
+   * Sets a vec4 value in the buffer from discrete components without object allocations.
+   * @param offset The byte offset.
+   * @param x X component.
+   * @param y Y component.
+   * @param z Z component.
+   * @param w W component.
+   */
+  public setVec4(offset: number, x: number, y: number, z: number, w: number): void {
+    const idx = offset / 4;
+    this._data[idx] = x;
+    this._data[idx + 1] = y;
+    this._data[idx + 2] = z;
+    this._data[idx + 3] = w;
   }
 
   /**

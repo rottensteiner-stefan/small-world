@@ -28,6 +28,31 @@ export interface InputInterface {
 }
 
 /**
+ * Helper to check whether an active element or event target is a text input field,
+ * textarea, select dropdown, or contenteditable element where keyboard shortcuts
+ * should not be intercepted.
+ * @param target The target element to test (defaults to document.activeElement).
+ * @returns True if the user is currently editing text.
+ */
+export function isEditingTextInput(
+  target: EventTarget | null = typeof document !== "undefined" ? document.activeElement : null,
+): boolean {
+  if (!target || !(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if ("INPUT" === tag || "TEXTAREA" === tag || "SELECT" === tag) return true;
+  if (
+    target.isContentEditable ||
+    target.contentEditable === "true" ||
+    target.contentEditable === "plaintext-only" ||
+    target.getAttribute("contenteditable") === "true" ||
+    target.getAttribute("contenteditable") === ""
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Handles user input (keyboard and mouse).
  * Implements a static singleton pattern for global access,
  * but can be instantiated or mocked for testing.
@@ -67,8 +92,7 @@ export class Input implements InputInterface {
   private _isInitialized: boolean = false;
 
   private _onKeyDown = (e: KeyboardEvent): void => {
-    const active = document.activeElement;
-    if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) {
+    if (isEditingTextInput(e.target) || isEditingTextInput()) {
       return;
     }
     this._keys.set(e.code, true);

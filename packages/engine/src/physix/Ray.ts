@@ -1,5 +1,6 @@
 import { BoundingBox } from "./BoundingBox.js";
 import { BoundingSphere } from "./BoundingSphere.js";
+import type { OBB } from "./OBB.js";
 import { Vector3D } from "../math/index.js";
 
 /**
@@ -112,6 +113,93 @@ export class Ray {
 
     if (0 <= t1) return t1;
     if (0 <= t2) return t2;
+    return -1;
+  }
+
+  /**
+   * Tests whether this ray intersects the given OBB.
+   * Uses the slab method projected onto the OBB's local axes.
+   * @param obb The oriented bounding box.
+   * @returns The distance `t` to the nearest intersection, or -1 if no intersection.
+   */
+  public intersectsOBB(obb: OBB): number {
+    let tmin = -Infinity;
+    let tmax = Infinity;
+
+    const pX = this.origin.x - obb.center.x;
+    const pY = this.origin.y - obb.center.y;
+    const pZ = this.origin.z - obb.center.z;
+
+    // Axis 0 (X)
+    {
+      const a = obb.axes[0];
+      const e = a.x * this.direction.x + a.y * this.direction.y + a.z * this.direction.z;
+      const f = a.x * pX + a.y * pY + a.z * pZ;
+      const hi = obb.halfExtents.x;
+      if (Math.abs(e) > 1e-10) {
+        let t1 = (-f - hi) / e;
+        let t2 = (-f + hi) / e;
+        if (t1 > t2) {
+          const tmp = t1;
+          t1 = t2;
+          t2 = tmp;
+        }
+        tmin = Math.max(tmin, t1);
+        tmax = Math.min(tmax, t2);
+        if (tmin > tmax || tmax < 0) return -1;
+      } else if (-f - hi > 0 || -f + hi < 0) {
+        return -1;
+      }
+    }
+
+    // Axis 1 (Y)
+    {
+      const a = obb.axes[1];
+      const e = a.x * this.direction.x + a.y * this.direction.y + a.z * this.direction.z;
+      const f = a.x * pX + a.y * pY + a.z * pZ;
+      const hi = obb.halfExtents.y;
+      if (Math.abs(e) > 1e-10) {
+        let t1 = (-f - hi) / e;
+        let t2 = (-f + hi) / e;
+        if (t1 > t2) {
+          const tmp = t1;
+          t1 = t2;
+          t2 = tmp;
+        }
+        tmin = Math.max(tmin, t1);
+        tmax = Math.min(tmax, t2);
+        if (tmin > tmax || tmax < 0) return -1;
+      } else if (-f - hi > 0 || -f + hi < 0) {
+        return -1;
+      }
+    }
+
+    // Axis 2 (Z)
+    {
+      const a = obb.axes[2];
+      const e = a.x * this.direction.x + a.y * this.direction.y + a.z * this.direction.z;
+      const f = a.x * pX + a.y * pY + a.z * pZ;
+      const hi = obb.halfExtents.z;
+      if (Math.abs(e) > 1e-10) {
+        let t1 = (-f - hi) / e;
+        let t2 = (-f + hi) / e;
+        if (t1 > t2) {
+          const tmp = t1;
+          t1 = t2;
+          t2 = tmp;
+        }
+        tmin = Math.max(tmin, t1);
+        tmax = Math.min(tmax, t2);
+        if (tmin > tmax || tmax < 0) return -1;
+      } else if (-f - hi > 0 || -f + hi < 0) {
+        return -1;
+      }
+    }
+
+    if (tmax >= tmin && tmax >= 0) {
+      return tmin >= 0 ? tmin : tmax;
+    }
+
     return -1;
   }
 }

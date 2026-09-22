@@ -31,4 +31,33 @@ describe("GltfBinaryParser", () => {
     expect(data).toBeInstanceOf(Float32Array);
     expect(Array.from(data as Float32Array)).toEqual([1, 2, 3, 4]);
   });
+
+  it("handles unaligned byte offsets without throwing RangeError [BLK-L3]", () => {
+    // Create an ArrayBuffer with an odd byte offset (e.g. 1 or 3 bytes into the buffer)
+    const rawFloats = new Float32Array([10.0, 20.0, 30.0]);
+    const byteLength = rawFloats.byteLength;
+    const paddedBuffer = new ArrayBuffer(byteLength + 3); // 3-byte prefix -> unaligned offset 3
+    const u8View = new Uint8Array(paddedBuffer);
+    u8View.set(new Uint8Array(rawFloats.buffer), 3);
+
+    const json = {
+      bufferViews: [{ buffer: 0, byteOffset: 3, byteLength }],
+      accessors: [{ bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: "SCALAR" }],
+    };
+
+    const data = GltfBinaryParser.getBufferData(json.accessors[0], json, [paddedBuffer]);
+    expect(data).toBeInstanceOf(Float32Array);
+    expect(Array.from(data as Float32Array)).toEqual([10.0, 20.0, 30.0]);
+  });
+
+  it("returns null when accessor exceeds buffer bounds", () => {
+    const rawFloats = new Float32Array([1.0, 2.0]);
+    const json = {
+      bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 8 }],
+      accessors: [{ bufferView: 0, byteOffset: 0, componentType: 5126, count: 10, type: "SCALAR" }],
+    };
+
+    const data = GltfBinaryParser.getBufferData(json.accessors[0], json, [rawFloats.buffer]);
+    expect(data).toBeNull();
+  });
 });

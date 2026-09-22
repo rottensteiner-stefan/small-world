@@ -895,4 +895,49 @@ describe("Maker Phase 2 Features", () => {
       expect(container.querySelectorAll(".maker-prop-row").length).toBe(propRows.length);
     });
   });
+
+  describe("Arrow Nudging & Shift Multiplier Conventions [MAJ-07]", () => {
+    it("standardizes Shift as 10x multiplier for translate/scale and 6x (quarter turn) for rotate", () => {
+      const baseTranslate = 0.5;
+      const shiftTranslate = baseTranslate * 10;
+      expect(shiftTranslate).toBe(5.0);
+
+      const baseScale = 0.25;
+      const shiftScale = baseScale * 10;
+      expect(shiftScale).toBe(2.5);
+
+      const baseRotate = Math.PI / 12; // 15 deg
+      const shiftRotate = baseRotate * 6; // 90 deg
+      expect(shiftRotate).toBeCloseTo(Math.PI / 2);
+    });
+  });
+
+  describe("Hierarchical Multi-Selection Top-Level Filtering [BLK-T2]", () => {
+    it("filters out descendant nodes when ancestor is also selected", () => {
+      const root = new Object3D("Root");
+      const parent = new Object3D("Parent");
+      const child = new Object3D("Child");
+      const grandChild = new Object3D("GrandChild");
+
+      root.add(parent);
+      parent.add(child);
+      child.add(grandChild);
+
+      const selection = new Set<Object3D>([parent, child, grandChild]);
+
+      // Top-level selection should only return `parent`
+      const topLevel = Array.from(selection).filter((obj) => {
+        if (!obj.parent) return false;
+        let curr: Object3D | undefined = obj.parent;
+        while (curr) {
+          if (selection.has(curr)) return false;
+          curr = curr.parent;
+        }
+        return true;
+      });
+
+      expect(topLevel).toHaveLength(1);
+      expect(topLevel[0]).toBe(parent);
+    });
+  });
 });

@@ -54,8 +54,9 @@ fn vs(
   @location(3) a_tangent: vec3f
 ) -> Out {
     var o: Out;
-    o.pos = global.vp * obj.model * vec4f(a_position, 1.0);
-    o.wp = (obj.model * vec4f(a_position, 1.0)).xyz;
+    let worldPos = obj.model * vec4f(a_position, 1.0);
+    o.pos = global.vp * worldPos;
+    o.wp = worldPos.xyz;
     o.n = a_normal;
     o.uv = a_uv;
     o.t = a_tangent;
@@ -70,8 +71,9 @@ fn fs(in: Out) -> @location(0) vec4f {
     init_custom();
     // Compute.toys expects id to be pixel coordinates from 0 to resolution
     // We map the billboard's UVs to this resolution to keep it local to the geometry
-    let id_x = u32(in.uv.x * custom.resolution.x);
-    let id_y = u32(in.uv.y * custom.resolution.y); // UV.y is 0 at bottom, 1 at top in Small World Plane
+    let clampedUV = clamp(in.uv, vec2f(0.0), vec2f(1.0));
+    let id_x = u32(clampedUV.x * custom.resolution.x);
+    let id_y = u32(clampedUV.y * custom.resolution.y); // UV.y is 0 at bottom, 1 at top in Small World Plane
     let id = vec3<u32>(id_x, id_y, 0u);
     return compute_toys_main(id);
 }

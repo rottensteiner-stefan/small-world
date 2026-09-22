@@ -27,6 +27,7 @@ export class SpotShadowPassGPU implements RenderPass {
   private _shadowCasterBindGroup?: GPUBindGroup;
   private _spotShadowTexView?: GPUTextureView;
   private _fbo?: GPUTexture;
+  private _layerViews: GPUTextureView[] = [];
   private _frustum: Frustum = new Frustum();
 
   public execute(
@@ -69,6 +70,16 @@ export class SpotShadowPassGPU implements RenderPass {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       });
       this._spotShadowTexView = this._fbo.createView({ dimension: "2d-array" });
+      this._layerViews = [];
+      for (let j = 0; j < 4; j++) {
+        this._layerViews.push(
+          this._fbo.createView({
+            dimension: "2d",
+            baseArrayLayer: j,
+            arrayLayerCount: 1,
+          }),
+        );
+      }
       this._bindGroupNeedsShadowRebuild = true;
     }
 
@@ -120,11 +131,7 @@ export class SpotShadowPassGPU implements RenderPass {
           },
         ],
         depthStencilAttachment: {
-          view: this._fbo.createView({
-            dimension: "2d",
-            baseArrayLayer: j,
-            arrayLayerCount: 1,
-          }),
+          view: this._layerViews[j]!,
           depthClearValue: 1.0,
           depthLoadOp: "clear",
           depthStoreOp: "store",

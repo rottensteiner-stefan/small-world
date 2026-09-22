@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { Ray } from "../../src/physix/Ray.js";
 import { BoundingBox } from "../../src/physix/BoundingBox.js";
 import { BoundingSphere } from "../../src/physix/BoundingSphere.js";
+import { OBB } from "../../src/physix/OBB.js";
 import { Vector3D } from "../../src/math/index.js";
 
 describe("Ray", () => {
@@ -42,5 +43,30 @@ describe("Ray", () => {
     const ray = new Ray(new Vector3D(0, 0, 0), new Vector3D(1, 0, 0));
     const sphere = new BoundingSphere(new Vector3D(-10, 0, 0), 1.0);
     expect(ray.intersectsSphere(sphere)).toBe(-1);
+  });
+
+  describe("intersectsOBB [MIN-05]", () => {
+    it("should find the intersection distance for an unrotated OBB", () => {
+      const ray = new Ray(new Vector3D(0, 0, 0), new Vector3D(1, 0, 0));
+      const obb = new OBB(new Vector3D(10, 0, 0), new Vector3D(1, 1, 1));
+      expect(ray.intersectsOBB(obb)).toBeCloseTo(9);
+    });
+
+    it("should return -1 for a ray missing an OBB", () => {
+      const ray = new Ray(new Vector3D(0, 0, 0), new Vector3D(1, 0, 0));
+      const obb = new OBB(new Vector3D(10, 5, 0), new Vector3D(1, 1, 1));
+      expect(ray.intersectsOBB(obb)).toBe(-1);
+    });
+
+    it("should intersect rotated OBB correctly", () => {
+      const ray = new Ray(new Vector3D(0, 0, 0), new Vector3D(0, 0, 1));
+      const obb = new OBB(new Vector3D(0, 0, 10), new Vector3D(1, 1, 1));
+      // Rotate 45 deg around Y
+      const cos45 = Math.SQRT1_2;
+      obb.axes[0].set(cos45, 0, cos45);
+      obb.axes[2].set(-cos45, 0, cos45);
+      expect(ray.intersectsOBB(obb)).toBeGreaterThan(0);
+      expect(ray.intersectsOBB(obb)).toBeLessThan(10);
+    });
   });
 });

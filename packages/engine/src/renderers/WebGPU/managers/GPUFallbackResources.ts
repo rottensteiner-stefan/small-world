@@ -42,6 +42,7 @@ export class GPUFallbackResources {
    * call referencing the old buffer. The caller drains (destroys) this list right after
    * `queue.submit()`, once nothing can reference the stale buffers anymore. */
   private _dummyBuffersPendingDestroy: GPUBuffer[] = [];
+  private _texturesPendingDestroy: GPUTexture[] = [];
 
   constructor(device: GPUDevice) {
     this._device = device;
@@ -162,23 +163,8 @@ export class GPUFallbackResources {
 
     this._defaultCubeTexView = createCube([50, 50, 100, 255]);
     this._blackCubeTexView = createCube([0, 0, 0, 255]);
-  }
 
-  /** Grows the dummy vertex buffers (and, as a pre-existing side effect kept intentionally, the
-   * dummy shadow textures/sampler) to cover at least `vertexCount` vertices. A no-op if the
-   * current buffers are already large enough. */
-  public ensureDummyBufferSize(vertexCount: number): void {
-    if (this._dummyBufferSize >= vertexCount * 4 && this._dummyNormalBuffer) return;
-    const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 4, 3000);
-    if (this._dummyNormalBuffer) this._dummyBuffersPendingDestroy.push(this._dummyNormalBuffer);
-    if (this._dummyUvBuffer) this._dummyBuffersPendingDestroy.push(this._dummyUvBuffer);
-    if (this._dummyTangentBuffer) this._dummyBuffersPendingDestroy.push(this._dummyTangentBuffer);
-    if (this._dummyJointsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyJointsBuffer);
-    if (this._dummyWeightsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyWeightsBuffer);
-    const normalData = new Float32Array(newSize).fill(0);
-    for (let i = 0; i < newSize; i += 3) normalData[i + 1] = 1.0;
-
-    // Default dummy shadow textures (2D Arrays, Depth24Plus)
+    // Default dummy shadow textures (2D Arrays, Depth32Float) and shared comparison sampler
     const dummyDirShadow = this._device.createTexture({
       size: [1, 1, 4],
       format: "depth32float",
@@ -202,6 +188,20 @@ export class GPUFallbackResources {
       addressModeU: TextureWrap.CLAMP_TO_EDGE,
       addressModeV: TextureWrap.CLAMP_TO_EDGE,
     });
+  }
+
+  /** Grows the dummy vertex buffers to cover at least `vertexCount` vertices. A no-op if the
+   * current buffers are already large enough. */
+  public ensureDummyBufferSize(vertexCount: number): void {
+    if (this._dummyBufferSize >= vertexCount * 4 && this._dummyNormalBuffer) return;
+    const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 4, 3000);
+    if (this._dummyNormalBuffer) this._dummyBuffersPendingDestroy.push(this._dummyNormalBuffer);
+    if (this._dummyUvBuffer) this._dummyBuffersPendingDestroy.push(this._dummyUvBuffer);
+    if (this._dummyTangentBuffer) this._dummyBuffersPendingDestroy.push(this._dummyTangentBuffer);
+    if (this._dummyJointsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyJointsBuffer);
+    if (this._dummyWeightsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyWeightsBuffer);
+    const normalData = new Float32Array(newSize).fill(0);
+    for (let i = 0; i < newSize; i += 3) normalData[i + 1] = 1.0;
 
     this._dummyNormalBuffer = this._device.createBuffer({
       size: normalData.byteLength,
@@ -240,12 +240,21 @@ export class GPUFallbackResources {
     this._dummyBufferSize = newSize;
   }
 
-  /** Destroys buffers replaced by a mid-frame `ensureDummyBufferSize()` growth call -- call once
+  public deferDestroyTexture(t: GPUTexture): void {
+    this._texturesPendingDestroy.push(t);
+  }
+
+  /** Destroys buffers and textures replaced mid-frame or during dynamic resize -- call once
    * per frame, right after `queue.submit()`, once nothing can still reference them. */
   public drainPendingDestroy(): void {
-    if (0 === this._dummyBuffersPendingDestroy.length) return;
-    for (const b of this._dummyBuffersPendingDestroy) b.destroy();
-    this._dummyBuffersPendingDestroy.length = 0;
+    if (this._dummyBuffersPendingDestroy.length > 0) {
+      for (const b of this._dummyBuffersPendingDestroy) b.destroy();
+      this._dummyBuffersPendingDestroy.length = 0;
+    }
+    if (this._texturesPendingDestroy.length > 0) {
+      for (const t of this._texturesPendingDestroy) t.destroy();
+      this._texturesPendingDestroy.length = 0;
+    }
   }
 
   public dispose(): void {
@@ -254,5 +263,7 @@ export class GPUFallbackResources {
     this._dummyTangentBuffer?.destroy();
     for (const b of this._dummyBuffersPendingDestroy) b.destroy();
     this._dummyBuffersPendingDestroy.length = 0;
+    for (const t of this._texturesPendingDestroy) t.destroy();
+    this._texturesPendingDestroy.length = 0;
   }
 }

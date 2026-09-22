@@ -1,6 +1,6 @@
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { ToolEvents } from "../enums/ToolEvents.js";
-import { EventDispatcherImpl } from "../core/index.js";
+import { EventDispatcherImpl, isEditingTextInput } from "../core/index.js";
 import {
   bresenhamLine,
   floodFill,
@@ -138,6 +138,7 @@ export class Pixler extends ForgeTool {
   private _lineStartPos: { x: number; y: number } | null = null;
   private _history: ImageData[] = [];
   private _historyIndex: number = -1;
+  private _abortController: AbortController = new AbortController();
 
   private _events: EventDispatcherImpl | undefined = undefined;
 
@@ -644,13 +645,18 @@ export class Pixler extends ForgeTool {
   }
 
   private _bindEvents(): void {
+    const signal = this._abortController.signal;
     let isSpaceDown = false;
 
-    window.addEventListener("keyup", (e) => {
-      if (e.key === " ") {
-        isSpaceDown = false;
-      }
-    });
+    window.addEventListener(
+      "keyup",
+      (e) => {
+        if (e.key === " ") {
+          isSpaceDown = false;
+        }
+      },
+      { signal },
+    );
 
     const getPos = (e: MouseEvent): { x: number; y: number } => {
       const rect = this._canvas.getBoundingClientRect();
@@ -659,181 +665,197 @@ export class Pixler extends ForgeTool {
       return { x, y };
     };
 
-    this._canvas.addEventListener("mousedown", (e) => {
-      const { x, y } = getPos(e);
-      this._cursorPos = { x, y };
+    this._canvas.addEventListener(
+      "mousedown",
+      (e) => {
+        const { x, y } = getPos(e);
+        this._cursorPos = { x, y };
 
-      if (e.altKey || this._activeTool === "picker") {
-        this._pickColor(x, y);
-        if (this._activeTool === "picker") {
-          this._activeTool = "pencil";
-          this._updateToolbarUI();
+        if (e.altKey || this._activeTool === "picker") {
+          this._pickColor(x, y);
+          if (this._activeTool === "picker") {
+            this._activeTool = "pencil";
+            this._updateToolbarUI();
+          }
+          return;
         }
-        return;
-      }
 
-      if (this._activeTool === "bucket") {
-        this._bucketFill(x, y, this._currentColor);
-        this._saveHistory();
-        return;
-      }
+        if (this._activeTool === "bucket") {
+          this._bucketFill(x, y, this._currentColor);
+          this._saveHistory();
+          return;
+        }
 
-      if (e.shiftKey || this._activeTool === "line") {
-        if (!this._lineStartPos) {
-          this._lineStartPos = { x, y };
+        if (e.shiftKey || this._activeTool === "line") {
+          if (!this._lineStartPos) {
+            this._lineStartPos = { x, y };
+          } else {
+            this._drawLine(this._lineStartPos.x, this._lineStartPos.y, x, y, e.button === 2);
+            this._lineStartPos = { x, y };
+            this._saveHistory();
+          }
+          return;
+        }
+
+        this._lineStartPos = { x, y }; // Remember for next shift-click
+
+        if (e.button === 2) {
+          this._isErasing = true;
         } else {
-          this._drawLine(this._lineStartPos.x, this._lineStartPos.y, x, y, e.button === 2);
-          this._lineStartPos = { x, y };
+          this._isErasing = this._isSameColor(x, y, this._currentColor);
+        }
+
+        this._isDrawing = true;
+        this._drawPixelSymmetric(x, y, this._isErasing);
+        this._updateCursorVisual();
+      },
+      { signal },
+    );
+
+    this._canvas.addEventListener(
+      "mousemove",
+      (e) => {
+        const { x, y } = getPos(e);
+        this._cursorPos = { x, y };
+        this._updateCursorVisual();
+        if (this._isDrawing) {
+          this._drawPixelSymmetric(x, y, this._isErasing);
+        }
+      },
+      { signal },
+    );
+
+    window.addEventListener(
+      "mouseup",
+      () => {
+        if (this._isDrawing) {
           this._saveHistory();
         }
-        return;
-      }
+        this._isDrawing = false;
+      },
+      { signal },
+    );
 
-      this._lineStartPos = { x, y }; // Remember for next shift-click
-
-      if (e.button === 2) {
-        this._isErasing = true;
-      } else {
-        this._isErasing = this._isSameColor(x, y, this._currentColor);
-      }
-
-      this._isDrawing = true;
-      this._drawPixelSymmetric(x, y, this._isErasing);
-      this._updateCursorVisual();
-    });
-
-    this._canvas.addEventListener("mousemove", (e) => {
-      const { x, y } = getPos(e);
-      this._cursorPos = { x, y };
-      this._updateCursorVisual();
-      if (this._isDrawing) {
-        this._drawPixelSymmetric(x, y, this._isErasing);
-      }
-    });
-
-    window.addEventListener("mouseup", () => {
-      if (this._isDrawing) {
-        this._saveHistory();
-      }
-      this._isDrawing = false;
-    });
-
-    this._canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    this._canvas.addEventListener("contextmenu", (e) => e.preventDefault(), { signal });
 
     // Keyboard controls
-    window.addEventListener("keydown", (e) => {
-      // Don't intercept if typing in inputs
-      if (document.activeElement?.tagName === "INPUT") return;
+    window.addEventListener(
+      "keydown",
+      (e) => {
+        // Don't intercept if typing in inputs / editable elements
+        if (isEditingTextInput(e.target) || isEditingTextInput()) return;
 
-      const k = e.key.toLowerCase();
+        const k = e.key.toLowerCase();
 
-      // Undo / Redo
-      if ((e.metaKey || e.ctrlKey) && k === "z") {
-        if (e.shiftKey) this.redo();
-        else this.undo();
-        e.preventDefault();
-        return;
-      }
-
-      // Tool shortcuts
-      if (k === "f") {
-        this._activeTool = "bucket";
-        this._updateToolbarUI();
-        return;
-      }
-      if (k === "i") {
-        this._activeTool = "picker";
-        this._updateToolbarUI();
-        return;
-      }
-      if (k === "l") {
-        this._activeTool = "line";
-        this._updateToolbarUI();
-        return;
-      }
-      if (k === "p") {
-        this._activeTool = "pencil";
-        this._updateToolbarUI();
-        return;
-      }
-
-      let moved = false;
-
-      if (k === "arrowup" || k === "w") {
-        if (e.shiftKey) {
-          if (e.metaKey || e.ctrlKey) this.flip(false, true);
-          else this.pan(0, -1);
+        // Undo / Redo
+        if ((e.metaKey || e.ctrlKey) && k === "z") {
+          if (e.shiftKey) this.redo();
+          else this.undo();
           e.preventDefault();
           return;
         }
-        this._cursorPos.y = Math.max(0, this._cursorPos.y - 1);
-        moved = true;
-      }
-      if (k === "arrowdown" || k === "s") {
-        if (e.shiftKey) {
-          if (e.metaKey || e.ctrlKey)
-            this.flip(false, true); // Flip vertically is the same for up/down
-          else this.pan(0, 1);
-          e.preventDefault();
+
+        // Tool shortcuts
+        if (k === "f") {
+          this._activeTool = "bucket";
+          this._updateToolbarUI();
           return;
         }
-        this._cursorPos.y = Math.min(this._height - 1, this._cursorPos.y + 1);
-        moved = true;
-      }
-      if (k === "arrowleft" || k === "a") {
-        if (e.shiftKey) {
-          if (e.metaKey || e.ctrlKey) this.flip(true, false);
-          else this.pan(-1, 0);
-          e.preventDefault();
+        if (k === "i") {
+          this._activeTool = "picker";
+          this._updateToolbarUI();
           return;
         }
-        this._cursorPos.x = Math.max(0, this._cursorPos.x - 1);
-        moved = true;
-      }
-      if (k === "arrowright" || k === "d") {
-        if (e.shiftKey) {
-          if (e.metaKey || e.ctrlKey)
-            this.flip(true, false); // Flip horizontally is the same for left/right
-          else this.pan(1, 0);
-          e.preventDefault();
+        if (k === "l") {
+          this._activeTool = "line";
+          this._updateToolbarUI();
           return;
         }
-        this._cursorPos.x = Math.min(this._width - 1, this._cursorPos.x + 1);
-        moved = true;
-      }
-
-      if (moved) {
-        this._updateCursorVisual();
-        if (this._isDrawing || isSpaceDown) {
-          this._drawPixelSymmetric(this._cursorPos.x, this._cursorPos.y, this._isErasing);
+        if (k === "p") {
+          this._activeTool = "pencil";
+          this._updateToolbarUI();
+          return;
         }
-        e.preventDefault();
-      }
 
-      if (e.key === " ") {
-        if (!isSpaceDown) {
-          isSpaceDown = true;
-          this._isErasing = this._isSameColor(
-            this._cursorPos.x,
-            this._cursorPos.y,
-            this._currentColor,
-          );
+        let moved = false;
+
+        if (k === "arrowup" || k === "w") {
+          if (e.shiftKey) {
+            if (e.metaKey || e.ctrlKey) this.flip(false, true);
+            else this.pan(0, -1);
+            e.preventDefault();
+            return;
+          }
+          this._cursorPos.y = Math.max(0, this._cursorPos.y - 1);
+          moved = true;
         }
-        this._drawPixel(this._cursorPos.x, this._cursorPos.y, this._isErasing);
-        e.preventDefault();
-      }
-      if (k === "x" || e.key === "Delete" || e.key === "Backspace") {
-        this._drawPixelSymmetric(this._cursorPos.x, this._cursorPos.y, true);
-        this._saveHistory();
-        e.preventDefault();
-      }
+        if (k === "arrowdown" || k === "s") {
+          if (e.shiftKey) {
+            if (e.metaKey || e.ctrlKey)
+              this.flip(false, true); // Flip vertically is the same for up/down
+            else this.pan(0, 1);
+            e.preventDefault();
+            return;
+          }
+          this._cursorPos.y = Math.min(this._height - 1, this._cursorPos.y + 1);
+          moved = true;
+        }
+        if (k === "arrowleft" || k === "a") {
+          if (e.shiftKey) {
+            if (e.metaKey || e.ctrlKey) this.flip(true, false);
+            else this.pan(-1, 0);
+            e.preventDefault();
+            return;
+          }
+          this._cursorPos.x = Math.max(0, this._cursorPos.x - 1);
+          moved = true;
+        }
+        if (k === "arrowright" || k === "d") {
+          if (e.shiftKey) {
+            if (e.metaKey || e.ctrlKey)
+              this.flip(true, false); // Flip horizontally is the same for left/right
+            else this.pan(1, 0);
+            e.preventDefault();
+            return;
+          }
+          this._cursorPos.x = Math.min(this._width - 1, this._cursorPos.x + 1);
+          moved = true;
+        }
 
-      // Palette shortcuts 1-9
-      const num = parseInt(e.key);
-      if (num >= 1 && num <= 9 && num <= this._palette.length) {
-        this._setCurrentColor(this._palette[num - 1]!);
-      }
-    });
+        if (moved) {
+          this._updateCursorVisual();
+          if (this._isDrawing || isSpaceDown) {
+            this._drawPixelSymmetric(this._cursorPos.x, this._cursorPos.y, this._isErasing);
+          }
+          e.preventDefault();
+        }
+
+        if (e.key === " ") {
+          if (!isSpaceDown) {
+            isSpaceDown = true;
+            this._isErasing = this._isSameColor(
+              this._cursorPos.x,
+              this._cursorPos.y,
+              this._currentColor,
+            );
+          }
+          this._drawPixel(this._cursorPos.x, this._cursorPos.y, this._isErasing);
+          e.preventDefault();
+        }
+        if (k === "x" || e.key === "Delete" || e.key === "Backspace") {
+          this._drawPixelSymmetric(this._cursorPos.x, this._cursorPos.y, true);
+          this._saveHistory();
+          e.preventDefault();
+        }
+
+        // Palette shortcuts 1-9
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= 9 && num <= this._palette.length) {
+          this._setCurrentColor(this._palette[num - 1]!);
+        }
+      },
+      { signal },
+    );
   }
 
   private _renderPaletteUI(): void {
@@ -1032,6 +1054,12 @@ export class Pixler extends ForgeTool {
     this.loadFromBase64(base64).catch((e) =>
       console.error("Failed to paste image into Pixler:", e),
     );
+  }
+
+  public override unmount(): void {
+    super.unmount();
+    this._abortController.abort();
+    this._abortController = new AbortController();
   }
 
   public getState(): unknown {

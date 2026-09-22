@@ -23,7 +23,7 @@ export const khrTextureBasisu: GltfExtensionPlugin = {
     ctx: GltfReadContext,
     folderPath: string,
     buffers: ArrayBuffer[],
-    _assetManager: AssetManager,
+    assetManager: AssetManager,
   ): Promise<Texture | null> {
     const basisuDef = textureDef.extensions?.KHR_texture_basisu as KhrTextureBasisuDef | undefined;
     if (!basisuDef || basisuDef.source === undefined || !ctx.json.images) {
@@ -49,8 +49,7 @@ export const khrTextureBasisu: GltfExtensionPlugin = {
     // Case 2: Image provided via external URI
     if (imageDef.uri) {
       const url = imageDef.uri.startsWith("data:") ? imageDef.uri : folderPath + imageDef.uri;
-      const res = await fetch(url);
-      const arrayBuffer = await res.arrayBuffer();
+      const arrayBuffer = await assetManager.loadBinary(url);
       return BasisTranscoder.transcode(arrayBuffer, imageDef.mimeType ?? "image/ktx2");
     }
 

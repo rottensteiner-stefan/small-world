@@ -1,3 +1,5 @@
+import { isEditingTextInput } from "@small-world/engine";
+
 export type MapLocationStatus = "available" | "current" | "locked" | "in_development" | "target";
 
 export function resolveAssetUrl(path?: string): string {
@@ -263,6 +265,7 @@ export class ViennaMapModal {
   constructor(currentLocationId = "flakturm_arenberg") {
     this._currentLocationId = currentLocationId;
     this._boundKeyHandler = (e: KeyboardEvent): void => {
+      if (isEditingTextInput(e.target) || isEditingTextInput()) return;
       if (e.key === "m" || e.key === "M") {
         if (!this._transitInProgress) {
           this.toggle();

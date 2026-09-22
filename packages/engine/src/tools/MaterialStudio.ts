@@ -178,16 +178,6 @@ export class MaterialStudio extends ForgeTool {
     style.id = "material-studio-style";
     style.innerHTML = `
       .swf-ms-container {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        height: 100%;
-        overflow-y: auto;
-        background: var(--bg-dark);
-        color: var(--text-main);
-      }
-      /* Inherited from pbr-gen.html */
-      :root {
         --bg-dark: #0f111a;
         --bg-panel: rgba(22, 28, 45, 0.7);
         --bg-control: #1a1f35;
@@ -199,37 +189,37 @@ export class MaterialStudio extends ForgeTool {
         --text-muted: #94a3b8;
         --border: rgba(148, 163, 184, 0.1);
         --border-focus: rgba(59, 130, 246, 0.5);
-      }
 
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
-      body {
-        font-family: "Outfit", sans-serif;
-        background-color: var(--bg-dark);
-        color: var(--text-main);
-        min-height: 100vh;
-        overflow-x: hidden;
         display: flex;
         flex-direction: column;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        background: var(--bg-dark);
+        color: var(--text-main);
+        font-family: "Outfit", system-ui, sans-serif;
+        box-sizing: border-box;
+      }
+
+      .swf-ms-container *,
+      .swf-ms-container *::before,
+      .swf-ms-container *::after {
+        box-sizing: border-box;
       }
 
       /* Custom Scrollbar */
-      ::-webkit-scrollbar {
+      .swf-ms-container ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
-      ::-webkit-scrollbar-track {
+      .swf-ms-container ::-webkit-scrollbar-track {
         background: var(--bg-dark);
       }
-      ::-webkit-scrollbar-thumb {
+      .swf-ms-container ::-webkit-scrollbar-thumb {
         background: var(--bg-control);
         border-radius: 4px;
       }
-      ::-webkit-scrollbar-thumb:hover {
+      .swf-ms-container ::-webkit-scrollbar-thumb:hover {
         background: var(--accent);
       }
 
@@ -2177,7 +2167,10 @@ export class MaterialStudio extends ForgeTool {
 
   public override unmount(): void {
     super.unmount();
-    this._app = null;
+    if (this._app) {
+      this._app.destroy();
+      this._app = null;
+    }
     this._canvas = null;
   }
 

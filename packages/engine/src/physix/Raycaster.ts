@@ -1,5 +1,6 @@
 import { BoundingBox } from "./BoundingBox.js";
 import { BoundingSphere } from "./BoundingSphere.js";
+import { OBB } from "./OBB.js";
 import { Ray } from "./Ray.js";
 import { Vector2D, Vector3D, MathPool, Matrix4 } from "../math/index.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
@@ -55,7 +56,7 @@ export class Raycaster {
 
   /**
    * Tests the ray against a list of objects. Uses a fast broad-phase bounds test
-   * (AABB or sphere, whichever the object's `bounds` are) and, if the object has
+   * (AABB, sphere, or OBB, whichever the object's `bounds` are) and, if the object has
    * real triangle geometry, refines that into an exact Möller-Trumbore hit --
    * otherwise the broad-phase distance is used directly (e.g. for sprite-like
    * objects picked purely by their bounding volume).
@@ -76,6 +77,8 @@ export class Raycaster {
         broadT = this.ray.intersectsBox(obj.bounds as BoundingBox);
       } else if (BoundingType.SPHERE === obj.bounds.type) {
         broadT = this.ray.intersectsSphere(obj.bounds as BoundingSphere);
+      } else if (BoundingType.OBB === obj.bounds.type) {
+        broadT = this.ray.intersectsOBB(obj.bounds as OBB);
       } else {
         continue;
       }
@@ -84,45 +87,54 @@ export class Raycaster {
 
       const geoData = obj.geometry;
       if (geoData && geoData.vertices && geoData.indices) {
+        const invWorld = MathPool.acquireMatrix();
+        if (false === obj.worldMatrix.invert(invWorld)) {
+          MathPool.releaseMatrix(invWorld);
+          continue;
+        }
+
+        const localOrigin = MathPool.acquireVector();
+        const localDirection = MathPool.acquireVector();
+        const tempPoint = MathPool.acquireVector();
+
+        invWorld.transformVector(this.ray.origin, localOrigin);
+        tempPoint.copyFrom(this.ray.origin).add(this.ray.direction);
+        invWorld.transformVector(tempPoint, localDirection);
+        localDirection.sub(localOrigin);
+
+        MathPool.releaseVector(tempPoint);
+
+        const vertices = geoData.vertices;
+        const indices = geoData.indices;
         let closestT = Infinity;
-        const v0 = MathPool.acquireVector();
-        const v1 = MathPool.acquireVector();
-        const v2 = MathPool.acquireVector();
 
-        for (let i = 0; i < geoData.indices.length; i += 3) {
-          const i0 = (geoData.indices[i] ?? 0) * 3;
-          const i1 = (geoData.indices[i + 1] ?? 0) * 3;
-          const i2 = (geoData.indices[i + 2] ?? 0) * 3;
+        for (let i = 0; i < indices.length; i += 3) {
+          const i0 = (indices[i] ?? 0) * 3;
+          const i1 = (indices[i + 1] ?? 0) * 3;
+          const i2 = (indices[i + 2] ?? 0) * 3;
 
-          v0.set(
-            geoData.vertices[i0] ?? 0,
-            geoData.vertices[i0 + 1] ?? 0,
-            geoData.vertices[i0 + 2] ?? 0,
-          );
-          v1.set(
-            geoData.vertices[i1] ?? 0,
-            geoData.vertices[i1 + 1] ?? 0,
-            geoData.vertices[i1 + 2] ?? 0,
-          );
-          v2.set(
-            geoData.vertices[i2] ?? 0,
-            geoData.vertices[i2 + 1] ?? 0,
-            geoData.vertices[i2 + 2] ?? 0,
+          const tTri = this._intersectTriangleDirect(
+            vertices[i0] ?? 0,
+            vertices[i0 + 1] ?? 0,
+            vertices[i0 + 2] ?? 0,
+            vertices[i1] ?? 0,
+            vertices[i1 + 1] ?? 0,
+            vertices[i1 + 2] ?? 0,
+            vertices[i2] ?? 0,
+            vertices[i2 + 1] ?? 0,
+            vertices[i2 + 2] ?? 0,
+            localOrigin,
+            localDirection,
           );
 
-          obj.worldMatrix.transformVector(v0);
-          obj.worldMatrix.transformVector(v1);
-          obj.worldMatrix.transformVector(v2);
-
-          const tTri = this._intersectTriangle(v0, v1, v2, this.ray);
           if (tTri >= 0 && tTri < closestT) {
             closestT = tTri;
           }
         }
 
-        MathPool.releaseVector(v0);
-        MathPool.releaseVector(v1);
-        MathPool.releaseVector(v2);
+        MathPool.releaseVector(localOrigin);
+        MathPool.releaseVector(localDirection);
+        MathPool.releaseMatrix(invWorld);
 
         if (closestT !== Infinity) {
           intersects.push({
@@ -146,20 +158,31 @@ export class Raycaster {
   }
 
   /**
-   * Möller-Trumbore intersection algorithm.
+   * Direct Möller-Trumbore intersection algorithm using scalar vertex coordinates and a local ray.
    */
-  private _intersectTriangle(v0: Vector3D, v1: Vector3D, v2: Vector3D, ray: Ray): number {
+  private _intersectTriangleDirect(
+    v0x: number,
+    v0y: number,
+    v0z: number,
+    v1x: number,
+    v1y: number,
+    v1z: number,
+    v2x: number,
+    v2y: number,
+    v2z: number,
+    origin: Vector3D,
+    dir: Vector3D,
+  ): number {
     const EPSILON = 1e-6;
 
-    const edge1X = v1.x - v0.x;
-    const edge1Y = v1.y - v0.y;
-    const edge1Z = v1.z - v0.z;
+    const edge1X = v1x - v0x;
+    const edge1Y = v1y - v0y;
+    const edge1Z = v1z - v0z;
 
-    const edge2X = v2.x - v0.x;
-    const edge2Y = v2.y - v0.y;
-    const edge2Z = v2.z - v0.z;
+    const edge2X = v2x - v0x;
+    const edge2Y = v2y - v0y;
+    const edge2Z = v2z - v0z;
 
-    const dir = ray.direction;
     const hX = dir.y * edge2Z - dir.z * edge2Y;
     const hY = dir.z * edge2X - dir.x * edge2Z;
     const hZ = dir.x * edge2Y - dir.y * edge2X;
@@ -172,9 +195,9 @@ export class Raycaster {
 
     const f = 1.0 / a;
 
-    const sX = ray.origin.x - v0.x;
-    const sY = ray.origin.y - v0.y;
-    const sZ = ray.origin.z - v0.z;
+    const sX = origin.x - v0x;
+    const sY = origin.y - v0y;
+    const sZ = origin.z - v0z;
 
     const u = f * (sX * hX + sY * hY + sZ * hZ);
     if (u < 0.0 || u > 1.0) {

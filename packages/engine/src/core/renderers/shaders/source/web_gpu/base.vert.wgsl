@@ -35,10 +35,29 @@
     // Improved Normal Matrix (handling scaling correctly)
     let m33 = mat3x3f(obj.model[0].xyz, obj.model[1].xyz, obj.model[2].xyz);
     
-    // Normalize normals after transformation to world space
-    o.n = normalize(m33 * localNormal);
-    o.t = normalize(m33 * localTangent);
-    o.b = normalize(cross(o.n, o.t));
+    // Normalize normals after transformation to world space with robust fallbacks
+    let worldN = m33 * localNormal;
+    if (length(worldN) > 0.0001) {
+        o.n = normalize(worldN);
+    } else {
+        o.n = vec3f(0.0, 1.0, 0.0);
+    }
+    
+    let worldT = m33 * localTangent;
+    if (length(worldT) > 0.0001) {
+        o.t = normalize(worldT);
+    } else {
+        let up = select(vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), abs(o.n.y) > 0.999);
+        o.t = normalize(cross(up, o.n));
+    }
+    
+    let worldB = cross(o.n, o.t);
+    if (length(worldB) > 0.0001) {
+        o.b = normalize(worldB);
+    } else {
+        let up = select(vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), abs(o.n.y) > 0.999);
+        o.b = normalize(cross(o.n, up));
+    }
     
     return o;
 }

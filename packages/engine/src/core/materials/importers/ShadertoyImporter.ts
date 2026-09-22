@@ -34,9 +34,33 @@ void main() {
     mainImage(fragColor, fragCoord);
 }`;
 
+    const vsGLSL100 = `[BASE_VS]`;
+    const fsSource100 = sourceCode.replace(/texture\s*\(/g, "texture2D(");
+    const fsGLSL100 = `precision highp float;
+varying vec2 v_uv;
+
+uniform vec3 iResolution;
+uniform float iTime;
+uniform float iTimeDelta;
+uniform float iFrameRate;
+uniform float iFrame;
+uniform vec4 iMouse;
+
+// --- SHADERTOY SOURCE START ---
+${fsSource100}
+// --- SHADERTOY SOURCE END ---
+
+void main() {
+    vec2 fragCoord = v_uv * iResolution.xy;
+    vec4 fragColor = vec4(0.0);
+    mainImage(fragColor, fragCoord);
+    gl_FragColor = fragColor;
+}`;
+
     return {
       sources: {
         glsl300: { vs: vsGLSL300, fs: fsGLSL300 },
+        glsl100: { vs: vsGLSL100, fs: fsGLSL100 },
       },
       layout: {
         uniforms: {

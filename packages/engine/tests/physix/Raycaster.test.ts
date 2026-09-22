@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { Raycaster } from "../../src/physix/Raycaster.js";
 import { BoundingBox } from "../../src/physix/BoundingBox.js";
 import { BoundingSphere } from "../../src/physix/BoundingSphere.js";
+import { OBB } from "../../src/physix/OBB.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { Vector3D } from "../../src/math/index.js";
 
@@ -65,5 +66,76 @@ describe("Raycaster", () => {
 
     const obj = new Object3D("NoBounds");
     expect(raycaster.intersectObjects([obj])).toHaveLength(0);
+  });
+
+  it("should pick an OBB-bounded object along the ray [MIN-05]", () => {
+    const raycaster = new Raycaster();
+    raycaster.ray.set(new Vector3D(0, 0, 0), new Vector3D(1, 0, 0));
+
+    const obbObj = new Object3D("OBBObj");
+    obbObj.bounds = new OBB(new Vector3D(15, 0, 0), new Vector3D(1, 2, 3));
+
+    const hits = raycaster.intersectObjects([obbObj]);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.object).toBe(obbObj);
+    expect(hits[0]!.distance).toBeCloseTo(14);
+  });
+
+  it("should accurately pick triangle mesh geometry using local-space inverted ray [MAJ-03]", () => {
+    const raycaster = new Raycaster();
+    // Cast ray straight along +Z from (0, 0, -10)
+    raycaster.ray.set(new Vector3D(0, 0, -10), new Vector3D(0, 0, 1));
+
+    const meshObj = new Object3D("TriangleMesh");
+    // Object translated to (0, 0, 0), rotated 0, scaled 1
+    meshObj.bounds = new BoundingBox(new Vector3D(-2, -2, -1), new Vector3D(2, 2, 1));
+    meshObj.geometry = {
+      vertices: new Float32Array([
+        -1,
+        -1,
+        0, // v0
+        1,
+        -1,
+        0, // v1
+        0,
+        1,
+        0, // v2
+      ]),
+      indices: new Uint16Array([0, 1, 2]),
+      getBoundingVolume: (): BoundingBox =>
+        new BoundingBox(new Vector3D(-1, -1, 0), new Vector3D(1, 1, 0)),
+    };
+    meshObj.updateMatrixWorld();
+
+    const hits = raycaster.intersectObjects([meshObj]);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.object).toBe(meshObj);
+    // Ray origin is at -10, triangle is at z=0 -> distance is 10
+    expect(hits[0]!.distance).toBeCloseTo(10);
+  });
+
+  it("should correctly handle transformed (scaled & translated) mesh geometry [MAJ-03]", () => {
+    const raycaster = new Raycaster();
+    // Cast ray straight along +Z from (2, 4, 0)
+    raycaster.ray.set(new Vector3D(2, 4, 0), new Vector3D(0, 0, 1));
+
+    const meshObj = new Object3D("ScaledMesh");
+    meshObj.position.set(2, 4, 10);
+    meshObj.scale.set(2, 2, 2);
+    meshObj.updateMatrixWorld();
+
+    meshObj.bounds = new BoundingBox(new Vector3D(0, 2, 8), new Vector3D(4, 6, 12));
+    meshObj.geometry = {
+      vertices: new Float32Array([-1, -1, 0, 1, -1, 0, 0, 1, 0]),
+      indices: new Uint16Array([0, 1, 2]),
+      getBoundingVolume: (): BoundingBox =>
+        new BoundingBox(new Vector3D(-1, -1, 0), new Vector3D(1, 1, 0)),
+    };
+
+    const hits = raycaster.intersectObjects([meshObj]);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.object).toBe(meshObj);
+    // Ray origin at z=0, mesh at z=10 -> world distance is 10
+    expect(hits[0]!.distance).toBeCloseTo(10);
   });
 });

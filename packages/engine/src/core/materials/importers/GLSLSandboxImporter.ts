@@ -32,9 +32,26 @@ ${sourceCode}
 // --- GLSLSANDBOX SOURCE END ---
 `;
 
+    const vsGLSL100 = `[BASE_VS]`;
+    const fsSource100 = sourceCode.replace(/texture\s*\(/g, "texture2D(");
+    const fsGLSL100 = `precision highp float;
+varying vec2 v_uv;
+
+uniform vec2 resolution;
+uniform float time;
+uniform vec2 mouse;
+
+#define gl_FragCoord vec4(v_uv * resolution, 0.0, 1.0)
+
+// --- GLSLSANDBOX SOURCE START ---
+${fsSource100}
+// --- GLSLSANDBOX SOURCE END ---
+`;
+
     return {
       sources: {
         glsl300: { vs: vsGLSL300, fs: fsGLSL300 },
+        glsl100: { vs: vsGLSL100, fs: fsGLSL100 },
       },
       layout: {
         uniforms: {

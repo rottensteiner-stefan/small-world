@@ -15,14 +15,13 @@ import {
   Vector3D,
   StageMovementBehavior,
   StageZone,
-  Cylinder,
-  Torus,
   MathPool,
 } from "@small-world/engine";
 import { AbstractShowcase } from "@small-world/engine/core/index.js";
 import { GltfLoader } from "@small-world/engine/loaders/GltfLoader.js";
 import { Bone } from "@small-world/engine/core/animation/index.js";
 import { ViennaMapModal } from "../../ui/ViennaMapModal.js";
+import { BunkerKit } from "../../builder/BunkerKit.js";
 
 /** The background plane's world extent -- the only place a (u, v) stage coordinate is ever
  * turned into a 3D position. Fed directly into `StageMovementBehavior`'s `"flat-plane"`
@@ -791,57 +790,9 @@ class AndNowScene2 extends AbstractShowcase {
     MathPool.releaseVector(worldPos);
   }
 
-  /** Greybox stand-in for the Sturmlaterne (storm lantern) from the concept art -- a glowing
-   * cylinder body with a torus handle, sized relative to a roughly human-scale rig. */
+  /** Greybox stand-in for the Sturmlaterne (storm lantern) from the concept art -- delegates to BunkerKit. */
   private _buildLanternMesh(): Object3D {
-    const lantern = new Object3D("LanternPlaceholder");
-
-    const brassMat = new BasicMaterial({
-      color: new Color(0.9, 0.65, 0.25),
-    });
-
-    const glowGlassMat = new BasicMaterial({
-      color: new Color(1.0, 0.9, 0.6),
-    });
-
-    // Brass handle (upright ring at the grip origin y = 0)
-    const handle = new Object3D("LanternHandle");
-    handle.geometry = new Torus({
-      radius: 0.045,
-      tube: 0.006,
-      radialSegments: 8,
-    }).getGeometryData();
-    handle.material = brassMat;
-    handle.rotation.z = Math.PI / 2;
-    handle.position.set(0, -0.02, 0);
-    lantern.add(handle);
-
-    // Brass top cap (hanging just below handle)
-    const topCap = new Object3D("LanternTopCap");
-    topCap.geometry = new Cylinder({
-      radiusTop: 0.02,
-      radiusBottom: 0.06,
-      height: 0.04,
-    }).getGeometryData();
-    topCap.material = brassMat;
-    topCap.position.set(0, -0.05, 0);
-    lantern.add(topCap);
-
-    // Outer brass lantern frame / cage (hanging below top cap)
-    const body = new Object3D("LanternBody");
-    body.geometry = new Cylinder({
-      radiusTop: 0.05,
-      radiusBottom: 0.07,
-      height: 0.18,
-    }).getGeometryData();
-    body.material = glowGlassMat;
-    body.position.set(0, -0.16, 0);
-    lantern.add(body);
-
-    lantern.position.set(0, 0, 0);
-    lantern.rotation.set(0, 0, 0);
-
-    return lantern;
+    return BunkerKit.createHeldLantern({ name: "LanternPlaceholder" });
   }
 
   /**

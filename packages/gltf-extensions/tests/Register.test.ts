@@ -10,4 +10,15 @@ describe("@small-world/gltf-extensions register", () => {
     expect(names).toContain("KHR_draco_mesh_compression");
     expect(names).toContain("KHR_texture_basisu");
   });
+
+  it("deduplicates glTF extensions when registered multiple times [MAJ-08]", async () => {
+    const { registerGltfExtension } = await import("@small-world/engine");
+    const dummyPlugin = { name: "TEST_duplicate_plugin" };
+    registerGltfExtension(dummyPlugin);
+    registerGltfExtension(dummyPlugin);
+
+    const extensions = getGltfExtensions();
+    const matches = extensions.filter((e) => e.name === "TEST_duplicate_plugin");
+    expect(matches.length).toBe(1);
+  });
 });

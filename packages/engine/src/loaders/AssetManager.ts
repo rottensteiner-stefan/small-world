@@ -217,14 +217,20 @@ export class AssetManager {
         }
       })
       .catch((e: unknown): Promise<HTMLImageElement> => {
-        this._checkCompletion(cacheKey);
         console.error(e);
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const img: HTMLImageElement = new Image();
           img.crossOrigin = "anonymous";
           img.src = this.resolveUrl(url);
-          img.onload = (): void => resolve(img);
-          img.onerror = (): void => reject(`[AssetManager] Fallback failed: ${url}`);
+          img.onload = (): void => {
+            this._checkCompletion(cacheKey);
+            resolve(img);
+          };
+          img.onerror = (): void => {
+            this._imageCache.delete(cacheKey);
+            this._checkCompletion(cacheKey);
+            reject(`[AssetManager] Fallback failed: ${url}`);
+          };
         });
       });
 
@@ -238,6 +244,7 @@ export class AssetManager {
     const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
       .then((blob: Blob) => blob.text())
       .catch((e: unknown) => {
+        this._textCache.delete(url);
         this._checkCompletion(trackingKey);
         throw e;
       });
@@ -252,6 +259,7 @@ export class AssetManager {
       .then((blob: Blob) => blob.text())
       .then((text: string) => JSON.parse(text))
       .catch((e: unknown) => {
+        this._jsonCache.delete(url);
         this._checkCompletion(trackingKey);
         throw e;
       });
@@ -265,6 +273,7 @@ export class AssetManager {
     const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
       .then((blob: Blob) => blob.arrayBuffer())
       .catch((e: unknown) => {
+        this._binaryCache.delete(url);
         this._checkCompletion(trackingKey);
         throw e;
       });
@@ -286,59 +295,66 @@ export class AssetManager {
   ): Promise<ArrayBuffer> {
     if (this._binaryCache.has(url)) return this._binaryCache.get(url)!;
 
-    const finalUrl = this.resolveUrl(url);
-
-    const response = await fetch(finalUrl, { headers: this._headers });
-    if (!response.ok) {
-      throw new Error(`[AssetManager] Stream error: ${response.status} at ${finalUrl}`);
-    }
-
-    const contentLength = response.headers.get("content-length");
-    const total = contentLength ? parseInt(contentLength, 10) : 0;
-
-    // Namespaced separately from loadBinary's "binary:" key -- both cache into _binaryCache and
-    // could plausibly be called concurrently for the same url, and sharing a tracking key would
-    // reintroduce the premature-completion race _fetchWithProgress's trackingKey param avoids.
     const trackingKey = `stream:${url}`;
-    this._activeLoaders.set(trackingKey, { loaded: 0, total });
+    const streamPromise = (async (): Promise<ArrayBuffer> => {
+      try {
+        const finalUrl = this.resolveUrl(url);
 
-    if (!response.body) {
-      const buf = await response.arrayBuffer();
-      if (onChunk) onChunk(new Uint8Array(buf), buf.byteLength, total || buf.byteLength);
-      if (onProgress) onProgress(buf.byteLength, total || buf.byteLength);
-      this._checkCompletion(trackingKey);
-      return buf;
-    }
+        const response = await fetch(finalUrl, { headers: this._headers });
+        if (!response.ok) {
+          throw new Error(`[AssetManager] Stream error: ${response.status} at ${finalUrl}`);
+        }
 
-    const reader = response.body.getReader();
-    let loaded = 0;
-    const chunks: Uint8Array[] = [];
+        const contentLength = response.headers.get("content-length");
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value) {
-        loaded += value.length;
-        chunks.push(value);
-        this._activeLoaders.set(trackingKey, { loaded, total });
-        if (onChunk) onChunk(value, loaded, total);
-        if (onProgress) onProgress(loaded, total);
+        // Namespaced separately from loadBinary's "binary:" key -- both cache into _binaryCache and
+        // could plausibly be called concurrently for the same url, and sharing a tracking key would
+        // reintroduce the premature-completion race _fetchWithProgress's trackingKey param avoids.
+        this._activeLoaders.set(trackingKey, { loaded: 0, total });
+
+        if (!response.body) {
+          const buf = await response.arrayBuffer();
+          if (onChunk) onChunk(new Uint8Array(buf), buf.byteLength, total || buf.byteLength);
+          if (onProgress) onProgress(buf.byteLength, total || buf.byteLength);
+          return buf;
+        }
+
+        const reader = response.body.getReader();
+        let loaded = 0;
+        const chunks: Uint8Array[] = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) {
+            loaded += value.length;
+            chunks.push(value);
+            this._activeLoaders.set(trackingKey, { loaded, total });
+            if (onChunk) onChunk(value, loaded, total);
+            if (onProgress) onProgress(loaded, total);
+          }
+        }
+
+        // Merge chunks into a single contiguous ArrayBuffer
+        const finalBuffer = new Uint8Array(loaded);
+        let offset = 0;
+        for (const chunk of chunks) {
+          finalBuffer.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        return finalBuffer.buffer;
+      } catch (e: unknown) {
+        this._binaryCache.delete(url);
+        throw e;
+      } finally {
+        this._checkCompletion(trackingKey);
       }
-    }
+    })();
 
-    this._checkCompletion(trackingKey);
-
-    // Merge chunks into a single contiguous ArrayBuffer
-    const finalBuffer = new Uint8Array(loaded);
-    let offset = 0;
-    for (const chunk of chunks) {
-      finalBuffer.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    const arrayBuf = finalBuffer.buffer;
-    this._binaryCache.set(url, Promise.resolve(arrayBuf));
-    return arrayBuf;
+    this._binaryCache.set(url, streamPromise);
+    return streamPromise;
   }
 
   private static get _sharedDefault(): AssetManager {

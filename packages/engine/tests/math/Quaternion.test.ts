@@ -84,4 +84,14 @@ describe("Quaternion", () => {
     expect(q1.z).toBeCloseTo(0);
     expect(Math.abs(q1.w)).toBeCloseTo(1);
   });
+
+  it("should convert Euler angles to Quaternion and back correctly (YXZ order)", () => {
+    const originalEuler = new Vector3D(0.3, 0.7, -0.4);
+    const q = new Quaternion().setFromEuler(originalEuler);
+    const recoveredEuler = q.toEuler();
+
+    expect(recoveredEuler.x).toBeCloseTo(originalEuler.x);
+    expect(recoveredEuler.y).toBeCloseTo(originalEuler.y);
+    expect(recoveredEuler.z).toBeCloseTo(originalEuler.z);
+  });
 });

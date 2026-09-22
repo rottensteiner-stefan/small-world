@@ -69,8 +69,6 @@ export class HistoryBlendPassGPU {
   private _resize(width: number, height: number): void {
     if (this._pingPong && this._width === width && this._height === height) return;
 
-    this._pingPong?.[0].destroy();
-    this._pingPong?.[1].destroy();
     this._width = width;
     this._height = height;
     this._hasHistory = false;

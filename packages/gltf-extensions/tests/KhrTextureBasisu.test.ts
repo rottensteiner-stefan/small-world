@@ -110,4 +110,45 @@ describe("KHR_texture_basisu", () => {
 
     expect(res).toBeNull();
   });
+
+  it("loads external URI images via assetManager.loadBinary [MAJ-09]", async () => {
+    const mockTexture = Texture.empty();
+    BasisTranscoder.setTranscodeHandler((_buffer, mimeType) => {
+      expect(mimeType).toBe("image/ktx2");
+      return mockTexture;
+    });
+
+    const textureDef = {
+      extensions: {
+        KHR_texture_basisu: {
+          source: 0,
+        },
+      },
+    };
+
+    const readCtx = {
+      json: {
+        images: [{ uri: "textures/compressed.ktx2" }],
+      },
+      state: new Map(),
+    };
+
+    const fakePayload = new Uint8Array([1, 2, 3, 4]).buffer;
+    const mockAssetManager = {
+      loadBinary: async (url: string): Promise<ArrayBuffer> => {
+        expect(url).toBe("https://assets.local/textures/compressed.ktx2");
+        return fakePayload;
+      },
+    };
+
+    const res = await khrTextureBasisu.resolveTexture?.(
+      textureDef,
+      readCtx,
+      "https://assets.local/",
+      [],
+      mockAssetManager as never,
+    );
+
+    expect(res).toBe(mockTexture);
+  });
 });

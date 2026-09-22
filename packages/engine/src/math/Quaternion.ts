@@ -267,6 +267,53 @@ export class Quaternion {
   }
 
   /**
+   * Sets this quaternion from Euler angles (in radians, intrinsic YXZ order).
+   * @param euler Vector3D containing rotation angles (x, y, z) in radians.
+   * @returns this
+   */
+  public setFromEuler(euler: Vector3D): this {
+    const rx = euler.x * 0.5;
+    const ry = euler.y * 0.5;
+    const rz = euler.z * 0.5;
+    const cx = Math.cos(rx),
+      sx = Math.sin(rx);
+    const cy = Math.cos(ry),
+      sy = Math.sin(ry);
+    const cz = Math.cos(rz),
+      sz = Math.sin(rz);
+
+    this.x = cy * sx * cz + sy * cx * sz;
+    this.y = sy * cx * cz - cy * sx * sz;
+    this.z = cy * cx * sz - sy * sx * cz;
+    this.w = cy * cx * cz + sy * sx * sz;
+    return this;
+  }
+
+  /**
+   * Converts this quaternion to Euler angles (in radians, intrinsic YXZ order).
+   * @param out Target Vector3D to store the Euler angles. If omitted, a new Vector3D is created.
+   * @returns The target Vector3D with Euler angles in radians.
+   */
+  public toEuler(out: Vector3D = new Vector3D()): Vector3D {
+    const qx = this.x,
+      qy = this.y,
+      qz = this.z,
+      qw = this.w;
+    const sinX = 2 * (qw * qx - qy * qz);
+    const clampedSinX = Math.max(-1, Math.min(1, sinX));
+    out.x = Math.asin(clampedSinX);
+
+    if (Math.abs(clampedSinX) < 0.99999) {
+      out.y = Math.atan2(2 * (qz * qx + qw * qy), 1 - 2 * (qx * qx + qy * qy));
+      out.z = Math.atan2(2 * (qx * qy + qw * qz), 1 - 2 * (qx * qx + qz * qz));
+    } else {
+      out.y = Math.atan2(2 * (qw * qy - qx * qz), 1 - 2 * (qy * qy + qz * qz));
+      out.z = 0;
+    }
+    return out;
+  }
+
+  /**
    * Clones the quaternion into a new instance.
    * @returns A new Quaternion.
    */

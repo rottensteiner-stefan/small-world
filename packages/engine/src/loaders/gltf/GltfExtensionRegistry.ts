@@ -7,7 +7,19 @@ const registry: GltfExtensionPlugin[] = [];
  * `./extensions/index.js`; a consumer can register additional ones (e.g. from a separate
  * `@small-world/gltf-extensions`-style package) the exact same way. */
 export function registerGltfExtension(plugin: GltfExtensionPlugin): void {
-  registry.push(plugin);
+  const existingIdx = registry.findIndex((p) => p.name === plugin.name);
+  if (existingIdx >= 0) {
+    registry[existingIdx] = plugin;
+  } else {
+    registry.push(plugin);
+  }
+}
+
+export function unregisterGltfExtension(name: string): void {
+  const idx = registry.findIndex((p) => p.name === name);
+  if (idx >= 0) {
+    registry.splice(idx, 1);
+  }
 }
 
 export function getGltfExtensions(): readonly GltfExtensionPlugin[] {
