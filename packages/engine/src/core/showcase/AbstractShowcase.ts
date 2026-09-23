@@ -6,6 +6,15 @@ import { Vector3D } from "../../math/index.js";
 import { FlyController, OrbitController } from "../controllers/index.js";
 
 /**
+ * Window-level event dispatched by {@link AbstractShowcase} once `start()` has finished setting up
+ * the scene (including awaited asset loads) and the render loop has produced a stable frame. Lets
+ * external tooling (preview, visual QA, e2e tests) hook into readiness instead of racing a fixed
+ * delay. The event's `detail` carries the resolved renderer type, so consumers can also verify
+ * which backend actually came up.
+ */
+export const SHOWCASE_READY_EVENT = "small-world:scene-ready";
+
+/**
  * Reads a `?rendererType=` or `?api=` override from the page URL (e.g. `?rendererType=WEB_GL2` or `?api=webgl2`),
  * matched case-insensitively against `RendererType`'s members and common aliases. Lets any showcase's
  * renderer be swapped from the address bar or UI switcher without touching its source.
@@ -149,6 +158,46 @@ export abstract class AbstractShowcase extends SmallWorld {
         );
       }
     }
+
+    // Wait for the first rendered frame before announcing readiness, so the scene has actually
+    // drawn once by the time external tooling observes `SHOWCASE_READY_EVENT`. `super.start()`
+    // above both awaited `setupScene()` (which covers model/texture loading) and kicked off the
+    // render loop, so this is purely about synchronizing with that loop's first painted frame.
+    await this._waitForStableFrame();
+
+    const rendererType = this.renderer?.type;
+    window.dispatchEvent(
+      new CustomEvent<{ rendererType?: RendererType }>(SHOWCASE_READY_EVENT, {
+        detail: { rendererType },
+      }),
+    );
+  }
+
+  /**
+   * Resolves after `requestAnimationFrame` has been called once, i.e. after the render loop has
+   * painted at least one frame. Falls back to a short timeout in environments where
+   * `requestAnimationFrame` is unavailable (e.g. old jsdom test environments) or never fires
+   * (e.g. throttled headless setups), so readiness signalling can never dead-lock.
+   */
+  private async _waitForStableFrame(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      const raf = (window as unknown as Record<string, unknown>)["requestAnimationFrame"] as
+        ((cb: FrameRequestCallback) => number) | undefined;
+      if ("function" !== typeof raf) {
+        window.setTimeout(resolve, 500);
+        return;
+      }
+      const timeout = window.setTimeout(resolve, 1500);
+      raf((): void => {
+        window.clearTimeout(timeout);
+        // Wait one more frame so the first painted frame — including any one-shot
+        // post-processing like TAA history init — has fully landed before signalling.
+        raf((): void => {
+          window.clearTimeout(timeout);
+          resolve();
+        });
+      });
+    });
   }
 
   /**
