@@ -13,6 +13,8 @@ import {
   StandardMaterial,
   PointLight,
   Texture,
+  ToneMappingElement,
+  ToneMappingMode,
 } from "../../../packages/engine/src/index.js";
 import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
 import { Cube } from "../../../packages/engine/src/geometry/Cube.js";
@@ -22,14 +24,24 @@ import { Vector3D } from "../../../packages/engine/src/math/index.js";
 
 class Showcase36 extends AbstractShowcase {
   protected override async setupScene(): Promise<void> {
-    // Post-Processing to complement the glass and cracked-shard highlights
+    // Post-Processing pipeline: ACES Filmic Tone Mapping + sharp glass edge Bloom
     this.renderer.postProcessing.enabled = true;
+
+    const toneMapping = this.renderer.postProcessing.get<ToneMappingElement>(
+      PostProcessingEffectType.TONE_MAPPING,
+    );
+    if (toneMapping) {
+      toneMapping.enabled = true;
+      toneMapping.mode = ToneMappingMode.ACES_FILMIC;
+      toneMapping.exposure = 1.0;
+    }
+
     const bloom = this.renderer.postProcessing.get<BloomElement>(PostProcessingEffectType.BLOOM);
     if (bloom) {
       bloom.enabled = true;
-      bloom.intensity = 0.6;
-      bloom.threshold = 1.0;
-      bloom.radius = 0.6;
+      bloom.intensity = 0.5;
+      bloom.threshold = 1.15;
+      bloom.radius = 0.5;
     }
 
     // Camera setup
@@ -89,7 +101,10 @@ class Showcase36 extends AbstractShowcase {
 
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
-      skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
+      skybox.material = new SkyboxMaterial({
+        cubeMap: envTexture,
+        color: new Color(0.28, 0.3, 0.35, 1.0),
+      });
       skybox.frustumCulled = false;
       this.scene.add(skybox);
     } catch (e) {
