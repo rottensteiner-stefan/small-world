@@ -1,13 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
 import {
   GltfLoader,
   registerGltfExtension,
   Texture,
   StandardMaterial,
   Object3D,
+  CompressedTextureFormat,
 } from "@small-world/engine";
 import { khrTextureBasisu } from "../src/basisu/KhrTextureBasisu.js";
 import { BasisTranscoder } from "../src/basisu/BasisTranscoder.js";
+
+const vendorDir = fileURLToPath(new URL("../vendor/basis/", import.meta.url));
+const fixtureDir = fileURLToPath(new URL("./fixtures/ktx2/", import.meta.url));
+
+function asArrayBuffer(source: Uint8Array<ArrayBufferLike>): ArrayBuffer {
+  return source.buffer.slice(
+    source.byteOffset,
+    source.byteOffset + source.byteLength,
+  ) as ArrayBuffer;
+}
 
 describe("KHR_texture_basisu", () => {
   beforeEach(() => {
@@ -16,6 +29,7 @@ describe("KHR_texture_basisu", () => {
 
   afterEach(() => {
     BasisTranscoder.setTranscodeHandler(null);
+    BasisTranscoder.setConfig({});
   });
 
   it("resolves Basis Universal texture via custom transcoder and attaches to material", async () => {
@@ -150,5 +164,37 @@ describe("KHR_texture_basisu", () => {
     );
 
     expect(res).toBe(mockTexture);
+  });
+
+  it("produces a GPU block-compressed Texture via the built-in transcoder default path", async () => {
+    const wasmBinary = asArrayBuffer(readFileSync(vendorDir + "basis_transcoder.wasm"));
+    BasisTranscoder.setConfig({ wasmBinary });
+    BasisTranscoder.setTranscodeHandler(null);
+
+    const ktx2 = asArrayBuffer(readFileSync(fixtureDir + "2d_etc1s.ktx2"));
+    const texture = await BasisTranscoder.transcode(ktx2, "image/ktx2", { format: "etc2" });
+
+    expect(texture.compressedImage).toBeDefined();
+    expect(texture.compressedImage!.format).toBe(CompressedTextureFormat.ETC2_RGBA8);
+    expect(texture.compressedImage!.width).toBe(40);
+    expect(texture.compressedImage!.height).toBe(40);
+    // Full mip chain is preserved -- level 0 of a 40x40 ETC2 texture is 10x10 blocks
+    // × 16 bytes = 1600 bytes; each level is 25% smaller.
+    expect(texture.compressedImage!.mipData).toHaveLength(6);
+    expect(texture.compressedImage!.mipData[0]!.length).toBe(1600);
+    expect(texture.isLoaded).toBe(true);
+    expect(texture.image).toBeUndefined();
+  });
+
+  it("falls back to an uncompressed RGBA8 texture when rgba8 is requested", async () => {
+    const wasmBinary = asArrayBuffer(readFileSync(vendorDir + "basis_transcoder.wasm"));
+    BasisTranscoder.setConfig({ wasmBinary });
+    BasisTranscoder.setTranscodeHandler(null);
+
+    const ktx2 = asArrayBuffer(readFileSync(fixtureDir + "2d_etc1s.ktx2"));
+    const texture = await BasisTranscoder.transcode(ktx2, "image/ktx2", { format: "rgba8" });
+
+    // RGBA8 output is not block-compressed -- no compressed mip chain is attached.
+    expect(texture.compressedImage).toBeUndefined();
   });
 });

@@ -1,6 +1,12 @@
 import BasisGlue from "../../vendor/basis/basis_transcoder.js?raw";
 import basisWasmUrl from "../../vendor/basis/basis_transcoder.wasm?url";
-import { BASIS_FORMAT_RGBA32, BasisDecodeResult, BasisModule, KTX2File } from "./basisTypes.js";
+import {
+  BasisDecodeResult,
+  BasisModule,
+  BasisTranscoderFormat,
+  BasisTranscoderFormatId,
+  KTX2File,
+} from "./basisTypes.js";
 
 export interface BasisWasmConfig {
   /** Optional alternate .wasm bytes to load instead of the vendored copy. */
@@ -9,10 +15,13 @@ export interface BasisWasmConfig {
 
 /**
  * Loads the vendored official Basis Universal WebAssembly transcoder and uses it
- * to inflate + transcode `KHR_texture_basisu` KTX2 payloads to RGBA8. The WASM
- * module is instantiated exactly once per context and reused across transcode
- * calls. This deliberately delegates the (very intricate) ETC1S/UASTC decoding
- * to the official binary instead of re-implementing it.
+ * to inflate + transcode `KHR_texture_basisu` KTX2 payloads. The output is either
+ * RGBA8 (the universal fallback) or a hardware block-compressed format (BC7/ASTC/
+ * ETC2/...) chosen by the caller -- only valid according to what the eventual
+ * renderer/device can upload. The WASM module is instantiated exactly once per
+ * context and reused across transcode calls. This deliberately delegates the
+ * (very intricate) ETC1S/UASTC decoding to the official binary instead of
+ * re-implementing it.
  */
 export class BasisWasmTranscoder {
   private static _modulePromise: Promise<BasisModule> | null = null;
@@ -85,22 +94,35 @@ export class BasisWasmTranscoder {
   }
 
   /**
-   * Transcodes every mip level of the given KTX2 buffer to RGBA8 planes.
+   * Transcodes every mip level of the given KTX2 buffer to planes in the requested
+   * output format.
    * @param ktx2 The raw KTX2 file bytes (Basis Universal supercompressed).
-   * @param config Optional override (e.g. explicit WASM bytes for tests).
-   * @returns Decoded RGBA8 planes for all mips/faces/layers.
+   * @param config Optional config -- may pin the output format (default RGBA32).
+   * @param config.format Target transcoder format id; if unspecified RGBA32 is used.
+   * @returns Decoded planes for all mips/faces/layers, tagged with their format.
    */
   public static async transcode(
     ktx2: Uint8Array,
-    config?: BasisWasmConfig,
+    config?: BasisWasmConfig & { format?: BasisTranscoderFormatId },
   ): Promise<BasisDecodeResult> {
     const module = await this.getModule(config);
+    const { format = BasisTranscoderFormat.RGBA32 } = config ?? {};
     const file: KTX2File = new module.KTX2File(ktx2);
 
     try {
-      if (!file.isETC1S() && !file.isUASTC()) {
+      const isUastc = file.isUASTC();
+      if (!isUastc && !file.isETC1S()) {
         throw new Error(
           "[BasisWasmTranscoder] KTX2 uses an unsupported basis encoding (expected ETC1S or UASTC)",
+        );
+      }
+
+      // BC1 (DXT1) carries no alpha channel; the transcoder only emits BC1 for
+      // UASTC sources (ETC1S has no valid BC1 mapping). Guard against requesting
+      // an invalid combination.
+      if (format === BasisTranscoderFormat.BC1 && !isUastc) {
+        throw new Error(
+          "[BasisWasmTranscoder] BC1 output is only supported for UASTC sources (ETC1S needs ETC2/BC3/BC7/ASTC)",
         );
       }
 
@@ -117,15 +139,14 @@ export class BasisWasmTranscoder {
       const faceCount = file.getFaces();
 
       const images: BasisDecodeResult["images"] = [];
-      const format = BASIS_FORMAT_RGBA32;
 
       for (let level = 0; level < levelCount; level++) {
         for (let layer = 0; layer < layerCount; layer++) {
           for (let face = 0; face < faceCount; face++) {
             const levelInfo = file.getImageLevelInfo(level, layer, face);
             const byteLength = file.getImageTranscodedSizeInBytes(level, layer, face, format);
-            const rgba = new Uint8Array(byteLength);
-            const ok = file.transcodeImage(rgba, level, layer, face, format, 0, -1, -1);
+            const data = new Uint8Array(byteLength);
+            const ok = file.transcodeImage(data, level, layer, face, format, 0, -1, -1);
             if (!ok) {
               throw new Error(
                 `[BasisWasmTranscoder] .transcodeImage failed (level ${level}, layer ${layer}, face ${face})`,
@@ -135,13 +156,14 @@ export class BasisWasmTranscoder {
               mipLevel: level,
               width: levelInfo.origWidth,
               height: levelInfo.origHeight,
-              rgba,
+              format,
+              data,
             });
           }
         }
       }
 
-      return { width, height, images };
+      return { width, height, hadAlpha: file.getHasAlpha(), images };
     } finally {
       file.close();
     }

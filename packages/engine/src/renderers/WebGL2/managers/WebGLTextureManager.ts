@@ -1,7 +1,7 @@
 import { CubeTexture, Object3D, TextureArray, Texture } from "../../../core/index.js";
 import { RenderTarget, RenderTargetCube } from "../../../core/textures/index.js";
 import { QualityConfig } from "../../../interfaces/index.js";
-import { TextureFilter, TextureWrap } from "../../../enums/index.js";
+import { CompressedTextureFormat, TextureFilter, TextureWrap } from "../../../enums/index.js";
 
 /**
  * Uploaded-texture GPU state: 2D/cube `WebGLTexture` upload + re-upload (`needsUpdate`), and
@@ -50,7 +50,9 @@ export class WebGLTextureManager {
     if (tex instanceof RenderTarget) {
       return this._texCache.get(tex) || this._defaultTexture;
     }
-    if (!tex.image) return this._defaultTexture;
+    // Compressed textures are fully loaded via `compressedImage` -- never route
+    // them through the (image-less) default texture fast path.
+    if (!tex.image && !tex.compressedImage) return this._defaultTexture;
     return undefined;
   }
 
@@ -138,6 +140,87 @@ export class WebGLTextureManager {
     this._setSamplerParams(this._gl.TEXTURE_2D_ARRAY, texArray, Boolean(useMipmaps));
   }
 
+  /**
+   * Uploads a block-compressed texture (`tex.compressedImage`) via
+   * `compressedTexImage2D`, one call per mip level. The GL block enum depends on
+   * the context's extended capabilities (S3TC/BPTC/ASTC), so these are looked up
+   * lazily. WebGL2 has ETC2 core (no extension), hence it needs no lookup.
+   */
+  private _uploadCompressedTexture(tex: Texture, glTex: WebGLTexture): void {
+    const compressed = tex.compressedImage!;
+    this._gl.bindTexture(this._gl.TEXTURE_2D, glTex);
+
+    for (let level = 0; level < compressed.mipData.length; level++) {
+      const levelWidth = Math.max(1, compressed.width >> level);
+      const levelHeight = Math.max(1, compressed.height >> level);
+      this._gl.compressedTexImage2D(
+        this._gl.TEXTURE_2D,
+        level,
+        this._glInternalBlockFormat(compressed.format),
+        levelWidth,
+        levelHeight,
+        0,
+        compressed.mipData[level]!,
+      );
+    }
+
+    // The full mip pyramid is supplied explicitly -- WebGL must not expect extra
+    // levels beyond what we uploaded.
+    this._gl.texParameteri(
+      this._gl.TEXTURE_2D,
+      this._gl.TEXTURE_MAX_LEVEL,
+      compressed.mipData.length - 1,
+    );
+  }
+
+  /** Resolves a `CompressedTextureFormat` to its GL block-compressed internal format for this
+   * context, requesting the owning extension on demand. Throws if the device does not expose the
+   * required extension (callers with fallbacks should pre-check `supportsCompressedFormat`). */
+  private _glInternalBlockFormat(format: CompressedTextureFormat): number {
+    switch (format) {
+      case "bc3_rgba": {
+        const ext = this._gl.getExtension("WEBGL_compressed_texture_s3tc");
+        if (!ext)
+          throw new Error(`[WebGLTextureManager] No S3TC support for compressed format ${format}`);
+        return ext.COMPRESSED_RGBA_S3TC_DXT5_EXT;
+      }
+      case "bc1_rgb": {
+        const ext = this._gl.getExtension("WEBGL_compressed_texture_s3tc");
+        if (!ext)
+          throw new Error(`[WebGLTextureManager] No S3TC support for compressed format ${format}`);
+        return ext.COMPRESSED_RGB_S3TC_DXT1_EXT;
+      }
+      case "bc7_rgba": {
+        const ext =
+          this._gl.getExtension("EXT_texture_compression_bptc") ??
+          this._gl.getExtension("WEBGL_compressed_texture_bptc");
+        if (!ext)
+          throw new Error(`[WebGLTextureManager] No BPTC support for compressed format ${format}`);
+        return ext.COMPRESSED_RGBA_BPTC_UNORM_EXT;
+      }
+      case "astc_4x4_rgba": {
+        const ext = this._gl.getExtension("WEBGL_compressed_texture_astc");
+        if (!ext)
+          throw new Error(`[WebGLTextureManager] No ASTC support for compressed format ${format}`);
+        return ext.COMPRESSED_RGBA_ASTC_4x4_KHR;
+      }
+      case "etc2_rgba8": {
+        // ETC2/EAC is mandatory in WebGL2 (guaranteed present), but the format enum is only
+        // reachable through the `WEBGL_compressed_texture_etc` extension object -- the constants
+        // are not exposed on the context itself.
+        const ext = this._gl.getExtension("WEBGL_compressed_texture_etc");
+        if (!ext) {
+          throw new Error(`[WebGLTextureManager] No ETC2 support for compressed format ${format}`);
+        }
+        return ext.COMPRESSED_RGBA8_ETC2_EAC;
+      }
+      default: {
+        const exhaustive: never = format;
+        throw new Error(`[WebGLTextureManager] Unknown compressed format ${exhaustive}`);
+      }
+    }
+  }
+
   public getWebGLTexture(tex: Texture, quality: QualityConfig | undefined): WebGLTexture {
     const fastPath = this._fastPath(tex, quality);
     if (fastPath) return fastPath;
@@ -147,6 +230,9 @@ export class WebGLTextureManager {
 
       if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
         this._uploadTextureArray(tex as TextureArray, glTex, quality);
+      } else if (tex.compressedImage) {
+        this._uploadCompressedTexture(tex, glTex);
+        this._setSamplerParams(this._gl.TEXTURE_2D, tex, false);
       } else {
         this._gl.bindTexture(this._gl.TEXTURE_2D, glTex);
         this._gl.texImage2D(
@@ -167,7 +253,7 @@ export class WebGLTextureManager {
       }
 
       this._texCache.set(tex, glTex);
-    } else if (tex.needsUpdate) {
+    } else if (tex.needsUpdate && !tex.compressedImage) {
       if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
         this._uploadTextureArray(tex as TextureArray, glTex, quality);
       } else {

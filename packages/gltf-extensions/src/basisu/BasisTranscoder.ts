@@ -1,8 +1,14 @@
 import { Texture } from "@small-world/engine";
 import { BasisWasmTranscoder } from "./BasisWasmTranscoder.js";
+import { BasisDecodeResult, BasisTranscoderFormat, BasisTranscoderFormatId } from "./basisTypes.js";
+import {
+  detectBestBlockFormat,
+  engineFormatForBasisFormat,
+  mipChainFromImages,
+} from "./compressedFormats.js";
 
 export interface BasisTranscodeOptions {
-  format?: "rgba8" | "bc7" | "astc" | "etc2" | "dxt";
+  format?: "rgba8" | "bc7" | "astc" | "etc2" | "dxt" | "auto";
   mipmaps?: boolean;
 }
 
@@ -15,15 +21,24 @@ export type BasisTranscodeHandler = (
 export interface BasisTranscoderConfig {
   transcoderPath?: string;
   workerLimit?: number;
+  /**
+   * Explicit `.wasm` bytes to load instead of the bundled copy. Mainly useful in
+   * non-browser environments (unit tests, SSR) where fetching the `?url` asset
+   * is unavailable.
+   */
+  wasmBinary?: ArrayBuffer;
 }
 
 /**
  * BasisTranscoder handles KTX2 / Basis Universal compressed texture transcoding.
  *
  * By default it uses the vendored, official Basis Universal WebAssembly transcoder
- * to inflate and decode supercompressed KTX2 payloads to RGBA8. Third-party
- * applications can override this via `BasisTranscoder.setTranscodeHandler(handler)`
- * (e.g. to transcode directly to a GPU-compressed block format).
+ * to inflate supercompressed KTX2 payloads and keep them GPU block-compressed:
+ * the device's best supported hardware format (ETC2/BC7/ASTC) is detected via a
+ * capability probe, and the decoded bytes are wrapped in a `Texture.compressedImage`
+ * chain for direct compressed upload. When no block format is usable or `"rgba8"`
+ * is requested, it falls back to decompressing to RGBA8. Third-party applications
+ * can override this via `BasisTranscoder.setTranscodeHandler(handler)`.
  */
 export class BasisTranscoder {
   private static _config: BasisTranscoderConfig = {};
@@ -63,12 +78,13 @@ export class BasisTranscoder {
     }
 
     if (this._isKtx2(buffer)) {
-      const result = await BasisWasmTranscoder.transcode(new Uint8Array(buffer));
-      const plane = result.images.find((image) => image.mipLevel === 0);
-      if (!plane) {
-        throw new Error("[BasisTranscoder] KTX2 file contained no usable image plane");
-      }
-      return this._planeToTexture(plane.width, plane.height, plane.rgba, options);
+      const requestedFormat = this._resolveFormat(options?.format);
+      const wasmBinary = this._config.wasmBinary;
+      const result = await BasisWasmTranscoder.transcode(new Uint8Array(buffer), {
+        format: requestedFormat,
+        ...(wasmBinary ? { wasmBinary } : {}),
+      });
+      return this._resultToTexture(result, options, requestedFormat);
     }
 
     // Not a KTX2 bitstream: hand the bytes to a plain image loader (PNG/JPEG/WebP via a blob URL).
@@ -79,6 +95,57 @@ export class BasisTranscoder {
     } finally {
       URL.revokeObjectURL(url);
     }
+  }
+
+  /** Resolves the requested output format id, probing the device for "auto" (the default). */
+  private static _resolveFormat(format: BasisTranscodeOptions["format"]): BasisTranscoderFormatId {
+    switch (format) {
+      case "rgba8":
+        return BasisTranscoderFormat.RGBA32;
+      case "bc7":
+        return BasisTranscoderFormat.BC7;
+      case "astc":
+        return BasisTranscoderFormat.ASTC_4x4;
+      case "etc2":
+        return BasisTranscoderFormat.ETC2;
+      case "dxt":
+        return BasisTranscoderFormat.BC3;
+      case "auto":
+      case undefined:
+        return detectBestBlockFormat() ?? BasisTranscoderFormat.RGBA32;
+      default: {
+        const exhaustive: never = format;
+        throw new Error(`[BasisTranscoder] Unknown format ${exhaustive}`);
+      }
+    }
+  }
+
+  private static _resultToTexture(
+    result: BasisDecodeResult,
+    _options: BasisTranscodeOptions | undefined,
+    format: BasisTranscoderFormatId,
+  ): Texture {
+    const plane = result.images.find((image) => image.mipLevel === 0);
+    if (!plane) {
+      throw new Error("[BasisTranscoder] KTX2 file contained no usable image plane");
+    }
+
+    // Block-compressed output -> explicit GPU mip chain. ETC1 maps onto ETC2
+    // (identical block layout for our purposes), RGBA32 falls back to uncompressed.
+    const compressedFormat = engineFormatForBasisFormat(
+      format === BasisTranscoderFormat.ETC1 ? BasisTranscoderFormat.ETC2 : format,
+    );
+    if (compressedFormat) {
+      return Texture.fromCompressed({
+        format: compressedFormat,
+        width: plane.width,
+        height: plane.height,
+        mipData: mipChainFromImages(result.images),
+      });
+    }
+
+    // Uncompressed RGBA8 fallback: wrap in a canvas-backed Texture.
+    return this._planeToTexture(plane.width, plane.height, plane.data, _options);
   }
 
   private static _isKtx2(buffer: ArrayBuffer): boolean {

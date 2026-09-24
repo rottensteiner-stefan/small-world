@@ -6,6 +6,7 @@ import { GPUTextureResourceCache } from "../../src/renderers/WebGPU/managers/GPU
 import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
 import { Texture } from "../../src/core/textures/Texture.js";
 import { TextureArray } from "../../src/core/textures/TextureArray.js";
+import { CompressedTextureFormat } from "../../src/enums/CompressedTextureFormat.js";
 
 // Node/vitest has no WebGPU global; @webgpu/types only provides ambient TS types,
 // not a runtime value. Stub the bit-flag constants this renderer actually reads.
@@ -46,6 +47,8 @@ function makeMockGl(): WebGL2RenderingContext {
     texSubImage3D: vi.fn(),
     texParameteri: vi.fn(),
     generateMipmap: vi.fn(),
+    compressedTexImage2D: vi.fn(),
+    getExtension: vi.fn(() => null),
     TEXTURE_2D: 1,
     RGBA: 2,
     UNSIGNED_BYTE: 3,
@@ -61,6 +64,7 @@ function makeMockGl(): WebGL2RenderingContext {
     MIRRORED_REPEAT: 13,
     CLAMP_TO_EDGE: 14,
     TEXTURE_2D_ARRAY: 15,
+    TEXTURE_MAX_LEVEL: 16,
   } as unknown as WebGL2RenderingContext;
 }
 
@@ -77,6 +81,7 @@ function makeMockDevice(): GPUDevice {
     createPipelineLayout: vi.fn(() => ({})),
     createRenderPipeline: vi.fn(() => ({})),
     queue: { copyExternalImageToTexture: vi.fn(), writeBuffer: vi.fn(), writeTexture: vi.fn() },
+    features: { has: vi.fn(() => true) },
   } as unknown as GPUDevice;
 }
 
@@ -203,5 +208,130 @@ describe("Texture GPU re-upload on needsUpdate", () => {
     expect(device.createTexture).toHaveBeenCalledTimes(1);
     expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
     expect(tex.needsUpdate).toBe(false);
+  });
+
+  it("WebGLTextureManager uploads block-compressed textures via compressedTexImage2D", () => {
+    const gl = makeMockGl();
+    const etcExt = { COMPRESSED_RGBA8_ETC2_EAC: 0x9278 };
+    vi.mocked(gl.getExtension).mockReturnValue(etcExt as never);
+    const textures = new WebGLTextureManager(gl, new Map(), {} as never, {} as never);
+
+    // Two explicit mip levels, each with nonzero block data (40x40 ETC2 = 10x10 blocks x 16).
+    const tex = Texture.fromCompressed({
+      format: CompressedTextureFormat.ETC2_RGBA8,
+      width: 40,
+      height: 40,
+      mipData: [new Uint8Array(1600).fill(7), new Uint8Array(400).fill(9)],
+    });
+
+    const glTex = textures.getWebGLTexture(tex, undefined);
+
+    expect(glTex).toBeDefined();
+    expect(vi.mocked(gl.compressedTexImage2D)).toHaveBeenCalledTimes(2);
+    expect(gl.compressedTexImage2D).toHaveBeenNthCalledWith(
+      1,
+      gl.TEXTURE_2D,
+      0,
+      0x9278,
+      40,
+      40,
+      0,
+      expect.any(Uint8Array),
+    );
+    expect(gl.compressedTexImage2D).toHaveBeenNthCalledWith(
+      2,
+      gl.TEXTURE_2D,
+      1,
+      0x9278,
+      20,
+      20,
+      0,
+      expect.any(Uint8Array),
+    );
+    // Mip pyramid is explicit -- WebGL must not expect any further levels.
+    expect(gl.texParameteri).toHaveBeenCalledWith(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 1);
+
+    // Cache: a repeated request must NOT re-upload (compressed textures never enter the
+    // `needsUpdate` re-upload path).
+    vi.mocked(gl.compressedTexImage2D).mockClear();
+    const cached = textures.getWebGLTexture(tex, undefined);
+    expect(cached).toBe(glTex);
+    expect(vi.mocked(gl.compressedTexImage2D)).not.toHaveBeenCalled();
+
+    // Sampler params (wrap/filter) are set like any other panel texture.
+    expect(gl.texParameteri).toHaveBeenCalledWith(
+      gl.TEXTURE_2D,
+      gl.TEXTURE_WRAP_S,
+      expect.any(Number),
+    );
+  });
+
+  it("WebGLTextureManager throws a clear error when the device lacks the block format", () => {
+    const gl = makeMockGl();
+    // No ETC2 extension available.
+    vi.mocked(gl.getExtension).mockReturnValue(null);
+    const textures = new WebGLTextureManager(gl, new Map(), {} as never, {} as never);
+
+    const tex = Texture.fromCompressed({
+      format: CompressedTextureFormat.ETC2_RGBA8,
+      width: 40,
+      height: 40,
+      mipData: [new Uint8Array(1600)],
+    });
+
+    expect(() => textures.getWebGLTexture(tex, undefined)).toThrow(/No ETC2 support/);
+  });
+
+  it("GPUTextureResourceCache uploads block-compressed textures via writeTexture", () => {
+    const device = makeMockDevice();
+    const fallback = new GPUFallbackResources(device);
+    const textures = new GPUTextureResourceCache(device, fallback);
+
+    vi.mocked(device.createTexture).mockClear();
+    vi.mocked(device.queue.writeTexture).mockClear();
+
+    const tex = Texture.fromCompressed({
+      format: CompressedTextureFormat.ETC2_RGBA8,
+      width: 40,
+      height: 40,
+      mipData: [new Uint8Array(1600).fill(7), new Uint8Array(400).fill(9)],
+    });
+
+    const view = textures.getTextureView(tex, undefined);
+    expect(view).toBeDefined();
+
+    expect(device.createTexture).toHaveBeenCalledTimes(1);
+    const createCall = vi.mocked(device.createTexture).mock.calls[0]![0] as {
+      format: string;
+      mipLevelCount: number;
+    };
+    expect(createCall.format).toBe("etc2-rgba8unorm");
+    expect(createCall.mipLevelCount).toBe(2);
+
+    expect(vi.mocked(device.queue.writeTexture)).toHaveBeenCalledTimes(2);
+    // Block-aligned stride for a 40px (=10 block) wide row of ETC2 (16 B/block), 10 block rows.
+    expect(vi.mocked(device.queue.writeTexture)).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.any(Uint8Array),
+      { offset: 0, bytesPerRow: 160, rowsPerImage: 10 },
+      [40, 40],
+    );
+  });
+
+  it("GPUTextureResourceCache throws when the device lacks the compressed-texture feature", () => {
+    const device = makeMockDevice();
+    const fallback = new GPUFallbackResources(device);
+    const textures = new GPUTextureResourceCache(device, fallback);
+    vi.mocked((device.features as { has: (f: string) => boolean }).has).mockReturnValue(false);
+
+    const tex = Texture.fromCompressed({
+      format: CompressedTextureFormat.ETC2_RGBA8,
+      width: 40,
+      height: 40,
+      mipData: [new Uint8Array(1600)],
+    });
+
+    expect(() => textures.getTextureView(tex, undefined)).toThrow(/texture-compression-etc2/);
   });
 });

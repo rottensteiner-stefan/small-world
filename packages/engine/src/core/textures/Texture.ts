@@ -1,4 +1,4 @@
-import { TextureFilter, TextureWrap } from "../../enums/index.js";
+import { CompressedTextureFormat, TextureFilter, TextureWrap } from "../../enums/index.js";
 import { AssetManager } from "../../loaders/AssetManager.js";
 /**
  * Configuration options for creating a texture.
@@ -25,11 +25,34 @@ export interface TextureOptions {
 }
 
 /**
+ * Block-compressed texture payload, uploaded to the GPU as-is (no CPU->RGBA
+ * decode, no per-texel VRAM cost). The mip chain is provided explicitly since
+ * compressed texture files ship their own mipmaps -- `generateMipmaps` must be
+ * `false` for compressed textures so the renderer uploads exactly these levels.
+ */
+export interface CompressedImage {
+  /** Which GPU block format these bytes use. */
+  format: CompressedTextureFormat;
+  /** Full-resolution width of the base level. */
+  width: number;
+  /** Full-resolution height of the base level. */
+  height: number;
+  /** Per-mip-level payloads (index 0 = base level). Each entry is the raw block data. */
+  mipData: Uint8Array[];
+}
+
+/**
  * Represents a 2D texture.
  */
 export class Texture {
   /** The underlying image, bitmap, or canvas data. */
   public image: HTMLImageElement | ImageBitmap | HTMLCanvasElement | undefined = undefined;
+  /**
+   * Optional block-compressed payload. When present, `image` is `undefined` and
+   * renderers upload `compressedImage` directly via `compressedTexImage2D`
+   * (WebGL2) / compressed texture formats (WebGPU) instead of sampling `image`.
+   */
+  public compressedImage: CompressedImage | undefined = undefined;
   /** Whether the texture is fully loaded and ready for use. */
   public isLoaded: boolean = false;
   /** Set to true after mutating `image` in place (e.g. redrawing a canvas) to force a GPU re-upload. */
@@ -125,6 +148,25 @@ export class Texture {
    */
   public static fromCanvas(canvas: HTMLCanvasElement, options?: TextureOptions): Texture {
     return new Texture(canvas, options);
+  }
+
+  /**
+   * Creates a texture backed by an explicit block-compressed mip chain
+   * (e.g. decoded from a KTX2 `KHR_texture_basisu` payload). The renderer uploads
+   * the bytes as-is, keeping the data GPU-compressed.
+   * @param compressedImage The compressed payload (format + mip chain).
+   * @param options Optional configuration options -- `generateMipmaps` must be
+   * `false`, since every level is supplied explicitly.
+   * @returns A new Texture instance.
+   */
+  public static fromCompressed(
+    compressedImage: CompressedImage,
+    options?: TextureOptions,
+  ): Texture {
+    const tex = new Texture(undefined, { ...options, generateMipmaps: false });
+    tex.compressedImage = compressedImage;
+    tex.isLoaded = true;
+    return tex;
   }
 
   /**

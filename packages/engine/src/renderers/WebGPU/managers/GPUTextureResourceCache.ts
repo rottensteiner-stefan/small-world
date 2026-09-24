@@ -1,7 +1,7 @@
 import { CubeTexture, Object3D, Texture, TextureArray } from "../../../core/index.js";
 import { RenderTarget, RenderTargetCube } from "../../../core/textures/index.js";
 import { QualityConfig } from "../../../interfaces/index.js";
-import { TextureFilter, TextureWrap } from "../../../enums/index.js";
+import { CompressedTextureFormat, TextureFilter, TextureWrap } from "../../../enums/index.js";
 import { GPUFallbackResources } from "./GPUFallbackResources.js";
 import mipDownsampleWGSL from "../../../core/materials/shaders/MipDownsample.frag.wgsl?raw";
 import fullscreenVertWGSL from "../../../core/materials/shaders/PostProcess.vert.wgsl?raw";
@@ -132,6 +132,12 @@ export class GPUTextureResourceCache {
       const rtEntry = this._textureViewCache.get(tex);
       return rtEntry?.view || this._fallback.whiteTextureView;
     }
+    // Block-compressed textures carry no `.image` -- they are uploaded from their
+    // explicit mip chain instead of from a source image.
+    if (tex.compressedImage) {
+      const entry = this._getOrCreateCompressedEntry(tex);
+      return entry.view;
+    }
     if (!tex.image) return this._fallback.whiteTextureView;
     let entry = this._textureViewCache.get(tex);
     if (!entry) {
@@ -200,6 +206,122 @@ export class GPUTextureResourceCache {
       tex.needsUpdate = false;
     }
     return entry.view;
+  }
+
+  /**
+   * Resolves and caches a block-compressed texture's GPU texture + view, uploading each mip
+   * level's bytes directly via `queue.writeTexture` (WebGPU requires block-formatted data, so
+   * `copyExternalImageToTexture` cannot be used). The device must expose the matching
+   * texture-compression feature -- callers pre-check device support before assigning
+   * `Texture.compressedImage`.
+   */
+  private _getOrCreateCompressedEntry(tex: Texture): {
+    texture: GPUTexture;
+    view: GPUTextureView;
+    mipLevelCount: number;
+  } {
+    const existing = this._textureViewCache.get(tex);
+    if (existing) return existing;
+
+    const compressed = tex.compressedImage!;
+    const format = this._webgpuFormat(compressed.format);
+    const requiredFeature = this._featureForFormat(compressed.format);
+    if (requiredFeature && !this._device.features.has(requiredFeature)) {
+      throw new Error(
+        `[GPUTextureResourceCache] Device lacks "${requiredFeature}" feature required to upload compressed format ${compressed.format}`,
+      );
+    }
+    const mipLevelCount = compressed.mipData.length;
+
+    const texture = this._device.createTexture({
+      size: [compressed.width, compressed.height],
+      format,
+      mipLevelCount,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+
+    for (let level = 0; level < mipLevelCount; level++) {
+      const levelWidth = Math.max(1, compressed.width >> level);
+      const levelHeight = Math.max(1, compressed.height >> level);
+      const layout = this._blockLayout(compressed.format, levelWidth, levelHeight);
+      this._device.queue.writeTexture(
+        { texture, mipLevel: level },
+        compressed.mipData[level]!,
+        { offset: 0, bytesPerRow: layout.bytesPerRow, rowsPerImage: layout.rowsPerImage },
+        [levelWidth, levelHeight],
+      );
+    }
+
+    const view = texture.createView();
+    const entry = { texture, view, mipLevelCount };
+    this._textureViewCache.set(tex, entry);
+    return entry;
+  }
+
+  /**
+   * Texel-block stride for `queue.writeTexture` on block-compressed formats. For these formats
+   * the source is a flat array of 4x4 texel blocks; `bytesPerRow` is the byte stride between
+   * successive *block rows* (columns across × bytes-per-block) and `rowsPerImage` is the number
+   * of block rows per image. WebGPU validates block-compressed uploads against exactly these
+   * block-aligned strides (the 256-byte `bytesPerRow` rule only applies to buffer copies).
+   */
+  private _blockLayout(
+    format: CompressedTextureFormat,
+    width: number,
+    height: number,
+  ): { bytesPerRow: number; rowsPerImage: number } {
+    const blocksX = Math.max(1, Math.ceil(width / 4));
+    const rowsPerImage = Math.max(1, Math.ceil(height / 4));
+    switch (format) {
+      case "bc1_rgb":
+        return { bytesPerRow: blocksX * 8, rowsPerImage };
+      case "bc3_rgba":
+      case "bc7_rgba":
+      case "astc_4x4_rgba":
+      case "etc2_rgba8":
+        return { bytesPerRow: blocksX * 16, rowsPerImage };
+      default: {
+        const exhaustive: never = format;
+        throw new Error(`[GPUTextureResourceCache] Unknown compressed format ${exhaustive}`);
+      }
+    }
+  }
+
+  private _webgpuFormat(format: CompressedTextureFormat): GPUTextureFormat {
+    switch (format) {
+      case "bc1_rgb":
+        return "bc1-rgba-unorm";
+      case "bc3_rgba":
+        return "bc3-rgba-unorm";
+      case "bc7_rgba":
+        return "bc7-rgba-unorm";
+      case "astc_4x4_rgba":
+        return "astc-4x4-unorm";
+      case "etc2_rgba8":
+        return "etc2-rgba8unorm";
+      default: {
+        const exhaustive: never = format;
+        throw new Error(`[GPUTextureResourceCache] Unknown compressed format ${exhaustive}`);
+      }
+    }
+  }
+
+  /** WebGPU feature required to upload the given compressed format, if any. */
+  private _featureForFormat(format: CompressedTextureFormat): GPUFeatureName | undefined {
+    switch (format) {
+      case "bc1_rgb":
+      case "bc3_rgba":
+      case "bc7_rgba":
+        return "texture-compression-bc";
+      case "astc_4x4_rgba":
+        return "texture-compression-astc";
+      case "etc2_rgba8":
+        return "texture-compression-etc2";
+      default: {
+        const exhaustive: never = format;
+        throw new Error(`[GPUTextureResourceCache] Unknown compressed format ${exhaustive}`);
+      }
+    }
   }
 
   public getNormalTextureView(tex: Texture | undefined): GPUTextureView {

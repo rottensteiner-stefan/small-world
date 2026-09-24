@@ -468,6 +468,13 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._device = await this._adapter.requestDevice({
       requiredLimits,
+      // Block-compressed texture upload (`Texture.compressedImage`) needs the device's
+      // texture-compression feature. Each is optional at renderer level: the loader may
+      // still produce compressed textures in formats the current renderer cannot upload,
+      // so the upload path (`GPUTextureResourceCache`) validates availability at use time.
+      requiredFeatures: (
+        ["texture-compression-bc", "texture-compression-etc2", "texture-compression-astc"] as const
+      ).filter((feature) => this._adapter!.features.has(feature)),
     });
     this._isDeviceLost = false;
     this._isDestroyed = false;

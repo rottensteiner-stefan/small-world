@@ -1,6 +1,7 @@
 export * from "./BoundingType.js";
 export * from "./CameraEffectType.js";
 export * from "./CameraStrategyType.js";
+export * from "./CompressedTextureFormat.js";
 export * from "./CubeLayout.js";
 export * from "./EventType.js";
 export * from "./FogMode.js";
