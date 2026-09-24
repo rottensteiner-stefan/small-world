@@ -5,6 +5,7 @@ import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import { BoundingBox } from "./BoundingBox.js";
 import { OBB } from "./OBB.js";
+import { ConvexHull } from "./ConvexHull.js";
 import { EventDispatcherImpl } from "../core/events/EventDispatcherImpl.js";
 import { Collidable } from "../interfaces/index.js";
 import { BoundingType } from "../enums/index.js";
@@ -282,6 +283,51 @@ export class PhysicsSystem {
             boundsB as unknown as OBB,
             result,
           );
+        } else if (BoundingType.HULL === boundsA.type && BoundingType.HULL === boundsB.type) {
+          collisionFound = Collision.resolveHullHull(
+            boundsA as ConvexHull,
+            boundsB as ConvexHull,
+            result,
+          );
+        } else if (BoundingType.HULL === boundsA.type && BoundingType.SPHERE === boundsB.type) {
+          collisionFound = Collision.resolveHullSphere(
+            boundsA as ConvexHull,
+            boundsB as BoundingSphere,
+            result,
+          );
+        } else if (BoundingType.SPHERE === boundsA.type && BoundingType.HULL === boundsB.type) {
+          collisionFound = Collision.resolveHullSphere(
+            boundsB as ConvexHull,
+            boundsA as BoundingSphere,
+            result,
+          );
+          if (collisionFound) result.scale(-1);
+        } else if (BoundingType.HULL === boundsA.type && BoundingType.BOX === boundsB.type) {
+          collisionFound = Collision.resolveHullBox(
+            boundsA as ConvexHull,
+            boundsB as BoundingBox,
+            result,
+          );
+        } else if (BoundingType.BOX === boundsA.type && BoundingType.HULL === boundsB.type) {
+          collisionFound = Collision.resolveHullBox(
+            boundsB as ConvexHull,
+            boundsA as BoundingBox,
+            result,
+          );
+          if (collisionFound) result.scale(-1);
+        } else if (BoundingType.HULL === boundsA.type && BoundingType.OBB === boundsB.type) {
+          collisionFound = Collision.resolveHullObb(
+            boundsA as ConvexHull,
+            boundsB as unknown as OBB,
+            result,
+          );
+        } else if (BoundingType.OBB === boundsA.type && BoundingType.HULL === boundsB.type) {
+          collisionFound = Collision.resolveHullObb(
+            boundsB as ConvexHull,
+            boundsA as unknown as OBB,
+            result,
+          );
+          if (collisionFound) result.scale(-1);
         }
 
         if (collisionFound) {

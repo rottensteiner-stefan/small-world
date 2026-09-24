@@ -20,13 +20,15 @@ Read our full [Vision & Strategy](VISION.md).
 - **Planar & Conformal Reflections:** Real-time planar floor reflections (virtual mirror geometries) and dynamic sphere inversion reflections ($P' = C + V \cdot \frac{R^2}{d^2 - r^2}$) for PBR objects.
 - **Component Behaviors & State Machines:** Robust, callback-driven behavior system to attach complex logic (`FlickerBehavior`, `DeviceOrientationController`, `HoverBehavior`, `DraggableBehavior`, etc.) directly to 3D objects, cameras, or materials. Includes a built-in, type-safe, zero-allocation **Finite State Machine (FSM)** framework to cleanly manage game actor lifecycles.
 - **Interactions & Gamification:** A built-in `InteractionManager` allowing objects to instantly react to mouse/touch pointer events (`onPointerEnter`, `onPointerClick`, `onPointerDown`, `onPointerMove`, etc.). Pickable elements are queried via highly performant $O(\log n)$ **Octrees** and resolved to exact pixels via the **Möller-Trumbore** intersection algorithm. 
-- **Stylized Post-Processing Pipeline:** Built-in cinematic and retro filters (Phosphor Green Night Vision, Film Noir with chromatic aberration, Cyber Glitch, VHS Tape tracking, Amber/Sepia Underworld, Old Projector scratching/hair spots, and Thermal Vision), plus Bloom, a simplified screen-space ambient occlusion pass (HBAO), a simplified Temporal Anti-Aliasing pass (jitter + history blend), and a deliberate ghost/afterimage Motion Trail effect reusing the same history-blend machinery. Configured via static parameter specialization for optimal compilation without dynamic uniform cost.
+- **Stylized & Cinematic Post-Processing:** ACES Filmic, Reinhard, and Cineon Tone Mapping with parametric Color Grading (lift/gamma/gain, color temperature), plus Bloom, Screen-Space Ambient Occlusion (HBAO), Temporal Anti-Aliasing (TAA with camera jitter + history blend), Motion Trails, and retro/stylized shaders (Phosphor Night Vision, Film Noir, Cyber Glitch, VHS Tracking, Thermal Vision).
 - **Scene Graph:** Hierarchical scene management using a clean `Object3D` architecture.
 - **2D/2.5D Support:** First-class support for Sprites, Billboard rendering, and Pixel-Perfect Isometric perspectives.
 - **Audio System:** Built-in `AudioSystem` with 3D Spatial Audio (HRTF), a procedural Retro Synthesizer (footsteps, lasers, drones, fire), and a built-in Mixer with procedural Reverb.
 - **Decoupled Architecture:** Features a high-performance, strictly-typed global `EventBus` injected into all systems (`this.events`), separating Gameloop, Behaviors, and UI without relying on garbage-heavy DOM `CustomEvent` objects.
-- **Procedural Generation & Authoring Tooling:** Includes procedural generation utilities like the `GridLevelBuilder` to generate complete dungeon levels from ASCII maps, plus a comprehensive tool suite (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`).
-- **Geometry & Asset Loaders:** Dynamic terrain generation, comprehensive primitive library, and async loaders for OBJ models, MTLLib materials, and textures (via unified static factories like `Texture.fromUrl()`).
+- **Declarative Level & Kit Pipeline (ADR 0020):** JSON-Schema-validated level descriptors (`level.schema.json`) and modular `KitRegistry` with procedural kit fallback, socket light mounting, and metadata binding.
+- **Basis Universal / KTX2 Texture Transcoding:** Native WASM-based transcoding for `KHR_texture_basisu` with automatic runtime negotiation for hardware GPU formats (BC7, ASTC, ETC2, BC3).
+- **Procedural Generation & Authoring Tooling:** Includes procedural generation utilities like the `GridLevelBuilder` to generate complete dungeon levels from ASCII maps, plus a comprehensive tool suite (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`, `MaterialStudio`).
+- **Geometry & Asset Loaders:** Dynamic terrain generation, comprehensive primitive library, and async loaders for glTF 2.0 (with extensions), OBJ models, MTLLib materials, and textures (via unified static factories like `Texture.fromUrl()`).
 - **Hardware Telemetry & Feature Detection:** Built-in `DeviceCaps` provides robust detection of WebGPU/WebGL API support, hardware limits (Memory, Cores, Texture Sizes), and experimental browser features (Wasm, Async, Generic Sensors).
 - **SPA & Frontend Framework Ready:** Fully compatible with React, Vue, and Angular. Features a robust `engine.destroy()` lifecycle hook that completely frees GPU memory and detaches global event listeners. The engine even auto-destroys if it detects its canvas has been unmounted from the DOM.
 
@@ -147,21 +149,34 @@ For an isolated development environment, this project includes a **Dev Container
 
 ## 📂 Project Structure
 
-- `src/core`: Core engine logic (SmallWorld, Object3D, Scene, Input, Color).
-- `src/core/behaviors`: Modular runtime behavior components (e.g. Proximity Sensors, Oscillators).
-- `src/core/cameras`: Camera strategies, projections, effects, and modular controllers.
-- `src/core/fsm`: Type-safe, zero-allocation Finite State Machine utility.
-- `src/core/materials`: Material definitions and PBR shader assets.
-- `src/core/lights`: Light source implementations (Standard & PBR).
-- `src/geometry`: Geometric primitives and terrain logic.
-- `src/math`: Linear algebra, vectors, matrices, and object pooling.
-- `src/loaders`: Asset loading pipeline (glTF 2.0, OBJ, MTL, Textures).
-- `src/tools`: Standalone and in-engine tools (Maker, Forge, Xtractor, Pixler, MapGen).
-  - `src/tools/maker`: The Maker standalone 3D world editor application.
-- `src/renderers`: Implementation of WebGL1, WebGL2, and WebGPU backends.
-  - `src/core/renderers/shaders/source`: Core shader assets directly bundled with the engine.
-- `showcases`: Interactive functional showcases demonstrating engine capabilities (34+ showcases and mini-apps).
-- `public/assets`, `public/resources`, `public/tools`: Static assets, shared resources, and the standalone browser-based generator tools (see below) used across showcases.
+Small World is organized as a lightweight TypeScript monorepo (`packages/*`, `apps/*`, `public/*`):
+
+### `packages/` — Engine & Extensions
+- **`packages/engine`**: Core 3D engine (`@small-world/engine`).
+  - `src/core`: Core lifecycle (`SmallWorld`), Scene Graph (`Object3D`, `Scene`), `Input`, `Color`, and `EventBus`.
+  - `src/core/behaviors`: Modular behavior components (e.g. `OrbitController`, `HoverBehavior`, `DraggableBehavior`, Proximity Sensors).
+  - `src/core/cameras`: Camera projections (Perspective, Orthographic), strategies, and camera effects.
+  - `src/core/fsm`: Type-safe, zero-allocation Finite State Machine framework.
+  - `src/core/materials`: PBR standard materials, Glass/Dielectric materials, Fluid/Water shaders, and Post-Processing passes.
+  - `src/core/lights`: Light types (Ambient, Directional, Point, Spot, Area, Clustered Forward+).
+  - `src/geometry`: Geometric primitives (`Cube`, `Sphere`, `Cylinder`, `Plane`, `Ground`) and dynamic terrain logic.
+  - `src/math`: Custom SIMD-friendly vector/matrix math, raycasting, bounding boxes, and memory pooling (`MathPool`).
+  - `src/loaders`: Asset loading pipeline (glTF 2.0, Declarative Level Descriptors / `KitRegistry`, OBJ/MTL, Textures).
+  - `src/physix`: Physics system, colliders, bounding boxes (AABB/OBB), and solvers.
+  - `src/renderers`: Hybrid WebGPU, WebGL 2, and WebGL 1 rendering backends.
+  - `src/tools`: Integrated engine tools (`Maker`, `Forge`, `Xtractor`, `Pixler`, `MapGen`, `MaterialStudio`).
+- **`packages/gltf-extensions`**: Extended glTF capabilities including `KHR_texture_basisu` (WASM-based Basis Universal / KTX2 GPU texture transcoding).
+- **`packages/geometry-extras`**: Procedural and parametric geometry extensions (`Lathe`, Platonic solids, Filled polygons).
+- **`packages/physics-extras`**: Advanced physics solvers, convex hulls, and geometric algorithms.
+
+### `apps/` — Showcases & Sample Games
+- **`apps/showcases`**: 38 interactive functional showcases demonstrating engine features (PBR, IBL, Glass transmission, Post-processing, Clustered lighting, Spatial audio, etc.).
+- **`apps/sample-apps`**: Production vertical slices and games (*The Whisper — A Viennese Requiem*, *Light Cycle Arena*, etc.).
+
+### `public/` — Assets & Tools
+- `public/assets`, `public/resources`: Shared 3D models, textures, sound effects, and asset kits.
+- `public/schemas`: JSON Schema (draft 2020-12) validation files for declarative levels (`level.schema.json`) and asset kits.
+- `public/tools`: Standalone browser-based creative tools running client-side via File System Access API.
 
 ## 🧰 Tools & Authoring Suite
 

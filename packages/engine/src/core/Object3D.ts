@@ -228,7 +228,9 @@ export class Object3D implements Collidable {
       // 2. Transform bounds to world space without re-allocating (if types match, or if custom OBB was assigned)
       if (
         !this.bounds ||
-        (this.bounds.type !== 2 /* BoundingType.OBB */ && this.bounds.type !== localBounds.type)
+        (this.bounds.type !== 2 /* BoundingType.OBB */ &&
+          this.bounds.type !== 3 /* BoundingType.HULL */ &&
+          this.bounds.type !== localBounds.type)
       ) {
         // Create a fresh copy
         if (localBounds.type === 1 /* BoundingType.BOX */) {
@@ -273,6 +275,13 @@ export class Object3D implements Collidable {
           const lo = localBounds as import("../physix/index.js").OBB;
           b.copyLocalHalfExtentsFrom(lo.halfExtents);
         }
+        b.transform(this.worldMatrix);
+      } else if (this.bounds && this.bounds.type === 3 /* BoundingType.HULL */) {
+        // A ConvexHull's shape is never derived from `geometry.getBoundingVolume()`
+        // (which only ever produces a Box/Sphere) -- it must be assigned manually
+        // (e.g. `obj.bounds = new ConvexHull(...)`), and is then only re-transformed
+        // here every frame, exactly like the manually-assigned-OBB branch above.
+        const b = this.bounds as import("../physix/index.js").ConvexHull;
         b.transform(this.worldMatrix);
       }
     }

@@ -3,6 +3,7 @@ export * from "./BoundingSphere.js";
 export * from "./SpatialHash.js";
 export * from "./StaticCollider.js";
 export * from "./OBB.js";
+export * from "./ConvexHull.js";
 export * from "./PhysicsSystem.js";
 export * from "./FluidVolume.js";
 export * from "./RigidBody.js";

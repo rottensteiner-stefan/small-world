@@ -32,13 +32,13 @@ We reject that bloat. **Great 3D experiences are made of:**
 **The Problem:** Legacy 3D codebases carry a decade of dynamic JavaScript debt, loosely patched types, and silent runtime `any` failures.
 **Our Solution:** 100% strict TypeScript. No `any`. Explicit access encapsulation (`_privateField`) and clean getters/setters. Autocomplete that never lies, fail-fast lifecycle assertions, and an API designed for developers who take craftsmanship seriously.
 
-### 4. Hybrid WebGPU & WebGL 2 Without Lock-In
+### 4. Hybrid WebGPU & WebGL Without Lock-In
 **The Problem:** The transition to WebGPU has fractured many ecosystems into incompatible node graphs and experimental shader dialects.
-**Our Solution:** Designed hybrid from day one. Modern WebGPU compute shaders (e.g. Clustered Forward+ Light Culling) deliver maximum efficiency when available, with a rock-solid, zero-cost fallback to WebGL 2. Shaders use static parameter specialization without proprietary visual scripting lock-in.
+**Our Solution:** Designed hybrid from day one. Modern WebGPU compute shaders (e.g. Clustered Forward+ Light Culling) deliver maximum efficiency when available, with a rock-solid, zero-cost fallback cascade across WebGL 2 and WebGL 1. Shaders use static parameter specialization without proprietary visual scripting lock-in, paired with native WASM-powered GPU texture transcoding (Basis Universal / KTX2).
 
-### 5. Open Standards & The Modular Asset Kit Pipeline
-**The Problem:** Proprietary asset silos and closed marketplace formats lock creators in, while monolithic asset repos cause agonizing clone times.
-**Our Solution:** Universal open standards (`.glb`, glTF 2.0 PBR, semantic JSON manifests). Creators can import, snap, and assemble models from the global CC0/CC-BY ecosystem (Kenney, Poly Haven, Sketchfab, Blender) or AI generation tools (Tripo3D, Meshy) in seconds.
+### 5. Open Standards & The Declarative Level & Kit Pipeline
+**The Problem:** Proprietary asset silos, unvalidated level formats, and closed marketplace ecosystems lock creators in, while monolithic asset repos cause agonizing clone times.
+**Our Solution:** Universal open standards (`.glb`, glTF 2.0 PBR, `level.schema.json`, `kit.json`). Creators can author schema-validated declarative level descriptors (`*.level.json`) with modular `KitRegistry` procedural fallbacks and socket light mounting (ADR 0020), as well as import, snap, and assemble models from the global CC0/CC-BY ecosystem (Kenney, Poly Haven, Sketchfab, Blender) or AI generation tools (Tripo3D, Meshy) in seconds.
 
 ### 6. Visual Scene Authoring via Maker
 **The Problem:** Authoring 3D scenes purely in code is tedious, while traditional desktop editors isolate developers behind heavy installers and separate build steps.

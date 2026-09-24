@@ -6,13 +6,13 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### `Gear`
 
-- **File:** `src/geometry/Gear.ts`
+- **File:** `packages/engine/src/geometry/Gear.ts`
 - **Source:** [Rechneronline - Zahnrad berechnen](https://rechneronline.de/pi/zahnrad.php)
 - **Usage:** The underlying formulas for generating isometric trapezoidal teeth, pitch circles, and radii for the 3D gear were taken from this tool and adapted.
 
 ### Matrix and Quaternion Derivations (General Reference)
 
-- **File:** Mainly affects `src/math/Matrix4.ts`, `src/math/Quaternion.ts`, `src/math/Matrix3.ts` as well as cameras/projections.
+- **File:** Mainly affects `packages/engine/src/math/Matrix4.ts`, `packages/engine/src/math/Quaternion.ts`, `packages/engine/src/math/Matrix3.ts` as well as cameras/projections.
 - **Source:** [Mathematische Grundlagen der 3D-Grafik (David Nadlinger, 2008/2009)](https://klickverbot.at/science/3d-mathematics/3d-mathematics.pdf)
 - **Usage:** An excellent and compact German summary of the underlying 3D mathematics. Contains derivations for rotations (avoiding gimbal lock via quaternions), view matrix, and projection matrix (incl. frustum and clipping). Serves as a general reference for the engine's math, since `small-world` uses the OpenGL convention (right-handed system, column vectors) as described there.
 
@@ -24,33 +24,89 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Fast, Minimum Storage Ray/Triangle Intersection (Möller-Trumbore)
 
-- **File:** `src/physix/Raycaster.ts`
+- **File:** `packages/engine/src/physix/Raycaster.ts`
 - **Authors/Gurus:** Tomas Möller and Ben Trumbore (1997)
 - **Source:** [Fast, Minimum Storage Ray-Triangle Intersection](https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf)
 - **Usage:** This is the mathematical gold standard for ray-triangle intersection testing without requiring precomputed plane equations. Used in the `Raycaster` to provide mathematically exact, pixel-perfect polygon picking of 3D objects, directly against their `GeometryDataInterface` vertices after accelerating the queries with `Octree` AABB bounding box checks.
 
 ### Octree Spatial Partitioning
 
-- **File:** `src/core/Octree.ts`
+- **File:** `packages/engine/src/core/Octree.ts`
 - **Authors/Gurus:** Donald Meagher (1980)
 - **Source:** [Octree Encoding: A New Solid Representation for Computer Graphics](https://rpi.edu/)
 - **Usage:** Used as the fundamental spatial acceleration structure for the engine. It recursively divides 3D space into eight octants, allowing collision detection, frustum culling, and raycasting (picking) to operate in $O(\log n)$ time instead of $O(n)$, drastically improving performance in scenes with many objects.
 
 ### `AxesHelper` (3D Cartesian Coordinate System Visualization)
 
-- **File:** `src/core/helpers/AxesHelper.ts`
+- **File:** `packages/engine/src/core/helpers/AxesHelper.ts`
 - **Source:** Standard Computer Graphics RGB Coordinate Convention ($+X$ = Red, $+Y$ = Green, $+Z$ = Blue) and OpenGL Right-Handed System.
 - **Usage:** Visualizes local and world coordinate systems using neon unlit cylinder shafts, cone arrowheads, and camera-facing billboarded text labels (`Sprite` + `TextTexture`). Integrated into `GadgetInspector` to visually track scene origin and animated bone transforms in real time.
+
+### Gielis Superformula (Supershapes)
+
+- **File:** `packages/geometry-extras/src/Supershape.ts`
+- **Authors/Gurus:** Johan Gielis (2003), generalizing Gabriel Lamé's superellipse (1818)
+- **Source:** [Gielis: "A generic geometric transformation that unifies a wide range of natural and abstract shapes" (American Journal of Botany, 2003)](https://bsapubs.onlinelibrary.wiley.com/doi/10.3732/ajb.90.3.333)
+- **Formulas:**
+  - $r(\theta) = \left( \left|\frac{\cos(m\theta/4)}{a}\right|^{n_2} + \left|\frac{\sin(m\theta/4)}{b}\right|^{n_3} \right)^{-1/n_1}$
+  - 3D supershape surface combines two independent profiles $r_1(\theta)$ (longitude) and $r_2(\phi)$ (latitude): $x = r_1 \cos\theta \cdot r_2 \cos\phi$, $y = r_2 \sin\phi$, $z = r_1 \sin\theta \cdot r_2 \cos\phi$.
+- **Usage:** Drives the exotic `Supershape` geometry in the `@small-world/geometry-extras` package. A single closed-form formula, parametrized by two independent superformula profiles, produces a huge family of closed surfaces (spheres, starfish, gemstones, organic blobs) without any bespoke per-shape code.
+
+### (p,q) Torus Knot Parametrization
+
+- **File:** `packages/geometry-extras/src/TorusKnot.ts`
+- **Source:** Standard parametric torus knot curve, $x(u) = R(2+\cos(\frac{q}{p}u))\frac{\cos u}{2}$, $y(u) = R\sin(\frac{q}{p}u)\frac{1}{2}$, $z(u) = R(2+\cos(\frac{q}{p}u))\frac{\sin u}{2}$ for $u \in [0, 2\pi p]$; well known from knot theory and widely used as a graphics primitive (e.g. three.js `TorusKnotGeometry`).
+- **Usage:** `TorusKnot.generateGeometryData()` sweeps a circular tube cross-section along this curve. The per-vertex normal/binormal frame is built by projecting a fixed reference "up" vector against the curve tangent (Gram-Schmidt orthogonalization), swapping to a secondary reference near the singular case where the tangent is (almost) parallel to it — a cheaper, seam-free alternative to a full parallel-transport Frenet frame for a closed periodic curve.
+
+### Möbius Strip Parametrization
+
+- **File:** `packages/geometry-extras/src/MobiusStrip.ts`
+- **Source:** Standard Möbius strip surface parametrization, $x(u,v) = (R + v\cos(u/2))\cos(u)$, $y(u,v) = v\sin(u/2)$, $z(u,v) = (R + v\cos(u/2))\sin(u)$ for $u \in [0, 2\pi]$, $v \in [-w/2, w/2]$ — the canonical single-half-twist non-orientable surface (August Möbius & Johann Listing, 1858).
+- **Usage:** `MobiusStrip` renders the surface as an open strip mesh (first and last ring are never explicitly welded together) instead of a closed loop, since the two boundary rings only coincide in space after an implicit $v \to -v$ flip. This keeps the discrete mesh orientable and consistently shadeable (`computeNormals()` works unmodified), rather than needing double-sided rendering to fake a globally consistent normal field that a true non-orientable surface cannot have. A `twists` option generalizes the exponent to $n \cdot u/2$, allowing higher odd (Möbius-like) or even (simple twisted band) variants.
+
+### 3D Voronoi Diagram via Half-Space Intersection
+
+- **File:** `packages/geometry-extras/src/VoronoiCells.ts`
+- **Authors/Gurus:** Georgy Voronoy (1908); polygon clipping technique after Ivan Sutherland & Gary Hodgman (1974)
+- **Source:** Standard computational-geometry construction: a Voronoi cell for seed $S$ is the intersection of half-spaces $\{v : \|v - S\| \le \|v - O\|\}$ over every other seed $O$, each half-space bounded by the perpendicular bisector plane of $S$ and $O$.
+- **Usage:** `VoronoiCells` builds each seed's cell by starting from a bounding box and iteratively clipping it against every other seed's bisector plane, using a 3D extension of Sutherland-Hodgman polygon clipping: each clipped face contributes exactly one new edge lying on the cutting plane, and these edges are chained into a new "cap" face closing the cut. A `cellPadding` option shrinks each finished cell towards its own centroid, opening visible gaps between cells for a "shattered crystal" look instead of a seamless tessellation. Candidates are clipped nearest-seed-first with an early skip once a plane is provably further away than the cell's current furthest vertex (`maxDistanceFromPoint` in the same file), avoiding the dominant per-clip cost for neighbors that can no longer affect the cell -- a pragmatic substitute for a full spatial index (k-d-tree/grid) at the point counts this package targets (tens to a few hundred).
+
+### Power Diagram / Additively Weighted (Laguerre-)Voronoi Diagram
+
+- **File:** `packages/geometry-extras/src/VoronoiCells.ts` (`computeCellFaces`)
+- **Authors/Gurus:** Edmond Laguerre (1880s); Voronoi/power-diagram formalization is standard in computational geometry literature (e.g. Aurenhammer 1987)
+- **Source:** Standard power-distance construction: the bisector between weighted seeds $(S, r_S)$ and $(O, r_O)$ is the plane where $\|v-S\|^2 - r_S^2 = \|v-O\|^2 - r_O^2$, which reduces to the ordinary bisector plane shifted along $\widehat{O-S}$ by $\frac{r_S^2 - r_O^2}{2\|O-S\|}$.
+- **Usage:** `VoronoiCellsOptions.weights` lets a seed claim more or less space than a plain Voronoi diagram would give it, by shifting each bisector plane's `planePoint` by this derived offset instead of using the exact midpoint. Reduces to plain Voronoi when all weights are equal. The classical basis for foam/bubble-like structures (unequal cell sizes) instead of the roughly-equal cells a plain Voronoi diagram produces.
+
+### Lloyd Relaxation (Centroidal Voronoi Tessellation)
+
+- **File:** `packages/geometry-extras/src/VoronoiCells.ts` (`relaxPoints`)
+- **Authors/Gurus:** Stuart P. Lloyd (1957/1982)
+- **Source:** [Lloyd: "Least Squares Quantization in PCM" (IEEE Transactions on Information Theory, 1982; written 1957)](https://ieeexplore.ieee.org/document/1056489)
+- **Usage:** `relaxPoints()` (and `VoronoiCellsOptions.relaxationIterations`) repeatedly moves each seed point to its own cell's centroid for a few rounds, converging towards a centroidal Voronoi tessellation. Evens out cell sizes that would otherwise come from pure random point placement (small slivers next to oversized cells), without changing the underlying cell-construction algorithm.
+
+### Fast Poisson Disk Sampling in Arbitrary Dimensions
+
+- **File:** `packages/geometry-extras/src/PoissonDiskSample.ts`
+- **Authors/Gurus:** Robert Bridson (2007)
+- **Source:** [Bridson: "Fast Poisson Disk Sampling in Arbitrary Dimensions" (SIGGRAPH 2007 Sketches)](https://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph07-poissondisk.pdf)
+- **Usage:** `poissonDiskSample()` generates seed points with a guaranteed minimum pairwise distance (via a grid-accelerated dart-throwing process around each newly placed point), instead of the clustering that plain uniform-random point placement produces. Intended as an alternative `VoronoiCellsOptions.points` source for a more evenly spaced "crystal shatter" look.
+
+### Marching Tetrahedra (Scalar Field Isosurface Extraction)
+
+- **File:** `packages/geometry-extras/src/MarchingCubes.ts`
+- **Authors/Gurus:** William E. Lorensen & Harvey E. Cline (1987), originators of the Marching Cubes family
+- **Source:** [Lorensen & Cline: "Marching Cubes: A High Resolution 3D Surface Construction Algorithm" (SIGGRAPH 1987)](https://dl.acm.org/doi/10.1145/37401.37422)
+- **Usage:** `MarchingCubes` polygonises an arbitrary 3D scalar field (e.g. the bundled `metaballField()` helper) by splitting each grid cube into 6 tetrahedra (standard decomposition along the main diagonal) instead of using the classic algorithm's 256-case cube edge/triangle lookup tables. Each tetrahedron only has 16 simple inside/outside corner combinations (0, 1, or 2 output triangles), which is both immune to the classic algorithm's ambiguous-face hole artifacts and small enough to implement generically (with per-triangle auto-orientation against the local inside-to-outside direction) rather than transcribing the large, error-prone reference table from memory.
 
 ## Physics & Collision Detection
 
 ### Gravitational Lensing (Black Hole Shadow & Einstein Ring)
 
-- **File:** `src/core/materials/shaders/PostProcess.frag.glsl`, `apps/showcases/21/showcase.ts`
+- **File:** `packages/engine/src/core/materials/shaders/PostProcess.frag.glsl`, `apps/showcases/21/showcase.ts`
 - **Inspiration:** Dr. Katie Bouman, Dr. Sara Issaoun, and the Event Horizon Telescope (EHT) Collaboration (2019, 2022)
 - **Source:** First imaging of M87* and Sagittarius A* (Sgr A*).
 - **Usage:** The visual representation of the Super Massive Black Hole in Showcase 21 is profoundly inspired by the groundbreaking imaging work of the EHT team. The custom post-processing shader approximates the gravitational lensing, deflecting light rays near the simulated event horizon to recreate the iconic asymmetric glowing ring and the absolute black shadow at its core.
-
 
 ### Sequential Impulse & Rigid Body Dynamics
 
@@ -59,7 +115,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Fixed-Timestep Render Interpolation
 
-- **File:** `src/physix/PhysicsSystem.ts`
+- **File:** `packages/engine/src/physix/PhysicsSystem.ts`
 - **Authors/Gurus:** Glenn Fiedler (Gaffer On Games)
 - **Source:** ["Fix Your Timestep!"](https://gafferongames.com/post/fix_your_timestep/)
 - **Usage:** The canonical explanation of why a fixed-timestep physics accumulator needs to hand rendering an interpolated blend (`alpha = accumulator / fixedTimeStep`) between the two most recent physics states, rather than snapping to the latest completed step. Used as the basis for decoupling `small-world`'s variable render framerate from its fixed physics tick, eliminating visual stutter/judder.
@@ -68,6 +124,18 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 - **Authors/Gurus:** Christer Ericson
 - **Usage:** The ultimate reference for implementing the Separating Axis Theorem (SAT), efficient intersection testing, and robust handling of floating-point inaccuracies in spatial math.
+
+### Generic Convex Polyhedron SAT (`ConvexHull` Collider)
+
+- **File:** `packages/engine/src/physix/ConvexHull.ts`, `packages/engine/src/physix/Collision.ts`
+- **Authors/Gurus:** Christer Ericson (Real-Time Collision Detection); same underlying theorem as the engine's existing OBB-OBB SAT (`Collision._obbObb`/`resolveObbObb`)
+- **Usage:** Generalizes the engine's existing 3+3+9-axis OBB-OBB SAT to an arbitrary convex polyhedron: every face normal of both shapes, plus every pairwise cross product of their edge directions, is a candidate separating axis (`Collision._satPolytopes`). `BoundingBox`/`OBB` are adapted to this same generic test as ad-hoc 8-vertex hulls (`_boxAsHull`/`_obbAsHull`) rather than duplicating the axis logic per shape pair, so `HULL` collides correctly against `SPHERE`/`BOX`/`OBB`/`HULL` alike. Added specifically to give Voronoi fracture shards (`@small-world/physics-extras`'s `fractureObject()`) their own correctly-shaped collider instead of a crude box/sphere approximation.
+
+### Voronoi Fracture (Physics-Based Destruction)
+
+- **File:** `packages/physics-extras/src/VoronoiFracture.ts`
+- **Concept:** Common game/VFX destruction technique: partition an object into convex Voronoi cells (see `VoronoiCells` above) and give each cell its own rigid body, so an impact "shatters" the object into physically simulated fragments instead of a scripted animation.
+- **Usage:** `fractureObject()` computes each shard as its own clipped cell (reusing `@small-world/geometry-extras`'s `computeCellFaces`/`cellCentroid`), builds a `ConvexHull` collider from it, and gives it a `RigidBody` with an evenly-split share of the original object's mass -- optionally with an initial outward impulse from an `impactPoint`, for a "shatter" kick rather than inert pieces.
 
 ### Advanced Collision Detection and Simulation
 
@@ -83,14 +151,14 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Trauma-Based Camera Shake
 
-- **File:** `src/core/cameras/effects/ShakeEffect.ts`
+- **File:** `packages/engine/src/core/cameras/effects/ShakeEffect.ts`
 - **Authors/Gurus:** Squirrel Eiserloh
 - **Source:** ["Math for Game Programmers: Juicing Your Cameras With Math"](https://gdcvault.com/play/1023146/Math-for-Game-Programmers-Juicing) — GDC 2016
 - **Usage:** Drives our screen-shake as a decaying "trauma" value with a squared (trauma²) falloff envelope, sampled through continuous simplex noise per axis instead of per-frame white noise — reads as a smooth wobble that eases out, rather than a jittery flicker that cuts off abruptly.
 
 ### Hit-Stop / Freeze-Frame
 
-- **File:** `src/core/SmallWorld.ts`
+- **File:** `packages/engine/src/core/SmallWorld.ts`
 - **Authors/Gurus:** common technique across fighting/action games (e.g. Street Fighter, Bayonetta)
 - **Source:** ["Juice It or Lose It"](https://www.gdcvault.com/play/1016487/Juice-It-or-Lose) — Martin Jonasson & Petri Purho, GDC Europe 2012
 - **Usage:** Briefly scales down gameplay-facing deltaTime (app update, physics step, scene behaviors) on impact while the camera keeps updating at full speed, so its shake/flash effects still play — sells the weight of a hit without pausing the whole engine loop.
@@ -107,7 +175,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Cook-Torrance Microfacet BRDF (GGX / Smith / Schlick)
 
-- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/pbr_math.wgsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`
+- **File:** `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/pbr_math.wgsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`
 - **Authors/Gurus:** Robert L. Cook & Kenneth E. Torrance (1982), Bruce Walter et al. (GGX/Trowbridge-Reitz, 2007), Christophe Schlick (1994)
 - **Source:**
   - [Cook & Torrance: "A Reflectance Model for Computer Graphics" (1982)](https://dl.acm.org/doi/10.1145/357290.357293)
@@ -118,7 +186,8 @@ This document serves to record external sources, algorithms, mathematical deriva
 ### Khronos PBR Material Extensions & Formulas
 
 #### 1. `KHR_materials_ior` — Index of Refraction & Fresnel Baseline ($F_0$)
-- **File:** `src/apps/and-now/scenes/character-diorama/OilSlickMaterial.ts`, `src/core/materials/StandardMaterial.ts`, `src/core/materials/GlassMaterial.ts`
+
+- **File:** `apps/sample-apps/the-whisper/scenes/character-diorama/OilSlickMaterial.ts`, `packages/engine/src/core/materials/StandardMaterial.ts`, `packages/engine/src/core/materials/GlassMaterial.ts`
 - **Authors/Gurus:** Khronos 3D Formats Working Group
 - **Source:** [Khronos glTF Extension: `KHR_materials_ior`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_ior)
 - **Formulas:**
@@ -127,7 +196,8 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Usage:** Calibrates analytic Schlick Fresnel reflections and specular base reflectance without requiring dynamic cubemap reflection probes.
 
 #### 2. `KHR_materials_volume` — Beer-Lambert Volumetric Absorption
-- **File:** `src/core/materials/GlassMaterial.ts`, `src/core/materials/OpenWaterMaterial.ts`, `src/apps/and-now/scenes/character-diorama/OilSlickMaterial.ts`
+
+- **File:** `packages/engine/src/core/materials/GlassMaterial.ts`, `packages/engine/src/core/materials/OpenWaterMaterial.ts`, `apps/sample-apps/the-whisper/scenes/character-diorama/OilSlickMaterial.ts`
 - **Authors/Gurus:** Khronos 3D Formats Working Group
 - **Source:** [Khronos glTF Extension: `KHR_materials_volume`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_volume)
 - **Formulas:**
@@ -135,7 +205,8 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Usage:** Calculates realistic light attenuation and color absorption as light rays travel through translucent materials (colored glass, murky water, oil layers).
 
 #### 3. `KHR_materials_iridescence` — Two-Beam Thin-Film Interference
-- **File:** `src/apps/and-now/scenes/character-diorama/OilSlickMaterial.ts`, `src/apps/and-now/scenes/character-diorama/OilSlick.frag.glsl`, `src/apps/and-now/scenes/character-diorama/OilSlick.frag.glsl100`, `src/apps/and-now/scenes/character-diorama/OilSlick.frag.wgsl`
+
+- **File:** `apps/sample-apps/the-whisper/scenes/character-diorama/OilSlickMaterial.ts`, `apps/sample-apps/the-whisper/scenes/character-diorama/OilSlick.frag.glsl`, `apps/sample-apps/the-whisper/scenes/character-diorama/OilSlick.frag.glsl100`, `apps/sample-apps/the-whisper/scenes/character-diorama/OilSlick.frag.wgsl`
 - **Authors/Gurus:** Laurent Belcour & Pascal Barla (2017), Khronos 3D Formats Working Group
 - **Source:**
   - [Khronos glTF Extension: `KHR_materials_iridescence`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence)
@@ -146,6 +217,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Usage:** Renders physical rainbow-like color interference across the oil slick surface based on view angle and wandering film thickness, replacing ad-hoc hue rotations with wave-optics interference.
 
 #### 4. `KHR_materials_clearcoat` — Second-Layer Dielectric Specular Lobe
+
 - **File:** `packages/engine/src/core/materials/StandardMaterial.ts`, `packages/engine/src/core/materials/shaders/Standard.frag.glsl`, `packages/engine/src/loaders/gltf/GltfMaterialParser.ts`
 - **Authors/Gurus:** Brent Burley (Disney Principled BRDF 2012), Sébastien Lagarde (Frostbite), Khronos 3D Formats Working Group
 - **Source:**
@@ -158,6 +230,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Usage:** Simulates a transparent, smooth dielectric coating over a rough or colored substrate (e.g. car paint, carbon fiber, lacquered furniture, wet stones).
 
 #### 5. `KHR_materials_sheen` — Charlie Microfiber Grazing-Angle Specular BRDF
+
 - **File:** `packages/engine/src/core/materials/StandardMaterial.ts`, `packages/engine/src/core/materials/shaders/Standard.frag.glsl`, `packages/engine/src/loaders/gltf/GltfMaterialParser.ts`
 - **Authors/Gurus:** Stephen Estevez & Toshiya Hachisuka (Sony Pictures Imageworks 2017), Aleksandr Neubelt & Matt Pettineo (Ready at Dawn 2013), Khronos 3D Formats Working Group
 - **Source:**
@@ -169,6 +242,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Usage:** Renders soft, fuzzy grazing-angle highlights on cloth, velvet, silk, and woven textiles without unnatural metallic specular flares.
 
 #### 6. `KHR_materials_transmission` — Specular Light Transmission & Screen-Space Refraction
+
 - **File:** `packages/engine/src/core/materials/GlassMaterial.ts`, `packages/engine/src/core/materials/StandardMaterial.ts`, `packages/engine/src/loaders/gltf/GltfMaterialParser.ts`
 - **Authors/Gurus:** Bruce Walter, Stephen R. Marschner, Hongsong Li, Kenneth E. Torrance (2007), Khronos 3D Formats Working Group
 - **Source:**
@@ -180,6 +254,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Usage:** Allows thin and thick glass-like dielectric surfaces to transmit background light while preserving PBR specular highlights and roughness.
 
 #### 7. `KHR_materials_variants` — Configurable Material Variants
+
 - **File:** `packages/engine/src/loaders/GltfLoader.ts`, `packages/engine/src/loaders/gltf/GltfVariants.ts`, `packages/engine/src/loaders/gltf/types.ts`
 - **Authors/Gurus:** Gary Hsu (Microsoft), Don McCurdy (Google), Khronos 3D Formats Working Group
 - **Source:** [Khronos glTF Extension: `KHR_materials_variants`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_variants)
@@ -188,6 +263,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 ### glTF 2.0 Loader & Data Compression Extensions
 
 #### 1. `KHR_draco_mesh_compression` — Google Draco Geometry Compression
+
 - **File:** `packages/gltf-extensions/src/draco/KhrDracoMeshCompression.ts`, `packages/gltf-extensions/src/draco/DracoDecoder.ts`
 - **Authors/Gurus:** Frank Galligan, Ondrej Stava, Jamieson Brettle et al. (Google Chrome / VR Draco Team), Khronos 3D Formats Working Group
 - **Source:**
@@ -196,13 +272,13 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Usage:** Decompresses lossy/lossless Draco bitstreams containing quantized vertex positions, normals, UV coordinates, and triangle connectivity. Reduces raw 3D asset transfer sizes over the network by up to 80-90%.
 
 #### 2. `KHR_texture_basisu` — Basis Universal / KTX2 GPU Texture Compression
+
 - **File:** `packages/gltf-extensions/src/basisu/KhrTextureBasisu.ts`, `packages/gltf-extensions/src/basisu/BasisTranscoder.ts`
 - **Authors/Gurus:** Rich Geldreich & Stephanie Hurlburt (Binomial LLC), Khronos 3D Formats Working Group
 - **Source:**
   - [Basis Universal Supercompressed GPU Texture Codec](https://github.com/BinomialLLC/basis_universal)
   - [Khronos glTF Extension: `KHR_texture_basisu`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_basisu)
 - **Usage:** Transcodes KTX2 / Basis Universal compressed textures directly into GPU-native block compression formats (BC7, ASTC, ETC2, DXT) or RGBA8 fallback, dramatically cutting runtime VRAM memory consumption and GPU texture bandwidth.
-
 
 ### Metallic-Roughness Sphere Grid (PBR Reference Test)
 
@@ -219,49 +295,49 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Percentage-Closer Filtering (PCF) for Soft Shadows
 
-- **File:** `src/renderers/WebGL2/WebGL2Renderer.ts`, `src/core/materials/shaders/Phong.frag.glsl`, `src/core/materials/shaders/Standard.frag.glsl`
+- **File:** `packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts`, `packages/engine/src/core/materials/shaders/Phong.frag.glsl`, `packages/engine/src/core/materials/shaders/Standard.frag.glsl`
 - **Authors/Gurus:** William T. Reeves, David H. Salesin, and Robert L. Cook (1987)
 - **Source:** [Rendering antialiased shadows with depth maps (SIGGRAPH 1987)](https://dl.acm.org/doi/10.1145/37402.37425)
 - **Usage:** The foundational technique for generating soft edges on shadow maps. By sampling the depth map multiple times around the target fragment and averaging the binary visibility results, jagged aliased shadows become smoothly blurred (especially when combined with hardware `sampler2DShadow`).
 
 ### Percentage-Closer Soft Shadows (PCSS)
 
-- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl`, `src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/pbr_math.wgsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`, `src/renderers/WebGL2/WebGL2Renderer.ts`
+- **File:** `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/pbr_math.wgsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`, `packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts`
 - **Authors/Gurus:** Randima Fernando (NVIDIA)
 - **Source:** ["Percentage-Closer Soft Shadows"](https://download.nvidia.com/developer/presentations/2005/I3D/I3D_05_Percentage_Closer_Soft_Shadows.pdf) — SIGGRAPH 2005
 - **Usage:** Upgrades the directional-light PCF pass to a variable-radius filter: a blocker search over a small ring of raw (non-comparison) depth reads estimates how far the average occluder sits below the receiver, which then scales the PCF sample radius so contact shadows stay sharp while shadows further from their caster soften — contact-hardening soft shadows from a single shadow map, no extra light samples or pre-pass needed.
 
 ### Image-Space Horizon-Based Ambient Occlusion (HBAO)
 
-- **File:** `src/core/materials/shaders/AO.frag.glsl`, `src/core/materials/shaders/AO.frag.wgsl`, `src/renderers/post/passes/AOPassGL.ts`, `src/renderers/post/passes/AOPassGPU.ts`, `src/renderers/post/elements/HbaoElement.ts`
+- **File:** `packages/engine/src/core/materials/shaders/AO.frag.glsl`, `packages/engine/src/core/materials/shaders/AO.frag.wgsl`, `packages/engine/src/renderers/post/passes/AOPassGL.ts`, `packages/engine/src/renderers/post/passes/AOPassGPU.ts`, `packages/engine/src/renderers/post/elements/HbaoElement.ts`
 - **Authors/Gurus:** Louis Bavoil, Miguel Sainz, Rouslan Dimitrov (NVIDIA)
 - **Source:** ["Image-Space Horizon-Based Ambient Occlusion"](https://developer.download.nvidia.com/presentations/2008/SIGGRAPH/HBAO_SIG08b.pdf) — SIGGRAPH 2008
 - **Usage:** The reference for our screen-space ambient occlusion pass (`HbaoElement` in code) — marching a handful of screen-space directions per pixel and taking `dot(directionToSample, normal)` as the sine of that direction's horizon elevation angle, then darkening by how much of the hemisphere those horizons block. Simplified relative to the paper: a single max-sample per direction instead of true horizon-angle accumulation via the sine-integration formula, and no per-pixel direction rotation or bilateral blur pass to turn banding into noise.
 
 ### Normal-Offset Shadow Bias
 
-- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl`, `src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `src/core/renderers/shaders/source/web_gl2/chunks/base_vertex_main.vert.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`
+- **File:** `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/base_vertex_main.vert.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`
 - **Authors/Gurus:** Jasper Flick (Catlike Coding)
 - **Source:** [Directional Shadows (Custom SRP) — Catlike Coding](https://catlikecoding.com/unity/tutorials/custom-srp/directional-shadows/)
 - **Usage:** The reference for offsetting the shadow-map sample position along the surface normal (scaled by NdotL) before the light-space transform, instead of only biasing the compared depth value. Separates the fix for shadow acne from depth manipulation, reducing both acne and peter-panning simultaneously across our directional and spot light shadows.
 
 ### Temporal Supersampling / TAA (Jitter + History Blend)
 
-- **File:** `src/core/materials/shaders/HistoryBlend.frag.glsl`, `src/core/materials/shaders/HistoryBlend.frag.wgsl`, `src/renderers/post/passes/HistoryBlendPassGL.ts`, `src/renderers/post/passes/HistoryBlendPassGPU.ts`, `src/renderers/post/elements/TaaElement.ts`, `src/core/Camera.ts`, `src/core/SmallWorld.ts`
+- **File:** `packages/engine/src/core/materials/shaders/HistoryBlend.frag.glsl`, `packages/engine/src/core/materials/shaders/HistoryBlend.frag.wgsl`, `packages/engine/src/renderers/post/passes/HistoryBlendPassGL.ts`, `packages/engine/src/renderers/post/passes/HistoryBlendPassGPU.ts`, `packages/engine/src/renderers/post/elements/TaaElement.ts`, `packages/engine/src/core/Camera.ts`, `packages/engine/src/core/SmallWorld.ts`
 - **Authors/Gurus:** Brian Karis (Epic Games)
 - **Source:** ["High-Quality Temporal Supersampling"](http://advances.realtimerendering.com/s2014/#_HIGH-QUALITY_TEMPORAL_SUPERSAMPLING) — SIGGRAPH 2014, Advances in Real-Time Rendering
 - **Usage:** The canonical reference for sub-pixel camera jitter (we use a Halton(2,3) sequence, cycling 16 samples) combined with a history buffer accumulated across frames to reconstruct anti-aliased detail beyond a single frame's sample rate. We implement only the simplified half of the technique — jitter plus an exponential history blend, no motion-vector reprojection or neighborhood clamping — which smooths edges in static/slow scenes but visibly ghosts on fast movement, an accepted trade-off documented in `docs/research/aaa-engine-techniques.md`.
 
 ### Accumulation Buffer (Motion Trail / Afterimage Effect)
 
-- **File:** `src/renderers/post/passes/HistoryBlendPassGL.ts`, `src/renderers/post/passes/HistoryBlendPassGPU.ts`, `src/renderers/post/elements/MotionTrailElement.ts`
+- **File:** `packages/engine/src/renderers/post/passes/HistoryBlendPassGL.ts`, `packages/engine/src/renderers/post/passes/HistoryBlendPassGPU.ts`, `packages/engine/src/renderers/post/elements/MotionTrailElement.ts`
 - **Authors/Gurus:** Paul Haeberli, Kurt Akeley (SGI)
 - **Source:** ["The Accumulation Buffer: Hardware Support for High-Quality Rendering"](https://graphics.stanford.edu/courses/cs248-02/haeberli-akeley-accumulation-buffer-sig90.pdf) — SIGGRAPH 1990
 - **Usage:** The original paper generalizing "blend this frame with an accumulated buffer of prior frames" beyond anti-aliasing to motion blur, depth-of-field, and soft shadows — the same family of technique as our TAA history blend above, just aimed at a deliberately visible result instead of an invisible one. `MotionTrailElement` reuses the identical `HistoryBlendPassGL`/`HistoryBlendPassGPU` infrastructure as TAA (its own separate instance/history buffer, no camera jitter), tuned with a much higher feedback value so fast-moving objects intentionally leave a ghost/afterimage trail — an honest stylistic effect, not a mislabeled anti-aliasing technique.
 
 ### Dual Kawase Bloom (Post-Processing)
 
-- **File:** `src/core/materials/shaders/BloomDownsample.frag.wgsl`, `src/core/materials/shaders/BloomUpsample.frag.wgsl`, `src/renderers/passes/PostProcessPass.ts`
+- **File:** `packages/engine/src/core/materials/shaders/BloomDownsample.frag.wgsl`, `packages/engine/src/core/materials/shaders/BloomUpsample.frag.wgsl`, `packages/engine/src/renderers/passes/PostProcessPass.ts`
 - **Authors/Gurus:** Masaki Kawase (2003) and Marius Bjørge (2014)
 - **Source:** [Bandwidth-Efficient Rendering (ARM)](https://community.arm.com/cfs-file/__key/communityserver-blogs-components-weblogfiles/00-00-00-20-66/siggraph2015_2D00_mmg_2D00_marius_2D00_notes.pdf)
 - **Usage:** Used as the high-performance WebGPU bloom filter. By downsampling using a 13-tap filter and upsampling using a 9-tap tent filter across a mip-chain, this technique produces extremely soft, high-quality glows spanning large screen areas at a fraction of the cost of a traditional Gaussian blur.
@@ -271,6 +347,15 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Authors/Gurus:** Naty Hoffman, Sebastien Lagarde (Frostbite Engine)
 - **Source:** SIGGRAPH Presentations & "Moving Frostbite to Physically Based Rendering"
 - **Usage:** The law of linear color space: All color textures (albedo) must be converted to linear space (sRGB -> Linear) in the shader before lighting calculations. After all lighting calculations, the result must be converted back to sRGB space (Gamma Correction) before being output to the screen.
+
+### ACES Filmic Tone Mapping (Narkowicz Analytic Fit)
+
+- **File:** `packages/engine/src/core/materials/shaders/PostProcess.frag.glsl`, `packages/engine/src/core/materials/shaders/PostProcess.frag.wgsl`, `packages/engine/src/core/materials/shaders/PostProcess100.frag.glsl`, `packages/engine/src/renderers/post/elements/ToneMappingElement.ts`
+- **Authors/Gurus:** Krzysztof Narkowicz (2015), Academy of Motion Picture Arts and Sciences (AMPAS)
+- **Source:** [ACES Filmic Tone Mapping Curve (Krzysztof Narkowicz)](https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/)
+- **Formulas:**
+  - $f(x) = \text{saturate}\left(\frac{x(a x + b)}{x(c x + d) + e}\right)$ with $a = 2.51$, $b = 0.03$, $c = 2.43$, $d = 0.59$, $e = 0.14$.
+- **Usage:** High-performance, closed-form analytic approximation of the ACES S-curve tone mapping operator. Used across all post-processing passes to map high-dynamic-range HDR radiance to standard display ranges with filmic contrast, preserving hue consistency and smoothly compressing highlights without hard white clamping.
 
 ### Data-Oriented Design (DOD)
 
@@ -309,7 +394,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Perlin Noise (2D Noise)
 
-- **File:** `public/tools/splatter-gen.html` (as well as engine noise in `src/utils/Noise.ts`)
+- **File:** `public/tools/splatter-gen.html` (as well as engine noise in `packages/engine/src/utils/Noise.ts`)
 - **Authors/Gurus:** Ken Perlin (1985 / Improved Noise 2002)
 - **Source:** [Making Noise (Ken Perlin)](https://mrl.cs.nyu.edu/~perlin/doc/oscar.html)
 - **Usage:** 2D Perlin noise is used to calculate soft, organic disturbances and ripples on circles (Noise Warp). This creates natural-looking splash edges for liquids and mud splatters from simple geometric shapes.
@@ -381,42 +466,42 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **File:** `apps/sample-apps/yad/assets/fonts/Dungeon.ttf`
 - **Source:** [DooM Font auf DaFont](https://www.dafont.com/doom.font)
 - **Usage:** Used to render the iconic red numbers and UI text in the YAD (Yet Another Dungeon) showcase. A huge thanks to the unknown author who originally created and shared this authentic TTF replica!
-  *Note: While the project uses the name "Yet Another Dungeon" (YAD), its aesthetic and assets are deeply inspired by the legendary DOOM (1993).*
+  _Note: While the project uses the name "Yet Another Dungeon" (YAD), its aesthetic and assets are deeply inspired by the legendary DOOM (1993)._
 
 ### Retro Dungeon Texture & Sprite Pack
 
 - **File:** `apps/sample-apps/yad/assets/dungeon_pack/`
-- **Source:** Original assets by **id Software** (DOOM, 1993). 
+- **Source:** Original assets by **id Software** (DOOM, 1993).
 - **Usage:** Used in the YAD showcase for authentic wall textures, flats, and weapon/enemy sprites. Thank you to the DOOM community and id Software for making these legendary assets available for educational and nostalgic projects!
 
 ### Mixamo Mannequin (Rigged Character Pool)
 
-- **File:** `public/assets/and-now/mannequin/`, `src/apps/and-now/raw/mannequin/`
+- **File:** `public/assets/the-whisper/mannequin/`, `apps/sample-apps/the-whisper/raw/mannequin/`
 - **Authors/Gurus:** Mixamo / Adobe
 - **Source:** [Mixamo Characters](https://www.mixamo.com/#/?page=1&query=Mannequin&type=Character)
-- **Usage:** Served as the initial 3D dummy/proxy character for early movement prototyping and animation testing in the "And Now?" app, allowing robust iteration on the 2.5D and isometric controllers.
+- **Usage:** Served as the initial 3D dummy/proxy character for early movement prototyping and animation testing in the "The Whisper" app, allowing robust iteration on the 2.5D and isometric controllers.
 
 ### Player / Spieler (Protagonist Character Rig & Motion Clips)
 
-- **File:** `public/assets/and-now/mannequin/player-female/character.glb`, `public/assets/and-now/mannequin/player-male/character.glb`, `public/assets/and-now/mannequin/shared/anim/`, `src/apps/and-now/raw/mannequin/`
+- **File:** `public/assets/the-whisper/mannequin/player-female/character.glb`, `public/assets/the-whisper/mannequin/player-male/character.glb`, `public/assets/the-whisper/mannequin/shared/anim/`, `apps/sample-apps/the-whisper/raw/mannequin/`
 - **Authors/Gurus:** Adobe Mixamo (Auto-Rigging & Animation Library)
 - **Source:** [Adobe Mixamo](https://www.mixamo.com/)
-- **Usage:** Provides the rigged skeletal hierarchy (`mixamorig:LeftHand`, spine, limbs) and converted binary glTF motion clips (`idle_torch.glb`, `walk_torch.glb`, `ascending_stairs.glb`) driving the player character in the "And Now?" bunker scenes.
+- **Usage:** Provides the rigged skeletal hierarchy (`mixamorig:LeftHand`, spine, limbs) and converted binary glTF motion clips (`idle_torch.glb`, `walk_torch.glb`, `ascending_stairs.glb`) driving the player character in the "The Whisper" bunker scenes.
 
 ### Yoshi (Easter Egg Character)
 
-- **File:** `public/assets/and-now/mannequin/yoshi/character.glb`, `src/apps/and-now/raw/mannequin/yoshi/`
+- **File:** `public/assets/the-whisper/mannequin/yoshi/character.glb`, `apps/sample-apps/the-whisper/raw/mannequin/yoshi/`
 - **Authors/Gurus:** akennedy007 ([Sketchfab](https://sketchfab.com/akennedy007)) / Nintendo
 - **Source:** [Yoshi on Sketchfab](https://sketchfab.com/3d-models/yoshi-9d6d7b5685a442039a555b2c1cd887c4) (CC-BY-4.0)
 - **Usage:** Provides the 3D geometry of Yoshi rigged against the standard Mixamo biped armature for a fun, hidden Easter Egg character playable via `[C]`.
 
 ### Procedural Rodent Grooming FSM & Spline Wave Kinematics (`RatGroomingBehavior`)
 
-- **File:** `src/core/behaviors/creatures/RatGroomingBehavior.ts`, `src/core/behaviors/creatures/GroomingRat.ts`
+- **File:** `packages/engine/src/behaviors/creatures/RatGroomingBehavior.ts`, `packages/engine/src/behaviors/creatures/GroomingRat.ts`
 - **Concept:** Procedural rodent grooming state machine (Finite State Machine) combining Lissajous paw scrubbing trajectories with phase-delayed spline wave propagation for multi-segment tails.
 - **Formulas:**
-  - *Face/Whisker Scrubbing Trajectory:* $x(t) = \pm 0.015 + \sin(18t) \cdot 0.008$, $y(t) = 0.125 + \cos(18t) \cdot 0.014$ synchronized with resonant head nodding ($\Delta \theta_X = 0.12 + 0.06 \sin(18t)$).
-  - *Phase-Shifted Tail Wave Kinematics:* $\theta_Y(s, t) = \sin(2.8t + s \cdot 0.75) \cdot (0.16 + s \cdot 0.09)$ across $s \in [0, 5]$ cylinder vertebra nodes to achieve organic whip/serpentine momentum without skeletal skinning.
+  - _Face/Whisker Scrubbing Trajectory:_ $x(t) = \pm 0.015 + \sin(18t) \cdot 0.008$, $y(t) = 0.125 + \cos(18t) \cdot 0.014$ synchronized with resonant head nodding ($\Delta \theta_X = 0.12 + 0.06 \sin(18t)$).
+  - _Phase-Shifted Tail Wave Kinematics:_ $\theta_Y(s, t) = \sin(2.8t + s \cdot 0.75) \cdot (0.16 + s \cdot 0.09)$ across $s \in [0, 5]$ cylinder vertebra nodes to achieve organic whip/serpentine momentum without skeletal skinning.
 - **Usage:** Provides lightweight, zero-rigging procedural living creature ambient animations running at 60 FPS with zero bundle overhead.
 
 ## Shaders & Procedural Art
@@ -443,7 +528,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Raymarching & SDFs
 
-- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/sdf_math.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/sdf_math.wgsl`, `apps/showcases/24/showcase.ts`
+- **File:** `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/sdf_math.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/sdf_math.wgsl`, `apps/showcases/24/showcase.ts`
 - **Authors/Gurus:** Inigo Quilez
 - **Source:** [Inigo Quilez - Computer Graphics, Mathematics, Shaders](https://iquilezles.org/)
 - **Usage:** Provides core Signed Distance Field (SDF) mathematical primitives (sphere, box, torus, cylinder, capsule, plane), polynomial smooth CSG operators (smooth union, subtraction, intersection), and domain modifiers (twist, repetition, rotation). Standardizes raymarching and procedural distance evaluations across WebGL2 and WebGPU shaders.
@@ -455,7 +540,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Stylized 3D Water Shader (Vertex Waves, Depth Fade, Foam)
 
-- **File:** `src/core/materials/OpenWaterMaterial.ts`, `src/core/materials/shaders/OpenWater.vert.glsl`, `src/core/materials/shaders/OpenWater.frag.glsl`, `src/core/materials/shaders/OpenWater.frag.wgsl`
+- **File:** `packages/engine/src/core/materials/OpenWaterMaterial.ts`, `packages/engine/src/core/materials/shaders/OpenWater.vert.glsl`, `packages/engine/src/core/materials/shaders/OpenWater.frag.glsl`, `packages/engine/src/core/materials/shaders/OpenWater.frag.wgsl`
 - **Authors/Gurus:** gameidea (gameidea.org, also active as `gameidea-studio` on itch.io and Patreon)
 - **Source:** ["Creating a Stylized 3D Water Shader"](https://gameidea.org/2026/02/01/creating-a-stylized-3d-water-shader/) — gameidea, published 2026-02-01
 - **Usage:** Reference for the stylized (Sea of Thieves-inspired) open-water look: simple sine/noise-based Gerstner-like vertex wave displacement combined with fragment-side depth fade (mixing toward an underwater fog color with scene depth) and screen-space foam near intersections with other geometry, instead of a physically simulated ocean (no FFT).

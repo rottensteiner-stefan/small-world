@@ -1,6 +1,7 @@
 import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import type { OBB } from "./OBB.js";
+import type { ConvexHull } from "./ConvexHull.js";
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
 import { Vector3D, Matrix4 } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
@@ -186,6 +187,22 @@ export class BoundingBox implements BoundingVolume {
       const obb = other as OBB;
       const r = obb.getBroadRadius();
       const c = obb.center;
+      return (
+        this.min.x <= c.x - r &&
+        this.max.x >= c.x + r &&
+        this.min.y <= c.y - r &&
+        this.max.y >= c.y + r &&
+        this.min.z <= c.z - r &&
+        this.max.z >= c.z + r
+      );
+    }
+    if (BoundingType.HULL === other.type) {
+      // Same conservative sphere-approximation as the OBB branch above, and for
+      // the same reason -- without it, a ConvexHull-bounded object (e.g. a
+      // Voronoi fracture shard) can never be inserted into an Octree.
+      const hull = other as ConvexHull;
+      const r = hull.getBroadRadius();
+      const c = hull.center;
       return (
         this.min.x <= c.x - r &&
         this.max.x >= c.x + r &&

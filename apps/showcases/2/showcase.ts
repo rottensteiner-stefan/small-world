@@ -9,12 +9,11 @@ import {
   PerspectiveProjection,
   PhongMaterial,
   Ground,
-  ProjectionType,
   WireframeMaterial,
   AmbientLight,
   MathUtils,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+  AbstractShowcase,
+} from "@small-world/engine";
 
 /**
  * Showcase 2: Interactive camera (FPS-style) and keyboard input.
@@ -36,11 +35,11 @@ export class Showcase2 extends AbstractShowcase {
       }
     });
 
-    // 2. Configure the camera (FPS mode)
-    if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
+    // 2. Configure the camera (FPS mode) with forced perspective projection
+    {
       const aspect: number = window.innerWidth / window.innerHeight;
       this.camera.projection = new PerspectiveProjection({
-        fov: MathUtils.degToRad(75),
+        fov: (75 * Math.PI) / 180,
         aspect,
         near: 0.1,
         far: 1000,
@@ -49,7 +48,8 @@ export class Showcase2 extends AbstractShowcase {
     }
     // We switch to the First-Person strategy
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, 2, 0); // Start position at center of grid so mouse-look pivots around the grid middle
+    this.camera.position.set(0, 3, 6);
+    this.camera.target.set(0, 0, 0);
 
     this.camera.addBehavior(
       new FPSController({

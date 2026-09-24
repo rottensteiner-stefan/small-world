@@ -90,6 +90,8 @@ export default defineConfig({
             { text: "0016: 2.5D-Bühnen-Zonen als glTF-Erweiterung", link: "/adr/0016-2-5d-stage-zones-as-a-gltf-extension" },
             { text: "0017: glTF-Extension-Plugin-Registry", link: "/adr/0017-gltf-extension-plugin-registry" },
             { text: "0018: glTF Data-Level Extensions", link: "/adr/0018-gltf-data-level-extensions-and-ecosystem-package" },
+            { text: "0019: Modulare Environment-Texturierung", link: "/adr/0019-modular-environment-texturing-and-scale-doctrine" },
+            { text: "0020: Deklarative Level-Deskriptoren", link: "/adr/0020-declarative-level-descriptors-and-kit-runtime" },
           ],
         },
       ],

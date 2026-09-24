@@ -4,6 +4,14 @@ The foundational domain model for the Small World 3D engine. It defines the core
 
 ## Language
 
+**Asset Kit**:
+A self-contained, schema-validated directory of modular 3D environment assets, props, and procedural builders sharing a unified PBR palette, scale rhythm, and metadata bindings (`kit.json`, `meta.json`).
+_Avoid_: Asset Pack, Model Bundle (informal; Asset Kit names a strictly schema-validated format, ADR 0011).
+
+**Basis Transcoding**:
+The runtime process of converting universal `.basis`/`.ktx2` compressed textures into the client GPU's native hardware block-compression format (BC7, ASTC, ETC2, BC3) via WASM.
+_Avoid_: Texture Decompression — decompression implies unpacking to uncompressed RGBA; transcoding translates directly between compressed formats to keep textures compressed in GPU VRAM.
+
 **Behavior**:
 An attachable logic component for entities (e.g., Cameras, Meshes) that encapsulates specific functionality or interaction rules.
 _Avoid_: Script, Controller (as a standalone manager array)
@@ -36,6 +44,10 @@ _Avoid_: Global Singleton, Universal EventBus
 Cheaply discarding candidates before expensive work runs on the survivors. This engine has two unrelated cullings — visibility culling (`FrustumCuller`, discards whole objects) and light culling (builds a Cluster's Per-Cell Light List, discards lights) — always name which one is meant.
 _Avoid_: using "culling" bare when the subsystem isn't already obvious from context — say "visibility culling" or "light culling".
 
+**Declarative Level Descriptor**:
+A JSON-Schema-validated scene description format (`level.schema.json`, `*.level.json`) specifying camera configuration, lighting, post-processing, and placed kit nodes (with socket light mountings and behavior bindings) without imperative scene setup code (ADR 0020).
+_Avoid_: Scene File (ambiguous with raw glTF `scene.gltf`).
+
 **Event Bus**:
 The typed, per-`SmallWorld`-instance event dispatcher (`app.events`) that replaces DOM `CustomEvent` for engine-internal notifications.
 _Avoid_: Global Event Bus, Universal EventBus — rejected under Context Object; this bus is scoped to one engine instance, never a shared global.
@@ -47,6 +59,10 @@ _Avoid_: Panel, Plugin — Tool names a specific contract (the `ForgeTool` class
 **HBAO**:
 The screen-space ambient occlusion pass actually shipped (`HbaoElement`): a single max-dot-per-direction horizon search, no cosine-weighted integration, no temporal filtering.
 _Avoid_: GTAO — an earlier draft was named `GtaoElement`, but that overstates what's implemented. Renamed once the gap was pointed out; the code should never claim the more accurate name it doesn't earn.
+
+**Kit Registry**:
+The engine subsystem (`KitRegistry`) that discovers, caches, instantiates, and manages procedural kit fallbacks and prop assemblies for declarative level descriptors.
+_Avoid_: Asset Manager — `AssetManager` handles low-level glTF/texture downloads and caching; `KitRegistry` resolves higher-level modular kit nodes, sockets, and metadata (ADR 0020).
 
 **Light Coverage**:
 The range of Clusters — a screen-space X/Y range plus a depth-slice range — that a single light's bounding sphere can possibly reach.

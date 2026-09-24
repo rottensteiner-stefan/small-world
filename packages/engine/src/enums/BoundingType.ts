@@ -8,6 +8,8 @@ export const BoundingType = {
   SPHERE: 0,
   /** Oriented bounding box. */
   OBB: 2,
+  /** Arbitrary convex polyhedron (face/vertex list), e.g. a Voronoi fracture shard. */
+  HULL: 3,
 } as const;
 
 /** Type definition for BoundingType. */

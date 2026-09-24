@@ -7,27 +7,25 @@ import {
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
-  ProjectionType,
   AmbientLight,
   Ground,
   OrbitController,
 } from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+import { AbstractShowcase } from "@small-world/engine";
 
 class Showcase1 extends AbstractShowcase {
   private _myCube!: Object3D;
 
   protected override async setupScene(): Promise<void> {
-    if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
-      const aspect: number = window.innerWidth / window.innerHeight;
-      this.camera.projection = new PerspectiveProjection({
-        fov: (75 * Math.PI) / 180,
-        aspect,
-        near: 0.1,
-        far: 1000,
-      });
-      this.camera.updateProjectionMatrix();
-    }
+    // Force perspective projection
+    const aspect: number = window.innerWidth / window.innerHeight;
+    this.camera.projection = new PerspectiveProjection({
+      fov: (75 * Math.PI) / 180,
+      aspect,
+      near: 0.1,
+      far: 1000,
+    });
+    this.camera.updateProjectionMatrix();
 
     // 1. Light: A gentle sun
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
@@ -51,9 +49,9 @@ class Showcase1 extends AbstractShowcase {
 
     this.scene.add(this._myCube);
 
-    // Floor to receive shadows
-    const floor = new Object3D("Floor").setPosition(0, -2, -1);
-    floor.geometry = new Ground({ width: 10, depth: 6 }).getGeometryData();
+    // Floor to receive shadows (square, centered on the scene origin)
+    const floor = new Object3D("Floor").setPosition(0, -2, 0);
+    floor.geometry = new Ground({ width: 8, depth: 8 }).getGeometryData();
     floor.material = new LambertMaterial({ color: Color.WHITE });
     floor.receiveShadow = true;
     this.scene.add(floor);
