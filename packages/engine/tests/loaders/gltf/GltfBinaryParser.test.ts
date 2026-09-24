@@ -50,14 +50,37 @@ describe("GltfBinaryParser", () => {
     expect(Array.from(data as Float32Array)).toEqual([10.0, 20.0, 30.0]);
   });
 
-  it("returns null when accessor exceeds buffer bounds", () => {
+  it("throws when accessor exceeds buffer bounds (corrupt-file data error, not 'no data')", () => {
     const rawFloats = new Float32Array([1.0, 2.0]);
     const json = {
       bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 8 }],
       accessors: [{ bufferView: 0, byteOffset: 0, componentType: 5126, count: 10, type: "SCALAR" }],
     };
 
-    const data = GltfBinaryParser.getBufferData(json.accessors[0], json, [rawFloats.buffer]);
-    expect(data).toBeNull();
+    expect(() =>
+      GltfBinaryParser.getBufferData(json.accessors[0], json, [rawFloats.buffer]),
+    ).toThrow(/exceeds buffer/);
+  });
+
+  it("returns null (not throwing) for legitimately absent data: missing bufferView or unknown componentType", () => {
+    const rawFloats = new Float32Array([1.0, 2.0, 3.0, 4.0]);
+
+    // No bufferView -> no data to read, null is the contract.
+    const jsonNoView = {
+      bufferViews: [],
+      accessors: [{ componentType: 5126, count: 4, type: "SCALAR" }],
+    };
+    expect(
+      GltfBinaryParser.getBufferData(jsonNoView.accessors[0], jsonNoView, [rawFloats.buffer]),
+    ).toBeNull();
+
+    // Unknown componentType -> cannot interpret, null is the contract.
+    const jsonBadType = {
+      bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 16 }],
+      accessors: [{ bufferView: 0, byteOffset: 0, componentType: 9999, count: 4, type: "SCALAR" }],
+    };
+    expect(
+      GltfBinaryParser.getBufferData(jsonBadType.accessors[0], jsonBadType, [rawFloats.buffer]),
+    ).toBeNull();
   });
 });

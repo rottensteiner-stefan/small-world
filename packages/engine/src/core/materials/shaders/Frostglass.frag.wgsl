@@ -12,9 +12,19 @@
     let roughness = clamp(obj.roughness, 0.05, 1.0);
     
     let V = normalize(global.viewPos.xyz - i.wp);
-    let TBN = mat3x3f(normalize(i.t), normalize(i.b), normalize(i.n));
-    let rawNormal = textureSample(u_normalMap, s, i.uv).rgb * 2.0 - 1.0;
-    let N = normalize(TBN * rawNormal);
+    // Mirror the GLSL fallback guard: only sample the normal map when the material actually
+    // supplies one (USE_NORMAL_MAP flag). Reading u_normalMap unconditionally (even through a
+    // flat-normal fallback view) kept the TBN path busy with a sample that approaches v_normal
+    // numerically; branching on the injected const keeps this shader's behaviour aligned with
+    // the GLSL300/GLSL100 variants instead of relying on a coincidental fallback texture.
+    var N = normalize(i.n);
+    if (USE_NORMAL_MAP) {
+        let TBN = mat3x3f(normalize(i.t), normalize(i.b), normalize(i.n));
+        var rawNormal = textureSample(u_normalMap, s, i.uv).rgb * 2.0 - 1.0;
+        rawNormal.x *= obj.extraParams.z;
+        rawNormal.y *= obj.extraParams.w;
+        N = normalize(TBN * rawNormal);
+    }
     let dotNV = max(dot(N, V), 0.0001);
 
     var F0 = vec3f(0.04);

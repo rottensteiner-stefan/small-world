@@ -187,11 +187,20 @@ export abstract class AbstractShowcase extends SmallWorld {
         window.setTimeout(resolve, 500);
         return;
       }
-      const timeout = window.setTimeout(resolve, 1500);
+      // Each wait gets its own dead-lock backstop: clearing the timeout after the first rAF and
+      // not re-arming it left the second rAF wait unprotected -- if the tab was backgrounded
+      // between frame 1 and 2, `resolve` would never run and readiness signalling would hang.
+      // The second rAF clears this new timeout, so it is the last clear/resolve on the happy path.
+      let timeout: number;
+      const armBackstop = (): void => {
+        timeout = window.setTimeout(resolve, 1500);
+      };
+      armBackstop();
       raf((): void => {
         window.clearTimeout(timeout);
         // Wait one more frame so the first painted frame — including any one-shot
         // post-processing like TAA history init — has fully landed before signalling.
+        armBackstop();
         raf((): void => {
           window.clearTimeout(timeout);
           resolve();

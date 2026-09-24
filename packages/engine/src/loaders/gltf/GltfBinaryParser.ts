@@ -103,7 +103,14 @@ export class GltfBinaryParser {
 
     const totalBytes = count * bytesPerElement;
     if (byteOffset + totalBytes > buffer.byteLength) {
-      return null;
+      // Out-of-bounds access is a corrupt-file data error, not "this accessor legitimately has no
+      // data" (which is what `null` means above, for missing accessor/bufferView/componentType).
+      // Throwing surfaces it as a load failure (GltfLoader turns it into LOADER_ERROR) instead of
+      // silently dropping positions/indices/keys and loading a visibly broken asset.
+      throw new Error(
+        `[GltfBinaryParser] Accessor ${accessor.bufferView} (componentType ${accessor.componentType}, ` +
+          `count ${accessor.count}) exceeds buffer: ${byteOffset + totalBytes} > ${buffer.byteLength} bytes`,
+      );
     }
 
     if (byteOffset % bytesPerElement === 0) {

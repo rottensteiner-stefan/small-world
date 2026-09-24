@@ -469,6 +469,11 @@ export class GPUPipelineCache {
       } else {
         wgslConstants += "const USE_INSTANCING: bool = false;\n";
       }
+      if (flags.includes("USE_NORMAL_MAP")) {
+        wgslConstants += "const USE_NORMAL_MAP: bool = true;\n";
+      } else {
+        wgslConstants += "const USE_NORMAL_MAP: bool = false;\n";
+      }
       code = wgslConstants + "\n" + code;
 
       if (isInstanced) {

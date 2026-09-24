@@ -24,24 +24,32 @@ export interface BasisWasmConfig {
  * re-implementing it.
  */
 export class BasisWasmTranscoder {
-  private static _modulePromise: Promise<BasisModule> | null = null;
-  private static _wasmBinary: ArrayBuffer | null = null;
+  // Cached per binary reference, not globally: several SmallWorld sessions on one page may each
+  // configure their own `wasmBinary`, and a single shared static slot would let one session's
+  // `getModule()` call invalidate/replace the module another session is still using (the old
+  // `_modulePromise`/`_wasmBinary` pair had exactly this cross-instance clobbering). The default
+  // vendored binary is cached under `null` (the fetch is shared page-wide anyway), so distinct
+  // binaries never fight over the cache; ones with the same reference still share one module.
+  private static readonly _modules = new Map<ArrayBuffer | null, Promise<BasisModule>>();
 
   /**
-   * Returns the initialized transcode module, loading + instantiating the WASM
-   * on first use. Safe to call concurrently; the promise is cached.
+   * Returns the initialized transcode module for the given configuration's binary (or the
+   * vendored default when `wasmBinary` is not supplied), loading + instantiating the WASM on
+   * first use. Safe to call concurrently; the promise is cached per binary reference.
    */
   public static async getModule(config?: BasisWasmConfig): Promise<BasisModule> {
-    const override = config?.wasmBinary;
-    const rebuild = override !== undefined && override !== this._wasmBinary;
-    if (rebuild) {
-      this._modulePromise = null;
-      this._wasmBinary = override;
+    const key = config?.wasmBinary ?? null;
+    let cached = this._modules.get(key);
+    if (!cached) {
+      cached = this._initModule(config).catch((error: unknown) => {
+        // Never leave a rejected promise cached: a later retry must perform a fresh load
+        // instead of re-observing the same failure (same invariant the AssetManager enforces).
+        this._modules.delete(key);
+        throw error;
+      });
+      this._modules.set(key, cached);
     }
-    if (!this._modulePromise) {
-      this._modulePromise = this._initModule(config);
-    }
-    return this._modulePromise;
+    return cached;
   }
 
   private static async _initModule(config?: BasisWasmConfig): Promise<BasisModule> {
