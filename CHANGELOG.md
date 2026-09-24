@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.83.0] - 2026-09-25
+
+### "The sun never sees the shadow." - Leonardo da Vinci
+
+- **Features:**
+  - *Basis Universal / KTX2 GPU Texture Transcoding*: Integrated WASM-based Basis Universal transcoder ([`packages/gltf-extensions/src/basisu/`](packages/gltf-extensions/src/basisu/)) with automatic hardware format negotiation for BC7, ASTC, ETC2, and BC3.
+  - *Showcase 36 Glass Broken Window*: Refined refractive transmission rendering with ACES filmic tone mapping, calibrated bloom thresholds, and moody skybox attenuation for high-contrast glass specular highlights ([`showcase.ts`](apps/showcases/36/showcase.ts)).
+- **Architecture & Bugfixes:**
+  - *Skybox Shader Parity*: Unified `u_color` tinting across GLSL300, GLSL100, and WGSL pipelines in [`SkyboxMaterial`](packages/engine/src/core/materials/SkyboxMaterial.ts).
+  - *WebGPU Texture Resource Cache & Pipeline Hardening*: Added granular dirty checking, sampler cache reuse, and mip texture view preservation in GPU passes.
+  - *Raycaster & BoundingBox Math*: Enhanced raycasting and oriented bounding box transform precision across physics routines.
+- **Housekeeping & Docs:**
+  - Extended test coverage for Basis transcoder, Maker tooling, and shader binding suites.
+
 ## [0.82.0] - 2026-09-18
 
 ### "The purpose of computing is insight, not numbers." - Richard Hamming
