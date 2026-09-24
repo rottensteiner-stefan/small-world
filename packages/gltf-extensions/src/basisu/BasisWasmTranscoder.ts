@@ -68,17 +68,27 @@ export class BasisWasmTranscoder {
 
     const wasmBinary = config?.wasmBinary ?? (await this._loadVendoredWasm());
 
-    const module = await new Promise<BasisModule>((resolve, reject) => {
+    // The bindings returned by the Emscripten factory only gain their API surface after full
+    // initialization -- and `onRuntimeInitialized` may fire synchronously during the factory call
+    // (pre-cached binary) or asynchronously. To avoid both a temporal-dead-zone read of a partially
+    // initialized local and a read of an uninitialized module, the module reference is captured on
+    // an outer object whose property is always safe to read, and the readiness signal is only used
+    // to gate the promise. The resolved module is then fully ready.
+    const holder: { module?: BasisModule } = {};
+    const module = await new Promise<BasisModule | undefined>((resolve, reject) => {
       try {
-        const instance = factory({
+        holder.module = factory({
           wasmBinary,
-          onRuntimeInitialized: () => resolve(instance),
+          onRuntimeInitialized: () => resolve(holder.module),
         }) as BasisModule;
       } catch (err) {
         reject(err as Error);
       }
     });
 
+    if (!module) {
+      throw new Error("[BasisWasmTranscoder] Transcode module never reported initialization ready");
+    }
     module.initializeBasis();
     return module;
   }

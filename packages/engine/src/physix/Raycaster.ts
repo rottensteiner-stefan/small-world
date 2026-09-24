@@ -90,6 +90,14 @@ export class Raycaster {
         const invWorld = MathPool.acquireMatrix();
         if (false === obj.worldMatrix.invert(invWorld)) {
           MathPool.releaseMatrix(invWorld);
+          // Degenerate (non-invertible) world matrix -- e.g. zero-scale decals. The geometry
+          // collapses to a point in world space, so there is no well-defined local ray to test
+          // against. Fall back to the broad-phase distance (same path as objects without
+          // triangle geometry below) instead of silently dropping the object from picking.
+          intersects.push({
+            distance: broadT,
+            object: obj,
+          });
           continue;
         }
 

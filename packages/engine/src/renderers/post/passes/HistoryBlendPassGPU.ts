@@ -69,6 +69,10 @@ export class HistoryBlendPassGPU {
   private _resize(width: number, height: number): void {
     if (this._pingPong && this._width === width && this._height === height) return;
 
+    // Release the previous ping-pong pair on resize -- WebGPU does not GC native resources
+    // automatically, so skipping this leaks VRAM for the old rgba16float textures.
+    for (const old of this._pingPong ?? []) old.destroy();
+
     this._width = width;
     this._height = height;
     this._hasHistory = false;

@@ -105,6 +105,11 @@ export class CustomShaderMaterial extends AbstractMaterial {
           culling: this.cullMode,
           transparent: this.transparent,
           blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
+          // The whole point of a custom shader is arbitrary vertex code (displacement, fog,
+          // effects) the shared depth pre-pass pipeline can't reproduce, so it must never be
+          // drawn there -- its per-object uuid-suffixed shaderId made a shaderId-list impossible,
+          // hence this explicit opt-out (see RenderManifest.skipDepthPrePass).
+          skipDepthPrePass: true,
         },
       };
     }
@@ -125,6 +130,7 @@ export class CustomShaderMaterial extends AbstractMaterial {
       culling: this.cullMode,
       transparent: this.transparent,
       blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
+      skipDepthPrePass: true,
     };
 
     return this._renderManifest;

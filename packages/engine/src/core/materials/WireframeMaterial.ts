@@ -55,6 +55,10 @@ export class WireframeMaterial extends AbstractMaterial {
         },
         textures: {},
         state: {
+          // Wireframes must never occlude anything, so they stay out of the GPU depth pre-pass
+          // (see RenderManifest.skipDepthPrePass) -- their thin lines can't cast meaningful
+          // depth anyway, and the pre-pass would just waste a draw.
+          skipDepthPrePass: true,
           culling: CullMode.NONE, // Often useful for wireframes to see the back
           topology: Topology.LINE_LIST,
           wireframeMode: this.wireframeMode,

@@ -38,5 +38,14 @@ export interface RenderManifest {
     topology?: Topology;
     /** The wireframe mode. Defaults to "structural". */
     wireframeMode?: "structural" | "triangles";
+    /**
+     * Opt-out of the GPU depth pre-pass (see DepthPrePassGPU). Materials whose custom shading the
+     * shared depth pipeline cannot faithfully reproduce (custom shaders with world-space vertex
+     * deformation) or geometries that must never occlude (wireframes, sprites) set this to `true`
+     * so the pre-pass skips them WITHOUT having to maintain a growing list of shaderIds/prefixes
+     * in the pass itself. Note this is independent of `depthWrite`/`transparent` -- a material may
+     * still legitimately want to write depth in its OWN pass while staying out of the pre-pass.
+     */
+    skipDepthPrePass?: boolean;
   };
 }

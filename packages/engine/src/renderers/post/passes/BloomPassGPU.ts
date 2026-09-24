@@ -99,6 +99,11 @@ export class BloomPassGPU {
     }
 
     if (this._bloomTexture) {
+      // The previous mip chain is being replaced on resize -- release its native resources
+      // explicitly (WebGPU does not GC them automatically, so without this every resize leaks
+      // VRAM for the old rgba16float texture and uniform buffers).
+      this._bloomTexture.destroy();
+      for (const buf of this._uniformBuffers) buf.destroy();
       this._uniformBuffers = [];
     }
 

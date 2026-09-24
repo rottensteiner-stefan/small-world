@@ -4,7 +4,6 @@ import { DepthPrePassGPU } from "../../src/renderers/passes/DepthPrePassGPU.js";
 import { InstancedMesh } from "../../src/core/InstancedMesh.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { Vector3D } from "../../src/math/index.js";
-import { MaterialType } from "../../src/enums/index.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Internals = any;
@@ -27,6 +26,17 @@ function makeCe(): { ce: Internals; rp: Internals } {
   const rp = { setBindGroup: vi.fn(), setPipeline: vi.fn(), end: vi.fn() };
   const ce = { beginRenderPass: vi.fn(() => rp) };
   return { ce, rp };
+}
+
+/** Builds an object whose material reports the given render-manifest `state` (mirrors what
+ * e.g. SkyboxMaterial (depthWrite:false) or WireframeMaterial/SpriteMaterial/CustomShaderMaterial
+ * (skipDepthPrePass:true) put into their manifests). */
+function makeObjWithState(state: Internals): Object3D {
+  const obj = new Object3D("obj");
+  obj.material = {
+    getRenderManifest: () => ({ state, properties: {} }),
+  } as Internals;
+  return obj;
 }
 
 describe("DepthPrePassGPU", () => {
@@ -56,11 +66,32 @@ describe("DepthPrePassGPU", () => {
     expect(renderer._renderSubgroup).not.toHaveBeenCalled();
   });
 
-  it("skips the skybox batch entirely", () => {
+  it("skips objects whose material is excluded from the pre-pass via state.skipDepthPrePass", () => {
     const renderer = makeMockRenderer();
-    const obj = new Object3D("skybox-mesh");
+    for (const state of [
+      { skipDepthPrePass: true }, // e.g. CustomShaderMaterial / WireframeMaterial
+      { skipDepthPrePass: true, transparent: false, depthWrite: true }, // e.g. opaque SpriteMaterial
+    ]) {
+      const scene = makeMockScene([
+        { shaderId: "material", objects: [makeObjWithState(state)], topology: undefined },
+      ]);
+      const { ce } = makeCe();
+
+      const pass = new DepthPrePassGPU() as Internals;
+      pass.execute(renderer, scene, ce, {}, new Float32Array(16), new Vector3D(0, 0, 0));
+
+      expect(renderer._renderSubgroup).not.toHaveBeenCalled();
+    }
+  });
+
+  it("skips objects that write no depth (e.g. the skybox, whose manifest has depthWrite:false)", () => {
+    const renderer = makeMockRenderer();
     const scene = makeMockScene([
-      { shaderId: MaterialType.SKYBOX, objects: [obj], topology: undefined },
+      {
+        shaderId: "material",
+        objects: [makeObjWithState({ depthWrite: false })],
+        topology: undefined,
+      },
     ]);
     const { ce } = makeCe();
 
@@ -72,7 +103,7 @@ describe("DepthPrePassGPU", () => {
 
   it("splits standard vs. instanced objects and passes viewOffset 0 (main camera slot)", () => {
     const renderer = makeMockRenderer();
-    const standard = new Object3D("standard");
+    const standard = makeObjWithState({});
     // _renderSubgroup is mocked below, so geometry/material are never actually read here --
     // only `instanceof InstancedMesh` matters for the standard/instanced split this pass does.
     const instanced = new InstancedMesh(
@@ -81,6 +112,7 @@ describe("DepthPrePassGPU", () => {
       undefined as unknown as Internals,
       1,
     );
+    instanced.material = { getRenderManifest: () => ({ state: {}, properties: {} }) } as Internals;
     const scene = makeMockScene([
       { shaderId: "test-shader", objects: [standard, instanced], topology: undefined },
     ]);

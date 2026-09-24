@@ -74,6 +74,10 @@ export class SpriteMaterial extends AbstractMaterial {
           blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
           depthWrite: !this.transparent,
           isSprite: true,
+          // Sprites do their own billboarding in the vertex shader, which the shared GPU depth
+          // pre-pass pipeline cannot reproduce -- and semi-transparent sprites shouldn't write
+          // solid depth for the pre-pass anyway. Kept out via skipDepthPrePass (not shaderId).
+          skipDepthPrePass: true,
           culling: CullMode.NONE,
         },
       };

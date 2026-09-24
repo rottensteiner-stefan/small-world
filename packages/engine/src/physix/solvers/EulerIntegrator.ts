@@ -1,5 +1,5 @@
 import { Object3D } from "../../core/Object3D.js";
-import { Vector3D, MathUtils } from "../../math/index.js";
+import { Vector3D, MathUtils, MathPool } from "../../math/index.js";
 
 /**
  * Shortest-path angular delta from `from` to `to` (radians, wrapped into (-PI, PI]).
@@ -99,56 +99,19 @@ export class EulerIntegrator {
       const wLength = Math.sqrt(wLengthSq);
       const halfAngle = wLength * dt * 0.5;
       const s = Math.sin(halfAngle) / wLength;
-      const dqX = wx * s;
-      const dqY = wy * s;
-      const dqZ = wz * s;
-      const dqW = Math.cos(halfAngle);
 
-      // Current rotation to Quaternion (Euler YXZ -> Quaternion)
-      const rx = obj.rotation.x * 0.5;
-      const ry = obj.rotation.y * 0.5;
-      const rz = obj.rotation.z * 0.5;
-      const cx = Math.cos(rx),
-        sx = Math.sin(rx);
-      const cy = Math.cos(ry),
-        sy = Math.sin(ry);
-      const cz = Math.cos(rz),
-        sz = Math.sin(rz);
-
-      const curX = cy * sx * cz + sy * cx * sz;
-      const curY = sy * cx * cz - cy * sx * sz;
-      const curZ = cy * cx * sz - sy * sx * cz;
-      const curW = cy * cx * cz + sy * sx * sz;
-
-      // deltaQ * currentQ (premultiply rotation)
-      let qx = dqW * curX + dqX * curW + dqY * curZ - dqZ * curY;
-      let qy = dqW * curY - dqX * curZ + dqY * curW + dqZ * curX;
-      let qz = dqW * curZ + dqX * curY - dqY * curX + dqZ * curW;
-      let qw = dqW * curW - dqX * curX - dqY * curY - dqZ * curZ;
-
-      // Normalize quaternion
-      const invLen = 1.0 / Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
-      qx *= invLen;
-      qy *= invLen;
-      qz *= invLen;
-      qw *= invLen;
+      const deltaQ = MathPool.acquireQuaternion();
+      const currentQ = MathPool.acquireQuaternion();
+      deltaQ.set(wx * s, wy * s, wz * s, Math.cos(halfAngle));
+      currentQ.setFromEuler(obj.rotation).premultiply(deltaQ).normalize();
 
       if (obj.quaternion) {
-        obj.quaternion.set(qx, qy, qz, qw);
+        obj.quaternion.copyFrom(currentQ);
       }
+      currentQ.toEuler(obj.rotation);
 
-      // Quaternion to Euler YXZ
-      const sinX = 2 * (qw * qx - qy * qz);
-      const clampedSinX = Math.max(-1, Math.min(1, sinX));
-      obj.rotation.x = Math.asin(clampedSinX);
-
-      if (Math.abs(clampedSinX) < 0.99999) {
-        obj.rotation.y = Math.atan2(2 * (qz * qx + qw * qy), 1 - 2 * (qx * qx + qy * qy));
-        obj.rotation.z = Math.atan2(2 * (qx * qy + qw * qz), 1 - 2 * (qx * qx + qz * qz));
-      } else {
-        obj.rotation.y = Math.atan2(2 * (qw * qy - qx * qz), 1 - 2 * (qy * qy + qz * qz));
-        obj.rotation.z = 0;
-      }
+      MathPool.releaseQuaternion(deltaQ);
+      MathPool.releaseQuaternion(currentQ);
     }
   }
 

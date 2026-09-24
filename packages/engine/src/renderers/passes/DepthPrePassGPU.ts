@@ -1,6 +1,6 @@
 import { Scene } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
-import { MaterialType, Topology } from "../../enums/index.js";
+import { Topology } from "../../enums/index.js";
 import { WebGPURenderer, VIEW_SLOT_MAIN_CAMERA } from "../WebGPU/WebGPURenderer.js";
 import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
@@ -88,16 +88,7 @@ export class DepthPrePassGPU implements RenderPass {
 
     for (let batchIdx = 0; batchIdx < renderList.opaqueBatches.length; batchIdx++) {
       const batch = renderList.opaqueBatches[batchIdx];
-      if (
-        batch!.shaderId === MaterialType.SKYBOX ||
-        batch!.shaderId === MaterialType.WIREFRAME ||
-        batch!.shaderId === MaterialType.SPRITE ||
-        batch!.shaderId === MaterialType.OPEN_WATER ||
-        batch!.shaderId === MaterialType.STYLIZED_WATER ||
-        batch!.shaderId === MaterialType.FLUID_SURFACE ||
-        batch!.shaderId.startsWith("CustomShaderMaterial_") ||
-        batch!.objects.length === 0
-      ) {
+      if (batch!.objects.length === 0) {
         continue;
       }
 
@@ -123,6 +114,7 @@ export class DepthPrePassGPU implements RenderPass {
         const obj = objects[i]!;
         const objManifest = obj.material?.getRenderManifest();
         if (
+          objManifest?.state?.skipDepthPrePass === true ||
           objManifest?.state?.depthWrite === false ||
           objManifest?.state?.depthTest === false ||
           obj.material?.depthWrite === false ||

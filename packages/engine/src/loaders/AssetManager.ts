@@ -131,47 +131,53 @@ export class AssetManager {
   ): Promise<Blob> {
     const finalUrl = this.resolveUrl(url);
 
-    const response: Response = await fetch(finalUrl, {
-      headers: this._headers,
-    });
+    // Guarantee the progress-tracking entry is always released -- success, HTTP error, or a
+    // mid-stream failure after `_activeLoaders.set` below. Previously each loader re-implemented
+    // this cleanup in its own `.catch()`, which leaked an entry (and thus hung `onLoaded()`) if
+    // any copy forgot it; the invariant now lives in exactly one place.
+    try {
+      const response: Response = await fetch(finalUrl, {
+        headers: this._headers,
+      });
 
-    if (!response.ok) {
-      throw new Error(`[AssetManager] HTTP error: ${response.status} at ${finalUrl}`);
-    }
-
-    const contentLength: string | undefined = response.headers.get("content-length") ?? undefined;
-    const total: number = contentLength ? parseInt(contentLength, 10) : 0;
-
-    this._activeLoaders.set(trackingKey, { loaded: 0, total });
-
-    const updateProgress = (loaded: number, total: number): void => {
-      this._activeLoaders.set(trackingKey, { loaded, total });
-      if (onProgress) onProgress(loaded, total);
-    };
-
-    if (!response.body) {
-      const blob = await response.blob();
-      updateProgress(blob.size, blob.size);
-      this._checkCompletion(trackingKey);
-      return blob;
-    }
-
-    const reader = response.body.getReader();
-    let loaded: number = 0;
-    const chunks: Uint8Array[] = [];
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value) {
-        loaded += value.length;
-        chunks.push(value);
-        updateProgress(loaded, total);
+      if (!response.ok) {
+        throw new Error(`[AssetManager] HTTP error: ${response.status} at ${finalUrl}`);
       }
-    }
 
-    this._checkCompletion(trackingKey);
-    return new Blob(chunks as BlobPart[]);
+      const contentLength: string | undefined = response.headers.get("content-length") ?? undefined;
+      const total: number = contentLength ? parseInt(contentLength, 10) : 0;
+
+      this._activeLoaders.set(trackingKey, { loaded: 0, total });
+
+      const updateProgress = (loaded: number, total: number): void => {
+        this._activeLoaders.set(trackingKey, { loaded, total });
+        if (onProgress) onProgress(loaded, total);
+      };
+
+      if (!response.body) {
+        const blob = await response.blob();
+        updateProgress(blob.size, blob.size);
+        return blob;
+      }
+
+      const reader = response.body.getReader();
+      let loaded: number = 0;
+      const chunks: Uint8Array[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          loaded += value.length;
+          chunks.push(value);
+          updateProgress(loaded, total);
+        }
+      }
+
+      return new Blob(chunks as BlobPart[]);
+    } finally {
+      this._checkCompletion(trackingKey);
+    }
   }
 
   private _checkCompletion(url: string): void {
@@ -183,102 +189,99 @@ export class AssetManager {
     }
   }
 
+  /**
+   * Single caching primitive used by every asset loader. Returns the in-flight promise for `key`
+   * if one exists, otherwise starts `loader`, stores its promise in `cache`, and -- critically --
+   * evicts the entry again if the load rejects. This is what prevents cache poisoning: without
+   * it, a rejected promise would stay cached forever and the next request for the same asset
+   * would re-return the stale rejection instead of issuing a fresh load. HW: no caller may
+   * implement its own `.catch(){ cache.delete(key) }`; route every cached load through here so
+   * the invariant is enforced in exactly one place.
+   */
+  private _cacheOrStart<T>(
+    cache: Map<string, Promise<T>>,
+    key: string,
+    loader: () => Promise<T>,
+  ): Promise<T> {
+    const existing = cache.get(key);
+    if (existing) return existing;
+    const promise = loader().catch((error: unknown) => {
+      cache.delete(key);
+      throw error;
+    });
+    cache.set(key, promise);
+    return promise;
+  }
+
   public async loadImage(
     url: string,
     onProgress?: ProgressCallback,
     flipY: boolean = false,
   ): Promise<ImageBitmap | HTMLImageElement> {
     const cacheKey: string = `${url}_${flipY}`;
-    if (this._imageCache.has(cacheKey)) return this._imageCache.get(cacheKey)!;
+    // The fallback (HTMLImageElement) lives INSIDE the cached promise: a successful fallback is
+    // cached like any other result, and only a total failure rejects -- which is exactly when
+    // `_cacheOrStart` evicts the entry so a later request reloads instead of seeing a stale error.
+    return this._cacheOrStart(this._imageCache, cacheKey, async () => {
+      try {
+        const blob = await this._fetchWithProgress(url, cacheKey, onProgress);
 
-    const loadPromise: Promise<ImageBitmap | HTMLImageElement> = this._fetchWithProgress(
-      url,
-      cacheKey,
-      onProgress,
-    )
-      .then(async (blob: Blob): Promise<ImageBitmap> => {
         if (flipY) {
-          return createImageBitmap(blob, {
+          return await createImageBitmap(blob, {
             colorSpaceConversion: "none",
             imageOrientation: "flipY",
           });
-        } else {
-          try {
-            return await createImageBitmap(blob, {
-              colorSpaceConversion: "none",
-              imageOrientation: "from-image" as ImageOrientation,
-            });
-          } catch {
-            return await createImageBitmap(blob, {
-              colorSpaceConversion: "none",
-              imageOrientation: "none",
-            });
-          }
         }
-      })
-      .catch((e: unknown): Promise<HTMLImageElement> => {
+        try {
+          return await createImageBitmap(blob, {
+            colorSpaceConversion: "none",
+            imageOrientation: "from-image" as ImageOrientation,
+          });
+        } catch {
+          return await createImageBitmap(blob, {
+            colorSpaceConversion: "none",
+            imageOrientation: "none",
+          });
+        }
+      } catch (e: unknown) {
+        // Fall back to a plain HTMLImageElement (e.g. when createImageBitmap is unavailable).
         console.error(e);
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const img: HTMLImageElement = new Image();
           img.crossOrigin = "anonymous";
           img.src = this.resolveUrl(url);
-          img.onload = (): void => {
-            this._checkCompletion(cacheKey);
-            resolve(img);
-          };
+          img.onload = (): void => resolve(img);
           img.onerror = (): void => {
-            this._imageCache.delete(cacheKey);
-            this._checkCompletion(cacheKey);
             reject(`[AssetManager] Fallback failed: ${url}`);
           };
         });
-      });
-
-    this._imageCache.set(cacheKey, loadPromise);
-    return loadPromise;
+      }
+    });
   }
 
   public async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
-    if (this._textCache.has(url)) return this._textCache.get(url)!;
     const trackingKey = `text:${url}`;
-    const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
-      .then((blob: Blob) => blob.text())
-      .catch((e: unknown) => {
-        this._textCache.delete(url);
-        this._checkCompletion(trackingKey);
-        throw e;
-      });
-    this._textCache.set(url, loadPromise);
-    return loadPromise;
+    return this._cacheOrStart(this._textCache, url, async () => {
+      const blob = await this._fetchWithProgress(url, trackingKey, onProgress);
+      return blob.text();
+    });
   }
 
   public async loadJson(url: string, onProgress?: ProgressCallback): Promise<unknown> {
-    if (this._jsonCache.has(url)) return this._jsonCache.get(url)!;
     const trackingKey = `json:${url}`;
-    const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
-      .then((blob: Blob) => blob.text())
-      .then((text: string) => JSON.parse(text))
-      .catch((e: unknown) => {
-        this._jsonCache.delete(url);
-        this._checkCompletion(trackingKey);
-        throw e;
-      });
-    this._jsonCache.set(url, loadPromise);
-    return loadPromise;
+    return this._cacheOrStart(this._jsonCache, url, async () => {
+      const blob = await this._fetchWithProgress(url, trackingKey, onProgress);
+      const text: string = await blob.text();
+      return JSON.parse(text);
+    });
   }
 
   public async loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer> {
-    if (this._binaryCache.has(url)) return this._binaryCache.get(url)!;
     const trackingKey = `binary:${url}`;
-    const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
-      .then((blob: Blob) => blob.arrayBuffer())
-      .catch((e: unknown) => {
-        this._binaryCache.delete(url);
-        this._checkCompletion(trackingKey);
-        throw e;
-      });
-    this._binaryCache.set(url, loadPromise);
-    return loadPromise;
+    return this._cacheOrStart(this._binaryCache, url, async () => {
+      const blob = await this._fetchWithProgress(url, trackingKey, onProgress);
+      return blob.arrayBuffer();
+    });
   }
 
   /**
@@ -293,10 +296,8 @@ export class AssetManager {
     onChunk?: (chunk: Uint8Array, loaded: number, total: number) => void,
     onProgress?: ProgressCallback,
   ): Promise<ArrayBuffer> {
-    if (this._binaryCache.has(url)) return this._binaryCache.get(url)!;
-
     const trackingKey = `stream:${url}`;
-    const streamPromise = (async (): Promise<ArrayBuffer> => {
+    return this._cacheOrStart(this._binaryCache, url, async () => {
       try {
         const finalUrl = this.resolveUrl(url);
 
@@ -345,16 +346,11 @@ export class AssetManager {
         }
 
         return finalBuffer.buffer;
-      } catch (e: unknown) {
-        this._binaryCache.delete(url);
-        throw e;
       } finally {
+        // Mirror `_fetchWithProgress`: the tracking entry must be released even on failure.
         this._checkCompletion(trackingKey);
       }
-    })();
-
-    this._binaryCache.set(url, streamPromise);
-    return streamPromise;
+    });
   }
 
   private static get _sharedDefault(): AssetManager {
