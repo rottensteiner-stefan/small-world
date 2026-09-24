@@ -40,7 +40,13 @@ export class GPUTextureResourceCache {
 
   private _textureViewCache = new Map<
     Texture,
-    { texture: GPUTexture; view: GPUTextureView; mipLevelCount: number }
+    {
+      texture: GPUTexture;
+      view: GPUTextureView;
+      mipLevelCount: number;
+      width: number;
+      height: number;
+    }
   >();
   private _cubeTextureViewCache = new Map<
     CubeTexture,
@@ -169,7 +175,7 @@ export class GPUTextureResourceCache {
           );
         }
         v = t.createView({ dimension: "2d-array" });
-        entry = { texture: t, view: v, mipLevelCount: 1 };
+        entry = { texture: t, view: v, mipLevelCount: 1, width, height };
       } else {
         const mipLevelCount =
           quality?.mipmapping && tex.generateMipmaps
@@ -190,19 +196,59 @@ export class GPUTextureResourceCache {
         ]);
         if (mipLevelCount > 1) this._generateMipmaps(t, mipLevelCount);
         v = t.createView();
-        entry = { texture: t, view: v, mipLevelCount };
+        entry = {
+          texture: t,
+          view: v,
+          mipLevelCount,
+          width: tex.image.width,
+          height: tex.image.height,
+        };
       }
       this._textureViewCache.set(tex, entry);
     } else if (
       tex.needsUpdate &&
       !("isTextureArray" in tex && (tex as TextureArray).isTextureArray)
     ) {
-      this._device.queue.copyExternalImageToTexture(
-        { source: tex.image },
-        { texture: entry.texture },
-        [tex.image.width, tex.image.height],
-      );
-      if (entry.mipLevelCount > 1) this._generateMipmaps(entry.texture, entry.mipLevelCount);
+      // The source image may have been resized since first upload (e.g. a `TextTexture` whose
+      // canvas grows/shrinks on `setText`). Copying the full current bounds into the original,
+      // differently-sized GPU texture would exceed its dimensions and trigger a WebGPU validation
+      // error ("Texture copy range ... touches outside of [Texture ...]"). Detect that and re-create
+      // the GPU texture at the new size instead of re-uploading into the stale one.
+      const width = tex.image.width;
+      const height = tex.image.height;
+      if (width !== entry.width || height !== entry.height) {
+        const mipLevelCount =
+          quality?.mipmapping && tex.generateMipmaps ? this.computeMipLevelCount(width, height) : 1;
+        const t = this._device.createTexture({
+          size: [width, height],
+          format: "rgba8unorm",
+          mipLevelCount,
+          usage:
+            GPUTextureUsage.TEXTURE_BINDING |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        this._device.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [
+          width,
+          height,
+        ]);
+        if (mipLevelCount > 1) this._generateMipmaps(t, mipLevelCount);
+        entry = {
+          texture: t,
+          view: t.createView(),
+          mipLevelCount,
+          width,
+          height,
+        };
+        this._textureViewCache.set(tex, entry);
+      } else {
+        this._device.queue.copyExternalImageToTexture(
+          { source: tex.image },
+          { texture: entry.texture },
+          [width, height],
+        );
+        if (entry.mipLevelCount > 1) this._generateMipmaps(entry.texture, entry.mipLevelCount);
+      }
       tex.needsUpdate = false;
     }
     return entry.view;
@@ -219,6 +265,8 @@ export class GPUTextureResourceCache {
     texture: GPUTexture;
     view: GPUTextureView;
     mipLevelCount: number;
+    width: number;
+    height: number;
   } {
     const existing = this._textureViewCache.get(tex);
     if (existing) return existing;
@@ -253,7 +301,13 @@ export class GPUTextureResourceCache {
     }
 
     const view = texture.createView();
-    const entry = { texture, view, mipLevelCount };
+    const entry = {
+      texture,
+      view,
+      mipLevelCount,
+      width: compressed.width,
+      height: compressed.height,
+    };
     this._textureViewCache.set(tex, entry);
     return entry;
   }
@@ -389,7 +443,13 @@ export class GPUTextureResourceCache {
     texture: GPUTexture,
     view: GPUTextureView,
   ): void {
-    this._textureViewCache.set(rt, { texture, view, mipLevelCount: 1 });
+    this._textureViewCache.set(rt, {
+      texture,
+      view,
+      mipLevelCount: 1,
+      width: rt.width,
+      height: rt.height,
+    });
   }
 
   /** Cube counterpart of `registerRenderTargetTexture()`. */

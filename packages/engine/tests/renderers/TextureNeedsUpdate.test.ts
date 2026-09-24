@@ -210,6 +210,52 @@ describe("Texture GPU re-upload on needsUpdate", () => {
     expect(tex.needsUpdate).toBe(false);
   });
 
+  it("re-creates the GPU texture when the source canvas is resized before needsUpdate re-upload", () => {
+    const device = makeMockDevice();
+    const fallback = new GPUFallbackResources(device);
+    const textures = new GPUTextureResourceCache(device, fallback);
+
+    // Simulate a `TextTexture` whose canvas (backing `texture.image`) is resized by
+    // `setText`/`setOptions` -- the full current bounds must be copied only into a texture
+    // that actually has those dimensions, otherwise WebGPU raises "Texture copy range ...
+    // touches outside of [Texture (unlabeled 1934x622 px)]".
+    const canvas = { width: 320, height: 96 } as HTMLCanvasElement;
+    const tex = Texture.fromCanvas(canvas, { generateMipmaps: false });
+
+    vi.mocked(device.createTexture).mockClear();
+    vi.mocked(device.queue.copyExternalImageToTexture).mockClear();
+
+    textures.getTextureView(tex, undefined);
+    expect(device.createTexture).toHaveBeenCalledTimes(1);
+    expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+
+    // Text changed -> canvas grew; a same-sized in-place copy would now exceed bounds.
+    canvas.width = 640;
+    canvas.height = 128;
+    tex.needsUpdate = true;
+    const secondView = textures.getTextureView(tex, undefined);
+
+    // A fresh GPU texture is created at the new size -- never copied into the stale one.
+    expect(device.createTexture).toHaveBeenCalledTimes(2);
+    const createdSizes = vi
+      .mocked(device.createTexture)
+      .mock.calls.map(([desc]) => (desc as { size: number[] }).size);
+    expect(createdSizes).toEqual([
+      [320, 96],
+      [640, 128],
+    ]);
+    // Both the first upload and the resized re-upload copy the source at its own bounds.
+    const copySizes = vi
+      .mocked(device.queue.copyExternalImageToTexture)
+      .mock.calls.map(([, , copySize]) => copySize as number[]);
+    expect(copySizes).toEqual([
+      [320, 96],
+      [640, 128],
+    ]);
+    expect(tex.needsUpdate).toBe(false);
+    expect(secondView).toBeDefined();
+  });
+
   it("WebGLTextureManager uploads block-compressed textures via compressedTexImage2D", () => {
     const gl = makeMockGl();
     const etcExt = { COMPRESSED_RGBA8_ETC2_EAC: 0x9278 };
