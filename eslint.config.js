@@ -117,6 +117,15 @@ export default [
 
   // 5. Globale Ignorier-Regeln (Kompilierte Dateien in Ruhe lassen)
   {
-    ignores: ["node_modules/", "dist/", "build/", "docs/", "**/.*/**", "var/", "**/*.d.ts"],
+    ignores: [
+      "node_modules/",
+      "dist/",
+      "build/",
+      "docs/",
+      "**/.*/**",
+      "var/",
+      "**/*.d.ts",
+      "**/vendor/**", // Fremde vendorierte Binär-/Generierte Assets (z. B. Basis-Transcoder-Glue)
+    ],
   },
 ];
