@@ -7,8 +7,10 @@ function assertNoNaN(geom: Lathe, name: string): void {
   for (let i = 0; i < data.vertices.length; i++) {
     expect(Number.isNaN(data.vertices[i]), `${name} vertex[${i}] is NaN`).toBe(false);
   }
-  for (let i = 0; i < data.indices!.length; i++) {
-    expect(Number.isNaN(data.indices![i]), `${name} index[${i}] is NaN`).toBe(false);
+  if (data.indices) {
+    for (let i = 0; i < data.indices.length; i++) {
+      expect(Number.isNaN(data.indices[i]), `${name} index[${i}] is NaN`).toBe(false);
+    }
   }
 }
 

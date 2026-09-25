@@ -99,10 +99,37 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Lorensen & Cline: "Marching Cubes: A High Resolution 3D Surface Construction Algorithm" (SIGGRAPH 1987)](https://dl.acm.org/doi/10.1145/37401.37422)
 - **Usage:** `MarchingCubes` polygonises an arbitrary 3D scalar field (e.g. the bundled `metaballField()` helper) by splitting each grid cube into 6 tetrahedra (standard decomposition along the main diagonal) instead of using the classic algorithm's 256-case cube edge/triangle lookup tables. Each tetrahedron only has 16 simple inside/outside corner combinations (0, 1, or 2 output triangles), which is both immune to the classic algorithm's ambiguous-face hole artifacts and small enough to implement generically (with per-triangle auto-orientation against the local inside-to-outside direction) rather than transcribing the large, error-prone reference table from memory.
 
+### Surface of Revolution (Lathe Geometry)
+
+- **File:** `packages/geometry-extras/src/Lathe.ts`
+- **Authors/Gurus:** Standard constructive solid geometry technique; the fixture modelling operation dates back to manual lathe turning.
+- **Source:** Parametrization of a rotational surface as $P(u,v) = (r(v)\cos u,\ y(v),\ r(v)\sin u)$; widely available in geometry libraries (e.g. three.js `LatheGeometry`).
+- **Usage:** `Lathe` revolves a user-supplied radius×height profile around the Y axis into a vase/bottle/goblet-shaped indexed mesh. A closed ring reuses the first revolution column to avoid a UV seam and back-facing wrap edge; a partial arc keeps distinct boundary columns. The profile must be strictly monotonic in height to avoid self-intersecting rings.
+
+### Platonic Solids via Polar Duality (Dodecahedron Construction)
+
+- **File:** `packages/geometry-extras/src/PlatonicSolid.ts`
+- **Authors/Gurus:** Classical geometry (regular convex polyhedra, Euclid's "Elements" Book XIII); polar/dual polyhedron construction.
+- **Source:** A regular dodecahedron is the polar dual of a regular icosahedron: each dual vertex is the normalized centroid of an icosahedron face, dual edges join faces sharing an edge, and dual faces are the cyclically ordered stars of the original vertices.
+- **Usage:** `PlatonicSolid` generates tetrahedron/octahedron/icosahedron from canonical coordinates and derives the dodecahedron by the verified polar-dual construction above (V=20, E=30, F=12, uniform edge length), avoiding a hand-wired, error-prone pentagon index table. Optional `detail` subdivision normalizes edge midpoints onto the circumscribed sphere to produce geodetic spheres.
+
+### Generic Parametric Surface Grid
+
+- **File:** `packages/geometry-extras/src/ParametricSurface.ts`
+- **Authors/Gurus:** Standard parametric surface representation in computer graphics.
+- **Source:** $S(u,v) = (x(u,v), y(u,v), z(u,v))$ over a rectangular domain; foundational to any freeform/procedural surface modelling.
+- **Usage:** Exposes a single `(u, v) → Vector3D` evaluator over `[uMin,uMax]×[vMin,vMax]`, tessellated into an indexed grid with optional wrap-around in `u`/`v` for periodic (closed) surfaces such as tubes or bands. Covers waves, flags, helixes and terrain patches without a dedicated class per family.
+
+### Ear Clipping with Hole Bridging (Concave Polygon Fill)
+
+- **File:** `packages/geometry-extras/src/FilledPolygon.ts`
+- **Authors/Gurus:** David Eberly (Geometric Tools); the robust ear-clipping variant that requires a polygon without holes and the standard bridge insertion to fold holes into a single simple loop.
+- **Source:** ["Triangulation by Ear Clipping" (David Eberly, Geometric Tools)](https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf)
+- **Usage:** `FilledPolygon` ear-clips arbitrary simple concave contours and subtracts holes: each hole is wound opposite to the outer ring, bridged to it through a mutually visible vertex pair, and traced as a closed loop so the doubled connector cut preserves the signed area (`area(outer) − Σ area(holes)`, verified by tests). This generalizes the core `PolygonFan`, which only fills star-shaped profiles.
+
 ## Physics & Collision Detection
 
 ### Gravitational Lensing (Black Hole Shadow & Einstein Ring)
-
 - **File:** `packages/engine/src/core/materials/shaders/PostProcess.frag.glsl`, `apps/showcases/21/showcase.ts`
 - **Inspiration:** Dr. Katie Bouman, Dr. Sara Issaoun, and the Event Horizon Telescope (EHT) Collaboration (2019, 2022)
 - **Source:** First imaging of M87* and Sagittarius A* (Sgr A*).

@@ -15,8 +15,12 @@ Currently included:
 1. **`Supershape`**: a Gielis superformula surface -- two independent 2D profiles (longitude/latitude) combined into organic, crystalline, or star-like closed surfaces.
 2. **`TorusKnot`**: a (p,q) torus knot curve, swept into a tube.
 3. **`MobiusStrip`**: a single (or multi-) half-twist non-orientable ribbon.
-4. **`VoronoiCells`**: a 3D Voronoi diagram (or, with `weights`, a power/Laguerre-Voronoi diagram) built from half-space clipped convex cells, with an optional shrink-towards-centroid padding for a "shattered crystal" look, optional Lloyd relaxation (`relaxationIterations`) for more even cell sizes, and `poissonDiskSample()` as an alternative seed-point generator.
-5. **`MarchingCubes`**: an isosurface (e.g. blended metaballs, or any custom scalar field) extracted via marching tetrahedra.
+4. **`Lathe`**: a surface of revolution -- a 2D radius×height profile rotated around the Y axis, for vases, bottles, goblets and rings.
+5. **`PlatonicSolid`**: the regular tetrahedron/octahedron/icosahedron/dodecahedron (the dodecahedron is constructed as the polar dual of the icosahedron), optionally refined into a geodetic sphere via subdivision.
+6. **`ParametricSurface`**: a generic `(u, v) → point` surface grid for waves, flags, helixes and other procedurally defined shapes.
+7. **`FilledPolygon`**: ear-clipped fill of an arbitrary (possibly concave) planar polygon with optional holes -- unlike the core `PolygonFan`, which only fills star-shaped profiles.
+8. **`VoronoiCells`**: a 3D Voronoi diagram (or, with `weights`, a power/Laguerre-Voronoi diagram) built from half-space clipped convex cells, with an optional shrink-towards-centroid padding for a "shattered crystal" look, optional Lloyd relaxation (`relaxationIterations`) for more even cell sizes, and `poissonDiskSample()` as an alternative seed-point generator.
+9. **`MarchingCubes`**: an isosurface (e.g. blended metaballs, or any custom scalar field) extracted via marching tetrahedra.
 
 Not a geometry: physics is deliberately **not** wired up here (e.g. "each Voronoi cell as its own rigid body" fracture). See the note at the bottom of this file.
 
@@ -31,6 +35,10 @@ import {
   Supershape,
   TorusKnot,
   MobiusStrip,
+  Lathe,
+  PlatonicSolid,
+  ParametricSurface,
+  FilledPolygon,
   VoronoiCells,
   MarchingCubes,
 } from "@small-world/geometry-extras";

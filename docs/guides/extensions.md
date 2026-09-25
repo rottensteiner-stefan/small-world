@@ -2,6 +2,18 @@
 
 Gemäß **ADR 0014** folgt Small World einer strikten 4-Schichten-Domänenarchitektur statt generischer Sammel-Ordner.
 
+## Paket-Landschaft
+
+Seit der npm-Workspaces-Restrukturierung lebt die Engine in einem einzigen Paket (`@small-world/engine`, `packages/engine/`), und optionaler, domänenspezifischer Code wird in **separate Ökosystem-Pakete** ausgelagert, die ausschließlich von `@small-world/engine` abhängen — nie umgekehrt. Dadurch bleibt der Kern schlank und Dritt-Entwickler können eigene Pakete nach demselben Muster beisteuern.
+
+| Paket | Verzeichnis | Zweck |
+| --- | --- | --- |
+| `@small-world/gltf-extensions` | `packages/gltf-extensions/` | Datenebenen-gltF-Extensions (Draco, BasisU/KTX2) — siehe ADR 0017/0018 |
+| `@small-world/geometry-extras` | `packages/geometry-extras/` | Exotische & prozedurale Geometrien (Supershapes, Torus-Knoten, Lathe, Platonische Körper, parametrische Flächen, gefüllte Polygone, Voronoi-Zellen, Marching Cubes) außerhalb des Kern-Primitiven-Katalogs |
+| `@small-world/physics-extras` | `packages/physics-extras/` | Höherstufige Physik-Bausteine (z.B. Voronoi-Frakturen mit `ConvexHull`-Kollidern) |
+
+Jedes Extras-Paket extended zentrale öffentliche Verträge der Engine (`AbstractGeometry`, `GltfExtensionPlugin`, ...) und ist eigenständig testbar — dasselbe Erweiterungsprinzip, das ADR 0018 für die gltf-Datenebene und ADR 0021 für Geometrie/Physik festlegen.
+
 ## Domänenstruktur
 
 1. **Ebene 1 — Kern-Engine (`packages/engine/src/core/`, `packages/engine/src/renderers/`, `packages/engine/src/geometry/`, `packages/engine/src/math/`):**
