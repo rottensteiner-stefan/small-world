@@ -22,14 +22,7 @@ import { MAX_SKINNED_BONES } from "../../core/animation/Skeleton.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { RenderManifest } from "../../core/renderers/shaders/index.js";
 import { Color } from "../../core/colors/index.js";
-import {
-  DeviceCaps,
-  DeviceLimit,
-  InstancedMesh,
-  Object3D,
-  Scene,
-  TextureArray,
-} from "../../core/index.js";
+import { DeviceLimit, InstancedMesh, Object3D, Scene, TextureArray } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
 import { EngineOptions, LightDataInterface } from "../../interfaces/index.js";
 import {
@@ -172,7 +165,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.postProcessing.loadConfig(config.postProcessing);
     }
 
-    this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
+    this._maxTextureUnits = this.context.deviceCaps.getLimit(
+      DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS,
+    );
 
     this._dummyShadowMap = new WebGL2DepthFrameBuffer(this.gl, 1, 1);
     this._dummyShadowMap.bind();
@@ -755,7 +750,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    */
   private _bindDummyShadowMaps(cache: WebGL2ProgramCacheEntry): void {
     const dummyUnit = 13;
-    const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
+    const maxUnits = this.context.deviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
     if (dummyUnit >= maxUnits) {
       console.warn(`[WebGL2Renderer] dummyUnit ${dummyUnit} >= maxUnits ${maxUnits}`);
       return;
@@ -915,7 +910,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           const fbo = this._shadowMaps.get(light);
           if (fbo && fbo.texture) {
             const texUnit = 8 + i; // TEXTURE8 to TEXTURE11
-            const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
+            const maxUnits = this.context.deviceCaps.getLimit(
+              DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS,
+            );
             if (texUnit >= maxUnits) {
               console.warn(
                 `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind spot shadow map to texture unit ${texUnit}.`,
@@ -959,7 +956,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const fbo = this._shadowMaps.get(light);
       if (fbo && fbo.texture) {
         const texUnit = 12; // TEXTURE12
-        const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
+        const maxUnits = this.context.deviceCaps.getLimit(
+          DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS,
+        );
         if (texUnit >= maxUnits) {
           console.warn(
             `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind directional shadow map to texture unit ${texUnit}.`,

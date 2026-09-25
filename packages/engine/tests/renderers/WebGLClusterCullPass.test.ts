@@ -37,6 +37,12 @@ function makeMockWebGL2Renderer(numClusters: { x: number; y: number; z: number }
     texParameteri: vi.fn(),
   };
 
+  const caps = new DeviceCaps();
+  vi.spyOn(caps, "getLimit").mockImplementation((limit: DeviceLimit) => {
+    if (limit === DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS) return 32;
+    return 16;
+  });
+
   const renderer = {
     webglContext: gl,
     clusterDims: numClusters,
@@ -45,6 +51,7 @@ function makeMockWebGL2Renderer(numClusters: { x: number; y: number; z: number }
     writeClusterGridUniforms: vi.fn(),
     clusterGridTexture: {},
     clusterIndexTexture: {},
+    context: { deviceCaps: caps, shaderRegistry: {}, assetManager: {} },
   };
 
   Object.setPrototypeOf(renderer, WebGL2Renderer.prototype);
@@ -53,11 +60,6 @@ function makeMockWebGL2Renderer(numClusters: { x: number; y: number; z: number }
 
 describe("WebGLClusterCullPass (BLK-R1 Regression)", () => {
   it("reallocates _pointCounts and _spotCounts when numClusters > 1 even if gridHeight === 1", () => {
-    vi.spyOn(DeviceCaps, "getLimit").mockImplementation((limit: DeviceLimit) => {
-      if (limit === DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS) return 32;
-      return 16;
-    });
-
     const pass = new WebGLClusterCullPass();
     // 8x8x4 = 256 clusters (gridHeight = 1 because 256 <= 1024)
     const { renderer, gl } = makeMockWebGL2Renderer({ x: 8, y: 8, z: 4 });

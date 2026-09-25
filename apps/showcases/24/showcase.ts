@@ -194,14 +194,14 @@ class ScreenCurvatureBehavior extends Behavior {
 }
 
 class Showcase24 extends AbstractShowcase {
-  public api: string;
+  private _api: "webgl2" | "webgpu";
 
-  constructor(container: HTMLElement, defaultRendererType: RendererType) {
-    super({ canvasId: container.id, rendererType: defaultRendererType });
-    // Read back the *resolved* type -- AbstractShowcase may have already overridden it
-    // from a `?rendererType=` URL param, and the gallery content must match what's
-    // actually rendering, not just the pre-override default we passed in above.
-    this.api = this.config.rendererType === RendererType.WEB_GPU ? "webgpu" : "webgl2";
+  constructor(container: HTMLElement) {
+    super({ canvasId: container.id, rendererType: RendererType.BEST });
+    // Read back the *resolved* type -- AbstractShowcase may have overridden the default from a
+    // `?rendererType=` URL param, and the gallery content must match what's actually rendering,
+    // not just the pre-override default we passed in above.
+    this._api = this.config.rendererType === RendererType.WEB_GPU ? "webgpu" : "webgl2";
   }
 
   protected async setupScene(): Promise<void> {
@@ -246,8 +246,8 @@ class Showcase24 extends AbstractShowcase {
     this.scene.add(wireSphere);
 
     // Build the Gallery Billboards based on API
-    this.api = this.renderer.type === RendererType.WEB_GPU ? "webgpu" : "webgl2";
-    if (this.api === "webgl2") {
+    this._api = this.renderer.type === RendererType.WEB_GPU ? "webgpu" : "webgl2";
+    if (this._api === "webgl2") {
       this._buildWebGL2Gallery();
     } else {
       this._buildWebGPUGallery();
@@ -510,31 +510,12 @@ class Showcase24 extends AbstractShowcase {
   }
 }
 
-/**
- * Detects the best available renderer so the gallery starts right away, without requiring
- * the visitor to pick one manually. Only the default -- a `?rendererType=` URL param (parsed
- * centrally by `AbstractShowcase`) always takes priority over this.
- */
-async function detectDefaultRendererType(): Promise<RendererType> {
-  if (!navigator.gpu) return RendererType.WEB_GL2;
-  try {
-    const adapter = await navigator.gpu.requestAdapter();
-    return adapter ? RendererType.WEB_GPU : RendererType.WEB_GL2;
-  } catch {
-    return RendererType.WEB_GL2;
-  }
-}
-
-async function init(): Promise<void> {
+function init(): void {
   const container = document.getElementById("container") as HTMLElement;
   container.innerHTML = '<canvas id="canvas23"></canvas>';
 
-  const defaultRendererType = await detectDefaultRendererType();
-  const engine = new Showcase24(
-    document.getElementById("canvas23") as HTMLElement,
-    defaultRendererType,
-  );
-  await engine.start().catch((err: unknown) => console.error("[Showcase24] Failed to start:", err));
+  const engine = new Showcase24(document.getElementById("canvas23") as HTMLElement);
+  engine.start().catch((err: unknown) => console.error("[Showcase24] Failed to start:", err));
 }
 
-init().catch((err: unknown) => console.error("[Showcase24] Failed to init:", err));
+init();

@@ -2,7 +2,6 @@
 import {
   CubeTexture,
   RenderManifest,
-  DeviceCaps,
   InstancedMesh,
   Object3D,
   Scene,
@@ -494,7 +493,7 @@ export class WebGPURenderer extends AbstractRenderer {
     // unconditionally at `DeviceCaps.init()`, so a higher WebGL number could mask a lower real
     // WebGPU one (exactly how a 20-texture WebGPU bind group went undetected on a device whose
     // WebGL2 context happened to report more texture units than this API actually allows).
-    DeviceCaps.updateLimits({
+    this.context.deviceCaps.updateLimits({
       maxTextureSize: this._device.limits.maxTextureDimension2D,
       maxUniformBufferSize: this._device.limits.maxUniformBufferBindingSize,
       webgpuMaxSampledTexturesPerStage: this._device.limits.maxSampledTexturesPerShaderStage,
@@ -702,6 +701,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._pipelineCache = new GPUPipelineCache(
       this._device!,
+      this.context.deviceCaps,
       this._globalBGL,
       this._objectBGL,
       this._viewBGL,

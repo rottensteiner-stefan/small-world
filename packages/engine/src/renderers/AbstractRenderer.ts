@@ -66,7 +66,7 @@ export abstract class AbstractRenderer implements Renderer {
   };
 
   /** Per-instance bundle of DeviceCaps/ShaderRegistry/AssetManager -- see RendererContext. */
-  protected readonly context: RendererContext;
+  public readonly context: RendererContext;
 
   constructor(context: RendererContext = createDefaultRendererContext()) {
     this.context = context;

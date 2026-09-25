@@ -4,7 +4,7 @@ import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
 import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { StandardWebGPULayout } from "../../core/renderers/shaders/index.js";
-import { DeviceCaps, DeviceLimit, InstancedMesh, Object3D, Scene } from "../../core/index.js";
+import { DeviceLimit, InstancedMesh, Object3D, Scene } from "../../core/index.js";
 import {
   EngineOptions,
   GeometryDataInterface,
@@ -137,7 +137,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this.postProcessing.loadConfig(config.postProcessing);
     }
 
-    this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL1_MAX_TEXTURE_IMAGE_UNITS);
+    this._maxTextureUnits = this.context.deviceCaps.getLimit(
+      DeviceLimit.WEBGL1_MAX_TEXTURE_IMAGE_UNITS,
+    );
     this._instancedArraysExt = this.gl.getExtension("ANGLE_instanced_arrays");
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);

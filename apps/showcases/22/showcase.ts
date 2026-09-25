@@ -15,9 +15,9 @@ import {
   PhysicsSystem,
   Skydome,
   Texture,
-} from "../../../packages/engine/src/index.js";
-import { AmbientLight } from "../../../packages/engine/src/core/lights/index.js";
-import { DeviceCaps, PerformanceTier } from "../../../packages/engine/src/core/DeviceCaps.js";
+  AmbientLight,
+  PerformanceTier,
+} from "@small-world/engine";
 
 class Showcase22 extends AbstractShowcase {
   private _spheres: Object3D[] = [];
@@ -38,12 +38,12 @@ class Showcase22 extends AbstractShowcase {
         this.audio.startDrone();
         droneStarted = true;
       }
-      if (!DeviceCaps.isMobile() && !this.input.isPointerLocked) {
+      if (!this.context.deviceCaps.isMobile() && !this.input.isPointerLocked) {
         this.input.requestPointerLock(this.canvas);
       }
     });
 
-    const tier = DeviceCaps.getPerformanceTier();
+    const tier = this.context.deviceCaps.getPerformanceTier();
 
     // 0. Enable Bloom & Gravitational Lensing!
     this.renderer.postProcessing.enabled = true;

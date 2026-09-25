@@ -88,6 +88,7 @@ function makeRenderer(): { renderer: Internals; device: GPUDevice } {
   renderer._viewBGL = { mock: "viewBGL" };
   renderer._pipelineCache = new GPUPipelineCache(
     device,
+    renderer.context.deviceCaps,
     renderer._globalBGL,
     renderer._objectBGL,
     renderer._viewBGL,

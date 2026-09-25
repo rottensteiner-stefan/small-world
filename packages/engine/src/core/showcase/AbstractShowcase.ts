@@ -15,14 +15,14 @@ import { FlyController, OrbitController } from "../controllers/index.js";
 export const SHOWCASE_READY_EVENT = "small-world:scene-ready";
 
 /**
- * Reads a `?rendererType=` or `?api=` override from the page URL (e.g. `?rendererType=WEB_GL2` or `?api=webgl2`),
+ * Reads a `?rendererType=` override from the page URL (e.g. `?rendererType=WEB_GL2`),
  * matched case-insensitively against `RendererType`'s members and common aliases. Lets any showcase's
  * renderer be swapped from the address bar or UI switcher without touching its source.
  */
 function getRendererTypeFromQuery(): RendererType | undefined {
   if (typeof window === "undefined" || !window.location) return undefined;
   const params = new URLSearchParams(window.location.search);
-  const raw = params.get("rendererType") || params.get("api");
+  const raw = params.get("rendererType");
   if (!raw) return undefined;
   const upper = raw.toUpperCase().replace(/-/g, "_");
   if (upper === "WEBGL2" || upper === "GLSL" || upper === "WEB_GL2") return RendererType.WEB_GL2;
@@ -46,6 +46,20 @@ const VALID_SHOWCASE_IDS = [
 ];
 
 export abstract class AbstractShowcase extends SmallWorld {
+  /**
+   * Renderer-switch hotkeys: Option/Alt+1 opens WebGL1, +2 WebGL2, +3 WebGPU. The digits are
+   * matched by `event.code` (top-row digit keys) so the combo works on any keyboard layout.
+   * Option/Alt+digits is the only conflict-free modifier pairing: plain Cmd+1..9 is taken by
+   * browser tab switching, Cmd+Shift+3/4 by macOS screenshots, bare 1/2/3 by Showcase 38's
+   * camera presets, and F-keys by macOS media/brightness. On macOS `event.altKey` reports the
+   * Option key, on Windows/Linux plain Alt -- one handler covers every platform.
+   */
+  private static readonly _RENDERER_SWITCH_KEYS: Readonly<Record<string, RendererType>> = {
+    [Keys.D1]: RendererType.WEB_GL1,
+    [Keys.D2]: RendererType.WEB_GL2,
+    [Keys.D3]: RendererType.WEB_GPU,
+  };
+
   private _showcaseKeyDownHandler = (event: KeyboardEvent): void => this.onKeyDown(event);
   private _navButtons: HTMLButtonElement[] = [];
 
@@ -326,12 +340,41 @@ export abstract class AbstractShowcase extends SmallWorld {
    * Inheriting classes can override this method and call super.onKeyDown(event).
    */
   protected onKeyDown(event: KeyboardEvent): void {
+    const rendererTarget = AbstractShowcase._RENDERER_SWITCH_KEYS[event.code];
+    if (rendererTarget && this._isRendererSwitchShortcut(event)) {
+      event.preventDefault();
+      // Skip the round-trip if the requested backend already came up (e.g. default BEST resolved
+      // to WebGPU): the visual state is identical, a reload would only waste GPU init work.
+      if (this.renderer?.type === rendererTarget) return;
+      this._switchRenderer(rendererTarget);
+      return;
+    }
     if (Keys.B === event.code) {
       this.debug = !this.debug;
     }
     if (event.key === "r" || event.key === "R") {
       this.resetCamera();
     }
+  }
+
+  /**
+   * True when Option/Alt is held and no other modifier is pressed, keeping the combo unambiguous
+   * and clear of browser shortcuts (tab switching, screenshots) and showcase digit keys.
+   */
+  private _isRendererSwitchShortcut(event: KeyboardEvent): boolean {
+    return event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey;
+  }
+
+  /**
+   * Writes a `?rendererType=` override into the page URL (preserving any other query params) and
+   * triggers a full reload. The engine re-reads the param at boot via
+   * {@link getRendererTypeFromQuery}, so switching needs no runtime renderer recreation.
+   */
+  private _switchRenderer(rendererType: RendererType): void {
+    console.info(`[Showcase] Switching renderer to ${rendererType}...`);
+    const url = new URL(window.location.href);
+    url.searchParams.set("rendererType", rendererType);
+    window.location.href = url.toString();
   }
 
   /**

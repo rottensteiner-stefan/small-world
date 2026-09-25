@@ -1,7 +1,6 @@
 import { Behavior } from "../behaviors/index.js";
 import { Object3D } from "../index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { DeviceCaps, DeviceFeature } from "../DeviceCaps.js";
 
 /**
  * A controller that rotates its target based on the device's physical orientation sensors.
@@ -26,7 +25,7 @@ export class DeviceOrientationController extends Behavior {
   }
 
   private async _initSensors(): Promise<void> {
-    if (!DeviceCaps.hasFeature(DeviceFeature.DEVICE_ORIENTATION)) {
+    if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
       console.warn(
         "[DeviceOrientationController] DeviceOrientationEvent is not supported on this device.",
       );

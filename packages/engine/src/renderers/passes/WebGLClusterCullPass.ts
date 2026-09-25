@@ -1,7 +1,7 @@
 import { WebGLRenderPass } from "../WebGLRenderPass.js";
 import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGL2Renderer } from "../WebGL2/WebGL2Renderer.js";
-import { DeviceCaps, DeviceLimit, Scene } from "../../core/index.js";
+import { DeviceLimit, Scene } from "../../core/index.js";
 import {
   Vector3D,
   clusterIndex,
@@ -254,7 +254,9 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
     // units (8-14, see WebGLProgramCache's doc) are accounted for -- degrade gracefully (skip +
     // warn) instead of corrupting whatever happens to already be bound at an invalid unit,
     // mirroring how WebGL2Renderer already guards its own fixed shadow-unit binds.
-    const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
+    const maxUnits = renderer.context.deviceCaps.getLimit(
+      DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS,
+    );
 
     if (CLUSTER_GRID_UNIT >= maxUnits) {
       if (!this._warnedGridUnit) {

@@ -183,6 +183,7 @@ const GLOBAL_BIND_GROUP_TEXTURE_COUNT = 5;
  */
 export class GPUPipelineCache {
   private readonly _device: GPUDevice;
+  private readonly _deviceCaps: DeviceCaps;
   private readonly _globalBGL: GPUBindGroupLayout;
   private readonly _objectBGL: GPUBindGroupLayout;
   private readonly _viewBGL: GPUBindGroupLayout;
@@ -197,12 +198,14 @@ export class GPUPipelineCache {
 
   constructor(
     device: GPUDevice,
+    deviceCaps: DeviceCaps,
     globalBGL: GPUBindGroupLayout,
     objectBGL: GPUBindGroupLayout,
     viewBGL: GPUBindGroupLayout,
     shaderRegistry: ShaderRegistry,
   ) {
     this._device = device;
+    this._deviceCaps = deviceCaps;
     this._globalBGL = globalBGL;
     this._objectBGL = objectBGL;
     this._viewBGL = viewBGL;
@@ -268,11 +271,13 @@ export class GPUPipelineCache {
 
     const materialTextureCount = matEntries.filter((e) => "texture" in e).length;
     const total = GLOBAL_BIND_GROUP_TEXTURE_COUNT + materialTextureCount;
-    const deviceLimit = DeviceCaps.getLimit(DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE);
+    const deviceLimit = this._deviceCaps.getLimit(
+      DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE,
+    );
     const limit =
       deviceLimit > 0
         ? deviceLimit
-        : DeviceCaps.getGuaranteedMinimum(DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE);
+        : this._deviceCaps.getGuaranteedMinimum(DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE);
 
     if (total > limit) {
       this._warnedMaterialTextureBudget.add(shaderId);
