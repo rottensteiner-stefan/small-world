@@ -24,9 +24,9 @@ export class PostProcessPass implements RenderPass {
   private _bindGroup?: GPUBindGroup;
   private _uniformBuffer?: GPUBuffer;
   private _sampler?: GPUSampler;
-  /** 32 floats (128 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the continuous tuning
-   * parameters (incl. color grading), packed as 8x vec4f (with padding for the vec3 colors). */
-  private _uniformData: Float32Array = new Float32Array(32);
+  /** 36 floats (144 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the continuous tuning
+   * parameters (incl. color grading & singularity pos), packed as 9x vec4f. */
+  private _uniformData: Float32Array = new Float32Array(36);
   private _builtTextureView?: GPUTextureView;
   private _builtBloomTextureView?: GPUTextureView;
   private _builtHbaoTextureView?: GPUTextureView;
@@ -88,7 +88,7 @@ export class PostProcessPass implements RenderPass {
     });
 
     this._uniformBuffer ??= device.createBuffer({
-      size: 128, // DynUniforms: 8 x vec4f
+      size: 144, // DynUniforms: 9 x vec4f
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -336,6 +336,10 @@ export class PostProcessPass implements RenderPass {
     d[29] = grade ? grade.gamma.b : 1.0; // grading2.y: gammaB
     d[30] = grade ? grade.gain.r : 1.0; // grading2.z: gainR
     d[31] = grade ? grade.gain.g : 1.0; // grading2.w: gainG
+    d[32] = group.singularityScreenPos.x; // singularityPos.x
+    d[33] = group.singularityScreenPos.y; // singularityPos.y
+    d[34] = group.singularityScreenPos.z; // singularityPos.z
+    d[35] = 0.0; // pad
 
     renderer.gpuDevice!.queue.writeBuffer(this._uniformBuffer!, 0, d);
 

@@ -35,6 +35,7 @@ uniform float u_outlineThickness;
 uniform float u_outlineSensitivity;
 uniform vec3 u_outlineColor;
 uniform float u_time;
+uniform vec3 u_singularityScreenPos;
 
 uniform int u_filterMode;
 
@@ -101,23 +102,51 @@ void main() {
         }
         distortUv += vec2(shakeX, shakeY);
     }
+
     // Gravitational Lensing (mode 8)
+    float ringGlow = 0.0;
+    float beaming = 1.0;
+    vec3 colorShift = vec3(1.0);
     if (u_filterMode == 8) {
-        ivec2 dims = textureSize(u_hdrTexture, 0);
-        float aspect = float(dims.x) / float(dims.y);
-        vec2 dir = uv - vec2(0.5);
-        dir.x *= aspect;
-        float dist = length(dir);
-        float eh = 0.03; // Much larger Event Horizon (15% of screen) -> now reduced to 3%
-        if (dist > eh) {
-            float bending = (eh * eh) / (dist * dist);
-            vec2 disp = dir / dist;
-            disp.x /= aspect;
-            distortUv = uv + disp * bending * 0.25;
-        } else {
-            distortUv = vec2(-1.0); // Sample nowhere
+        if (u_singularityScreenPos.z > 0.0) {
+            ivec2 dims = textureSize(u_hdrTexture, 0);
+            float aspect = float(dims.x) / float(dims.y);
+            vec2 center = u_singularityScreenPos.xy * 0.5 + vec2(0.5);
+            vec2 dir = uv - center;
+            dir.x *= aspect;
+            float dist = length(dir);
+            float eh = 0.03; // Event Horizon screen radius
+            if (dist > eh) {
+                float bending = (eh * eh) / (dist * dist);
+                vec2 disp = dir / dist;
+                disp.x /= aspect;
+
+                // Spaghettisation: geometric radial stretching along the gravitational gradient near horizon
+                float spaghetti = pow(eh / dist, 3.0) * 0.15;
+                distortUv = uv - (disp * (bending * 0.25 + spaghetti));
+
+                // Relativistic Beaming / Doppler effect (approaching left side boosted, receding right side dimmed)
+                float dopplerFactor = -disp.x * aspect * 1.2;
+                beaming = clamp(1.0 + dopplerFactor, 0.2, 3.0);
+
+                // Relativistic Doppler Color Shift (Blueshift on approaching side, redshift on receding side)
+                if (dopplerFactor > 0.0) {
+                    colorShift = mix(vec3(1.0), vec3(0.8, 1.0, 1.4), clamp(dopplerFactor * 0.5, 0.0, 1.0));
+                } else {
+                    colorShift = mix(vec3(1.0), vec3(1.2, 0.6, 0.4), clamp(-dopplerFactor * 0.5, 0.0, 1.0));
+                }
+
+                // Einstein-Ring Glow directly along the photon sphere boundary
+                if (dist < eh + 0.015) {
+                    float glowFactor = smoothstep(eh + 0.015, eh, dist);
+                    ringGlow = pow(glowFactor, 3.0) * 2.5 * beaming;
+                }
+            } else {
+                distortUv = vec2(-1.0); // Sample nowhere
+            }
         }
     }
+
 
     // Chromatic Aberration (sampling R, G, B at slightly different coordinates)
     vec3 hdr;
@@ -142,12 +171,24 @@ void main() {
     }
 
     if (u_filterMode == 8) {
-        ivec2 dims = textureSize(u_hdrTexture, 0);
-        float aspect = float(dims.x) / float(dims.y);
-        vec2 dir = uv - vec2(0.5);
-        dir.x *= aspect;
-        if (length(dir) < 0.03) {
-            hdr = vec3(0.0); // Absolute pitch black Event Horizon
+        if (u_singularityScreenPos.z > 0.0) {
+            ivec2 dims = textureSize(u_hdrTexture, 0);
+            float aspect = float(dims.x) / float(dims.y);
+            vec2 center = u_singularityScreenPos.xy * 0.5 + vec2(0.5);
+            vec2 dir = uv - center;
+            dir.x *= aspect;
+            float dist = length(dir);
+            if (dist < 0.03) {
+                hdr = vec3(0.0); // Absolute pitch black Event Horizon
+            } else {
+                if (dist < 0.35) {
+                    float diskMask = smoothstep(0.35, 0.03, dist);
+                    hdr *= mix(vec3(1.0), beaming * colorShift, diskMask);
+                }
+                if (ringGlow > 0.0) {
+                    hdr += vec3(1.0, 0.4, 0.08) * ringGlow; // Fiery Einstein-Ring photon sphere glow
+                }
+            }
         }
     }
 
@@ -168,12 +209,15 @@ void main() {
             bloom = texture(u_bloomTexture, distortUv).rgb;
         }
         if (u_filterMode == 8) {
-            ivec2 dims = textureSize(u_hdrTexture, 0);
-            float aspect = float(dims.x) / float(dims.y);
-            vec2 dir = uv - vec2(0.5);
-            dir.x *= aspect;
-            if (length(dir) < 0.03) {
-                bloom = vec3(0.0);
+            if (u_singularityScreenPos.z > 0.0) {
+                ivec2 dims = textureSize(u_hdrTexture, 0);
+                float aspect = float(dims.x) / float(dims.y);
+                vec2 center = u_singularityScreenPos.xy * 0.5 + vec2(0.5);
+                vec2 dir = uv - center;
+                dir.x *= aspect;
+                if (length(dir) < 0.03) {
+                    bloom = vec3(0.0);
+                }
             }
         }
         hdr += bloom * u_bloomIntensity * u_bloomColor;

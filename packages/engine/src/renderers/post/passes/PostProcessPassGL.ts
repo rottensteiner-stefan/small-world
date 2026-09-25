@@ -40,6 +40,7 @@ export class PostProcessPassGL {
   private _uOutlineThickness: WebGLUniformLocation | null = null;
   private _uOutlineSensitivity: WebGLUniformLocation | null = null;
   private _uOutlineColor: WebGLUniformLocation | null = null;
+  private _uSingularityScreenPos: WebGLUniformLocation | null = null;
 
   private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
@@ -214,6 +215,7 @@ export class PostProcessPassGL {
     this._uOutlineThickness = gl.getUniformLocation(p, "u_outlineThickness");
     this._uOutlineSensitivity = gl.getUniformLocation(p, "u_outlineSensitivity");
     this._uOutlineColor = gl.getUniformLocation(p, "u_outlineColor");
+    this._uSingularityScreenPos = gl.getUniformLocation(p, "u_singularityScreenPos");
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
@@ -331,6 +333,14 @@ export class PostProcessPassGL {
       if (outline)
         gl.uniform3f(this._uOutlineColor, outline.color.r, outline.color.g, outline.color.b);
       else gl.uniform3f(this._uOutlineColor, 0.0, 0.0, 0.0);
+    }
+    if (this._uSingularityScreenPos) {
+      gl.uniform3f(
+        this._uSingularityScreenPos,
+        group.singularityScreenPos.x,
+        group.singularityScreenPos.y,
+        group.singularityScreenPos.z,
+      );
     }
 
     // Blit to the default (canvas) framebuffer

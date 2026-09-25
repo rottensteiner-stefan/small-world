@@ -12,6 +12,7 @@ import {
   OutlineElement,
 } from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
+import { Vector3D } from "../../math/index.js";
 
 /**
  * A logical grouping of post-processing elements.
@@ -25,8 +26,15 @@ export class PostProcessingGroup {
   /** Currently always true (Global Volume). */
   public isGlobal: boolean = true;
 
-  /** The active shader filter mode (e.g. 0 = clean, 1 = nightvision, 2 = noir, 3 = cyber, 4 = vhs, 5 = underworld). */
+  /** The active shader filter mode (e.g. 0 = clean, 1 = nightvision, 2 = noir, 3 = cyber, 4 = vhs, 5 = underworld, 8 = black hole). */
   public filterMode: number = 0;
+
+  /**
+   * Center position of the gravitational lensing / singularity effect in NDC [-1, 1] space.
+   * Z > 0 indicates in front of camera, Z <= 0 indicates behind camera (bypasses lensing).
+   * Defaults to (0, 0, 1) = center of screen in front of camera.
+   */
+  public singularityScreenPos: Vector3D = new Vector3D(0, 0, 1);
 
   private _elements: Map<PostProcessingEffectType, PostProcessingElement> = new Map();
 

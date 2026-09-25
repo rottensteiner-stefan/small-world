@@ -29,6 +29,7 @@ struct DynUniforms {
     grading0: vec4f, // [contrast, saturation, temperature, tint]
     grading1: vec4f, // [liftR, liftG, liftB, gammaR]
     grading2: vec4f, // [gammaG, gammaB, gainR, gainG]
+    singularityPos: vec4f, // [screenPosX, screenPosY, screenPosZ, unused]
 }
 @group(0) @binding(2) var<uniform> dyn: DynUniforms;
 
@@ -117,20 +118,47 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         distortUv.x += shakeX;
         distortUv.y += shakeY + jump;
     }
+
     // Gravitational Lensing (mode 8)
+    var ringGlow: f32 = 0.0;
+    var beaming: f32 = 1.0;
+    var colorShift: vec3f = vec3f(1.0);
     if (8u == u_filterMode) {
-        let aspect = dims.x / dims.y;
-        var dir = uv - vec2f(0.5);
-        dir.x *= aspect; // Make circle instead of ellipse
-        let dist = length(dir);
-        let eh = 0.03; // Event Horizon screen radius
-        if (dist > eh) {
-            let bending = (eh * eh) / (dist * dist);
-            var disp = dir / dist; // normalized
-            disp.x /= aspect; // back to uv space
-            distortUv = uv + disp * bending * 0.25;
-        } else {
-            distortUv = vec2f(-1.0);
+        if (dyn.singularityPos.z > 0.0) {
+            let aspect = dims.x / dims.y;
+            let center = dyn.singularityPos.xy * 0.5 + vec2f(0.5);
+            var dir = uv - center;
+            dir.x *= aspect; // Make circle instead of ellipse
+            let dist = length(dir);
+            let eh = 0.03; // Event Horizon screen radius
+            if (dist > eh) {
+                let bending = (eh * eh) / (dist * dist);
+                var disp = dir / dist; // normalized
+                disp.x /= aspect; // back to uv space
+
+                // Spaghettisation: geometric radial stretching along the gravitational gradient near horizon
+                let spaghetti = pow(eh / dist, 3.0) * 0.15;
+                distortUv = uv - (disp * (bending * 0.25 + spaghetti));
+
+                // Relativistic Beaming / Doppler effect (approaching left side boosted, receding right side dimmed)
+                let dopplerFactor = -disp.x * aspect * 1.2;
+                beaming = clamp(1.0 + dopplerFactor, 0.2, 3.0);
+
+                // Relativistic Doppler Color Shift (Blueshift on approaching side, redshift on receding side)
+                if (dopplerFactor > 0.0) {
+                    colorShift = mix(vec3f(1.0), vec3f(0.8, 1.0, 1.4), clamp(dopplerFactor * 0.5, 0.0, 1.0));
+                } else {
+                    colorShift = mix(vec3f(1.0), vec3f(1.2, 0.6, 0.4), clamp(-dopplerFactor * 0.5, 0.0, 1.0));
+                }
+
+                // Einstein-Ring Glow directly along the photon sphere boundary
+                if (dist < eh + 0.015) {
+                    let glowFactor = smoothstep(eh + 0.015, eh, dist);
+                    ringGlow = pow(glowFactor, 3.0) * 2.5 * beaming;
+                }
+            } else {
+                distortUv = vec2f(-1.0);
+            }
         }
     }
 
@@ -162,11 +190,23 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     }
 
     if (8u == u_filterMode) {
-        let aspect = dims.x / dims.y;
-        var dir = uv - vec2f(0.5);
-        dir.x *= aspect;
-        if (length(dir) < 0.03) {
-            hdr = vec3f(0.0);
+        if (dyn.singularityPos.z > 0.0) {
+            let aspect = dims.x / dims.y;
+            let center = dyn.singularityPos.xy * 0.5 + vec2f(0.5);
+            var dir = uv - center;
+            dir.x *= aspect;
+            let dist = length(dir);
+            if (dist < 0.03) {
+                hdr = vec3f(0.0);
+            } else {
+                if (dist < 0.35) {
+                    let diskMask = smoothstep(0.35, 0.03, dist);
+                    hdr = hdr * mix(vec3f(1.0), beaming * colorShift, diskMask);
+                }
+                if (ringGlow > 0.0) {
+                    hdr += vec3f(1.0, 0.4, 0.08) * ringGlow;
+                }
+            }
         }
     }
 
@@ -192,11 +232,14 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         }
 
         if (8u == u_filterMode) {
-            let aspect = dims.x / dims.y;
-            var dir = uv - vec2f(0.5);
-            dir.x *= aspect;
-            if (length(dir) < 0.03) {
-                bloom = vec3f(0.0);
+            if (dyn.singularityPos.z > 0.0) {
+                let aspect = dims.x / dims.y;
+                let center = dyn.singularityPos.xy * 0.5 + vec2f(0.5);
+                var dir = uv - center;
+                dir.x *= aspect;
+                if (length(dir) < 0.03) {
+                    bloom = vec3f(0.0);
+                }
             }
         }
 

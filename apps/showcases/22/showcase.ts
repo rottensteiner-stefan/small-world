@@ -23,6 +23,7 @@ class Showcase22 extends AbstractShowcase {
   private _spheres: Object3D[] = [];
   private _physics: PhysicsSystem;
   private _heatMap: Map<Object3D, number> = new Map();
+  private _lastFuzzAt: number = 0;
 
   constructor(options: EngineOptions = {}) {
     super(options);
@@ -46,8 +47,10 @@ class Showcase22 extends AbstractShowcase {
     const tier = this.context.deviceCaps.getPerformanceTier();
 
     // 0. Enable Bloom & Gravitational Lensing!
+    // filterMode 8 dynamically lenses the background around the projected singularity position,
+    // bending light toward the event horizon.
     this.renderer.postProcessing.enabled = true;
-    this.renderer.postProcessing.filterMode = 8; // Our new Black Hole Shader!
+    this.renderer.postProcessing.filterMode = 8; // Black Hole Shader (Gravitational Lensing)
 
     const bloom = this.renderer.postProcessing.get<BloomElement>(PostProcessingEffectType.BLOOM);
     if (bloom) {
@@ -75,7 +78,7 @@ class Showcase22 extends AbstractShowcase {
     this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     // 3. Environment: The Magnetic Singularity & Space Background
-    const skyTexture = await Texture.fromUrl("./assets/space-2.webp");
+    const skyTexture = await Texture.fromUrl("./assets/milkyway.webp");
     const skydome = new Skydome({
       texture: skyTexture,
       radius: 1000,
@@ -171,87 +174,116 @@ class Showcase22 extends AbstractShowcase {
       this._heatMap.set(objectA, heatA + impulse * 8.0);
       this._heatMap.set(objectB, heatB + impulse * 8.0);
 
-      // User requested NO other sounds except White Noise
-      // if (impulse > 2.0) {
-      //    const freq = 41.2 + (Math.random() * 5.0);
-      //    const vol = Math.min(1.0, impulse * 0.1);
-      //    AudioSystem.instance.playTone(freq, 0.4, vol, "square");
-      // }
+      // Impact "fuzz": a genuine white-noise burst per hard collision, throttled so up to 400
+      // colliding spheres don't blur into one continuous hiss. Harder hits are louder and
+      // harsher (higher band-pass center). No other collision sounds -- policy intact.
+      const now = performance.now();
+      if (impulse > 0.75 && now - this._lastFuzzAt > 25) {
+        this._lastFuzzAt = now;
+        const volume = Math.min(0.5, 0.08 + impulse * 0.025);
+        const duration = Math.min(0.12, 0.03 + impulse / 300);
+        this.audio.playWhiteNoiseBurst(duration, volume, 1400 + impulse * 90, 1.2);
+      }
     });
   }
 
   protected override update(dt: number): void {
-    // 1. N-Body Gravity Simulation (O(N^2))
-    for (let i = 0; i < this._spheres.length; i++) {
+    const numSpheres = this._spheres.length;
+
+    // 1. N-Body Simulation: O(N) singularity gravity + local neighbor micro-gravity
+    for (let i = 0; i < numSpheres; i++) {
       const a = this._spheres[i]!;
       const pA = a.position;
 
       const distSqC = pA.x * pA.x + pA.y * pA.y + pA.z * pA.z;
       const distC = Math.sqrt(distSqC) || 1.0;
 
-      // Event Horizon: Consumed!
-      if (distC < 0.4) {
+      // Event Horizon: Absorbed & Teleported to outer disc
+      if (distC < 0.35) {
         const angle = Math.random() * Math.PI * 2;
         const radius = 3.0; // Respawn at the outer edge of the dense disk
         pA.set(Math.cos(angle) * radius, (Math.random() - 0.5) * 0.2, Math.sin(angle) * radius);
-        const orbitalSpeed = Math.sqrt(this._spheres.length / radius) * 0.98;
+        const orbitalSpeed = Math.sqrt(numSpheres / radius) * 0.98;
         a.rigidBody!.velocity.set(
           -Math.sin(angle) * orbitalSpeed,
           0,
           Math.cos(angle) * orbitalSpeed,
         );
         a.rigidBody!.angularVelocity.set(0, 0, 0);
+        a.rigidBody!.forces.set(0, 0, 0);
         this._heatMap.set(a, 2.0); // Reset heat to a moderate orange
+        if (a.material instanceof StandardMaterial) {
+          a.material.color.set(0.1, 0.05, 0.0, 1.0);
+        }
+        if (a.bounds instanceof BoundingSphere) {
+          a.bounds.radius = 0.05;
+        }
         continue;
       }
-      // Force scales with 1/d^2
-      const pullC = this._spheres.length / Math.max(distSqC, 2.0);
 
+      // Softened Newtonian gravity (Plummer softening)
+      const pullC = (numSpheres * distC) / Math.pow(distSqC + 0.5, 1.5);
       let fx = -(pA.x / distC) * pullC;
       let fy = -(pA.y / distC) * pullC;
       let fz = -(pA.z / distC) * pullC;
 
-      // Sphere-Sphere Micro-Gravity
-      for (let j = i + 1; j < this._spheres.length; j++) {
-        const b = this._spheres[j]!;
+      // Keep the accretion disk flat: weak spring toward the orbital plane (y = 0)
+      fy += -pA.y * 2.0;
+
+      // O(N) Local Neighbor Micro-Gravity (window of 4 neighbors in ring)
+      const lookAhead = 4;
+      for (let j = 1; j <= lookAhead; j++) {
+        const nextIdx = (i + j) % numSpheres;
+        const b = this._spheres[nextIdx]!;
         const pB = b.position;
         const dx = pB.x - pA.x;
         const dy = pB.y - pA.y;
         const dz = pB.z - pA.z;
         const distSq = dx * dx + dy * dy + dz * dz;
 
-        if (distSq > 0.1) {
-          const forceMag = 2.0 / distSq;
+        if (distSq > 0.1 && distSq < 2.0) {
+          const forceMag = 1.0 / distSq;
           const dist = Math.sqrt(distSq);
-          const fxG = (dx / dist) * forceMag;
-          const fyG = (dy / dist) * forceMag;
-          const fzG = (dz / dist) * forceMag;
-
-          fx += fxG;
-          fy += fyG;
-          fz += fzG;
-
-          // Newton's third law
-          b.rigidBody!.forces.x -= fxG;
-          b.rigidBody!.forces.y -= fyG;
-          b.rigidBody!.forces.z -= fzG;
+          fx += (dx / dist) * forceMag;
+          fy += (dy / dist) * forceMag;
+          fz += (dz / dist) * forceMag;
         }
       }
 
-      a.rigidBody!.forces.x += fx;
-      a.rigidBody!.forces.y += fy;
-      a.rigidBody!.forces.z += fz;
+      a.rigidBody!.forces.set(fx, fy, fz);
     }
 
     // 2. Step Physics Engine (SAT Collision & Integration)
     this._physics.step(this.scene, dt);
 
-    // 3. Update Heat and Emissive Colors
+    // 3. Update Heat and Emissive Colors (with Gravitational Redshift Fading)
     for (const s of this._spheres) {
+      const distC = s.position.length();
+
+      // Inside the Redshift & Fading Zone (0.35 < distC < 0.55)
+      if (distC < 0.55) {
+        const fadeFactor = Math.max(0.0, Math.min(1.0, (distC - 0.35) / 0.2));
+
+        if (s.material instanceof StandardMaterial) {
+          // Dying deep dark red to black (gravitational redshift into infrared)
+          s.material.emissiveColor.set(0.5 * fadeFactor, 0.05 * Math.pow(fadeFactor, 3.0), 0.0);
+          s.material.color.set(0.1 * fadeFactor, 0.05 * fadeFactor, 0.0, fadeFactor);
+        }
+
+        // Disable collisions in the deepest funnel to prevent SAT jams before absorption
+        if (s.bounds instanceof BoundingSphere) {
+          s.bounds.radius = distC < 0.45 ? 0.0 : 0.05;
+        }
+        continue;
+      }
+
+      if (s.bounds instanceof BoundingSphere) {
+        s.bounds.radius = 0.05;
+      }
+
       let heat = this._heatMap.get(s)!;
 
       // Increase heat based on pressure (proximity to singularity center)
-      const distC = s.position.length();
       if (distC < 1.0) {
         heat += (1.0 - distC) * dt * 10.0;
       }
@@ -272,6 +304,7 @@ class Showcase22 extends AbstractShowcase {
         const b = Math.max(0, (t - 0.7) / 0.3);
 
         s.material.emissiveColor.set(r, g, b);
+        s.material.color.set(0.1, 0.05, 0.0, 1.0);
       }
     }
 
@@ -279,6 +312,12 @@ class Showcase22 extends AbstractShowcase {
     const skydome = this.scene.objects.find((o) => o.name === "Skydome");
     if (skydome) {
       skydome.position.copyFrom(this.camera.position);
+    }
+
+    // 5. Update Singularity screen position for dynamic gravitational lensing
+    const singularity = this.scene.objects.find((o) => o.name === "Singularity");
+    if (singularity) {
+      this.camera.project(singularity.position, this.renderer.postProcessing.singularityScreenPos);
     }
   }
 }

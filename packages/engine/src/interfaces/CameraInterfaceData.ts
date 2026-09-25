@@ -123,4 +123,13 @@ export interface CameraInterfaceData {
    * @returns The world position on the Y=0 plane.
    */
   screenToWorld(screenX: number, screenY: number): Vector3D;
+
+  /**
+   * Projects a 3D world position into Normalized Device Coordinates (NDC: [-1, 1] on X, Y, Z).
+   * Note: Z > 0 in NDC indicates that the point is in front of the camera.
+   * @param worldPos The 3D world coordinates.
+   * @param result Optional Vector3D to receive the result.
+   * @returns The projected NDC vector.
+   */
+  project(worldPos: Vector3D, result?: Vector3D): Vector3D;
 }

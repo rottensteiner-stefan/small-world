@@ -338,4 +338,52 @@ export class SynthSFX {
     osc.start();
     osc.stop(this._context.currentTime + duration);
   }
+
+  /**
+   * Plays a short one-shot burst of genuine white noise (an impact "fuzz"/static crackle).
+   * Band-passed and enveloped so impacts read as gritty static instead of a broadband rumble,
+   * and tuned by the caller per-event via `centerFreq`/`q`. Unlike `startFire` this is a
+   * fire-and-forget burst that stops and auto-cleans on its own.
+   * @param duration Seconds the burst plays for.
+   * @param volume Peak burst volume (0..1).
+   * @param centerFreq Center of the band-pass shaping the fuzz character.
+   * @param q Band-pass resonance.
+   */
+  public playWhiteNoiseBurst(
+    duration: number = 0.15,
+    volume: number = 0.4,
+    centerFreq: number = 1800,
+    q: number = 1.0,
+  ): void {
+    this._resume();
+
+    const start = this._context.currentTime;
+    const bufferSize = Math.max(1, Math.floor(duration * this._context.sampleRate));
+    const buffer = this._context.createBuffer(1, bufferSize, this._context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      // True white noise, kept at half amplitude so later gain stages never clip.
+      data[i] = (Math.random() * 2 - 1) * 0.5;
+    }
+
+    const source = this._context.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = this._context.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = centerFreq;
+    filter.Q.value = q;
+
+    const gain = this._context.createGain();
+    // Quick attack, exponential decay -- a percussive crackle without a click.
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this._sfxGain);
+
+    source.start();
+    source.stop(start + duration);
+  }
 }

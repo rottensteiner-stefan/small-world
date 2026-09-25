@@ -24,6 +24,18 @@ describe("Post-Processing Shader Chunks & Groups", () => {
     expect(group.filterMode).toBe(3);
   });
 
+  it("should initialize singularityScreenPos to default (0, 0, 1)", () => {
+    const group = new PostProcessingGroup();
+    expect(group.singularityScreenPos.x).toBe(0);
+    expect(group.singularityScreenPos.y).toBe(0);
+    expect(group.singularityScreenPos.z).toBe(1);
+
+    group.singularityScreenPos.set(0.5, -0.2, 0.8);
+    expect(group.singularityScreenPos.x).toBe(0.5);
+    expect(group.singularityScreenPos.y).toBe(-0.2);
+    expect(group.singularityScreenPos.z).toBe(0.8);
+  });
+
   it("should register the post-processing filter chunks in ShaderRegistry", () => {
     const registry = ShaderRegistry.instance;
 

@@ -343,6 +343,23 @@ export class AudioSystem {
   }
 
   /**
+   * Plays a short one-shot burst of genuine white noise (impact "fuzz"/static crackle).
+   * See `SynthSFX.playWhiteNoiseBurst`.
+   * @param duration Seconds the burst plays for.
+   * @param volume Peak burst volume (0..1).
+   * @param centerFreq Center of the band-pass shaping the fuzz character.
+   * @param q Band-pass resonance.
+   */
+  public playWhiteNoiseBurst(
+    duration: number = 0.15,
+    volume: number = 0.4,
+    centerFreq: number = 1800,
+    q: number = 1.0,
+  ): void {
+    this._synthSFX.playWhiteNoiseBurst(duration, volume, centerFreq, q);
+  }
+
+  /**
    * Stops every still-running endless sound (`startDrone`/`startFire` graphs) and closes the
    * `AudioContext`. Call this when tearing down the engine instance that owns this `AudioSystem`
    * -- without it, both the endless sound graphs and the context itself outlive the instance for

@@ -177,6 +177,21 @@ export class Camera implements CameraInterfaceData {
   }
 
   /** @inheritdoc */
+  public project(worldPos: Vector3D, result: Vector3D = new Vector3D()): Vector3D {
+    const e = this._viewProjMatrix.data;
+    const wClip =
+      (e[3] ?? 0) * worldPos.x +
+      (e[7] ?? 0) * worldPos.y +
+      (e[11] ?? 0) * worldPos.z +
+      (e[15] ?? 0);
+    this._viewProjMatrix.transformVector(worldPos, result);
+    if (wClip <= 0) {
+      result.z = -1;
+    }
+    return result;
+  }
+
+  /** @inheritdoc */
   public get strategy(): CameraStrategy {
     return this._strategy;
   }

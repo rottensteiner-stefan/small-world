@@ -488,6 +488,14 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** AI-generated (Gemini `gemini-3.1-flash-image`) diffuse photo + skybox faces, roughness/normal maps derived locally via ImageMagick.
 - **Usage:** Replaces two assets that were originally reused from unrelated showcases and didn't fit the scene: the street previously used a brass/gear "steampunk" PBR set instead of asphalt, and the skybox was a bright space-nebula texture that blew out through the building gap. The new skybox is a 6-panel horizontal-cross cubemap, each face generated independently and composited (not a single generated cross image, which generative models can't lay out reliably).
 
+### 360-Degree Milky Way Panorama (`eso0932a`)
+
+- **File:** `apps/showcases/22/assets/milkyway.webp`, `apps/showcases/22/showcase.ts`
+- **Authors/Gurus:** Serge Brunier, Frédéric Tapissier / European Southern Observatory (ESO)
+- **Source:** [ESO - 360-degree Panorama of the Southern Sky (eso0932a)](https://www.eso.org/public/images/eso0932a/)
+- **License:** [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)
+- **Usage:** Used as the high-resolution equirectangular background texture for the `Skydome` in Showcase 22 (Accretion Disk & Magnetic Singularity simulation), providing an astronomically accurate $360^\circ$ panoramic backdrop that is dynamically distorted by the gravitational lensing and relativistic beaming post-processing shaders.
+
 ### Dungeon Font (Yet Another Dungeon HUD)
 
 - **File:** `apps/sample-apps/yad/assets/fonts/Dungeon.ttf`
