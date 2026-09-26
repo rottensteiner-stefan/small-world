@@ -8,7 +8,7 @@ description: Remove AI-generated code slop and clean up code style
 Check the diff against `main` (or the relevant base branch) and strip AI-authored cruft the
 branch introduced — without changing behavior.
 
-"Local style" means this repo's own rules, not generic taste: `.agents/AGENTS.md` and
+"Local style" means this repo's own rules, not generic taste: `../../../AGENTS.md` and
 `.agents/skills/coding-guide/SKILL.md` are the authority. Don't re-derive or duplicate those
 rules here — if this file and `AGENTS.md` ever disagree, `AGENTS.md` wins and this file is stale
 (exactly the kind of drift this skill exists to catch in application code — don't let it happen

@@ -1,104 +1,192 @@
 ---
-name: thermo-nuclear-code-quality-review-revised
-description: Run an uncompromising, evidence-backed review that seeks behavior-preserving code-judo simplifications and verifies maintainability, tests, seams, and feedback loops.
+name: thermo-nuclear-code-quality-review
+description: Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for a thermo-nuclear code quality review, thermonuclear review, deep code quality audit, or especially harsh maintainability review.
 disable-model-invocation: true
 ---
 
 # Thermo-Nuclear Code Quality Review
 
-## Mandate
+Use this skill for an unusually strict review focused on implementation quality, maintainability, abstraction quality, and codebase health.
 
-Review the change and the architecture it enters, not only the edited lines. Search for a **code-judo** move: a behavior-preserving reframe that deletes branches, modes, helpers, layers, or concepts instead of redistributing them. Accept some concrete false positives in exchange for exposing otherwise invisible simplifications, but label inference and make every concern quick to verify or reject.
+Above all, this skill should push the reviewer to be **ambitious** about code structure. Do not merely identify local cleanup opportunities. Actively search for "code judo" moves: restructurings that preserve behavior while making the implementation dramatically simpler, smaller, more direct, and more elegant.
 
-## 1. Establish the change contract
+## Core Prompt
 
-Inspect the complete diff, the surrounding call paths and ownership boundaries, related tests, and existing utilities or models. Determine:
+Start from this baseline:
 
-- the intended behavior and invariants;
-- every meaningful success, edge, and failure path changed;
-- the modules, state, APIs, and external effects involved;
-- relevant repository conventions and validation commands;
-- line counts before and after the change for each substantially enlarged file.
+> Perform a deep code quality audit of the current branch's changes.
+> Rethink how to structure / implement the changes to meaningfully improve code quality without impacting behavior.
+> Work to improve abstractions, modularity, reduce Spaghetti code, improve succinctness and legibility.
+> Be ambitious, if there is a clear path to improving the implementation that involves restructuring some of the codebase, go for it.
+> Be extremely thorough and rigorous. Measure twice, cut once.
 
-Run focused read-only checks when practical. Record missing context or checks that cannot run; do not convert absence of evidence into a finding.
+## Non-Negotiable Additional Standards
 
-**Completion gate:** Account for every meaningful changed behavior and affected path, identify its current owner and verification surface, and state all material evidence limitations.
+Apply the baseline prompt above, plus these explicit review rules:
 
-## 2. Pressure-test the structure
+0. **Be ambitious about structural simplification.**
+    - Do not stop at "this could be a bit cleaner."
+    - Look for opportunities to reframe the change so that whole branches, helpers, modes, conditionals, or layers disappear entirely.
+    - Prefer the solution that makes the code feel inevitable in hindsight.
+    - Assume there is often a "code judo" move available: a re-organization that uses the existing architecture more effectively and makes the change dramatically simpler and more elegant.
+    - If you see a path to delete complexity rather than rearrange it, push hard for that path.
 
-For each meaningful change, trace the data and control flow beyond the diff, then test the following concerns. Co-locate evidence, impact, and the smallest credible structural remedy in each candidate finding.
+1. **Do not let a PR push a file from under 1k lines to over 1k lines without a very strong reason.**
+    - Treat this as a strong code-quality smell by default.
+    - Prefer extracting helpers, subcomponents, modules, or local abstractions instead of letting a file sprawl past 1000 lines.
+    - If the diff crosses that threshold, explicitly ask whether the code should be decomposed first.
+    - Only waive this if there is a compelling structural reason and the resulting file is still clearly organized.
 
-### Code-judo and complexity
+2. **Do not allow random spaghetti growth in existing code.**
+    - Be highly suspicious of new ad-hoc conditionals, scattered special cases, or one-off branches inserted into unrelated flows.
+    - If a change adds "weird if statements in random places", treat that as a design problem, not a stylistic nit.
+    - Prefer pushing the logic into a dedicated abstraction, helper, state machine, policy object, or separate module instead of tangling an existing path.
+    - Call out changes that make the surrounding code harder to reason about, even if they technically work.
 
-Inventory concepts introduced or multiplied: branches, flags, nullable modes, fallbacks, wrappers, helpers, state transitions, and layers. Compare them with the simplest design supported by the existing architecture. Prefer a reframe that removes concepts; moving the same complexity among helpers is not a simplification.
+3. **Bias toward cleaning the design, not just accepting working code.**
+    - If behavior can stay the same while the structure becomes meaningfully cleaner, push for the cleaner version.
+    - Do not rubber-stamp "it works" implementations that leave the codebase messier.
+    - Strongly prefer simplifications that remove moving pieces altogether over refactors that merely spread the same complexity around.
 
-Raise a concern when a specific alternative can delete meaningful incidental complexity without changing behavior. Name what disappears and why the alternative preserves the contract.
+4. **Prefer direct, boring, maintainable code over hacky or magical code.**
+    - Treat brittle, ad-hoc, or "magic" behavior as a code-quality problem.
+    - Be skeptical of generic mechanisms that hide simple data-shape assumptions.
+    - Flag thin abstractions, identity wrappers, or pass-through helpers that add indirection without buying clarity.
 
-### Ownership, abstractions, and contracts
+5. **Push hard on type and boundary cleanliness when they affect maintainability.**
+    - Question unnecessary optionality, `unknown`, `any`, or cast-heavy code when a clearer type boundary could exist.
+    - Prefer explicit typed models or shared contracts over loosely-shaped ad-hoc objects.
+    - If a branch relies on silent fallback to paper over an unclear invariant, ask whether the boundary should be made explicit instead.
 
-Locate the canonical owner of each rule and the nearest existing helper, model, or extension point. Check whether feature logic is scattered through shared flows, duplicated, or placed outside that owner. Follow values across boundaries and inspect casts, `any`/`unknown`, optional parameters, silent fallbacks, generic machinery, and pass-through wrappers for obscured invariants or unjustified indirection.
+6. **Keep logic in the canonical layer and reuse existing helpers.**
+    - Call out feature logic leaking into shared paths or implementation details leaking through APIs.
+    - Prefer existing canonical utilities/helpers over bespoke one-offs.
+    - Push code toward the right package, service, or module instead of normalizing architectural drift.
 
-Raise a concern when the evidence identifies a canonical home or a clearer contract and shows how using it reduces coupling, duplication, or control-flow states.
+7. **Treat unnecessary sequential orchestration and non-atomic updates as design smells when the cleaner structure is obvious.**
+    - If independent work is serialized for no good reason, ask whether the flow should run in parallel instead.
+    - If related updates can leave state half-applied, push for a more atomic structure.
+    - Do not over-index on micro-optimizations, but do flag avoidable orchestration complexity that makes the implementation more brittle.
 
-### Size and navigability
+## Primary Review Questions
 
-Treat a change that pushes a file from below 1,000 lines to above 1,000 as a presumptive blocker. Report the before/after counts and a cohesive extraction boundary. Waive it only when the file must remain whole for a concrete structural reason and remains easy to navigate. Apply judgment to already-large or generated files; the threshold is a forcing function, not a substitute for analysis.
+For every meaningful change, ask:
 
-### Orchestration and state
+- Is there a "code judo" move that would make this dramatically simpler?
+- Can this change be reframed so fewer concepts, branches, or helper layers are needed?
+- Does this improve or worsen the local architecture?
+- Did the diff add branching complexity where a better abstraction should exist?
+- Did a previously cohesive module become more coupled, more stateful, or harder to scan?
+- Is this logic living in the right file and layer?
+- Did this change enlarge a file or component past a healthy size boundary?
+- Are there repeated conditionals that signal a missing model or missing helper?
+- Is the implementation direct and legible, or does it rely on special cases and incidental control flow?
+- Is this abstraction actually earning its keep, or is it just a wrapper?
+- Did the diff introduce casts, optionality, or ad-hoc object shapes that obscure the real invariant?
+- Is this logic living in the canonical layer, or did the diff leak details across a boundary?
+- Is this orchestration more sequential or less atomic than it needs to be?
 
-Derive actual dependency and commit boundaries. Flag serialization only when operations are independent and concurrency preserves ordering, error, and resource constraints. Flag non-atomic updates only when a reachable failure can expose partial state; identify the failure point and a transaction, staging, idempotency, or compensation boundary that closes it.
+## What to Flag Aggressively
 
-**Completion gate:** Evaluate every concern above for every meaningful change. For each plausible issue, either validate it with concrete repository evidence or record why it was rejected. Measure every threshold crossing rather than estimating it.
+Escalate findings when you see:
 
-## 3. Verify tests, seams, observability, and feedback loops
+- A complicated implementation where a cleaner reframing could delete whole categories of complexity.
+- Refactors that move code around but fail to reduce the number of concepts a reader must hold in their head.
+- A file crossing 1000 lines due to the PR, especially if the new code could be split out.
+- New conditionals bolted onto unrelated code paths.
+- One-off booleans, nullable modes, or flags that complicate existing control flow.
+- Feature-specific logic leaking into general-purpose modules.
+- Generic "magic" handling that hides simple structure and makes the code harder to reason about.
+- Thin wrappers or identity abstractions that add indirection without simplifying anything.
+- Unnecessary casts, `any`, `unknown`, or optional params that muddy the real contract.
+- Copy-pasted logic instead of extracted helpers.
+- Narrow edge-case handling implemented in the middle of an already busy function.
+- Refactors that technically pass tests but make the code less modular or less readable.
+- "Temporary" branching that is likely to become permanent debt.
+- Bespoke helpers where the codebase already has a canonical utility for the job.
+- Logic added in the wrong layer/package when it should live somewhere more central.
+- Sequential async flow where obviously independent work could stay simpler and clearer with parallel execution.
+- Partial-update logic that leaves state less atomic than necessary.
 
-Build a compact verification matrix for each changed behavior:
+## Preferred Remedies
 
-| Surface               | Evidence required                                                                                                                                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Tests                 | A focused assertion covers the new or changed success path and proportionate edge/failure paths. Inspect assertions and failure sensitivity; test presence or a green suite alone is insufficient.                                               |
-| Seam                  | Deterministic business decisions can be exercised without unrelated network, filesystem, clock, process, UI, or global-state orchestration. The seam may be an existing function/module boundary; do not demand an interface solely for mocking. |
-| Failure observability | Failures reach a caller, log, metric, trace, or user-visible result with enough operation and cause context to diagnose them. Silent fallback, swallowed errors, and ambiguous partial success require explicit justification.                   |
-| Feedback loop         | A documented or discoverable focused command gives deterministic, reasonably fast evidence for the changed behavior. The structure makes the next behavior change locally testable rather than requiring broad integration setup.                |
+When you identify a code-quality problem, prefer suggestions like:
 
-Run the narrowest relevant checks, then broader checks when risk and cost justify them. A missing test is a finding only when you can name the unverified behavior and an assertion that would fail under a plausible regression. A seam concern must identify the logic trapped behind which effect. An observability concern must identify the reachable failure and the missing signal or context.
+- Delete a whole layer of indirection rather than polishing it.
+- Reframe the state model so conditionals disappear instead of getting centralized.
+- Change the ownership boundary so the feature becomes a natural extension of an existing abstraction.
+- Turn special-case logic into a simpler default flow with fewer exceptions.
+- Extract a helper or pure function.
+- Split a large file into smaller focused modules.
+- Move feature-specific logic behind a dedicated abstraction.
+- Replace condition chains with a typed model or explicit dispatcher.
+- Separate orchestration from business logic.
+- Collapse duplicate branches into a single clearer flow.
+- Delete wrappers that do not meaningfully clarify the API.
+- Reuse the existing canonical helper instead of introducing a near-duplicate.
+- Make type boundaries more explicit so the control flow gets simpler.
+- Move the logic to the package/module/layer that already owns the concept.
+- Parallelize independent work when that also simplifies the orchestration.
+- Restructure related updates into a more atomic flow when partial state would be harder to reason about.
 
-**Completion gate:** Map every changed behavior to test evidence, a testable seam, failure signal, and runnable feedback command, or report a concrete gap for that cell. Record commands and outcomes.
+Do not be satisfied with "maybe rename this" feedback when the real issue is structural.
+Do not be satisfied with a merely cleaner version of the same messy idea if there is a plausible path to a much simpler idea.
 
-## 4. Validate and write findings
+## Review Tone
 
-Challenge each candidate against the code, tests, and history or conventions available locally. Separate observed facts from inferences. Prefer a few high-conviction structural findings over cosmetic notes.
+Be direct, serious, and demanding about quality.
+Do not be rude, but do not soften major maintainability issues into mild suggestions.
+If the code is making the codebase messier, say so clearly.
+If the implementation missed an opportunity for a dramatic simplification, say that clearly too.
 
-Each finding must include:
+Good phrases:
 
-1. severity and precise location;
-2. observed evidence, including the relevant path or reachable scenario;
-3. maintainability or verification impact;
-4. an actionable remedy, favoring deletion or a simpler ownership/model boundary;
-5. a check that would demonstrate completion.
+- `this pushes the file past 1k lines. can we decompose this first?`
+- `this adds another special-case branch into an already busy flow. can we move this behind its own abstraction?`
+- `this works, but it makes the surrounding code more spaghetti. let's keep the behavior and restructure the implementation.`
+- `this feels like feature logic leaking into a shared path. can we isolate it?`
+- `this abstraction seems unnecessary. can we just keep the direct flow?`
+- `why does this need a cast / optional here? can we make the boundary more explicit instead?`
+- `this looks like a bespoke helper for something we already have elsewhere. can we reuse the canonical one?`
+- `i think there's a code-judo move here that makes this much simpler. can we reframe this so these branches disappear?`
+- `this refactor moves complexity around, but doesn't really delete it. is there a way to make the model itself simpler?`
 
-Use **blocker** for an evidenced structural or verification defect that should prevent approval, and **major** for material debt with bounded impact. Omit low-value style findings unless they expose a recurring structural pattern.
+## Output Expectations
 
-**Completion gate:** Every reported finding is independently checkable, distinguishes fact from inference, proposes a credible end state, and includes a verification condition. Remove duplicates and unsupported suspicions.
+Prioritize findings in this order:
 
-## 5. Apply the approval gate and report
+1. Structural code-quality regressions
+2. Missed opportunities for dramatic simplification / code-judo restructuring
+3. Spaghetti / branching complexity increases
+4. Boundary / abstraction / type-contract problems that make the code harder to reason about
+5. File-size and decomposition concerns
+6. Modularity and abstraction issues
+7. Legibility and maintainability concerns
 
-Report, in order:
+Do not flood the review with low-value nits if there are larger structural issues.
+Prefer a smaller number of high-conviction comments over a long list of cosmetic notes.
 
-1. `APPROVE` or `CHANGES REQUESTED`;
-2. blocker findings, then major findings;
-3. validation commands and outcomes;
-4. evidence limitations and residual risks.
+## Approval Bar
 
-Request changes when any of these remain:
+Do not approve merely because behavior seems correct.
+The bar for approval is:
 
-- a credible code-judo reframe would remove substantial incidental complexity;
-- branching, ownership drift, duplication, indirection, or an obscured contract materially worsens reasoning cost;
-- a sub-1,000-line file crosses 1,000 lines without a measured, compelling reason to remain whole;
-- changed behavior lacks proportionate regression evidence or is trapped behind effects without a focused verification seam;
-- a reachable failure is silent, ambiguous, or can expose unjustified partial state;
-- the relevant checks fail, or a material behavior cannot be verified and the resulting risk is unacceptable.
+- no clear structural regression
+- no obvious missed opportunity to make the implementation dramatically simpler when such a path is visible
+- no unjustified file-size explosion
+- no obvious spaghetti-growth from special-case branching
+- no obviously hacky or magical abstraction that makes the code harder to reason about
+- no unnecessary wrapper/cast/optionality churn obscuring the real design
+- no clear architecture-boundary leak or avoidable canonical-helper duplication
+- no missed opportunity for an obvious decomposition that would materially improve maintainability
 
-Approve only after all five step gates pass. If no findings survive validation, say so explicitly; never invent a concern to make the review look strict.
+Treat these as presumptive blockers unless the author can justify them clearly:
 
-**Completion gate:** The verdict follows from the listed evidence, every blocker maps to an approval condition above, and the report contains enough detail for the author to fix or falsify each finding without guessing.
+- the PR preserves a lot of incidental complexity when there is a plausible code-judo move that would delete it
+- the PR pushes a file from below 1000 lines to above 1000 lines
+- the PR adds ad-hoc branching that makes an existing flow more tangled
+- the PR solves a local problem by scattering feature checks across shared code
+- the PR adds an unnecessary abstraction, wrapper, or cast-heavy contract that makes the design more indirect
+- the PR duplicates an existing helper or puts logic in the wrong layer when there is a clear canonical home
+
+If those conditions are not met, leave explicit, actionable feedback and push for a cleaner decomposition.
