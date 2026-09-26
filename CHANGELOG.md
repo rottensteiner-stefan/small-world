@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.83.1] - 2026-09-26
+
+### "A body at rest stays at rest, and a body in motion stays in motion, unless acted upon by an external force." - Isaac Newton
+
+- **Architecture & Bugfixes:**
+  - *Physics Joint Solver Overhaul*: [`HingeJoint`](packages/engine/src/physix/joints/HingeJoint.ts) rewritten with a correct axial inverse-inertia term and a continuously-tracked (never accumulated) relative hinge angle, fixing a motor-torque sign inversion and unreliable angle-limit enforcement. `Joint`/`BallSocketJoint`/`DistanceJoint`/`SpringJoint`/`HingeJoint` now skip solving entirely once every connected dynamic body is asleep ([`Joint.isFullyAsleep`](packages/engine/src/physix/joints/Joint.ts)), matching the collision solver's existing sleep behavior.
+  - *Broadphase Reinsertion Fix*: [`PhysicsBroadphase`](packages/engine/src/physix/broadphase/PhysicsBroadphase.ts) gained a single `_placeCollider()` insertion path (deduplicating `update()` and CCD reinsertion) and a new `reinsertCollider()` used by `SweptSphereCCD`, so a body clamped mid-frame by continuous collision detection is immediately re-placed at its new octree location instead of being missed by the next query.
+- **Housekeeping & Docs:**
+  - *Agent Instructions Consolidated*: `AGENTS.md` moved to the repo root (was `.agents/AGENTS.md`); `CLAUDE.md`/`GEMINI.md` are now plain symlinks to it instead of duplicated pointer files. Added a "Further Documentation" map (`CONTEXT.md`, `docs/adr/`, `docs/guides/`, `docs/research/`, the living `.agents/notes/` files) and the complete skill list.
+  - *Guides & Apps Indexes*: Added `docs/guides/index.md` and `docs/apps/index.md` — both folders already had VitePress sidebar entries but no landing page.
+  - *Research Archive Cleanup*: `.agents/notes/session-state.md` folded into `.agents/notes/backlog.md`; `.agents/notes/thermo-nuclear-codebase-review.md` and `plan-0-from-phase-1.md` moved into `docs/research/`. Verified every `docs/research/` report against the live codebase and removed the ones fully resolved (`codebase-review-2026-08-22.md`, `diorama-environment-architecture.md`, `projekt-raum.md`, `xdp-game-networking.md`); annotated the ones kept but stale (`showcase-feature-audit.md`, `oil-puddle-shader-technique.md`).
+
 ## [0.83.0] - 2026-09-25
 
 ### "The sun never sees the shadow." - Leonardo da Vinci
