@@ -917,14 +917,14 @@
   - `docs/research/aaa-engine-techniques.md`: item #5 marked implemented; new section records a dedicated fog/weather research pass -- current fog confirmed to be a plain analytic distance/height blend with zero light interaction, real volumetric scattering needs the same Cluster grid and is the next planned step, and a blizzard/weather-VFX comparison found the reference engines solve that as a particle-overdraw problem, not a fog one.
   - `CONTEXT.md`: added Cluster, Clustered/Tiled Forward+ Lighting, Light Coverage, Per-Cell Light List, Culling, Broadphase/Narrowphase, Camera Strategy, Event Bus, Forge/ForgeTool, MathPool, State Data, and Zero-Allocation (Hot Path). Resolved a naming collision between the existing Context Object entry and the FSM's per-machine payload object by introducing State Data as a deliberately distinct term, and synced `docs/guides/state-machines.md`'s example/prose to match.
   - Translated `.agents/notes/app-docs-convention.md` to English.
-  - Dropped the redundant "2" from "WebGL2/WebGPU" wherever it appeared alongside WebGPU (`.agents/AGENTS.md`, `docs/index.md`, `docs/guides/configuration.md`, `package.json`, `scripts/check-showcases.js`, and historical `CHANGELOG.md` entries); added `CLAUDE.md` as a one-line pointer to `.agents/AGENTS.md`.
+  - Dropped the redundant "2" from "WebGL2/WebGPU" wherever it appeared alongside WebGPU (`AGENTS.md`, `docs/index.md`, `docs/guides/configuration.md`, `package.json`, `scripts/check-showcases.js`, and historical `CHANGELOG.md` entries); added `CLAUDE.md` as a one-line pointer to `AGENTS.md`.
 
 ## [0.76.17] - 2026-08-20
 
 ### "Save the time of the reader." - S.R. Ranganathan
 
 - **Housekeeping & Docs:**
-  - `.agents/AGENTS.md`'s `domain-modeling` skill line now also mentions ADRs (`docs/adr/`), not just `CONTEXT.md` maintenance -- `ADR-FORMAT.md` already lived in that skill folder but wasn't referenced from the always-loaded entry point, so a future session had no way to discover the ADR practice introduced last version without already knowing to look for it.
+  - `AGENTS.md`'s `domain-modeling` skill line now also mentions ADRs (`docs/adr/`), not just `CONTEXT.md` maintenance -- `ADR-FORMAT.md` already lived in that skill folder but wasn't referenced from the always-loaded entry point, so a future session had no way to discover the ADR practice introduced last version without already knowing to look for it.
 
 ## [0.76.16] - 2026-08-20
 
@@ -1072,7 +1072,7 @@
 ### "The palest ink is better than the best memory." - Chinese Proverb
 
 - **Housekeeping & Docs:**
-  - **App Docs Convention:** Established a fixed documentation structure for every app under `src/apps/<app>/`: a `docs/` subfolder holding `concept-dossier.html` (visual concept) and `log.md` (living dev log, read at session start, appended at session end). Migrated Neon Labyrinth's existing `concept-dossier.html` into that structure and backfilled a `docs/` folder for YAD. Documented in `.agents/notes/app-docs-convention.md` and referenced from `.agents/AGENTS.md`. `docs/research/` remains for project-wide (non-app-specific) research notes.
+  - **App Docs Convention:** Established a fixed documentation structure for every app under `src/apps/<app>/`: a `docs/` subfolder holding `concept-dossier.html` (visual concept) and `log.md` (living dev log, read at session start, appended at session end). Migrated Neon Labyrinth's existing `concept-dossier.html` into that structure and backfilled a `docs/` folder for YAD. Documented in `.agents/notes/app-docs-convention.md` and referenced from `AGENTS.md`. `docs/research/` remains for project-wide (non-app-specific) research notes.
 
 ## [0.76.0] - 2026-08-19
 
@@ -1477,7 +1477,7 @@
   - **`small-world/tools` Barrel Exports:** Added the missing `Forge`, `ForgeTool`, `Xtractor`, and `MapGenerator` exports to `src/tools/index.ts`.
 - **Housekeeping & Docs:**
   - **Documentation Accuracy Audit:** Cross-checked all 10 files in `docs/guides/` against the actual source. Corrected references to a non-existent `Application` class (use `SmallWorld`), fabricated `GlassMaterial`/`GridLevelBuilder` API options, a wrong `FPSController` option name, a sign error in the look-direction formula, an overstated Octree complexity claim, and clarified that the `small-world/tools` subpath isn't a resolvable package export yet.
-  - **Commit Convention:** `.agents/AGENTS.md` now explicitly forbids reusing a commit-message quote already present in `git log`.
+  - **Commit Convention:** `AGENTS.md` now explicitly forbids reusing a commit-message quote already present in `git log`.
 
 ## [0.64.0] - 2026-07-18
 
