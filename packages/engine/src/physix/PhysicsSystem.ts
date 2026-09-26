@@ -1,7 +1,6 @@
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D, MathPool } from "../math/index.js";
-import { Collision } from "./Collision.js";
 import { EventDispatcherImpl } from "../core/events/EventDispatcherImpl.js";
 import { Collidable } from "../interfaces/index.js";
 import { BoundingType } from "../enums/index.js";
@@ -16,6 +15,7 @@ import { SweptVolumeCCD } from "./ccd/SweptSphereCCD.js";
 import { EulerIntegrator } from "./solvers/EulerIntegrator.js";
 import { ContactSolver } from "./solvers/ContactSolver.js";
 import type { ContactPair } from "./solvers/ContactSolver.js";
+import { SpatialQueries } from "./solvers/SpatialQueries.js";
 import { Ray } from "./Ray.js";
 import { RaycastHit } from "./RaycastHit.js";
 import { Joint } from "./joints/Joint.js";
@@ -59,6 +59,7 @@ export class PhysicsSystem {
   private _nextInternalId: number = 100000000;
 
   private readonly _contactSolver = new ContactSolver();
+  private readonly _spatialQueries = new SpatialQueries(this._broadphase);
 
   /**
    * Returns a stable integer ID for any Collidable object.
@@ -471,65 +472,7 @@ export class PhysicsSystem {
     outHit?: RaycastHit,
     ignoreTriggers: boolean = true,
   ): RaycastHit | null {
-    this._broadphaseQueryHits.length = 0;
-    this._broadphase.queryRay(ray, this._broadphaseQueryHits, mask);
-
-    let closestT = maxDistance;
-    let closestCollider: Collidable | null = null;
-    const hitPt = MathPool.acquireVector();
-    const hitNorm = MathPool.acquireVector();
-    const bestPt = MathPool.acquireVector();
-    const bestNorm = MathPool.acquireVector();
-
-    for (let i = 0; i < this._broadphaseQueryHits.length; i++) {
-      const c = this._broadphaseQueryHits[i]!;
-      if (!c.bounds) continue;
-      if (ignoreTriggers) {
-        const isTrig = Boolean(
-          c.isTrigger ||
-          (c instanceof Object3D && (c.rigidBody?.isTrigger || c.rigidBody?.isSensor)),
-        );
-        if (isTrig) continue;
-      }
-
-      const t = ray.intersectVolumeDetailed(c.bounds, hitPt, hitNorm);
-      if (t >= 0 && t <= closestT) {
-        closestT = t;
-        closestCollider = c;
-        bestPt.copyFrom(hitPt);
-        bestNorm.copyFrom(hitNorm);
-      }
-    }
-
-    MathPool.releaseVector(hitPt);
-    MathPool.releaseVector(hitNorm);
-
-    if (closestCollider !== null && closestT <= maxDistance) {
-      const hit = outHit ?? {
-        distance: 0,
-        point: new Vector3D(),
-        normal: new Vector3D(),
-        collider: closestCollider,
-        ...(closestCollider instanceof Object3D ? { object: closestCollider } : {}),
-      };
-      hit.distance = closestT;
-      hit.point.copyFrom(bestPt);
-      hit.normal.copyFrom(bestNorm);
-      hit.collider = closestCollider;
-      if (closestCollider instanceof Object3D) {
-        hit.object = closestCollider;
-      } else {
-        delete hit.object;
-      }
-
-      MathPool.releaseVector(bestPt);
-      MathPool.releaseVector(bestNorm);
-      return hit;
-    }
-
-    MathPool.releaseVector(bestPt);
-    MathPool.releaseVector(bestNorm);
-    return null;
+    return this._spatialQueries.raycast(ray, maxDistance, mask, outHit, ignoreTriggers);
   }
 
   /**
@@ -548,43 +491,7 @@ export class PhysicsSystem {
     outHits?: RaycastHit[],
     ignoreTriggers: boolean = true,
   ): RaycastHit[] {
-    const hits = outHits ?? [];
-    hits.length = 0;
-
-    this._broadphaseQueryHits.length = 0;
-    this._broadphase.queryRay(ray, this._broadphaseQueryHits, mask);
-
-    const hitPt = MathPool.acquireVector();
-    const hitNorm = MathPool.acquireVector();
-
-    for (let i = 0; i < this._broadphaseQueryHits.length; i++) {
-      const c = this._broadphaseQueryHits[i]!;
-      if (!c.bounds) continue;
-      if (ignoreTriggers) {
-        const isTrig = Boolean(
-          c.isTrigger ||
-          (c instanceof Object3D && (c.rigidBody?.isTrigger || c.rigidBody?.isSensor)),
-        );
-        if (isTrig) continue;
-      }
-
-      const t = ray.intersectVolumeDetailed(c.bounds, hitPt, hitNorm);
-      if (t >= 0 && t <= maxDistance) {
-        hits.push({
-          distance: t,
-          point: new Vector3D(hitPt.x, hitPt.y, hitPt.z),
-          normal: new Vector3D(hitNorm.x, hitNorm.y, hitNorm.z),
-          collider: c,
-          ...(c instanceof Object3D ? { object: c } : {}),
-        });
-      }
-    }
-
-    MathPool.releaseVector(hitPt);
-    MathPool.releaseVector(hitNorm);
-
-    hits.sort((a, b) => a.distance - b.distance);
-    return hits;
+    return this._spatialQueries.raycastAll(ray, maxDistance, mask, outHits, ignoreTriggers);
   }
 
   /**
@@ -607,86 +514,14 @@ export class PhysicsSystem {
     outHit?: RaycastHit,
     ignoreTriggers: boolean = true,
   ): RaycastHit | null {
-    const sweepSphere = new BoundingSphere(origin, radius);
-    const delta = MathPool.acquireVector().copyFrom(direction);
-    const dirLen = delta.length();
-    const distanceLimit = Number.isFinite(maxDistance) ? maxDistance : 100000;
-    if (dirLen > 1e-8) {
-      delta.scale(distanceLimit / dirLen);
-    }
-
-    const sweptMin = MathPool.acquireVector().set(
-      Math.min(origin.x, origin.x + delta.x) - radius,
-      Math.min(origin.y, origin.y + delta.y) - radius,
-      Math.min(origin.z, origin.z + delta.z) - radius,
+    return this._spatialQueries.sphereCast(
+      origin,
+      radius,
+      direction,
+      maxDistance,
+      mask,
+      outHit,
+      ignoreTriggers,
     );
-    const sweptMax = MathPool.acquireVector().set(
-      Math.max(origin.x, origin.x + delta.x) + radius,
-      Math.max(origin.y, origin.y + delta.y) + radius,
-      Math.max(origin.z, origin.z + delta.z) + radius,
-    );
-
-    const sweptBox = new BoundingBox(sweptMin, sweptMax);
-    this._broadphaseQueryHits.length = 0;
-    this._broadphase.queryVolume(sweptBox, this._broadphaseQueryHits, mask);
-
-    MathPool.releaseVector(sweptMin);
-    MathPool.releaseVector(sweptMax);
-
-    let earliestToi = 1.0;
-    let closestCollider: Collidable | null = null;
-
-    for (let i = 0; i < this._broadphaseQueryHits.length; i++) {
-      const c = this._broadphaseQueryHits[i]!;
-      if (!c.bounds) continue;
-      if (ignoreTriggers) {
-        const isTrig = Boolean(
-          c.isTrigger ||
-          (c instanceof Object3D && (c.rigidBody?.isTrigger || c.rigidBody?.isSensor)),
-        );
-        if (isTrig) continue;
-      }
-
-      const toi = Collision.sweep(sweepSphere, origin, delta, c.bounds);
-      if (toi >= 0 && toi <= earliestToi) {
-        earliestToi = toi;
-        closestCollider = c;
-      }
-    }
-
-    if (closestCollider !== null && earliestToi <= 1.0) {
-      const hitDistance = earliestToi * distanceLimit;
-      const hit = outHit ?? {
-        distance: 0,
-        point: new Vector3D(),
-        normal: new Vector3D(),
-        collider: closestCollider,
-        ...(closestCollider instanceof Object3D ? { object: closestCollider } : {}),
-      };
-      hit.distance = hitDistance;
-      hit.point.copyFrom(delta).scale(earliestToi).add(origin);
-      hit.collider = closestCollider;
-      if (closestCollider instanceof Object3D) {
-        hit.object = closestCollider;
-      } else {
-        delete hit.object;
-      }
-
-      if (closestCollider.bounds) {
-        hit.normal.copyFrom(hit.point).sub(closestCollider.bounds.center);
-        const nLen = hit.normal.length();
-        if (nLen > 1e-8) {
-          hit.normal.scale(1.0 / nLen);
-        } else {
-          hit.normal.copyFrom(direction).scale(-1).normalize();
-        }
-      }
-
-      MathPool.releaseVector(delta);
-      return hit;
-    }
-
-    MathPool.releaseVector(delta);
-    return null;
   }
 }
