@@ -1,7 +1,9 @@
 import { BoundingBox } from "./BoundingBox.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import type { OBB } from "./OBB.js";
-import { Vector3D } from "../math/index.js";
+import { BoundingType } from "../enums/index.js";
+import { BoundingVolume } from "../interfaces/index.js";
+import { Vector3D, MathPool } from "../math/index.js";
 
 /**
  * Represents a mathematical ray in 3D space.
@@ -201,5 +203,123 @@ export class Ray {
     }
 
     return -1;
+  }
+
+  /**
+   * Tests whether this ray intersects any bounding volume (Sphere, Box, OBB).
+   * @param volume Target bounding volume.
+   * @returns Distance t to the nearest intersection, or -1 if no intersection.
+   */
+  public intersectVolume(volume: BoundingVolume): number {
+    if (BoundingType.SPHERE === volume.type) {
+      return this.intersectsSphere(volume as BoundingSphere);
+    } else if (BoundingType.BOX === volume.type) {
+      return this.intersectsBox(volume as BoundingBox);
+    } else if (BoundingType.OBB === volume.type) {
+      return this.intersectsOBB(volume as import("./OBB.js").OBB);
+    }
+    return -1;
+  }
+
+  /**
+   * Tests whether this ray intersects any bounding volume, computing the exact world hit point and outward surface normal.
+   * @param volume Target bounding volume.
+   * @param outPoint Vector3D receiving the computed world hit position.
+   * @param outNormal Vector3D receiving the outward-pointing surface normal.
+   * @returns Distance t to the nearest intersection, or -1 if no intersection.
+   */
+  public intersectVolumeDetailed(
+    volume: BoundingVolume,
+    outPoint: Vector3D,
+    outNormal: Vector3D,
+  ): number {
+    const t = this.intersectVolume(volume);
+    if (t < 0) return -1;
+
+    this.at(t, outPoint);
+
+    if (BoundingType.SPHERE === volume.type) {
+      const s = volume as BoundingSphere;
+      outNormal.copyFrom(outPoint).sub(s.center);
+      const len = outNormal.length();
+      if (len > 1e-8) {
+        outNormal.scale(1.0 / len);
+      } else {
+        outNormal.set(0, 1, 0);
+      }
+    } else if (BoundingType.BOX === volume.type) {
+      const b = volume as BoundingBox;
+      const dMinX = Math.abs(outPoint.x - b.min.x);
+      const dMaxX = Math.abs(outPoint.x - b.max.x);
+      const dMinY = Math.abs(outPoint.y - b.min.y);
+      const dMaxY = Math.abs(outPoint.y - b.max.y);
+      const dMinZ = Math.abs(outPoint.z - b.min.z);
+      const dMaxZ = Math.abs(outPoint.z - b.max.z);
+
+      let minD = dMinX;
+      outNormal.set(-1, 0, 0);
+
+      if (dMaxX < minD) {
+        minD = dMaxX;
+        outNormal.set(1, 0, 0);
+      }
+      if (dMinY < minD) {
+        minD = dMinY;
+        outNormal.set(0, -1, 0);
+      }
+      if (dMaxY < minD) {
+        minD = dMaxY;
+        outNormal.set(0, 1, 0);
+      }
+      if (dMinZ < minD) {
+        minD = dMinZ;
+        outNormal.set(0, 0, -1);
+      }
+      if (dMaxZ < minD) {
+        outNormal.set(0, 0, 1);
+      }
+    } else if (BoundingType.OBB === volume.type) {
+      const o = volume as import("./OBB.js").OBB;
+      const rel = MathPool.acquireVector().copyFrom(outPoint).sub(o.center);
+      const u0 = o.axes[0]!;
+      const u1 = o.axes[1]!;
+      const u2 = o.axes[2]!;
+
+      const p0 = rel.dot(u0);
+      const p1 = rel.dot(u1);
+      const p2 = rel.dot(u2);
+      MathPool.releaseVector(rel);
+
+      const dMin0 = Math.abs(p0 - -o.halfExtents.x);
+      const dMax0 = Math.abs(p0 - o.halfExtents.x);
+      const dMin1 = Math.abs(p1 - -o.halfExtents.y);
+      const dMax1 = Math.abs(p1 - o.halfExtents.y);
+      const dMin2 = Math.abs(p2 - -o.halfExtents.z);
+      const dMax2 = Math.abs(p2 - o.halfExtents.z);
+
+      let minD = dMin0;
+      outNormal.copyFrom(u0).scale(-1);
+
+      if (dMax0 < minD) {
+        minD = dMax0;
+        outNormal.copyFrom(u0);
+      }
+      if (dMin1 < minD) {
+        minD = dMin1;
+        outNormal.copyFrom(u1).scale(-1);
+      }
+      if (dMax1 < minD) {
+        minD = dMax1;
+        outNormal.copyFrom(u1);
+      }
+      if (dMin2 < minD) {
+        minD = dMin2;
+        outNormal.copyFrom(u2).scale(-1);
+      }
+      if (dMax2 < minD) {
+        outNormal.copyFrom(u2);
+      }
+    }
+    return t;
   }
 }

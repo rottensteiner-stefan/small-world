@@ -2,6 +2,7 @@ import { Octree } from "../../core/Octree.js";
 import { Vector3D } from "../../math/index.js";
 import { Collidable, BoundingVolume } from "../../interfaces/index.js";
 import { BoundingBox } from "../BoundingBox.js";
+import { Ray } from "../Ray.js";
 import { BoundingType } from "../../enums/index.js";
 import { Object3D } from "../../core/Object3D.js";
 
@@ -239,25 +240,54 @@ export class PhysicsBroadphase {
       }
     }
 
-    // 4. Re-insert dirty/moved colliders
-    if (this._tree) {
+    // 4. Re-insert dirty/moved colliders.
+    //
+    // SOUNDNESS: placements must be driven by the FAT bounds, not the tight bounds. The temporal
+    // coherence skip above only skips a collider while its CURRENT tight bounds stay inside the
+    // fat shell computed at its last placement. If the octree had placed that collider by its
+    // tight bounds, it would sit in a leaf node too small to cover the fat shell, and a query
+    // issued near the collider's (moved but skipped) position would never reach that leaf --
+    // the collider silently vanishes from every future query until it finally escapes the shell.
+    // Placing by the fat bounds guarantees the placement node encloses the whole shell, so any
+    // query that intersects the collider's current bounds necessarily reaches its node. The
+    // leaf-level overlap test keeps reading the collider's TIGHT bounds at query time, so the
+    // narrow phase still sees exact geometry. We therefore swap each collider's bounds to its
+    // fat proxy for the duration of the (single-threaded, synchronous) reinsert loop and restore
+    // the tight bounds afterwards; `_subdivide()` redistribution inside `Octree.insert()` then
+    // also sees fat bounds, keeping the invariant across spontaneous node splits.
+    if (this._tree && toReinsert.length > 0) {
+      const originals: (BoundingVolume | undefined)[] = new Array(toReinsert.length);
       for (let i = 0; i < toReinsert.length; i++) {
         const collider = toReinsert[i]!;
         const proxy = this._proxies.get(collider);
         if (!proxy) continue;
+        originals[i] = collider.bounds;
+        collider.bounds = proxy.fatBounds;
+      }
+      try {
+        for (let i = 0; i < toReinsert.length; i++) {
+          const collider = toReinsert[i]!;
+          const proxy = this._proxies.get(collider);
+          if (!proxy) continue;
 
-        // Auto-expand tree root bounds if needed
-        if (!this._tree.root.bounds.containsBox(proxy.fatBounds)) {
-          this._tree.root.bounds.min.min(proxy.fatBounds.min);
-          this._tree.root.bounds.max.max(proxy.fatBounds.max);
-          this._tree.root.bounds.center
-            .copyFrom(this._tree.root.bounds.min)
-            .add(this._tree.root.bounds.max)
-            .scale(0.5);
+          // Auto-expand tree root bounds if needed
+          if (!this._tree.root.bounds.containsBox(proxy.fatBounds)) {
+            this._tree.root.bounds.min.min(proxy.fatBounds.min);
+            this._tree.root.bounds.max.max(proxy.fatBounds.max);
+            this._tree.root.bounds.center
+              .copyFrom(this._tree.root.bounds.min)
+              .add(this._tree.root.bounds.max)
+              .scale(0.5);
+          }
+
+          const inserted = this._tree.insert(collider);
+          proxy.inTree = inserted;
         }
-
-        const inserted = this._tree.insert(collider);
-        proxy.inTree = inserted;
+      } finally {
+        for (let i = 0; i < toReinsert.length; i++) {
+          const collider = toReinsert[i]!;
+          if (originals[i]) collider.bounds = originals[i];
+        }
       }
     }
 
@@ -273,16 +303,91 @@ export class PhysicsBroadphase {
   }
 
   /**
+   * Tests whether two collidable entities can physically interact or trigger events based on their collision layers & masks.
+   * @param a The first collidable entity.
+   * @param b The second collidable entity.
+   * @returns True if both layer/mask pairs overlap.
+   */
+  public static canCollide(a: Collidable, b: Collidable): boolean {
+    const layerA = a.collisionLayer ?? (a instanceof Object3D ? a.collisionLayer : 1);
+    const maskA = a.collisionMask ?? (a instanceof Object3D ? a.collisionMask : 0xffffffff);
+    const layerB = b.collisionLayer ?? (b instanceof Object3D ? b.collisionLayer : 1);
+    const maskB = b.collisionMask ?? (b instanceof Object3D ? b.collisionMask : 0xffffffff);
+
+    return (layerA & maskB) !== 0 && (layerB & maskA) !== 0;
+  }
+
+  /**
    * Queries the broadphase Octree and fallback list for colliders intersecting the given volume.
    * @param volume Target bounding volume.
    * @param outHits Array receiving the potential collider candidates.
+   * @param mask Optional 32-bit collision layer mask to filter candidates (default: 0xFFFFFFFF).
    */
-  public queryVolume(volume: BoundingVolume, outHits: Collidable[]): void {
+  public queryVolume(
+    volume: BoundingVolume,
+    outHits: Collidable[],
+    mask: number = 0xffffffff,
+  ): void {
     if (this._tree) {
-      this._tree.queryVolume(volume, outHits);
+      if (mask === 0xffffffff) {
+        this._tree.queryVolume(volume, outHits);
+      } else {
+        const tempHits: Collidable[] = [];
+        this._tree.queryVolume(volume, tempHits);
+        for (let i = 0; i < tempHits.length; i++) {
+          const c = tempHits[i]!;
+          const layer = c.collisionLayer ?? (c instanceof Object3D ? c.collisionLayer : 1);
+          if ((layer & mask) !== 0) {
+            outHits.push(c);
+          }
+        }
+      }
     }
     for (let i = 0; i < this._fallback.length; i++) {
-      outHits.push(this._fallback[i]!);
+      const c = this._fallback[i]!;
+      if (mask === 0xffffffff) {
+        outHits.push(c);
+      } else {
+        const layer = c.collisionLayer ?? (c instanceof Object3D ? c.collisionLayer : 1);
+        if ((layer & mask) !== 0) {
+          outHits.push(c);
+        }
+      }
+    }
+  }
+
+  /**
+   * Queries the broadphase Octree and fallback list for colliders intersecting the given mathematical ray.
+   * @param ray Target ray.
+   * @param outHits Array receiving the potential collider candidates.
+   * @param mask Optional 32-bit collision layer mask to filter candidates (default: 0xFFFFFFFF).
+   */
+  public queryRay(ray: Ray, outHits: Collidable[], mask: number = 0xffffffff): void {
+    if (this._tree) {
+      if (mask === 0xffffffff) {
+        this._tree.queryRay(ray, outHits);
+      } else {
+        const tempHits: Collidable[] = [];
+        this._tree.queryRay(ray, tempHits);
+        for (let i = 0; i < tempHits.length; i++) {
+          const c = tempHits[i]!;
+          const layer = c.collisionLayer ?? (c instanceof Object3D ? c.collisionLayer : 1);
+          if ((layer & mask) !== 0) {
+            outHits.push(c);
+          }
+        }
+      }
+    }
+    for (let i = 0; i < this._fallback.length; i++) {
+      const c = this._fallback[i]!;
+      if (mask === 0xffffffff) {
+        outHits.push(c);
+      } else {
+        const layer = c.collisionLayer ?? (c instanceof Object3D ? c.collisionLayer : 1);
+        if ((layer & mask) !== 0) {
+          outHits.push(c);
+        }
+      }
     }
   }
 

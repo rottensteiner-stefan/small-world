@@ -1,10 +1,7 @@
 import { Object3D } from "../../core/Object3D.js";
 import { Vector3D, MathPool } from "../../math/index.js";
 import { Collidable } from "../../interfaces/index.js";
-import { BoundingType } from "../../enums/index.js";
 import { BoundingBox } from "../BoundingBox.js";
-import { BoundingSphere } from "../BoundingSphere.js";
-import { OBB } from "../OBB.js";
 import { Collision } from "../Collision.js";
 import { PhysicsBroadphase } from "../broadphase/PhysicsBroadphase.js";
 
@@ -18,18 +15,18 @@ export interface CCDCandidate {
   obj: Object3D;
   prevPos: Vector3D;
   delta: Vector3D;
-  radius: number;
+  broadRadius: number;
 }
 
 /**
- * Handles Continuous Collision Detection (CCD) for fast-moving sphere colliders to prevent tunneling.
+ * Handles Continuous Collision Detection (CCD) for fast-moving bodies (Sphere, Box, OBB) to prevent tunneling.
  */
-export class SweptSphereCCD {
+export class SweptVolumeCCD {
   private _candidates: CCDCandidate[] = [];
   private _queryHits: Collidable[] = [];
   private _scratchBox: BoundingBox = new BoundingBox(new Vector3D(), new Vector3D());
 
-  /** Returns true if any fast-moving sphere bodies were registered in the current substep. */
+  /** Returns true if any fast-moving bodies were registered in the current substep. */
   public get hasCandidates(): boolean {
     return this._candidates.length > 0;
   }
@@ -38,22 +35,18 @@ export class SweptSphereCCD {
    * Tests whether a moving body exceeds the motion threshold and should be registered for swept CCD.
    * @param obj The dynamic Object3D.
    * @param deltaP Positional displacement vector for this substep.
-   * @param ccdMotionThreshold Multiplier of radius triggering CCD.
+   * @param ccdMotionThreshold Multiplier of broad radius triggering CCD.
    */
   public checkCandidate(obj: Object3D, deltaP: Vector3D, ccdMotionThreshold: number): void {
-    if (
-      obj.bounds &&
-      BoundingType.SPHERE === obj.bounds.type &&
-      Number.isFinite(ccdMotionThreshold)
-    ) {
-      const radius = (obj.bounds as BoundingSphere).radius;
-      const threshold = radius * ccdMotionThreshold;
+    if (obj.bounds && Number.isFinite(ccdMotionThreshold) && ccdMotionThreshold > 0) {
+      const broadRadius = obj.bounds.getBroadRadius();
+      const threshold = broadRadius * ccdMotionThreshold;
       if (deltaP.lengthSq() > threshold * threshold) {
         this._candidates.push({
           obj,
           prevPos: MathPool.acquireVector().copyFrom(obj.position),
           delta: MathPool.acquireVector().copyFrom(deltaP),
-          radius,
+          broadRadius,
         });
       }
     }
@@ -66,17 +59,17 @@ export class SweptSphereCCD {
   public resolve(broadphase: PhysicsBroadphase): void {
     for (let i = 0; i < this._candidates.length; i++) {
       const candidate = this._candidates[i]!;
-      const { obj, prevPos, delta, radius } = candidate;
+      const { obj, prevPos, delta, broadRadius } = candidate;
 
       const sweptMin = MathPool.acquireVector().set(
-        Math.min(prevPos.x, prevPos.x + delta.x) - radius,
-        Math.min(prevPos.y, prevPos.y + delta.y) - radius,
-        Math.min(prevPos.z, prevPos.z + delta.z) - radius,
+        Math.min(prevPos.x, prevPos.x + delta.x) - broadRadius,
+        Math.min(prevPos.y, prevPos.y + delta.y) - broadRadius,
+        Math.min(prevPos.z, prevPos.z + delta.z) - broadRadius,
       );
       const sweptMax = MathPool.acquireVector().set(
-        Math.max(prevPos.x, prevPos.x + delta.x) + radius,
-        Math.max(prevPos.y, prevPos.y + delta.y) + radius,
-        Math.max(prevPos.z, prevPos.z + delta.z) + radius,
+        Math.max(prevPos.x, prevPos.x + delta.x) + broadRadius,
+        Math.max(prevPos.y, prevPos.y + delta.y) + broadRadius,
+        Math.max(prevPos.z, prevPos.z + delta.z) + broadRadius,
       );
 
       this._scratchBox.min.copyFrom(sweptMin);
@@ -92,16 +85,16 @@ export class SweptSphereCCD {
       let earliestToi = 1;
       for (let j = 0; j < this._queryHits.length; j++) {
         const other = this._queryHits[j]!;
-        if (other === obj || !other.bounds) continue;
+        if (other === obj || !other.bounds || !obj.bounds) continue;
 
-        let toi = -1;
-        if (BoundingType.SPHERE === other.bounds.type) {
-          toi = Collision.sweepSphereSphere(prevPos, delta, radius, other.bounds as BoundingSphere);
-        } else if (BoundingType.BOX === other.bounds.type) {
-          toi = Collision.sweepSphereBox(prevPos, delta, radius, other.bounds as BoundingBox);
-        } else if (BoundingType.OBB === other.bounds.type) {
-          toi = Collision.sweepSphereObb(prevPos, delta, radius, other.bounds as unknown as OBB);
-        }
+        if (!PhysicsBroadphase.canCollide(obj, other)) continue;
+        const isOtherTrigger = Boolean(
+          other.isTrigger ||
+          (other instanceof Object3D && (other.rigidBody?.isTrigger || other.rigidBody?.isSensor)),
+        );
+        if (isOtherTrigger) continue;
+
+        const toi = Collision.sweep(obj.bounds, prevPos, delta, other.bounds);
 
         if (toi >= 0 && toi < earliestToi) {
           earliestToi = toi;
@@ -122,3 +115,8 @@ export class SweptSphereCCD {
     this._candidates.length = 0;
   }
 }
+
+/**
+ * Backward compatibility alias for {@link SweptVolumeCCD}.
+ */
+export { SweptVolumeCCD as SweptSphereCCD };

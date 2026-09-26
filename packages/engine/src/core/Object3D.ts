@@ -59,6 +59,13 @@ export class Object3D implements Collidable {
   public material: AbstractMaterial | undefined = undefined;
   public bounds: BoundingVolume | undefined = undefined;
 
+  /** 32-bit collision layer bitmask this object belongs to (default: 1). */
+  public collisionLayer: number = 1;
+  /** 32-bit collision mask specifying which layers this object interacts with (default: 0xFFFFFFFF). */
+  public collisionMask: number = 0xffffffff;
+  /** If true, this object acts as a trigger/sensor (fires trigger events without physical force). */
+  public isTrigger: boolean = false;
+
   public position: Vector3D = new Vector3D();
   public rotation: Vector3D = new Vector3D();
   public quaternion?: Quaternion;

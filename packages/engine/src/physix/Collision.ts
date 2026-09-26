@@ -638,6 +638,294 @@ export class Collision {
     return t >= 0 && t <= 1 ? t : -1;
   }
 
+  /**
+   * Sweeps a moving AABB against a static AABB for CCD.
+   * @param origin Center of moving box at the start of the step.
+   * @param delta Displacement vector of the moving box.
+   * @param halfExtents Half-extents of the moving box.
+   * @param b The static box to sweep against.
+   * @returns Time of impact in [0, 1] or -1 if no impact.
+   */
+  public static sweepBoxBox(
+    origin: Vector3D,
+    delta: Vector3D,
+    halfExtents: Vector3D,
+    b: BoundingBox,
+  ): number {
+    const box = (this._sweepScratchBox ??= new BoundingBox(new Vector3D(), new Vector3D()));
+    const ray = (this._sweepScratchRay ??= new Ray());
+    box.min.set(b.min.x - halfExtents.x, b.min.y - halfExtents.y, b.min.z - halfExtents.z);
+    box.max.set(b.max.x + halfExtents.x, b.max.y + halfExtents.y, b.max.z + halfExtents.z);
+    ray.origin.copyFrom(origin);
+    ray.direction.copyFrom(delta);
+    const t = ray.intersectsBox(box);
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  /**
+   * Sweeps a moving AABB against a static sphere for CCD.
+   * @param origin Center of moving box at the start of the step.
+   * @param delta Displacement vector of the moving box.
+   * @param halfExtents Half-extents of the moving box.
+   * @param s The static sphere to sweep against.
+   * @returns Time of impact in [0, 1] or -1 if no impact.
+   */
+  public static sweepBoxSphere(
+    origin: Vector3D,
+    delta: Vector3D,
+    halfExtents: Vector3D,
+    s: BoundingSphere,
+  ): number {
+    const box = (this._sweepScratchBox ??= new BoundingBox(new Vector3D(), new Vector3D()));
+    box.min.set(origin.x - halfExtents.x, origin.y - halfExtents.y, origin.z - halfExtents.z);
+    box.max.set(origin.x + halfExtents.x, origin.y + halfExtents.y, origin.z + halfExtents.z);
+    const negDelta = MathPool.acquireVector().copyFrom(delta).scale(-1);
+    const t = this.sweepSphereBox(s.center, negDelta, s.radius, box);
+    MathPool.releaseVector(negDelta);
+    return t;
+  }
+
+  /**
+   * Sweeps a moving AABB against a static OBB for CCD.
+   * @param origin Center of moving box at the start of the step.
+   * @param delta Displacement vector of the moving box.
+   * @param halfExtents Half-extents of the moving box.
+   * @param o The static OBB to sweep against.
+   * @returns Time of impact in [0, 1] or -1 if no impact.
+   */
+  public static sweepBoxObb(
+    origin: Vector3D,
+    delta: Vector3D,
+    halfExtents: Vector3D,
+    o: OBB,
+  ): number {
+    const box = (this._sweepScratchBox ??= new BoundingBox(new Vector3D(), new Vector3D()));
+    const ray = (this._sweepScratchRay ??= new Ray());
+
+    const rel = MathPool.acquireVector().copyFrom(origin).sub(o.center);
+    const u0 = MathUtils.at(o.axes, 0);
+    const u1 = MathUtils.at(o.axes, 1);
+    const u2 = MathUtils.at(o.axes, 2);
+
+    ray.origin.set(rel.dot(u0), rel.dot(u1), rel.dot(u2));
+    MathPool.releaseVector(rel);
+
+    ray.direction.set(delta.dot(u0), delta.dot(u1), delta.dot(u2));
+
+    const r0 =
+      halfExtents.x * Math.abs(u0.x) +
+      halfExtents.y * Math.abs(u0.y) +
+      halfExtents.z * Math.abs(u0.z);
+    const r1 =
+      halfExtents.x * Math.abs(u1.x) +
+      halfExtents.y * Math.abs(u1.y) +
+      halfExtents.z * Math.abs(u1.z);
+    const r2 =
+      halfExtents.x * Math.abs(u2.x) +
+      halfExtents.y * Math.abs(u2.y) +
+      halfExtents.z * Math.abs(u2.z);
+
+    box.min.set(-o.halfExtents.x - r0, -o.halfExtents.y - r1, -o.halfExtents.z - r2);
+    box.max.set(o.halfExtents.x + r0, o.halfExtents.y + r1, o.halfExtents.z + r2);
+
+    const t = ray.intersectsBox(box);
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  /**
+   * Sweeps a moving OBB against a static sphere for CCD.
+   */
+  public static sweepObbSphere(
+    origin: Vector3D,
+    delta: Vector3D,
+    o: OBB,
+    s: BoundingSphere,
+  ): number {
+    const box = (this._sweepScratchBox ??= new BoundingBox(new Vector3D(), new Vector3D()));
+    const ray = (this._sweepScratchRay ??= new Ray());
+
+    const rel = MathPool.acquireVector().copyFrom(s.center).sub(origin);
+    const u0 = MathUtils.at(o.axes, 0);
+    const u1 = MathUtils.at(o.axes, 1);
+    const u2 = MathUtils.at(o.axes, 2);
+
+    ray.origin.set(rel.dot(u0), rel.dot(u1), rel.dot(u2));
+    MathPool.releaseVector(rel);
+
+    ray.direction.set(-delta.dot(u0), -delta.dot(u1), -delta.dot(u2));
+
+    box.min.set(
+      -o.halfExtents.x - s.radius,
+      -o.halfExtents.y - s.radius,
+      -o.halfExtents.z - s.radius,
+    );
+    box.max.set(o.halfExtents.x + s.radius, o.halfExtents.y + s.radius, o.halfExtents.z + s.radius);
+
+    const t = ray.intersectsBox(box);
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  /**
+   * Sweeps a moving OBB against a static AABB for CCD.
+   */
+  public static sweepObbBox(origin: Vector3D, delta: Vector3D, o: OBB, b: BoundingBox): number {
+    const box = (this._sweepScratchBox ??= new BoundingBox(new Vector3D(), new Vector3D()));
+    const ray = (this._sweepScratchRay ??= new Ray());
+
+    const rel = MathPool.acquireVector().copyFrom(b.center).sub(origin);
+    const u0 = MathUtils.at(o.axes, 0);
+    const u1 = MathUtils.at(o.axes, 1);
+    const u2 = MathUtils.at(o.axes, 2);
+
+    ray.origin.set(rel.dot(u0), rel.dot(u1), rel.dot(u2));
+    MathPool.releaseVector(rel);
+
+    ray.direction.set(-delta.dot(u0), -delta.dot(u1), -delta.dot(u2));
+
+    const bhx = (b.max.x - b.min.x) * 0.5;
+    const bhy = (b.max.y - b.min.y) * 0.5;
+    const bhz = (b.max.z - b.min.z) * 0.5;
+
+    const r0 = bhx * Math.abs(u0.x) + bhy * Math.abs(u0.y) + bhz * Math.abs(u0.z);
+    const r1 = bhx * Math.abs(u1.x) + bhy * Math.abs(u1.y) + bhz * Math.abs(u1.z);
+    const r2 = bhx * Math.abs(u2.x) + bhy * Math.abs(u2.y) + bhz * Math.abs(u2.z);
+
+    box.min.set(-o.halfExtents.x - r0, -o.halfExtents.y - r1, -o.halfExtents.z - r2);
+    box.max.set(o.halfExtents.x + r0, o.halfExtents.y + r1, o.halfExtents.z + r2);
+
+    const t = ray.intersectsBox(box);
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  /**
+   * Sweeps a moving OBB against a static OBB for CCD.
+   */
+  public static sweepObbObb(origin: Vector3D, delta: Vector3D, oA: OBB, oB: OBB): number {
+    const box = (this._sweepScratchBox ??= new BoundingBox(new Vector3D(), new Vector3D()));
+    const ray = (this._sweepScratchRay ??= new Ray());
+
+    const rel = MathPool.acquireVector().copyFrom(origin).sub(oB.center);
+    const uB0 = MathUtils.at(oB.axes, 0);
+    const uB1 = MathUtils.at(oB.axes, 1);
+    const uB2 = MathUtils.at(oB.axes, 2);
+
+    ray.origin.set(rel.dot(uB0), rel.dot(uB1), rel.dot(uB2));
+    MathPool.releaseVector(rel);
+
+    ray.direction.set(delta.dot(uB0), delta.dot(uB1), delta.dot(uB2));
+
+    const uA0 = MathUtils.at(oA.axes, 0);
+    const uA1 = MathUtils.at(oA.axes, 1);
+    const uA2 = MathUtils.at(oA.axes, 2);
+    const hA = oA.halfExtents;
+
+    const r0 =
+      hA.x * Math.abs(uB0.dot(uA0)) + hA.y * Math.abs(uB0.dot(uA1)) + hA.z * Math.abs(uB0.dot(uA2));
+    const r1 =
+      hA.x * Math.abs(uB1.dot(uA0)) + hA.y * Math.abs(uB1.dot(uA1)) + hA.z * Math.abs(uB1.dot(uA2));
+    const r2 =
+      hA.x * Math.abs(uB2.dot(uA0)) + hA.y * Math.abs(uB2.dot(uA1)) + hA.z * Math.abs(uB2.dot(uA2));
+
+    box.min.set(-oB.halfExtents.x - r0, -oB.halfExtents.y - r1, -oB.halfExtents.z - r2);
+    box.max.set(oB.halfExtents.x + r0, oB.halfExtents.y + r1, oB.halfExtents.z + r2);
+
+    const t = ray.intersectsBox(box);
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  /**
+   * Sweeps a mathematical ray / fast projectile from origin with displacement delta against any volume.
+   */
+  public static sweepRayVolume(origin: Vector3D, delta: Vector3D, volume: BoundingVolume): number {
+    const ray = (this._sweepScratchRay ??= new Ray());
+    ray.origin.copyFrom(origin);
+    ray.direction.copyFrom(delta);
+
+    let t = -1;
+    if (BoundingType.SPHERE === volume.type) {
+      t = ray.intersectsSphere(volume as BoundingSphere);
+    } else if (BoundingType.BOX === volume.type) {
+      t = ray.intersectsBox(volume as BoundingBox);
+    } else if (BoundingType.OBB === volume.type) {
+      t = ray.intersectsOBB(volume as OBB);
+    }
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  /**
+   * Universal sweep dispatcher: sweeps any moving bounding volume from origin with displacement delta against any static volume.
+   * Supports both 3-arg (moving, delta, target) and 4-arg (moving, origin, delta, target) forms.
+   * @param moving The moving bounding volume.
+   * @param originOrDelta Center/origin at start of step OR delta vector if 3 args passed.
+   * @param deltaOrTarget Displacement vector OR target volume if 3 args passed.
+   * @param targetParam Target static bounding volume if 4 args passed.
+   * @returns Time of impact in [0, 1] or -1 if no impact.
+   */
+  public static sweep(moving: BoundingVolume, delta: Vector3D, target: BoundingVolume): number;
+  public static sweep(
+    moving: BoundingVolume,
+    origin: Vector3D,
+    delta: Vector3D,
+    target: BoundingVolume,
+  ): number;
+  public static sweep(
+    moving: BoundingVolume,
+    originOrDelta: Vector3D,
+    deltaOrTarget: Vector3D | BoundingVolume,
+    targetParam?: BoundingVolume,
+  ): number {
+    let origin: Vector3D;
+    let delta: Vector3D;
+    let target: BoundingVolume;
+
+    if (targetParam !== undefined) {
+      origin = originOrDelta;
+      delta = deltaOrTarget as Vector3D;
+      target = targetParam;
+    } else {
+      origin = moving.center;
+      delta = originOrDelta;
+      target = deltaOrTarget as BoundingVolume;
+    }
+
+    if (BoundingType.SPHERE === moving.type) {
+      const s = moving as BoundingSphere;
+      if (BoundingType.SPHERE === target.type) {
+        return this.sweepSphereSphere(origin, delta, s.radius, target as BoundingSphere);
+      } else if (BoundingType.BOX === target.type) {
+        return this.sweepSphereBox(origin, delta, s.radius, target as BoundingBox);
+      } else if (BoundingType.OBB === target.type) {
+        return this.sweepSphereObb(origin, delta, s.radius, target as OBB);
+      }
+    } else if (BoundingType.BOX === moving.type) {
+      const b = moving as BoundingBox;
+      const hx = (b.max.x - b.min.x) * 0.5;
+      const hy = (b.max.y - b.min.y) * 0.5;
+      const hz = (b.max.z - b.min.z) * 0.5;
+      const half = MathPool.acquireVector().set(hx, hy, hz);
+      let t = -1;
+      if (BoundingType.BOX === target.type) {
+        t = this.sweepBoxBox(origin, delta, half, target as BoundingBox);
+      } else if (BoundingType.SPHERE === target.type) {
+        t = this.sweepBoxSphere(origin, delta, half, target as BoundingSphere);
+      } else if (BoundingType.OBB === target.type) {
+        t = this.sweepBoxObb(origin, delta, half, target as OBB);
+      }
+      MathPool.releaseVector(half);
+      return t;
+    } else if (BoundingType.OBB === moving.type) {
+      const o = moving as OBB;
+      if (BoundingType.SPHERE === target.type) {
+        return this.sweepObbSphere(origin, delta, o, target as BoundingSphere);
+      } else if (BoundingType.BOX === target.type) {
+        return this.sweepObbBox(origin, delta, o, target as BoundingBox);
+      } else if (BoundingType.OBB === target.type) {
+        return this.sweepObbObb(origin, delta, o, target as OBB);
+      }
+    }
+    return -1;
+  }
+
   private static _sphereSphere(s1: BoundingSphere, s2: BoundingSphere): boolean {
     const d2: number = s1.center.distanceToSq(s2.center);
     const r2: number = (s1.radius + s2.radius) * (s1.radius + s2.radius);

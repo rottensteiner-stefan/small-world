@@ -9,4 +9,10 @@ export interface Collidable {
   id?: number;
   /** The physical bounding volume of the object. */
   bounds: BoundingVolume | undefined;
+  /** 32-bit collision layer bitmask this collider belongs to (default: 1). */
+  collisionLayer?: number;
+  /** 32-bit collision mask specifying which layers this collider interacts with (default: 0xFFFFFFFF). */
+  collisionMask?: number;
+  /** If true, the collider acts as a sensor/trigger (detects overlap and fires events without physical force). */
+  isTrigger?: boolean;
 }

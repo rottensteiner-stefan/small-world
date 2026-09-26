@@ -64,5 +64,48 @@
   - Echter tangentialer Reibungsimpuls $j_T = \min(|j_T^{\text{ideal}}|, \mu \cdot j_N)$ über den Coulomb-Reibungskegel.
   - Exakte Modellierung von Haftreibung (vollständiges Stoppen bei niedrigen Tangentialgeschwindigkeiten) und Gleitreibung.
   - Saubere Entkopplung von `linearDamping` (freie atmosphärische Luftreibung) und `friction` (Oberflächenreibung).
+- **RigidBody Sleeping & Inaktivitäts-Caching (`PhysicsSystem` & `RigidBody`):**
+  - `isSleeping`-State mit Schwellenwerten (`sleepLinearThreshold`, `sleepAngularThreshold`, `sleepTimeThreshold`).
+  - $\mathcal{O}(1)$ Integration- und Broadphase-Query-Skips für ruhende Körper.
+  - Automatisches Aufwecken (`wakeUp()`) bei physischer Kollision mit aktiven, bewegten Körpern oder externer Krafteinwirkung (`applyForce`, `applyImpulse`, `applyTorque`).
+- **Multi-Iteration Solver & Stacking-Stabilität (`PhysicsSystem` & PGS-Relaxation):**
+  - Konfigurierbare Solver-Iterationen (`solverIterations: number = 4..8`) mit symmetrischer Gauss-Seidel-Relaxation (alternierende Vorwärts- und Rückwärtsdurchläufe).
+  - Manifold-Persistenz: Kontakt-Constraints bleiben über alle Iterationsdurchläufe aktiv für vollständigen Impuls- und Unterstützungstransfer.
+  - Resting-Contact-Velocity-Stabilisierung zur Eliminierung von diskreten Schwerkraft-Grenzzyklen auf ruhenden Stapeln.
+  - Vollständige Stacking-Stabilität für vertikale Kisten- und Trümmerstapel ohne Einsinken oder Oszillation.
+- **Continuous Collision Detection Expansion (`SweptVolumeCCD` & `Collision.sweep*`):**
+  - Erweiterung von rein kugelförmigem CCD auf swept AABBs (`BoundingBox`), `OBB`s und schnelle Raycast-Projektile (`sweepRayVolume`).
+  - Analytische swept Intersection-Solver: `sweepBoxBox`, `sweepBoxSphere`, `sweepBoxObb`, `sweepObbSphere`, `sweepObbBox`, `sweepObbObb`, `sweepRayVolume`.
+  - Universeller `Collision.sweep(...)`-Dispatcher mit Unterstützung für variable Startursprünge (`origin`) und Enddisplacements (`delta`).
+  - Zuverlässige Verhinderung von Tunneling-Effekten bei schnellen Quadern, Kisten und Hochgeschwindigkeitsprojektilen gegen dünne Wände.
+  - 100% abwärtskompatibler Export von `SweptSphereCCD` als Alias für `SweptVolumeCCD`.
+
+---
+
+## 2026-09-26 — Physics Engine: Layers & Triggers, Raycast API, 3D Angular Impulses & Constraints
+
+- **Collision Layers, Bitmasks & Trigger Lifecycle System (Option D):**
+  - Bitmask-Filterung (`collisionLayer: number = 1`, `collisionMask: number = 0xFFFFFFFF`, `isTrigger: boolean = false`) auf `Collidable`, `Object3D` und `StaticCollider`.
+  - `PhysicsBroadphase.canCollide(a, b)` statische Filterung vor Narrowphase-Kollisionschecks zur Einsparung von Rechenzeit.
+  - Zero-Allocation Trigger- und Collision-Lifecycle-Events: `physics:trigger-enter`, `physics:trigger-stay`, `physics:trigger-exit`, `physics:collision-enter`, `physics:collision-stay`, `physics:collision-exit` (sowie abwärtskompatibles `physics:trigger` und `physics:collision`).
+  - Trigger-Immunität in CCD (`SweptVolumeCCD`), um Sensorvolumen ohne physisches Stoppen zu durchdringen.
+- **Physics Raycast & Query API (Option B):**
+  - Neues Schnittstellen-Interface [`RaycastHit`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/physix/RaycastHit.ts) (`distance`, `point`, `normal`, `collider`, `object`).
+  - Analytische Ray-Intersection-Methoden `Ray.intersectVolume` und `Ray.intersectVolumeDetailed` für `BoundingSphere`, `BoundingBox` und `OBB` zur exakten Berechnung von Trefferpunkt und Oberflächennormale.
+  - High-Level-APIs auf `PhysicsSystem`: `physics.raycast(...)`, `physics.raycastAll(...)`, `physics.sphereCast(...)` mit Layer-Masken-Filterung.
+- **Außermittiger Stoß, Drehmoment & 3D-Trägheitstensor (Punkt 5):**
+  - Erweiterung von `RigidBody` um 3D-Hauptträgheitsachsen (`inertiaTensor: Vector3D`, `inverseInertiaTensor: Vector3D`), Form-Helfer (`setInertiaForBox`, `setInertiaForSphere`, `setInertiaForCylinder`) und außermittige Impuls-/Kraftbeaufschlagung (`applyImpulseAtPoint`, `applyForceAtPoint`).
+  - Upgrade des Impuls-Solvers in `PhysicsSystem._resolveCollisions` um exakte Kontaktpunkt- und Hebelarm-Geometrie ($\vec{r}_A, \vec{r}_B$), Kontaktoberflächengeschwindigkeiten ($\vec{v} + \vec{\omega} \times \vec{r}$), 3D-Rotations-Effektivmassen ($K_N, K_T$) und reaktive Coulomb-Drehmomente (z. B. realistisches Abrollen und Taumeln von Kantenkontakten).
+- **Physics Constraints & Joint System (Option C):**
+  - Abstrakte Basisklasse [`Joint`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/physix/joints/Joint.ts) (`bodyA`, `bodyB`, `anchorA`, `anchorB`, `breakForce`, `collideConnected`).
+  - [`DistanceJoint`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/physix/joints/DistanceJoint.ts): PGS-Geschwindigkeits- und Positionsprojektions-Constraint für feste oder elastisch begrenzte Abstände (z. B. Pendel, Seile, Stangen).
+  - [`SpringJoint`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/physix/joints/SpringJoint.ts): Dämpfungsfähiges Hooke'sches Federkraft-Constraint für elastische Aufhängungen und Bungees.
+  - [`BallSocketJoint`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/physix/joints/BallSocketJoint.ts): 3-DOF Kugelgelenk / Punkt-zu-Punkt-Constraint zur Fixierung von Ankerpunkten bei freier 3D-Rotation.
+  - [`HingeJoint`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/physix/joints/HingeJoint.ts): 1-DOF Drehgelenk / Scharnier mit Achsen-Constraint, Winkel-Limits (`minAngle`, `maxAngle`) und bidirektionalem Motor (`motorSpeed`, `maxMotorTorque`).
+  - Nahtlose Integration in `Scene.joints` und `PhysicsSystem` PGS-Solver iterations & force pass.
+- **Testsuite & Stabilität:**
+  - 190 Test-Suites mit 1090 bestandenen Tests (100% Pass-Rate).
+
+
 
 

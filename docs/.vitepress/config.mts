@@ -107,6 +107,7 @@ export default defineConfig({
             { text: "0020: Deklarative Level-Deskriptoren", link: "/adr/0020-declarative-level-descriptors-and-kit-runtime" },
             { text: "0021: Ökosystem-Pakete für exotische Geometrien & Physik", link: "/adr/0021-ecosystem-packages-exotic-geometry-and-physics" },
             { text: "0022: GPU-Instanzierte VFX-Pipeline & vfx-extras", link: "/adr/0022-gpu-instanced-vfx-pipeline-and-extras-package" },
+            { text: "0023: Physik-Modernisierung & Constraint-System", link: "/adr/0023-physics-engine-modernization-and-constraint-system" },
           ],
         },
       ],

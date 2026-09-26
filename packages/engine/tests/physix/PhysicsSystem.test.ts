@@ -560,7 +560,7 @@ describe("PhysicsSystem", () => {
       expect(marble.position.x).toBeGreaterThan(5.1);
     });
 
-    it("should only sweep sphere bodies, leaving fast box/OBB bodies purely discrete", () => {
+    it("should sweep fast box bodies and prevent them from tunneling", () => {
       const wall = new Object3D("Wall");
       wall.rigidBody = new RigidBody(0);
       wall.bounds = new BoundingBox(new Vector3D(4.9, -5, -5), new Vector3D(5.1, 5, 5));
@@ -580,9 +580,9 @@ describe("PhysicsSystem", () => {
       system.fixedTimeStep = 1 / 60;
       system.step(scene, 1 / 60);
 
-      // Scope decision: CCD only covers sphere bodies. A fast box is expected to tunnel through
-      // in a single substep exactly like before this feature existed.
-      expect(fastBox.position.x).toBeCloseTo(1000 * (1 / 60));
+      // Fast box is now swept via SweptVolumeCCD and clamped before tunneling past x=4.9
+      expect(fastBox.position.x).toBeLessThan(4.9);
+      expect(fastBox.position.x).toBeGreaterThan(4.0);
     });
   });
 

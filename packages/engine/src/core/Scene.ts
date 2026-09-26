@@ -2,7 +2,7 @@ import { Object3D } from "./Object3D.js";
 import { Octree, OctreeOptions } from "./Octree.js";
 import { Fog } from "./Fog.js";
 import { Vector3D } from "../math/index.js";
-import { BoundingBox, SpatialHash } from "../physix/index.js";
+import { BoundingBox, SpatialHash, Joint } from "../physix/index.js";
 import { BoundingType, Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
 import { SkinnedMesh } from "./animation/SkinnedMesh.js";
@@ -42,6 +42,8 @@ export class Scene {
    * resolution too.
    */
   public staticColliders: Collidable[] = [];
+  /** Physics joints / articulated constraints evaluated by PhysicsSystem. */
+  public joints: Joint[] = [];
   public fog?: Fog;
 
   /** How many objects `_collectVisible()` skipped this call because `occlusionCulled` was set

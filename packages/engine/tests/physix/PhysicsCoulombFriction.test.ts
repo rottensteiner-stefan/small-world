@@ -85,10 +85,13 @@ describe("PhysicsCoulombFriction", () => {
 
     // Normal impulse = 5.0
     // Max friction impulse = 0.8 * 5.0 = 4.0
-    // Ideal friction impulse to halt vx=1.0 is 1.0 <= 4.0 (within Coulomb cone)
-    // Resulting vx should be exactly 0
-    expect(ball.rigidBody.velocity.x).toBeCloseTo(0, 5);
+    // Ideal friction impulse to halt contact point slip (vx + w*r = 0):
+    // effInvMassT = 1/m + r^2/I = 1.0 + 0.25 = 1.25 -> j = 1.0 / 1.25 = 0.8 <= 4.0
+    // Resulting vx = 1.0 - 0.8 = 0.2, and angularVelocity.z = -0.8 * 0.5 / 1.0 = -0.4 rad/s
+    // Contact point surface slip velocity: vx + wz * (-ry) = 0.2 + (-0.4)*(0.5) = 0.0
+    expect(ball.rigidBody.velocity.x).toBeCloseTo(0.2, 5);
     expect(ball.rigidBody.velocity.y).toBeCloseTo(0, 5);
+    expect(ball.rigidBody.angularVelocity.z).toBeCloseTo(-0.4, 5);
   });
 
   it("preserves tangential velocity on frictionless surfaces (mu = 0)", () => {

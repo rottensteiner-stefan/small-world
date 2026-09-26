@@ -20,6 +20,13 @@ export class StaticCollider implements Collidable {
   /** Restitution / bounciness (0.0 = clay, 1.0 = superball). */
   public restitution: number = 0.2;
 
+  /** 32-bit collision layer bitmask this collider belongs to (default: 1). */
+  public collisionLayer: number = 1;
+  /** 32-bit collision mask specifying which layers this collider interacts with (default: 0xFFFFFFFF). */
+  public collisionMask: number = 0xffffffff;
+  /** If true, this collider acts as a trigger/sensor (fires trigger events without physical force). */
+  public isTrigger: boolean = false;
+
   // To allow InteractionManager to filter out non-pickable hits
   public isPickable: boolean = true;
 
