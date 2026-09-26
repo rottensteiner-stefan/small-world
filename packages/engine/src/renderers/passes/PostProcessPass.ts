@@ -24,9 +24,9 @@ export class PostProcessPass implements RenderPass {
   private _bindGroup?: GPUBindGroup;
   private _uniformBuffer?: GPUBuffer;
   private _sampler?: GPUSampler;
-  /** 36 floats (144 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the continuous tuning
-   * parameters (incl. color grading & singularity pos), packed as 9x vec4f. */
-  private _uniformData: Float32Array = new Float32Array(36);
+  /** 40 floats (160 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the continuous tuning
+   * parameters (incl. color grading & gravitational lensing), packed as 10x vec4f. */
+  private _uniformData: Float32Array = new Float32Array(40);
   private _builtTextureView?: GPUTextureView;
   private _builtBloomTextureView?: GPUTextureView;
   private _builtHbaoTextureView?: GPUTextureView;
@@ -88,7 +88,7 @@ export class PostProcessPass implements RenderPass {
     });
 
     this._uniformBuffer ??= device.createBuffer({
-      size: 144, // DynUniforms: 9 x vec4f
+      size: 160, // DynUniforms: 10 x vec4f
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -336,10 +336,19 @@ export class PostProcessPass implements RenderPass {
     d[29] = grade ? grade.gamma.b : 1.0; // grading2.y: gammaB
     d[30] = grade ? grade.gain.r : 1.0; // grading2.z: gainR
     d[31] = grade ? grade.gain.g : 1.0; // grading2.w: gainG
-    d[32] = group.singularityScreenPos.x; // singularityPos.x
-    d[33] = group.singularityScreenPos.y; // singularityPos.y
-    d[34] = group.singularityScreenPos.z; // singularityPos.z
-    d[35] = 0.0; // pad
+
+    const lensing = group.get<import("../post/index.js").GravitationalLensingElement>(
+      PostProcessingEffectType.GRAVITATIONAL_LENSING,
+    );
+    const singPos = lensing ? lensing.singularityScreenPos : group.singularityScreenPos;
+    d[32] = singPos.x; // singularityPos.x
+    d[33] = singPos.y; // singularityPos.y
+    d[34] = singPos.z; // singularityPos.z
+    d[35] = lensing ? lensing.eventHorizonRadius : 0.03; // singularityPos.w: eventHorizonRadius
+    d[36] = lensing ? lensing.strength : 0.25; // lensingParams.x: strength
+    d[37] = lensing ? lensing.spaghettification : 0.15; // lensingParams.y: spaghettification
+    d[38] = lensing ? lensing.relativisticBeaming : 1.2; // lensingParams.z: relativisticBeaming
+    d[39] = lensing ? lensing.ringGlowIntensity : 2.5; // lensingParams.w: ringGlowIntensity
 
     renderer.gpuDevice!.queue.writeBuffer(this._uniformBuffer!, 0, d);
 

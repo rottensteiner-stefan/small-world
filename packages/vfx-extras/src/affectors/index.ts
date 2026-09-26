@@ -3,3 +3,8 @@ export * from "./VortexAffector.js";
 export * from "./PlanarSpringAffector.js";
 export * from "./ThermalCoolingAffector.js";
 export * from "./FadeOutZoneAffector.js";
+export * from "./TurbulenceAffector.js";
+export * from "./DragAffector.js";
+export * from "./ColorOverLifeAffector.js";
+export * from "./SizeOverLifeAffector.js";
+export * from "./BouncePlaneAffector.js";

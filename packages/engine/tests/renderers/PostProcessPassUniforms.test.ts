@@ -150,7 +150,7 @@ describe("PostProcessPass: continuous tuning values never rebuild the pipeline",
     expect(buffer).toBeDefined();
     expect(offset).toBe(0);
     const d = data as Float32Array;
-    expect(d.length).toBe(36);
+    expect(d.length).toBe(40);
     expect(d[1]).toBeCloseTo(2.5); // a.y: exposure
     expect(d[3]).toBeCloseTo(0.42); // a.w: vignetteOffset
     expect(d[11]).toBeCloseTo(1.1); // c.w: gainB
@@ -159,6 +159,8 @@ describe("PostProcessPass: continuous tuning values never rebuild the pipeline",
     expect(d[32]).toBeCloseTo(0.0); // singularityPos.x
     expect(d[33]).toBeCloseTo(0.0); // singularityPos.y
     expect(d[34]).toBeCloseTo(1.0); // singularityPos.z
+    expect(d[35]).toBeCloseTo(0.03); // singularityPos.w: eventHorizonRadius
+    expect(d[36]).toBeCloseTo(0.25); // lensingParams.x: strength
   });
 
   it("rebuilds bind groups but NEVER rebuilds pipeline when only texture views change (BLK-R3)", () => {

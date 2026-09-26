@@ -236,6 +236,80 @@ export class OctreeNode {
     }
   }
 
+  /**
+   * Removes an object from this node or its children.
+   * Collapses child nodes back to the pool if remaining descendant objects <= maxObjects.
+   * @param obj The object to remove.
+   * @returns True if the object was found and removed.
+   */
+  public remove(obj: Collidable): boolean {
+    const idx = this.objects.indexOf(obj);
+    if (idx !== -1) {
+      const lastIdx = this.objects.length - 1;
+      if (idx !== lastIdx) {
+        this.objects[idx] = this.objects[lastIdx]!;
+      }
+      this.objects.pop();
+      if (this.children.length > 0) {
+        this._tryCollapse();
+      }
+      return true;
+    }
+
+    if (this.children.length > 0) {
+      let removed = false;
+      for (let i = 0; i < this.children.length; i++) {
+        const child = this.children[i]!;
+        if (!obj.bounds || child.bounds.intersectsVolume(obj.bounds)) {
+          if (child.remove(obj)) {
+            removed = true;
+            break;
+          }
+        }
+      }
+
+      if (!removed) {
+        for (let i = 0; i < this.children.length; i++) {
+          if (this.children[i]!.remove(obj)) {
+            removed = true;
+            break;
+          }
+        }
+      }
+
+      if (removed) {
+        this._tryCollapse();
+      }
+
+      return removed;
+    }
+
+    return false;
+  }
+
+  private _tryCollapse(): void {
+    if (this.children.length === 0) return;
+
+    let total = this.objects.length;
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i]!;
+      child._tryCollapse();
+      if (child.children.length > 0) return;
+      total += child.objects.length;
+    }
+
+    if (total <= this._maxObjects) {
+      for (let i = 0; i < this.children.length; i++) {
+        const child = this.children[i]!;
+        for (let j = 0; j < child.objects.length; j++) {
+          this.objects.push(child.objects[j]!);
+        }
+        OctreeNode.release(child);
+      }
+      this.children.length = 0;
+    }
+  }
+
   public clear(): void {
     this.objects.length = 0;
     for (let i = 0; i < this.children.length; i++) {
@@ -253,6 +327,15 @@ export class Octree {
 
   constructor(bounds: BoundingBox, options: OctreeOptions = {}) {
     this.root = new OctreeNode(bounds, 0, options);
+  }
+
+  /**
+   * Removes an object from the octree.
+   * @param obj The object to remove.
+   * @returns True if found and removed.
+   */
+  public remove(obj: Collidable): boolean {
+    return this.root.remove(obj);
   }
 
   public insert(obj: Collidable): boolean {

@@ -36,6 +36,11 @@ uniform float u_outlineSensitivity;
 uniform vec3 u_outlineColor;
 uniform float u_time;
 uniform vec3 u_singularityScreenPos;
+uniform float u_lensingEventHorizon;
+uniform float u_lensingStrength;
+uniform float u_lensingSpaghetti;
+uniform float u_lensingBeaming;
+uniform float u_lensingRingGlow;
 
 uniform int u_filterMode;
 
@@ -115,18 +120,23 @@ void main() {
             vec2 dir = uv - center;
             dir.x *= aspect;
             float dist = length(dir);
-            float eh = 0.03; // Event Horizon screen radius
+            float eh = u_lensingEventHorizon > 0.0 ? u_lensingEventHorizon : 0.03;
+            float strength = u_lensingStrength > 0.0 ? u_lensingStrength : 0.25;
+            float spaghettiFactor = u_lensingSpaghetti >= 0.0 ? u_lensingSpaghetti : 0.15;
+            float beamingFactor = u_lensingBeaming > 0.0 ? u_lensingBeaming : 1.2;
+            float ringGlowMult = u_lensingRingGlow >= 0.0 ? u_lensingRingGlow : 2.5;
+
             if (dist > eh) {
                 float bending = (eh * eh) / (dist * dist);
                 vec2 disp = dir / dist;
                 disp.x /= aspect;
 
                 // Spaghettisation: geometric radial stretching along the gravitational gradient near horizon
-                float spaghetti = pow(eh / dist, 3.0) * 0.15;
-                distortUv = uv - (disp * (bending * 0.25 + spaghetti));
+                float spaghetti = pow(eh / dist, 3.0) * spaghettiFactor;
+                distortUv = uv - (disp * (bending * strength + spaghetti));
 
                 // Relativistic Beaming / Doppler effect (approaching left side boosted, receding right side dimmed)
-                float dopplerFactor = -disp.x * aspect * 1.2;
+                float dopplerFactor = -disp.x * aspect * beamingFactor;
                 beaming = clamp(1.0 + dopplerFactor, 0.2, 3.0);
 
                 // Relativistic Doppler Color Shift (Blueshift on approaching side, redshift on receding side)
@@ -139,7 +149,7 @@ void main() {
                 // Einstein-Ring Glow directly along the photon sphere boundary
                 if (dist < eh + 0.015) {
                     float glowFactor = smoothstep(eh + 0.015, eh, dist);
-                    ringGlow = pow(glowFactor, 3.0) * 2.5 * beaming;
+                    ringGlow = pow(glowFactor, 3.0) * ringGlowMult * beaming;
                 }
             } else {
                 distortUv = vec2(-1.0); // Sample nowhere

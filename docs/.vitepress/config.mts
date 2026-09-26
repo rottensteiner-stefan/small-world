@@ -9,6 +9,7 @@ export default defineConfig({
     nav: [
       { text: "Spiele & Apps", link: "/apps/the-whisper" },
       { text: "Anleitungen", link: "/guides/getting-started" },
+      { text: "Erweiterungen", link: "/extensions/" },
       { text: "Architekturentscheidungen (ADRs)", link: "/adr/" },
       { text: "Recherche", link: "/research/" },
       { text: "API-Referenz", link: "/api/index.html", target: "_blank" },
@@ -23,6 +24,18 @@ export default defineConfig({
             { text: "YAD (Dungeon Crawler)", link: "/apps/yad" },
             { text: "Light Cycle Arena", link: "/apps/light-cycle-arena" },
             { text: "Maker (Welteneditor)", link: "/apps/maker" },
+          ],
+        },
+      ],
+      "/extensions/": [
+        {
+          text: "Erweiterungen & Ökosystem",
+          items: [
+            { text: "Ökosystem-Überblick", link: "/extensions/" },
+            { text: "VFX Extras (@small-world/vfx-extras)", link: "/extensions/vfx-extras" },
+            { text: "Geometrie Extras (@small-world/geometry-extras)", link: "/extensions/geometry-extras" },
+            { text: "Physik Extras (@small-world/physics-extras)", link: "/extensions/physics-extras" },
+            { text: "glTF Erweiterungen (@small-world/gltf-extensions)", link: "/extensions/gltf-extensions" },
           ],
         },
       ],
@@ -92,6 +105,8 @@ export default defineConfig({
             { text: "0018: glTF Data-Level Extensions", link: "/adr/0018-gltf-data-level-extensions-and-ecosystem-package" },
             { text: "0019: Modulare Environment-Texturierung", link: "/adr/0019-modular-environment-texturing-and-scale-doctrine" },
             { text: "0020: Deklarative Level-Deskriptoren", link: "/adr/0020-declarative-level-descriptors-and-kit-runtime" },
+            { text: "0021: Ökosystem-Pakete für exotische Geometrien & Physik", link: "/adr/0021-ecosystem-packages-exotic-geometry-and-physics" },
+            { text: "0022: GPU-Instanzierte VFX-Pipeline & vfx-extras", link: "/adr/0022-gpu-instanced-vfx-pipeline-and-extras-package" },
           ],
         },
       ],

@@ -56,13 +56,15 @@ export class RigidBody {
   public get inverseInertia(): number {
     return this._inverseInertia;
   }
-  /** Angular damping, simulates rotational friction. */
+  /** Linear damping factor for atmospheric drag in free motion (1.0 = no drag). */
+  public linearDamping: number = 1.0;
+  /** Angular damping, simulates rotational air resistance. */
   public angularDamping: number = 0.98;
 
   /** How much velocity is retained after a bounce (0.0 = clay, 1.0 = superball). */
   public restitution: number = 0.2;
-  /** How much velocity is retained when sliding along a surface (0.0 = ice, 1.0 = velcro). */
-  public friction: number = 0.98;
+  /** Coulomb contact friction coefficient (0.0 = ice, 1.0 = high grip). */
+  public friction: number = 0.5;
 
   /**
    * Position at the start of the most recently completed fixed-timestep substep. Together with

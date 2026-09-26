@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Showcase 22 — Gargantua Accretion Disk & Relativistic Lensing Dossier</title>
+    <style>
+      :root {
+        --bg-dark: #050608;
+        --bg-card: #0d0f14;
+        --bg-card-hover: #141720;
+        --accent-orange: #ff7700;
+        --accent-amber: #ffaa00;
+        --accent-blue: #00d4ff;
+        --accent-red: #ff3344;
+        --text-main: #f0f4f8;
+        --text-muted: #8b9bb4;
+        --border-subtle: #1c2230;
+        --border-highlight: #2f3a52;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background-color: var(--bg-dark);
+        color: var(--text-main);
+        line-height: 1.6;
+        padding: 2.5rem 1.5rem;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      header.hero {
+        text-align: center;
+        padding: 4rem 1.5rem;
+        background: radial-gradient(circle at center, #181d2c 0%, var(--bg-dark) 80%);
+        border: 1px solid var(--border-subtle);
+        margin-bottom: 3.5rem;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      header.hero::after {
+        content: "";
+        position: absolute;
+        bottom: -50%;
+        left: 25%;
+        width: 50%;
+        height: 100%;
+        background: radial-gradient(ellipse at center, rgba(255, 119, 0, 0.15), transparent 70%);
+        pointer-events: none;
+      }
+
+      .badge {
+        display: inline-block;
+        background: rgba(255, 119, 0, 0.15);
+        color: var(--accent-amber);
+        border: 1px solid rgba(255, 119, 0, 0.4);
+        padding: 0.35rem 1.2rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+      }
+
+      h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+        background: linear-gradient(135deg, #fff 30%, var(--accent-amber) 70%, var(--accent-orange) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+      }
+
+      .hero-desc {
+        max-width: 800px;
+        margin: 0 auto;
+        color: var(--text-muted);
+        font-size: 1.15rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3.5rem;
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 2rem;
+        transition: transform 0.2s, border-color 0.2s;
+      }
+
+      .card:hover {
+        transform: translateY(-3px);
+        border-color: var(--border-highlight);
+      }
+
+      .card h2 {
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .card h2 span.icon {
+        font-size: 1.5rem;
+      }
+
+      .formula-box {
+        background: #080a0f;
+        border: 1px solid #1f2738;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        margin: 1rem 0;
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 0.95rem;
+        color: var(--accent-blue);
+        overflow-x: auto;
+      }
+
+      .physics-pill {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--accent-blue);
+        border: 1px solid rgba(0, 212, 255, 0.25);
+        margin-right: 0.4rem;
+        margin-bottom: 0.4rem;
+      }
+
+      ul.feature-list {
+        list-style: none;
+        margin-top: 1rem;
+      }
+
+      ul.feature-list li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.6rem;
+        color: var(--text-muted);
+      }
+
+      ul.feature-list li::before {
+        content: "✦";
+        position: absolute;
+        left: 0;
+        color: var(--accent-orange);
+      }
+
+      footer {
+        text-align: center;
+        padding-top: 3rem;
+        border-top: 1px solid var(--border-subtle);
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="hero">
+        <div class="badge">Astrophysikalische VFX Simulation</div>
+        <h1>Showcase 22: Gargantua</h1>
+        <p class="hero-desc">
+          Hochperformante, GPU-instanziierte Echtzeit-Simulation einer Akkretionsscheibe um ein supermassives Schwarzes Loch mit relativistischer Gravitationslinsen-Verzerrung, Einstein-Ring, Doppler-Beaming und gravitativer Rotverschiebung.
+        </p>
+      </header>
+
+      <div class="grid">
+        <div class="card">
+          <h2><span class="icon">🌌</span> Gravitative Raumkrümmung</h2>
+          <span class="physics-pill">Allgemeine Relativitätstheorie</span>
+          <span class="physics-pill">Post-Processing Shader</span>
+          <p>
+            Lichtstrahlen werden im Gravitationstrichter abgelenkt. Nahe dem Schwarzschild-Radius biegen sich die Hintergrundsterne und die Rückseite der Akkretionsscheibe um das Schwarze Loch.
+          </p>
+          <div class="formula-box">
+            θ_deflection = (4 * G * M) / (c² * b)<br />
+            bending = (r_eh² / dist²) * strength
+          </div>
+          <ul class="feature-list">
+            <li><strong>Einstein-Ring:</strong> Intensiver Lichtring am Photonen-Orbit ($1.5 \times r_s$).</li>
+            <li><strong>Spaghettisierung:</strong> Radiale UV-Pixelverzerrung entlang des Fallvektors.</li>
+            <li><strong>Ereignishorizont-Schatten:</strong> Reines Schwarz bei $r \le r_{eh}$.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2><span class="icon">⚡</span> Relativistischer Doppler-Effekt</h2>
+          <span class="physics-pill">Spezielle Relativitätstheorie</span>
+          <span class="physics-pill">Beaming & Blauverschiebung</span>
+          <p>
+            Materie, die sich mit orbitalen Geschwindigkeiten nahe der Lichtgeschwindigkeit auf den Beobachter zubewegt, erscheint drastisch heller und blauverschoben; abfließende Materie wird dunkler und tiefrot.
+          </p>
+          <div class="formula-box">
+            I_obs = I_emit * (1 + (v_los / c))^3.5<br />
+            colorShift = (v_los > 0) ? BlueShift : RedShift
+          </div>
+          <ul class="feature-list">
+            <li><strong>Asymmetrische Leuchtkraft:</strong> Die entgegenkommende Flanke leuchtet extrem intensiv.</li>
+            <li><strong>Doppler-Farbverschiebung:</strong> Bläulich-weißes Glühen links, tiefes Dunkelrot rechts.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2><span class="icon">🪐</span> Plummer-Potential & Partikel-Physik</h2>
+          <span class="physics-pill">N-Body & Force Fields</span>
+          <span class="physics-pill">@small-world/vfx-extras</span>
+          <p>
+            Tausende Partikel bewegen sich in stabilen Kepler-Bahnen mit Plummer-Softening zur Vermeidung von Singularitäts-Explosionen ($r \to 0$).
+          </p>
+          <div class="formula-box">
+            Φ(r) = - (G * M) / √(r² + ε²)<br />
+            v_kepler(r) = √(G * M / r) * 0.985
+          </div>
+          <ul class="feature-list">
+            <li><strong>Planare Dämpfung:</strong> Harmonische Federkraft stabilisiert die Scheibe bei $y = 0$.</li>
+            <li><strong>Curl-Turbulenz:</strong> Stochastische Raumwirbel erzeugen realistische Gas- und Staubwolken.</li>
+            <li><strong>Fading-Zone:</strong> Glatter Alpha-Übergang vor der Absorption im Ereignishorizont.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2><span class="icon">🔥</span> Thermodynamische Planck-Strahlung</h2>
+          <span class="physics-pill">Schwarzkörperstrahlung</span>
+          <span class="physics-pill">Planckian Locus</span>
+          <p>
+            Reibung und gravitative Kompression heizen die innere Akkretionsscheibe auf über $40.000\text{ K}$ auf, während äußere Regionen thermisch in den Raum abstrahlen.
+          </p>
+          <div class="formula-box">
+            T(r) ∝ r^(-3/4)<br />
+            Color = Color.fromTemperature(kelvin)
+          </div>
+          <ul class="feature-list">
+            <li><strong>Kontinuierlicher Temperaturverlauf:</strong> Weiß-blaues Zentrum bis dunkelroter Außenrand.</li>
+            <li><strong>Analytischer Planckian Fit:</strong> Tanner-Helland-Farbraumtransformation.</li>
+          </ul>
+        </div>
+      </div>
+
+      <footer>
+        <p>Small World 3D Engine — Showcase 22 Dossier — Erstellt nach wissenschaftlichen & physikalischen Referenzen.</p>
+      </footer>
+    </div>
+  </body>
+</html>

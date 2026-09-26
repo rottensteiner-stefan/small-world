@@ -2,13 +2,9 @@ import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D, MathPool } from "../math/index.js";
 import { Collision } from "./Collision.js";
-import { BoundingSphere } from "./BoundingSphere.js";
-import { BoundingBox } from "./BoundingBox.js";
-import { OBB } from "./OBB.js";
-import { ConvexHull } from "./ConvexHull.js";
 import { EventDispatcherImpl } from "../core/events/EventDispatcherImpl.js";
 import { Collidable } from "../interfaces/index.js";
-import { BoundingType } from "../enums/index.js";
+import { StaticCollider } from "./StaticCollider.js";
 import { FluidVolume } from "./FluidVolume.js";
 import { BuoyancySolver } from "./fluids/BuoyancySolver.js";
 import { PhysicsBroadphase } from "./broadphase/PhysicsBroadphase.js";
@@ -45,9 +41,53 @@ export class PhysicsSystem {
 
   private _broadphase = new PhysicsBroadphase();
   private _ccd = new SweptSphereCCD();
-  private _bodyIndex = new Map<Object3D, number>();
   private _broadphaseQueryHits: Collidable[] = [];
   private _warnedObjects = new Set<Object3D>();
+
+  private _pairPool: { first: Collidable; second: Collidable; idA: number; idB: number }[] = [];
+  private _activePairs: { first: Collidable; second: Collidable; idA: number; idB: number }[] = [];
+  private _seenPairKeys = new Set<number>();
+  private _collidableIdMap = new WeakMap<Collidable, number>();
+  private _nextInternalId: number = 100000000;
+
+  /**
+   * Returns a stable integer ID for any Collidable object.
+   * Uses `collider.id` if defined, or assigns a stable internal ID.
+   */
+  public getColliderId(collider: Collidable): number {
+    if (collider.id !== undefined) return collider.id;
+    let id = this._collidableIdMap.get(collider);
+    if (id === undefined) {
+      id = this._nextInternalId++;
+      this._collidableIdMap.set(collider, id);
+    }
+    return id;
+  }
+
+  private _acquirePair(
+    first: Collidable,
+    second: Collidable,
+    idA: number,
+    idB: number,
+  ): { first: Collidable; second: Collidable; idA: number; idB: number } {
+    const pair = this._pairPool.pop();
+    if (pair) {
+      pair.first = first;
+      pair.second = second;
+      pair.idA = idA;
+      pair.idB = idB;
+      return pair;
+    }
+    return { first, second, idA, idB };
+  }
+
+  private _releasePairs(): void {
+    for (let i = 0; i < this._activePairs.length; i++) {
+      this._pairPool.push(this._activePairs[i]!);
+    }
+    this._activePairs.length = 0;
+    this._seenPairKeys.clear();
+  }
 
   /**
    * Creates a new PhysicsSystem.
@@ -117,6 +157,9 @@ export class PhysicsSystem {
         allColliders.push(c);
       }
     }
+
+    // Sort dynamic bodies deterministically by ID to ensure order-independent integration & CCD
+    bodies.sort((a, b) => this.getColliderId(a) - this.getColliderId(b));
 
     let subSteps = 0;
     while (this._accumulator >= this.fixedTimeStep && subSteps < this.maxSubSteps) {
@@ -195,217 +238,194 @@ export class PhysicsSystem {
       this._ccd.resolve(this._broadphase);
     }
 
-    this._bodyIndex.clear();
-    for (let i = 0; i < bodies.length; i++) {
-      this._bodyIndex.set(bodies[i]!, i);
-    }
-
-    const result = MathPool.acquireVector();
-    const rv = MathPool.acquireVector();
+    this._releasePairs();
 
     for (let i = 0; i < bodies.length; i++) {
       const dynObj = bodies[i]!;
-      const rbA = dynObj.rigidBody!;
       if (!dynObj.bounds) continue;
 
       this._broadphaseQueryHits.length = 0;
       this._broadphase.queryVolume(dynObj.bounds, this._broadphaseQueryHits);
 
+      const idDyn = this.getColliderId(dynObj);
+
       for (let j = 0; j < this._broadphaseQueryHits.length; j++) {
         const otherObj = this._broadphaseQueryHits[j]!;
-        if (dynObj === otherObj) continue;
+        if (dynObj === otherObj || !otherObj.bounds) continue;
 
-        const otherAsBody: Object3D | undefined =
-          otherObj instanceof Object3D ? otherObj : undefined;
+        const idOther = this.getColliderId(otherObj);
+        if (idDyn === idOther) continue;
 
-        const otherIdx = otherAsBody ? this._bodyIndex.get(otherAsBody) : undefined;
-        if (otherIdx !== undefined && otherIdx <= i) continue;
+        const idA = idDyn < idOther ? idDyn : idOther;
+        const idB = idDyn < idOther ? idOther : idDyn;
+        const first = idDyn < idOther ? dynObj : otherObj;
+        const second = idDyn < idOther ? otherObj : dynObj;
 
-        const boundsA = dynObj.bounds;
-        const boundsB = otherObj.bounds!;
+        // 64-bit pair key: zero allocations, bit-exact pairing up to 4 billion entities
+        const pairKey = idA * 4294967296 + idB;
+        if (this._seenPairKeys.has(pairKey)) continue;
+        this._seenPairKeys.add(pairKey);
 
-        let collisionFound = false;
+        this._activePairs.push(this._acquirePair(first, second, idA, idB));
+      }
+    }
 
-        if (BoundingType.SPHERE === boundsA.type && BoundingType.SPHERE === boundsB.type) {
-          collisionFound = Collision.resolveSphereSphere(
-            boundsA as BoundingSphere,
-            boundsB as BoundingSphere,
-            result,
-          );
-        } else if (BoundingType.SPHERE === boundsA.type && BoundingType.BOX === boundsB.type) {
-          collisionFound = Collision.resolveSphereBox(
-            boundsA as BoundingSphere,
-            boundsB as BoundingBox,
-            result,
-          );
-        } else if (BoundingType.BOX === boundsA.type && BoundingType.SPHERE === boundsB.type) {
-          collisionFound = Collision.resolveSphereBox(
-            boundsB as BoundingSphere,
-            boundsA as BoundingBox,
-            result,
-          );
-          if (collisionFound) result.scale(-1);
-        } else if (BoundingType.BOX === boundsA.type && BoundingType.BOX === boundsB.type) {
-          collisionFound = Collision.resolveBoxBox(
-            boundsA as BoundingBox,
-            boundsB as BoundingBox,
-            result,
-          );
-        } else if (BoundingType.SPHERE === boundsA.type && BoundingType.OBB === boundsB.type) {
-          collisionFound = Collision.resolveSphereObb(
-            boundsA as BoundingSphere,
-            boundsB as unknown as OBB,
-            result,
-          );
-        } else if (BoundingType.OBB === boundsA.type && BoundingType.SPHERE === boundsB.type) {
-          collisionFound = Collision.resolveSphereObb(
-            boundsB as BoundingSphere,
-            boundsA as unknown as OBB,
-            result,
-          );
-          if (collisionFound) result.scale(-1);
-        } else if (BoundingType.BOX === boundsA.type && BoundingType.OBB === boundsB.type) {
-          collisionFound = Collision.resolveBoxObb(
-            boundsA as BoundingBox,
-            boundsB as unknown as OBB,
-            result,
-          );
-        } else if (BoundingType.OBB === boundsA.type && BoundingType.BOX === boundsB.type) {
-          collisionFound = Collision.resolveBoxObb(
-            boundsB as BoundingBox,
-            boundsA as unknown as OBB,
-            result,
-          );
-          if (collisionFound) result.scale(-1);
-        } else if (BoundingType.OBB === boundsA.type && BoundingType.OBB === boundsB.type) {
-          collisionFound = Collision.resolveObbObb(
-            boundsA as unknown as OBB,
-            boundsB as unknown as OBB,
-            result,
-          );
-        } else if (BoundingType.HULL === boundsA.type && BoundingType.HULL === boundsB.type) {
-          collisionFound = Collision.resolveHullHull(
-            boundsA as ConvexHull,
-            boundsB as ConvexHull,
-            result,
-          );
-        } else if (BoundingType.HULL === boundsA.type && BoundingType.SPHERE === boundsB.type) {
-          collisionFound = Collision.resolveHullSphere(
-            boundsA as ConvexHull,
-            boundsB as BoundingSphere,
-            result,
-          );
-        } else if (BoundingType.SPHERE === boundsA.type && BoundingType.HULL === boundsB.type) {
-          collisionFound = Collision.resolveHullSphere(
-            boundsB as ConvexHull,
-            boundsA as BoundingSphere,
-            result,
-          );
-          if (collisionFound) result.scale(-1);
-        } else if (BoundingType.HULL === boundsA.type && BoundingType.BOX === boundsB.type) {
-          collisionFound = Collision.resolveHullBox(
-            boundsA as ConvexHull,
-            boundsB as BoundingBox,
-            result,
-          );
-        } else if (BoundingType.BOX === boundsA.type && BoundingType.HULL === boundsB.type) {
-          collisionFound = Collision.resolveHullBox(
-            boundsB as ConvexHull,
-            boundsA as BoundingBox,
-            result,
-          );
-          if (collisionFound) result.scale(-1);
-        } else if (BoundingType.HULL === boundsA.type && BoundingType.OBB === boundsB.type) {
-          collisionFound = Collision.resolveHullObb(
-            boundsA as ConvexHull,
-            boundsB as unknown as OBB,
-            result,
-          );
-        } else if (BoundingType.OBB === boundsA.type && BoundingType.HULL === boundsB.type) {
-          collisionFound = Collision.resolveHullObb(
-            boundsB as ConvexHull,
-            boundsA as unknown as OBB,
-            result,
-          );
-          if (collisionFound) result.scale(-1);
-        }
+    // Deterministic canonical sorting by (idA, idB)
+    this._activePairs.sort((p1, p2) => (p1.idA !== p2.idA ? p1.idA - p2.idA : p1.idB - p2.idB));
 
-        if (collisionFound) {
-          const depth = result.length();
-          if (depth > 0) {
-            const normal = result.scale(1.0 / depth);
-            const rbB = otherAsBody?.rigidBody;
-            const invMassA = rbA.inverseMass;
-            const invMassB = rbB ? rbB.inverseMass : 0;
-            const totalInvMass = invMassA + invMassB;
+    const result = MathPool.acquireVector();
+    const rv = MathPool.acquireVector();
+    const zeroVel = MathPool.acquireVector().set(0, 0, 0);
 
-            if (rbA.isSensor || (rbB && rbB.isSensor)) {
-              this.events.dispatchEvent("physics:collision", {
-                objectA: dynObj,
-                objectB: otherObj,
-                normal: normal,
-                depth: depth,
-                impulse: 0,
-              });
-              continue;
+    for (let i = 0; i < this._activePairs.length; i++) {
+      const pair = this._activePairs[i]!;
+      const first = pair.first;
+      const second = pair.second;
+
+      const firstObj = first instanceof Object3D ? first : undefined;
+      const secondObj = second instanceof Object3D ? second : undefined;
+
+      const rbA = firstObj?.rigidBody;
+      const rbB = secondObj?.rigidBody;
+
+      const invMassA = rbA && rbA.inverseMass > 0 ? rbA.inverseMass : 0;
+      const invMassB = rbB && rbB.inverseMass > 0 ? rbB.inverseMass : 0;
+      const totalInvMass = invMassA + invMassB;
+
+      // Skip static-static collisions
+      if (totalInvMass <= 0) continue;
+
+      const collisionFound = Collision.resolve(first.bounds!, second.bounds!, result);
+
+      if (collisionFound) {
+        const depth = result.length();
+        if (depth > 0) {
+          const normal = result.scale(1.0 / depth);
+
+          if ((rbA && rbA.isSensor) || (rbB && rbB.isSensor)) {
+            this.events.dispatchEvent("physics:collision", {
+              objectA: (firstObj ?? secondObj)!,
+              objectB: firstObj ? second : first,
+              normal: normal,
+              depth: depth,
+              impulse: 0,
+            });
+            continue;
+          }
+
+          const correction = depth / totalInvMass;
+
+          if (invMassA > 0 && firstObj) {
+            const posCorrA = MathPool.acquireVector()
+              .copyFrom(normal)
+              .scale(correction * invMassA);
+            firstObj.position.add(posCorrA);
+            firstObj.updateMatrixWorld();
+            MathPool.releaseVector(posCorrA);
+          }
+
+          if (invMassB > 0 && secondObj) {
+            const posCorrB = MathPool.acquireVector()
+              .copyFrom(normal)
+              .scale(-correction * invMassB);
+            secondObj.position.add(posCorrB);
+            secondObj.updateMatrixWorld();
+            MathPool.releaseVector(posCorrB);
+          }
+
+          const velA = rbA && invMassA > 0 ? rbA.velocity : zeroVel;
+          const velB = rbB && invMassB > 0 ? rbB.velocity : zeroVel;
+
+          rv.copyFrom(velA).sub(velB);
+          const velAlongNormal = rv.dot(normal);
+
+          if (velAlongNormal < 0) {
+            const restA = rbA
+              ? rbA.restitution
+              : first instanceof StaticCollider
+                ? first.restitution
+                : 0.2;
+            const restB = rbB
+              ? rbB.restitution
+              : second instanceof StaticCollider
+                ? second.restitution
+                : 0.2;
+            const e = velAlongNormal > -0.5 ? 0 : Math.min(restA, restB);
+            let jMag = -(1 + e) * velAlongNormal;
+            jMag /= totalInvMass;
+
+            const impulse = MathPool.acquireVector().copyFrom(normal).scale(jMag);
+            if (invMassA > 0 && rbA) {
+              rbA.applyImpulse(impulse);
+            }
+            if (invMassB > 0 && rbB) {
+              impulse.scale(-1);
+              rbB.applyImpulse(impulse);
+            }
+            MathPool.releaseVector(impulse);
+
+            // 2. Coulomb Contact Friction (tangential grip & dynamic sliding resistance)
+            const curVelA = rbA && invMassA > 0 ? rbA.velocity : zeroVel;
+            const curVelB = rbB && invMassB > 0 ? rbB.velocity : zeroVel;
+            rv.copyFrom(curVelA).sub(curVelB);
+
+            const vNormal = rv.dot(normal);
+            const vt = MathPool.acquireVector().copyFrom(normal).scale(vNormal);
+            const relTangent = MathPool.acquireVector().copyFrom(rv).sub(vt);
+            const vtSpeed = relTangent.length();
+
+            if (vtSpeed > 1e-4) {
+              const frictA = rbA
+                ? rbA.friction
+                : first instanceof StaticCollider
+                  ? first.friction
+                  : 0.5;
+              const frictB = rbB
+                ? rbB.friction
+                : second instanceof StaticCollider
+                  ? second.friction
+                  : 0.5;
+              const mu = Math.sqrt(Math.max(0, frictA) * Math.max(0, frictB));
+
+              // Max tangential friction impulse allowed by Coulomb cone
+              const maxFrictionImpulse = mu * jMag;
+              // Ideal impulse to stop tangential sliding
+              const idealFrictionImpulse = vtSpeed / totalInvMass;
+              const jFriction = Math.min(idealFrictionImpulse, maxFrictionImpulse);
+
+              // Friction opposes relative tangential velocity
+              const impulseT = MathPool.acquireVector()
+                .copyFrom(relTangent)
+                .scale(-jFriction / vtSpeed);
+              if (invMassA > 0 && rbA) {
+                rbA.applyImpulse(impulseT);
+              }
+              if (invMassB > 0 && rbB) {
+                impulseT.scale(-1);
+                rbB.applyImpulse(impulseT);
+              }
+              MathPool.releaseVector(impulseT);
             }
 
-            if (totalInvMass > 0) {
-              const correction = depth / totalInvMass;
+            MathPool.releaseVector(vt);
+            MathPool.releaseVector(relTangent);
 
-              const posCorrA = MathPool.acquireVector()
-                .copyFrom(normal)
-                .scale(correction * invMassA);
-              dynObj.position.add(posCorrA);
-              MathPool.releaseVector(posCorrA);
-
-              if (rbB && otherAsBody) {
-                const posCorrB = MathPool.acquireVector()
-                  .copyFrom(normal)
-                  .scale(-correction * invMassB);
-                otherAsBody.position.add(posCorrB);
-                MathPool.releaseVector(posCorrB);
-              }
-
-              dynObj.updateMatrixWorld();
-              if (rbB && otherAsBody) otherAsBody.updateMatrixWorld();
-
-              const velA = rbA.velocity;
-              const velB = rbB ? rbB.velocity : MathPool.acquireVector().set(0, 0, 0);
-
-              rv.copyFrom(velA).sub(velB);
-              const velAlongNormal = rv.dot(normal);
-
-              if (velAlongNormal < 0) {
-                const restA = rbA ? rbA.restitution : 0.2;
-                const restB = rbB ? rbB.restitution : 0.2;
-                const e = velAlongNormal > -0.5 ? 0 : Math.min(restA, restB);
-                let jMag = -(1 + e) * velAlongNormal;
-                jMag /= totalInvMass;
-
-                const impulse = MathPool.acquireVector().copyFrom(normal).scale(jMag);
-                rbA.applyImpulse(impulse);
-                if (rbB) {
-                  impulse.scale(-1);
-                  rbB.applyImpulse(impulse);
-                }
-                MathPool.releaseVector(impulse);
-
-                this._collisionEvent.objectA = dynObj;
-                this._collisionEvent.objectB = otherObj;
-                this._collisionEvent.impulse = jMag;
-                this.events.dispatchEvent("physics:collision", this._collisionEvent);
-              }
-
-              if (!rbB) {
-                MathPool.releaseVector(velB);
-              }
-            }
+            this._collisionEvent.objectA = (firstObj ?? secondObj)!;
+            this._collisionEvent.objectB = firstObj ? second : first;
+            this._collisionEvent.impulse = jMag;
+            this.events.dispatchEvent("physics:collision", {
+              objectA: (firstObj ?? secondObj)!,
+              objectB: firstObj ? second : first,
+              normal: normal,
+              depth: depth,
+              impulse: jMag,
+            });
           }
         }
       }
     }
 
+    MathPool.releaseVector(zeroVel);
     MathPool.releaseVector(result);
     MathPool.releaseVector(rv);
   }

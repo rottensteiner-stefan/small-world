@@ -10,7 +10,8 @@ describe("RigidBody", () => {
     expect(rb.inertia).toBe(1.0);
     expect(rb.inverseInertia).toBe(1.0);
     expect(rb.restitution).toBe(0.2);
-    expect(rb.friction).toBe(0.98);
+    expect(rb.friction).toBe(0.5);
+    expect(rb.linearDamping).toBe(1.0);
     expect(rb.angularDamping).toBe(0.98);
     expect(rb.velocity.lengthSq()).toBe(0);
     expect(rb.acceleration.lengthSq()).toBe(0);

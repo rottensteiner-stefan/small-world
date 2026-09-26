@@ -8,6 +8,7 @@ describe("EulerIntegrator", () => {
   it("integrates linear motion under gravity and external forces", () => {
     const obj = new Object3D("FallingApple");
     obj.rigidBody = new RigidBody(1.0); // 1kg
+    obj.rigidBody.linearDamping = 0.98;
     const gravity = new Vector3D(0, -10, 0);
     const deltaP = new Vector3D();
 

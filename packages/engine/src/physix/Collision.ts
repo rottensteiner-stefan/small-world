@@ -125,6 +125,78 @@ export class Collision {
   }
 
   /**
+   * Resolves collision between two bounding volumes, computing the minimum translation vector (MTV)
+   * stored in `result` pointing in the direction to push volume `a` out of volume `b`.
+   * @param a The first bounding volume.
+   * @param b The second bounding volume.
+   * @param result Out vector storing the correction to push `a` away from `b`.
+   * @returns True if the volumes are intersecting and MTV was computed, false otherwise.
+   */
+  public static resolve(a: BoundingVolume, b: BoundingVolume, result: Vector3D): boolean {
+    if (BoundingType.SPHERE === a.type && BoundingType.SPHERE === b.type) {
+      return this.resolveSphereSphere(a as BoundingSphere, b as BoundingSphere, result);
+    }
+    if (BoundingType.SPHERE === a.type && BoundingType.BOX === b.type) {
+      return this.resolveSphereBox(a as BoundingSphere, b as BoundingBox, result);
+    }
+    if (BoundingType.BOX === a.type && BoundingType.SPHERE === b.type) {
+      const hit = this.resolveSphereBox(b as BoundingSphere, a as BoundingBox, result);
+      if (hit) result.scale(-1);
+      return hit;
+    }
+    if (BoundingType.BOX === a.type && BoundingType.BOX === b.type) {
+      return this.resolveBoxBox(a as BoundingBox, b as BoundingBox, result);
+    }
+    if (BoundingType.SPHERE === a.type && BoundingType.OBB === b.type) {
+      return this.resolveSphereObb(a as BoundingSphere, b as unknown as OBB, result);
+    }
+    if (BoundingType.OBB === a.type && BoundingType.SPHERE === b.type) {
+      const hit = this.resolveSphereObb(b as BoundingSphere, a as unknown as OBB, result);
+      if (hit) result.scale(-1);
+      return hit;
+    }
+    if (BoundingType.BOX === a.type && BoundingType.OBB === b.type) {
+      return this.resolveBoxObb(a as BoundingBox, b as unknown as OBB, result);
+    }
+    if (BoundingType.OBB === a.type && BoundingType.BOX === b.type) {
+      const hit = this.resolveBoxObb(b as BoundingBox, a as unknown as OBB, result);
+      if (hit) result.scale(-1);
+      return hit;
+    }
+    if (BoundingType.OBB === a.type && BoundingType.OBB === b.type) {
+      return this.resolveObbObb(a as unknown as OBB, b as unknown as OBB, result);
+    }
+    if (BoundingType.HULL === a.type && BoundingType.HULL === b.type) {
+      return this.resolveHullHull(a as ConvexHull, b as ConvexHull, result);
+    }
+    if (BoundingType.HULL === a.type && BoundingType.SPHERE === b.type) {
+      return this.resolveHullSphere(a as ConvexHull, b as BoundingSphere, result);
+    }
+    if (BoundingType.SPHERE === a.type && BoundingType.HULL === b.type) {
+      const hit = this.resolveHullSphere(b as ConvexHull, a as BoundingSphere, result);
+      if (hit) result.scale(-1);
+      return hit;
+    }
+    if (BoundingType.HULL === a.type && BoundingType.BOX === b.type) {
+      return this.resolveHullBox(a as ConvexHull, b as BoundingBox, result);
+    }
+    if (BoundingType.BOX === a.type && BoundingType.HULL === b.type) {
+      const hit = this.resolveHullBox(b as ConvexHull, a as BoundingBox, result);
+      if (hit) result.scale(-1);
+      return hit;
+    }
+    if (BoundingType.HULL === a.type && BoundingType.OBB === b.type) {
+      return this.resolveHullObb(a as ConvexHull, b as unknown as OBB, result);
+    }
+    if (BoundingType.OBB === a.type && BoundingType.HULL === b.type) {
+      const hit = this.resolveHullObb(b as ConvexHull, a as unknown as OBB, result);
+      if (hit) result.scale(-1);
+      return hit;
+    }
+    return false;
+  }
+
+  /**
    * Resolves collision between a sphere and a box, returning a correction vector.
    * @param s The sphere (e.g. Camera).
    * @param b The box (e.g. Wall).

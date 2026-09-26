@@ -206,5 +206,29 @@ export class PostProcessingGroup {
           trail.feedback = effects.motionTrail.feedback;
       }
     }
+
+    if (effects.gravitationalLensing) {
+      const lensing = this.get<GravitationalLensingElement>(
+        PostProcessingEffectType.GRAVITATIONAL_LENSING,
+      );
+      if (lensing) {
+        const gl = effects.gravitationalLensing;
+        if (gl.enabled !== undefined) lensing.enabled = gl.enabled;
+        if (gl.eventHorizonRadius !== undefined) lensing.eventHorizonRadius = gl.eventHorizonRadius;
+        if (gl.strength !== undefined) lensing.strength = gl.strength;
+        if (gl.spaghettification !== undefined) lensing.spaghettification = gl.spaghettification;
+        if (gl.relativisticBeaming !== undefined)
+          lensing.relativisticBeaming = gl.relativisticBeaming;
+        if (gl.ringGlowIntensity !== undefined) lensing.ringGlowIntensity = gl.ringGlowIntensity;
+        if (gl.singularityScreenPos !== undefined) {
+          const p = gl.singularityScreenPos;
+          if (Array.isArray(p)) {
+            lensing.singularityScreenPos.set(p[0], p[1], p[2]);
+          } else if (typeof p === "object" && p !== null) {
+            lensing.singularityScreenPos.set(p.x, p.y, p.z);
+          }
+        }
+      }
+    }
   }
 }

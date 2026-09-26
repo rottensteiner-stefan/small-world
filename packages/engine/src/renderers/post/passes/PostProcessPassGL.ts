@@ -41,6 +41,11 @@ export class PostProcessPassGL {
   private _uOutlineSensitivity: WebGLUniformLocation | null = null;
   private _uOutlineColor: WebGLUniformLocation | null = null;
   private _uSingularityScreenPos: WebGLUniformLocation | null = null;
+  private _uLensingEventHorizon: WebGLUniformLocation | null = null;
+  private _uLensingStrength: WebGLUniformLocation | null = null;
+  private _uLensingSpaghetti: WebGLUniformLocation | null = null;
+  private _uLensingBeaming: WebGLUniformLocation | null = null;
+  private _uLensingRingGlow: WebGLUniformLocation | null = null;
 
   private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
@@ -216,6 +221,11 @@ export class PostProcessPassGL {
     this._uOutlineSensitivity = gl.getUniformLocation(p, "u_outlineSensitivity");
     this._uOutlineColor = gl.getUniformLocation(p, "u_outlineColor");
     this._uSingularityScreenPos = gl.getUniformLocation(p, "u_singularityScreenPos");
+    this._uLensingEventHorizon = gl.getUniformLocation(p, "u_lensingEventHorizon");
+    this._uLensingStrength = gl.getUniformLocation(p, "u_lensingStrength");
+    this._uLensingSpaghetti = gl.getUniformLocation(p, "u_lensingSpaghetti");
+    this._uLensingBeaming = gl.getUniformLocation(p, "u_lensingBeaming");
+    this._uLensingRingGlow = gl.getUniformLocation(p, "u_lensingRingGlow");
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
@@ -334,13 +344,27 @@ export class PostProcessPassGL {
         gl.uniform3f(this._uOutlineColor, outline.color.r, outline.color.g, outline.color.b);
       else gl.uniform3f(this._uOutlineColor, 0.0, 0.0, 0.0);
     }
+    const lensing = group.get<import("../index.js").GravitationalLensingElement>(
+      PostProcessingEffectType.GRAVITATIONAL_LENSING,
+    );
     if (this._uSingularityScreenPos) {
-      gl.uniform3f(
-        this._uSingularityScreenPos,
-        group.singularityScreenPos.x,
-        group.singularityScreenPos.y,
-        group.singularityScreenPos.z,
-      );
+      const pos = lensing ? lensing.singularityScreenPos : group.singularityScreenPos;
+      gl.uniform3f(this._uSingularityScreenPos, pos.x, pos.y, pos.z);
+    }
+    if (this._uLensingEventHorizon) {
+      gl.uniform1f(this._uLensingEventHorizon, lensing ? lensing.eventHorizonRadius : 0.03);
+    }
+    if (this._uLensingStrength) {
+      gl.uniform1f(this._uLensingStrength, lensing ? lensing.strength : 0.25);
+    }
+    if (this._uLensingSpaghetti) {
+      gl.uniform1f(this._uLensingSpaghetti, lensing ? lensing.spaghettification : 0.15);
+    }
+    if (this._uLensingBeaming) {
+      gl.uniform1f(this._uLensingBeaming, lensing ? lensing.relativisticBeaming : 1.2);
+    }
+    if (this._uLensingRingGlow) {
+      gl.uniform1f(this._uLensingRingGlow, lensing ? lensing.ringGlowIntensity : 2.5);
     }
 
     // Blit to the default (canvas) framebuffer

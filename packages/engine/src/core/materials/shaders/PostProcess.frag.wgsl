@@ -29,7 +29,8 @@ struct DynUniforms {
     grading0: vec4f, // [contrast, saturation, temperature, tint]
     grading1: vec4f, // [liftR, liftG, liftB, gammaR]
     grading2: vec4f, // [gammaG, gammaB, gainR, gainG]
-    singularityPos: vec4f, // [screenPosX, screenPosY, screenPosZ, unused]
+    singularityPos: vec4f, // [screenPosX, screenPosY, screenPosZ, eventHorizonRadius]
+    lensingParams: vec4f, // [strength, spaghettification, relativisticBeaming, ringGlowIntensity]
 }
 @group(0) @binding(2) var<uniform> dyn: DynUniforms;
 
@@ -130,18 +131,23 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
             var dir = uv - center;
             dir.x *= aspect; // Make circle instead of ellipse
             let dist = length(dir);
-            let eh = 0.03; // Event Horizon screen radius
+            let eh = select(0.03, dyn.singularityPos.w, dyn.singularityPos.w > 0.0);
+            let strength = select(0.25, dyn.lensingParams.x, dyn.lensingParams.x > 0.0);
+            let spaghettiFactor = select(0.15, dyn.lensingParams.y, dyn.lensingParams.y >= 0.0);
+            let beamingFactor = select(1.2, dyn.lensingParams.z, dyn.lensingParams.z > 0.0);
+            let ringGlowMult = select(2.5, dyn.lensingParams.w, dyn.lensingParams.w >= 0.0);
+
             if (dist > eh) {
                 let bending = (eh * eh) / (dist * dist);
                 var disp = dir / dist; // normalized
                 disp.x /= aspect; // back to uv space
 
                 // Spaghettisation: geometric radial stretching along the gravitational gradient near horizon
-                let spaghetti = pow(eh / dist, 3.0) * 0.15;
-                distortUv = uv - (disp * (bending * 0.25 + spaghetti));
+                let spaghetti = pow(eh / dist, 3.0) * spaghettiFactor;
+                distortUv = uv - (disp * (bending * strength + spaghetti));
 
                 // Relativistic Beaming / Doppler effect (approaching left side boosted, receding right side dimmed)
-                let dopplerFactor = -disp.x * aspect * 1.2;
+                let dopplerFactor = -disp.x * aspect * beamingFactor;
                 beaming = clamp(1.0 + dopplerFactor, 0.2, 3.0);
 
                 // Relativistic Doppler Color Shift (Blueshift on approaching side, redshift on receding side)
@@ -154,7 +160,7 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
                 // Einstein-Ring Glow directly along the photon sphere boundary
                 if (dist < eh + 0.015) {
                     let glowFactor = smoothstep(eh + 0.015, eh, dist);
-                    ringGlow = pow(glowFactor, 3.0) * 2.5 * beaming;
+                    ringGlow = pow(glowFactor, 3.0) * ringGlowMult * beaming;
                 }
             } else {
                 distortUv = vec2f(-1.0);

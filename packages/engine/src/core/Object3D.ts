@@ -11,6 +11,8 @@ import { shallowCloneWithValueTypes } from "./CloneUtils.js";
  * WebGPU HZB occlusion culling (i.e. every object on WebGL1/WebGL2) don't carry the field. */
 const occlusionCulledMap = new WeakMap<Object3D, boolean>();
 
+let _nextObjectId = 1;
+
 /**
  * Base class for all 3D objects in the scene.
  */
@@ -29,6 +31,16 @@ export class Object3D implements Collidable {
     receiveShadow: { type: "boolean", label: "Recv Shadow", row: "shadows" },
   };
 
+  /** Resets the global object ID generator (useful for deterministic tests). */
+  public static resetNextId(): void {
+    _nextObjectId = 1;
+  }
+
+  public static _getNextId(): number {
+    return _nextObjectId++;
+  }
+
+  public id: number = _nextObjectId++;
   public readonly uuid: string = MathUtils.generateUUID();
   public name: string = "";
   /** Optional app-defined category tag, for typed identification instead of matching on `name`. */
@@ -352,6 +364,7 @@ export class Object3D implements Collidable {
    */
   public clone(): Object3D {
     const copy = shallowCloneWithValueTypes(this);
+    copy.id = Object3D._getNextId();
     copy.parent = undefined;
     copy.bounds = undefined;
     delete copy.rigidBody;

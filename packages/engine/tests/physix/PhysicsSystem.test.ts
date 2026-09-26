@@ -72,20 +72,19 @@ describe("PhysicsSystem", () => {
     expect(obj.position.y).toBe(-2.5);
   });
 
-  it("should apply linear friction", () => {
+  it("should apply linear damping", () => {
     const obj = new Object3D();
     const rb = new RigidBody(1.0);
-    rb.friction = 0.5;
+    rb.linearDamping = 0.5;
     obj.rigidBody = rb;
     scene.add(obj);
 
     rb.velocity.set(10, 0, 0);
 
     system.fixedTimeStep = 1.0;
-    system.fixedTimeStep = 1.0;
     system.step(scene, 1.0);
 
-    // After friction, velocity should be 10 * 0.5 = 5
+    // After linear damping, velocity should be 10 * 0.5 = 5
     expect(rb.velocity.x).toBe(5);
     // position = p + v * dt = 0 + 5 * 1 = 5
     expect(obj.position.x).toBe(5);
@@ -197,7 +196,7 @@ describe("PhysicsSystem", () => {
     system.step(scene, 1.0);
 
     expect(Number.isNaN(obj.position.x)).toBe(false);
-    expect(obj.position.x).toBeCloseTo(1e10 * 0.98, -8);
+    expect(obj.position.x).toBeCloseTo(1e10, -8);
   });
 
   it("should resolve Sphere-Sphere collisions (push apart and bounce)", async () => {

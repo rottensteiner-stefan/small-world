@@ -5,7 +5,12 @@ import { VortexAffector } from "../src/affectors/VortexAffector.js";
 import { PlanarSpringAffector } from "../src/affectors/PlanarSpringAffector.js";
 import { ThermalCoolingAffector } from "../src/affectors/ThermalCoolingAffector.js";
 import { FadeOutZoneAffector } from "../src/affectors/FadeOutZoneAffector.js";
-import { Vector3D } from "@small-world/engine";
+import { TurbulenceAffector } from "../src/affectors/TurbulenceAffector.js";
+import { DragAffector } from "../src/affectors/DragAffector.js";
+import { ColorOverLifeAffector } from "../src/affectors/ColorOverLifeAffector.js";
+import { SizeOverLifeAffector } from "../src/affectors/SizeOverLifeAffector.js";
+import { BouncePlaneAffector } from "../src/affectors/BouncePlaneAffector.js";
+import { Vector3D, Color } from "@small-world/engine";
 
 describe("Affectors", () => {
   it("PointAttractorAffector pulls particles towards center", () => {
@@ -87,5 +92,69 @@ describe("Affectors", () => {
     fade.apply(pSwallowed, 0.1);
     expect(pSwallowed.alpha).toBe(0);
     expect(pSwallowed.dead).toBe(true);
+  });
+
+  it("TurbulenceAffector applies pseudo-fluid rotational curl forces", () => {
+    const turb = new TurbulenceAffector({ strength: 10.0, frequency: 0.5 });
+    const p = new Particle({ position: new Vector3D(1, 2, 3) });
+
+    turb.apply(p, 0.016);
+
+    const accLen = p.acceleration.length();
+    expect(accLen).toBeGreaterThan(0);
+  });
+
+  it("DragAffector decelerates particles opposing velocity direction", () => {
+    const drag = new DragAffector({ drag: 2.0, quadraticDrag: 0.1 });
+    const p = new Particle({ velocity: new Vector3D(10, -5, 2) });
+
+    drag.apply(p, 0.016);
+
+    // Accelerations should oppose velocities
+    expect(p.acceleration.x).toBeLessThan(0);
+    expect(p.acceleration.y).toBeGreaterThan(0);
+    expect(p.acceleration.z).toBeLessThan(0);
+  });
+
+  it("ColorOverLifeAffector and SizeOverLifeAffector animate properties across particle lifetime", () => {
+    const colorAffector = new ColorOverLifeAffector({
+      startColor: new Color(1, 0, 0, 1),
+      endColor: new Color(0, 0, 1, 0),
+    });
+    const sizeAffector = new SizeOverLifeAffector({
+      startScale: 1.0,
+      endScale: 0.2,
+    });
+
+    const p = new Particle({ life: 0.5, maxLife: 1.0 }); // 50% lifetime
+    colorAffector.apply(p, 0.016);
+    sizeAffector.apply(p, 0.016);
+
+    expect(p.color.r).toBeCloseTo(0.5);
+    expect(p.color.b).toBeCloseTo(0.5);
+    expect(p.alpha).toBeCloseTo(0.5);
+    expect(p.size).toBeCloseTo(0.6);
+  });
+
+  it("BouncePlaneAffector reflects velocity on floor contact with restitution and friction", () => {
+    const bounce = new BouncePlaneAffector({
+      planePosition: 0,
+      axis: "y",
+      restitution: 0.5,
+      friction: 0.8,
+    });
+
+    // Particle falling below plane
+    const p = new Particle({
+      position: new Vector3D(5, -0.1, 5),
+      velocity: new Vector3D(10, -20, 10),
+    });
+
+    bounce.apply(p, 0.016);
+
+    expect(p.position.y).toBe(0);
+    expect(p.velocity.y).toBeCloseTo(10); // -(-20) * 0.5
+    expect(p.velocity.x).toBeCloseTo(8); // 10 * 0.8
+    expect(p.velocity.z).toBeCloseTo(8);
   });
 });

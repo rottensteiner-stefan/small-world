@@ -42,8 +42,8 @@ export class EulerIntegrator {
     rb.velocity.y += rb.acceleration.y * dt;
     rb.velocity.z += rb.acceleration.z * dt;
 
-    // Apply friction and fluid damping
-    const damping = rb.friction * fluidLinearDrag;
+    // Apply linear and fluid damping
+    const damping = rb.linearDamping * fluidLinearDrag;
     rb.velocity.x *= damping;
     rb.velocity.y *= damping;
     rb.velocity.z *= damping;

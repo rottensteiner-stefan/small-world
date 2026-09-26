@@ -62,4 +62,39 @@ describe("Octree", () => {
     const result = octree.insert(obj);
     expect(result).toBe(false);
   });
+
+  it("removes inserted objects and dynamically collapses subdivisions", () => {
+    const octree = new Octree(
+      new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 10, 10)),
+      { maxObjects: 2, maxDepth: 2 },
+    );
+
+    const objects: Object3D[] = [];
+    for (let i = 0; i < 5; i++) {
+      const obj = new Object3D(`Obj_${i}`);
+      obj.geometry = new Cube({ size: 0.5 }).getGeometryData();
+      obj.position.set(i - 2, 0, 0);
+      obj.updateMatrixWorld();
+      obj.computeBounds();
+      octree.insert(obj);
+      objects.push(obj);
+    }
+
+    // Node must have subdivided
+    expect(octree.root.children.length).toBe(8);
+
+    // Remove 4 objects
+    for (let i = 0; i < 4; i++) {
+      const removed = octree.remove(objects[i]!);
+      expect(removed).toBe(true);
+    }
+
+    // After removing enough objects, child nodes collapse back to parent
+    expect(octree.root.children.length).toBe(0);
+    expect(octree.root.objects).toContain(objects[4]);
+
+    // Removing non-existent object returns false
+    const nonExistent = new Object3D("Ghost");
+    expect(octree.remove(nonExistent)).toBe(false);
+  });
 });

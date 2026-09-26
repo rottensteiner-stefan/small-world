@@ -218,7 +218,8 @@ export class Color {
    * @param target Optional existing Color instance to mutate (avoids GC allocations).
    */
   public static blackbody(t: number, target?: Color): Color {
-    const clampedT = Math.max(0, Math.min(1, t));
+    const validT = isNaN(t) ? 0 : t;
+    const clampedT = Math.max(0, Math.min(1, validT));
     const r = Math.min(1.0, 0.6 + clampedT * 0.4);
     const g = Math.max(0, Math.min(1.0, (clampedT - 0.2) / 0.8));
     const b = Math.max(0, Math.min(1.0, (clampedT - 0.7) / 0.3));
@@ -237,7 +238,8 @@ export class Color {
    * @param target Optional existing Color instance to mutate (avoids GC allocations).
    */
   public static fromTemperature(kelvin: number, target?: Color): Color {
-    const temp = Math.max(1000, Math.min(40000, kelvin)) / 100;
+    const validKelvin = isNaN(kelvin) ? 1000 : kelvin;
+    const temp = Math.max(1000, Math.min(40000, validKelvin)) / 100;
     let r: number, g: number, b: number;
 
     // Red

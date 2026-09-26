@@ -1,0 +1,55 @@
+# Physik-Extras (`@small-world/physics-extras`)
+
+Das Paket `@small-world/physics-extras` kombiniert die Kern-Physik-Engine (`@small-world/engine`) mit prozeduraler Geometriezerlegung (`@small-world/geometry-extras`), um dynamische Zerstörung, Brucheffekte und Trümmersimulationen bereitzustellen.
+
+## Installation & Import
+
+```bash
+npm install @small-world/physics-extras
+```
+
+```typescript
+import { fractureObject, VoronoiFractureOptions } from "@small-world/physics-extras";
+```
+
+---
+
+## Voronoi-Frakturierung (`fractureObject`)
+
+`fractureObject` nimmt ein beliebiges `Object3D`, zerlegt dessen Bounding-Volumen über ein 3D-Voronoi-Diagramm in konvexe Zellensplitter und erzeugt für jedes Bruchstück ein eigenständiges `Object3D` mit einem passenden `ConvexHull`-Kollider und `RigidBody`.
+
+### Wichtigste Optionen
+
+* **`pointCount`:** Anzahl der erzeugten Splitter (Standard: `12`).
+* **`seed`:** Seed für deterministische, reproduzierbare Splitterformen.
+* **`relaxationIterations`:** Anzahl der Lloyd-Relaxationsschritte für gleichmäßigere Zellengrößen.
+* **`cellPadding`:** Skalierungsfaktor pro Fragment zur Erzeugung sichtbarer Risse vor dem Einsturz (Standard: `0.92`).
+* **`impactPoint` & `explosionStrength`:** Schlagpunkt in Weltkoordinaten, von dem aus ein radialer Explosionsimpuls auf alle Trümmerstücke ausgeübt wird.
+* **`totalMass`, `restitution`, `friction`:** Physikalische Materialeigenschaften für die Trümmer-`RigidBody`s.
+
+### Beispiel
+
+```typescript
+import { Object3D, Cube, StandardMaterial, Vector3D } from "@small-world/engine";
+import { fractureObject } from "@small-world/physics-extras";
+
+// 1. Zu zerstörendes Objekt
+const pillar = new Object3D("Pillar", new Cube({ width: 1, height: 4, depth: 1 }), new StandardMaterial());
+pillar.position.set(0, 2, 0);
+scene.add(pillar);
+
+// 2. Objekt bei Treffer in 20 Splitter zerbrechen
+const shards = fractureObject(pillar, {
+  pointCount: 20,
+  impactPoint: new Vector3D(0, 2, 0.5),
+  explosionStrength: 5.0,
+  restitution: 0.2,
+  friction: 0.8,
+});
+
+// 3. Ursprüngliches Objekt entfernen und Splitter zur Szene hinzufügen
+scene.remove(pillar);
+for (const shard of shards) {
+  scene.add(shard);
+}
+```

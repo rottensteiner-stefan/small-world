@@ -202,6 +202,16 @@ export interface PostProcessingEffectsConfig {
     enabled?: boolean;
     feedback?: number;
   };
+  /** Black hole gravitational lensing, Einstein ring and relativistic beaming. */
+  gravitationalLensing?: {
+    enabled?: boolean;
+    singularityScreenPos?: { x: number; y: number; z: number } | [number, number, number];
+    eventHorizonRadius?: number;
+    strength?: number;
+    spaghettification?: number;
+    relativisticBeaming?: number;
+    ringGlowIntensity?: number;
+  };
 }
 
 /**
