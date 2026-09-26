@@ -20,6 +20,25 @@ erzeugen.
 
 ---
 
+## 2026-09-27 — ADR 0024: Entwicklungswerkzeuge als eigenes Ökosystem-Paket
+
+- 📋 **`@small-world/tools`-Paket beschlossen** (`docs/adr/0024-tools-ecosystem-package.md`).
+  Auslöser: User-Frage, ob es Sinn ergibt, die Tools (Maker, MaterialStudio, Pixler, Xtractor,
+  MapGenerator, Forge) aus `@small-world/engine` auszulagern, da eine ausgelieferte App sie zur
+  Laufzeit nie braucht. Bundle-Größe war bereits über dynamische `import()` + unvollständigen
+  Barrel-Export gelöst — das eigentliche Problem ist Paket-/Abhängigkeitsgraph-Klarheit und die
+  bereits bekannte Lücke, dass `small-world/tools` kein sauber auflösbarer Package-Export ist.
+  Kernknoten: `SmallWorld.ts` importiert selbst hartkodiert 5 Tools dynamisch für die
+  `enableInspector`-Verdrahtung — ein reiner Umzug hätte das in eine verbotene Kern→Tools-
+  Abhängigkeit verwandelt (spiegelbildlich zu ADR 0021s Ein-Weg-Regel). Entscheidung: diese
+  Verdrahtung ersatzlos aus dem Kern raus, stattdessen `attachDevTools(app)` aus dem neuen Paket,
+  das Apps selbst aufrufen — bewusster Breaking Change für jede App, die sich bisher allein auf
+  `enableInspector: true` verlassen hat. Im Kern bleiben `ForgeTool` (Schnittstelle),
+  `GridLevelBuilder` und `IBLShaders`/`ibl-gen` (echte Laufzeit-Features, keine Dev-Tools).
+  Noch nicht umgesetzt, nur das ADR.
+
+---
+
 ## 2026-09-27 — MAJ-10: MaterialStudio.ts + MakerApp.ts modularisiert
 
 - ✅ **`MaterialStudio.ts`** 2189 → 218 Zeilen. Neu unter `packages/engine/src/tools/material-studio/`:
