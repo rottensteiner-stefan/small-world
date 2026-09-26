@@ -20,6 +20,30 @@ erzeugen.
 
 ---
 
+## 2026-09-27 — MAJ-10: MaterialStudio.ts + MakerApp.ts modularisiert
+
+- ✅ **`MaterialStudio.ts`** 2189 → 218 Zeilen. Neu unter `packages/engine/src/tools/material-studio/`:
+  `materialStudioStyles.ts` (CSS-String), `MaterialStudioUiBuilder.ts` (DOM-Aufbau),
+  `MaterialStudioController.ts` (PBR-Orchestrierung + Event-Wiring, bewusst EINE Klasse statt
+  zwei — beide Verantwortlichkeiten teilen sich denselben mutablen State und riefen sich
+  gegenseitig auf, eine erzwungene Trennung wäre nur Getter/Setter-Weiterreichung gewesen).
+  `MaterialStudioApp` unverändert (harter externer Vertrag: `public/tools/pbr-gen.html`,
+  `SmallWorld.ts`). tsc/eslint sauber, 92 Tests grün.
+- ✅ **`MakerApp.ts`** 2175 → 1698 Zeilen (−22%). Neu: `MakerPrefabPipeline.ts`,
+  `MakerImportAndZoneTools.ts`, `MakerToolbarBuilder.ts`. Bleibt bewusst über 1000 Zeilen —
+  Selection/Gizmo-Drag/Pointer-Picking/undo-gestützte Szenenbearbeitung teilen sich durchgängig
+  `_undo`/`_selection`/`_propertyPanel`/`_project`, echte Unterschreitung bräuchte ein
+  gemeinsames `EditorContext`-Objekt (eigene, größere Entscheidung). tsc/eslint sauber, 60 Tests
+  grün, volle Suite (190 Dateien/1092 Tests) danach nochmal gegengeprüft.
+- Beide Extraktionen per Fork durchgeführt und von mir unabhängig nachverifiziert (tsc + volle
+  Testsuite). `docs/research/codebase-review-2026-09-18-thermo-nuclear.md` MAJ-10 aktualisiert:
+  als "teilweise behoben" markiert, mit Begründung für die verbleibende Ausnahme; die 4
+  ursprünglich mitgenannten, aber nie als Roadmap-Punkt getrackten Dateien
+  (`character-diorama/showcase.ts`, `prologue.ts`, `ViennaMapModal.ts`, `Pixler.ts`) bleiben
+  unverändert über 1000 Zeilen, ausdrücklich als Scope-Fakt vermerkt, nicht als Regression.
+
+---
+
 ## 2026-09-26 — Doku-Restrukturierung: AGENTS.md/.agents/docs vereinheitlicht
 
 - ✅ **AGENTS.md an Repo-Root verschoben** (`.agents/AGENTS.md` → `AGENTS.md`), `CLAUDE.md`/`GEMINI.md`

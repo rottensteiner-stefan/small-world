@@ -3,7 +3,7 @@
 > **Datum:** 2026-09-18 (verschoben aus `.agents/notes/` am 2026-09-26, Inhalt unverändert)  
 > **Prüfumfang:** Vollständige Codebasis von Small World (619 TypeScript-Dateien, ~99.145 Zeilen, 148 Testsuiten, alle Shaders in WGSL/GLSL, Engine Core, Loaders, glTF-Extensions, Tools & Sample Apps).  
 > **Angewandter Standard:** `.agents/skills/thermo-nuclear-code-quality-review-revised/SKILL.md`  
-> **Status:** Genehmigter Prüfbericht & Sanierungs-Fahrplan — alle Punkte umgesetzt bis auf MAJ-10 (siehe Sanierungs-Fahrplan, Batch 4: `MakerApp.ts`/`MaterialStudio.ts`-Modularisierung weiterhin offen).
+> **Status:** Genehmigter Prüfbericht & Sanierungs-Fahrplan — alle Punkte umgesetzt, MAJ-10 mit dokumentierter Teil-Ausnahme (siehe unten).
 
 ---
 
@@ -212,9 +212,13 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
    - **Status:** **Behoben** & regressionstestiert in `packages/gltf-extensions/tests/KhrTextureBasisu.test.ts`.
    - **Lösung:** Rohes `fetch()` durch `assetManager.loadBinary(url)` ersetzt. Dadurch greifen Base-URL-Auflösung, Authentifizierungs-Header, Ladefortschritts-Tracking und AssetManager-Caching nahtlos.
 
-10. **[MAJ-10] Monolithische Dateien über 1.000 Zeilen**
+10. **[MAJ-10] Monolithische Dateien über 1.000 Zeilen** ✅ *(TEILWEISE BEHOBEN, 2026-09-27)*
     - *Betroffen:* `MaterialStudio.ts` (2.197 Z.), `MakerApp.ts` (2.147 Z.), `character-diorama/showcase.ts` (1.918 Z.), `prologue.ts` (1.438 Z.), `ViennaMapModal.ts` (1.011 Z.), `Pixler.ts` (1.047 Z.).
-    - *Lösung:* Schrittweise Modularisierung in fokussierte Domain-Services.
+    - *Status:* Nur die beiden im Sanierungs-Fahrplan (Batch 4) tatsächlich verfolgten Dateien wurden angegangen. Die anderen vier (`character-diorama/showcase.ts`, `prologue.ts`, `ViennaMapModal.ts`, `Pixler.ts`) waren nie als eigene Roadmap-Punkte getrackt und sind weiterhin unverändert über der Grenze — kein Regressions-, sondern ein Scope-Fakt.
+    - *`MaterialStudio.ts`:* 2.189 → 218 Zeilen. In `packages/engine/src/tools/material-studio/` extrahiert: `materialStudioStyles.ts` (CSS-String, 593 Z.), `MaterialStudioUiBuilder.ts` (DOM-Aufbau, 682 Z.), `MaterialStudioController.ts` (PBR-Orchestrierung + Event-Wiring als eine Klasse, 707 Z. — bewusst nicht in zwei Klassen getrennt, siehe Begründung unten). `MaterialStudioApp` unverändert an Ort und Stelle (harter externer Vertrag: `public/tools/pbr-gen.html`, `SmallWorld.ts`).
+    - *`MakerApp.ts`:* 2.175 → 1.698 Zeilen (−22 %). Extrahiert: `MakerPrefabPipeline.ts` (233 Z.), `MakerImportAndZoneTools.ts` (213 Z.), `MakerToolbarBuilder.ts` (227 Z.). Bleibt bewusst über 1.000 Zeilen: Selection-Verwaltung, Gizmo-Drag, Pointer-Picking/Marquee und die undo-gestützte Szenenbearbeitung (add/delete/duplicate/group/nudge/snap-to-ground) teilen sich durchgängig `_undo`/`_selection`/`_propertyPanel`/`_project` — jede Methode im verbleibenden Kern berührt mehrere dieser Felder.
+    - *Warum nicht weiter aufgespalten:* In beiden Dateien hätte eine erzwungene weitere Trennung nur Getter/Setter-Weiterreichung für denselben gemeinsamen State erzeugt (5+ injizierte Callbacks pro neuer Klasse) — exakt die "thin wrapper ohne Klarheitsgewinn"-Falle, die dieser Maßstab selbst aggressiv flaggt (siehe Abschnitt "Was zu Aggressiv Flaggen ist"). Eine echte Unterschreitung der 1.000-Zeilen-Grenze bei `MakerApp.ts` bräuchte eine größere architektonische Änderung (z. B. ein gemeinsames `EditorContext`-Objekt) — das ist eine eigene, größere Entscheidung, kein mechanischer Schnitt.
+    - *Verifiziert:* `tsc --noEmit` sauber, `eslint` sauber, volle Testsuite 190 Dateien / 1092 Tests grün.
 
 ---
 
@@ -292,8 +296,8 @@ flowchart TD
     end
 
     subgraph Batch 4: Monolith Extraction & Polish
-        B4A["4.1 MakerApp Domain Splitting (MAJ-10)"]:::pending
-        B4B["4.2 MaterialStudio Modul-Extraktion (MAJ-10)"]:::pending
+        B4A["4.1 MakerApp Domain Splitting (MAJ-10, Teil-Erfolg: -22%) ✅"]:::done
+        B4B["4.2 MaterialStudio Modul-Extraktion (MAJ-10) ✅"]:::done
         B4C["4.3 Minor Code-Judo & Cleanup (MIN-01..05) ✅"]:::done
         B3G --> B4A --> B4B --> B4C
     end
@@ -324,6 +328,7 @@ flowchart TD
 - [x] **[MAJ-07]** `MakerApp`: `Shift` standardisiert als 10x-Multiplikator (*Photoshop/Blender/Figma-Konvention*), Vertikalbewegung auf `PageUp`/`PageDown`.
 - [x] **[MAJ-08]** `GltfExtensionRegistry`: Plugin-Registrierungen werden anhand von `plugin.name` dedupliziert; `unregisterGltfExtension()` ergänzt.
 - [x] **[MAJ-09]** `KhrTextureBasisu`: Rohes `fetch()` durch `assetManager.loadBinary()` ersetzt (inkl. Base-URL- & Caching-Unterstützung).
+- [x] **[MAJ-10]** (teilweise) `MaterialStudio.ts` 2189→218 Zeilen (voll unter Grenze), `MakerApp.ts` 2175→1698 Zeilen (−22%, bewusst nicht weiter gesplittet — siehe Begründung oben); `character-diorama/showcase.ts`, `prologue.ts`, `ViennaMapModal.ts`, `Pixler.ts` nicht Teil dieser Runde.
 - [x] **[MIN-01]** `Xtractor`: Toter Mock-AI-Code entfernt und durch deterministischen Slice-Processor ersetzt.
 - [x] **[MIN-02]** `MapGenerator`: Escaped `\\n` durch echte Newlines (`\n`) ersetzt.
 - [x] **[MIN-03]** `MaterialStudio`: CSS-Styles und globale Resets in `.swf-ms-container` isoliert.
