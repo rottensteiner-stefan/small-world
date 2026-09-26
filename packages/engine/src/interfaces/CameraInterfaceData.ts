@@ -126,7 +126,10 @@ export interface CameraInterfaceData {
 
   /**
    * Projects a 3D world position into Normalized Device Coordinates (NDC: [-1, 1] on X, Y, Z).
-   * Note: Z > 0 in NDC indicates that the point is in front of the camera.
+   * After projection, `Z >= -1` means the point is in front of the camera (true NDC depth; with
+   * OpenGL-style depth, in-front points closer than ~2x the near plane legitimately have
+   * negative NDC Z, so callers MUST NOT gate on `Z > 0`). The sentinel `Z = -2` marks a point
+   * behind the camera.
    * @param worldPos The 3D world coordinates.
    * @param result Optional Vector3D to receive the result.
    * @returns The projected NDC vector.

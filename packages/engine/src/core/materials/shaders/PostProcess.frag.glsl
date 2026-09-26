@@ -108,7 +108,7 @@ void main() {
     float beaming = 1.0;
     vec3 colorShift = vec3(1.0);
     if (u_filterMode == 8) {
-        if (u_singularityScreenPos.z > 0.0) {
+        if (u_singularityScreenPos.z >= -1.0) {
             ivec2 dims = textureSize(u_hdrTexture, 0);
             float aspect = float(dims.x) / float(dims.y);
             vec2 center = u_singularityScreenPos.xy * 0.5 + vec2(0.5);
@@ -171,7 +171,7 @@ void main() {
     }
 
     if (u_filterMode == 8) {
-        if (u_singularityScreenPos.z > 0.0) {
+        if (u_singularityScreenPos.z >= -1.0) {
             ivec2 dims = textureSize(u_hdrTexture, 0);
             float aspect = float(dims.x) / float(dims.y);
             vec2 center = u_singularityScreenPos.xy * 0.5 + vec2(0.5);
@@ -209,7 +209,7 @@ void main() {
             bloom = texture(u_bloomTexture, distortUv).rgb;
         }
         if (u_filterMode == 8) {
-            if (u_singularityScreenPos.z > 0.0) {
+            if (u_singularityScreenPos.z >= -1.0) {
                 ivec2 dims = textureSize(u_hdrTexture, 0);
                 float aspect = float(dims.x) / float(dims.y);
                 vec2 center = u_singularityScreenPos.xy * 0.5 + vec2(0.5);

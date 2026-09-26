@@ -37,7 +37,7 @@ describe("Camera project & screenToWorld", () => {
     expect(bottomLeft.z).toBeGreaterThan(0);
   });
 
-  it("should flag points behind the camera with negative z", () => {
+  it("should flag points behind the camera with the -2 sentinel", () => {
     const camera = new Camera(
       new PerspectiveProjection({ fov: Math.PI / 2, aspect: 1, near: 0.1, far: 100 }),
     );
@@ -47,6 +47,21 @@ describe("Camera project & screenToWorld", () => {
 
     // Point located behind camera (Z = 20 while camera is at Z = 10 looking at Z = 0)
     const behind = camera.project(new Vector3D(0, 0, 20));
-    expect(behind.z).toBeLessThanOrEqual(0);
+    expect(behind.z).toBe(-2); // unambiguous sentinel, NOT a plausible NDC depth
+  });
+
+  it("should keep in-front points close to the near plane flagged in front despite NDC Z < 0", () => {
+    const camera = new Camera(
+      new PerspectiveProjection({ fov: Math.PI / 2, aspect: 1, near: 0.1, far: 100 }),
+    );
+    camera.position.set(0, 0, 10);
+    camera.target.set(0, 0, 0);
+    camera.updateViewMatrix();
+
+    // Regression guard: with OpenGL-style depth, an in-front point at ~1.5x near has NEGATIVE
+    // NDC Z. The contract is "z >= -1 => in front", never "z > 0".
+    const nearPoint = camera.project(new Vector3D(0, 0, 10 - 0.15));
+    expect(nearPoint.z).toBeLessThan(0); // in front, but NDC Z is negative
+    expect(nearPoint.z).toBeGreaterThanOrEqual(-1); // still treated as in front
   });
 });

@@ -17,6 +17,7 @@ import {
   Texture,
   AmbientLight,
   PerformanceTier,
+  FollowCameraBehavior,
 } from "@small-world/engine";
 
 class Showcase22 extends AbstractShowcase {
@@ -86,6 +87,7 @@ class Showcase22 extends AbstractShowcase {
       heightSegments: 32,
     });
     skydome.name = "Skydome";
+    skydome.addBehavior(new FollowCameraBehavior({ camera: this.camera }));
     this.scene.add(skydome);
 
     // We add a tiny visual marker for the singularity, but it has no physical bounds.
@@ -215,9 +217,6 @@ class Showcase22 extends AbstractShowcase {
         if (a.material instanceof StandardMaterial) {
           a.material.color.set(0.1, 0.05, 0.0, 1.0);
         }
-        if (a.bounds instanceof BoundingSphere) {
-          a.bounds.radius = 0.05;
-        }
         continue;
       }
 
@@ -230,7 +229,10 @@ class Showcase22 extends AbstractShowcase {
       // Keep the accretion disk flat: weak spring toward the orbital plane (y = 0)
       fy += -pA.y * 2.0;
 
-      // O(N) Local Neighbor Micro-Gravity (window of 4 neighbors in ring)
+      // Cheap O(N) "clustering" stand-in: couples each sphere to its 4 list-adjacent ring
+      // neighbours (NOT spatial neighbours -- spawn order is random in angle) that happen to be
+      // within ~1.4 units. One-sided (no Newton's 3rd law), so global momentum is not conserved;
+      // it's a cheap visual jostle, not physical micro-gravity.
       const lookAhead = 4;
       for (let j = 1; j <= lookAhead; j++) {
         const nextIdx = (i + j) % numSpheres;
@@ -270,15 +272,11 @@ class Showcase22 extends AbstractShowcase {
           s.material.color.set(0.1 * fadeFactor, 0.05 * fadeFactor, 0.0, fadeFactor);
         }
 
-        // Disable collisions in the deepest funnel to prevent SAT jams before absorption
-        if (s.bounds instanceof BoundingSphere) {
-          s.bounds.radius = distC < 0.45 ? 0.0 : 0.05;
-        }
+        // NOTE: collisions stay ENABLED through the funnel on purpose. Disabling them via
+        // `bounds.radius = 0` never took effect -- `Object3D.computeBounds()` re-derives the
+        // radius from geometry before collision resolution each physics substep. Spheres are
+        // absorbed at distC < 0.35 and respawned at the outer disc anyway, flushing the funnel.
         continue;
-      }
-
-      if (s.bounds instanceof BoundingSphere) {
-        s.bounds.radius = 0.05;
       }
 
       let heat = this._heatMap.get(s)!;
@@ -296,28 +294,9 @@ class Showcase22 extends AbstractShowcase {
       // Interpolate Color to match EHT Black Hole: Deep Red -> Orange -> Yellow/White
       if (s.material instanceof StandardMaterial) {
         const t = Math.min(1.0, heat / 8.0);
-
-        // Cool (0) = 0.5, 0.0, 0.0 (Deep Dark Red)
-        // Hot (1) = 1.0, 1.0, 1.0 (Blinding White)
-        const r = 0.6 + t * 0.4;
-        const g = Math.max(0, (t - 0.2) / 0.8);
-        const b = Math.max(0, (t - 0.7) / 0.3);
-
-        s.material.emissiveColor.set(r, g, b);
+        Color.blackbody(t, s.material.emissiveColor);
         s.material.color.set(0.1, 0.05, 0.0, 1.0);
       }
-    }
-
-    // 4. Update Skydome position to follow camera (infinite background)
-    const skydome = this.scene.objects.find((o) => o.name === "Skydome");
-    if (skydome) {
-      skydome.position.copyFrom(this.camera.position);
-    }
-
-    // 5. Update Singularity screen position for dynamic gravitational lensing
-    const singularity = this.scene.objects.find((o) => o.name === "Singularity");
-    if (singularity) {
-      this.camera.project(singularity.position, this.renderer.postProcessing.singularityScreenPos);
     }
   }
 }

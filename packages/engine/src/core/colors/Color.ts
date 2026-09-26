@@ -208,6 +208,72 @@ export class Color {
   }
 
   /**
+   * Evaluates a thermal blackbody radiation color ramp from normalized temperature t in [0, 1].
+   * - 0.0: Deep dark red (0.6, 0.0, 0.0)
+   * - 0.5: Hot fiery orange (1.0, 0.38, 0.0)
+   * - 0.8: Golden yellow (1.0, 0.75, 0.33)
+   * - 1.0: Blinding thermal white (1.0, 1.0, 1.0)
+   *
+   * @param t Normalized temperature in [0, 1] (clamped automatically).
+   * @param target Optional existing Color instance to mutate (avoids GC allocations).
+   */
+  public static blackbody(t: number, target?: Color): Color {
+    const clampedT = Math.max(0, Math.min(1, t));
+    const r = Math.min(1.0, 0.6 + clampedT * 0.4);
+    const g = Math.max(0, Math.min(1.0, (clampedT - 0.2) / 0.8));
+    const b = Math.max(0, Math.min(1.0, (clampedT - 0.7) / 0.3));
+
+    if (target) {
+      return target.set(r, g, b, target.a);
+    }
+    return new Color(r, g, b, 1.0);
+  }
+
+  /**
+   * Converts a color temperature in Kelvin (1000K to 40000K) to standard RGB color.
+   * Based on Tanner Helland's analytic Planckian locus fit.
+   *
+   * @param kelvin Temperature in Kelvin (e.g. 1900 for candlelight, 5500 for midday sun, 10000 for blue sky).
+   * @param target Optional existing Color instance to mutate (avoids GC allocations).
+   */
+  public static fromTemperature(kelvin: number, target?: Color): Color {
+    const temp = Math.max(1000, Math.min(40000, kelvin)) / 100;
+    let r: number, g: number, b: number;
+
+    // Red
+    if (temp <= 66) {
+      r = 255;
+    } else {
+      r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+    }
+
+    // Green
+    if (temp <= 66) {
+      g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+    } else {
+      g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+    }
+
+    // Blue
+    if (temp >= 66) {
+      b = 255;
+    } else if (temp <= 19) {
+      b = 0;
+    } else {
+      b = 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+    }
+
+    const red = Math.max(0, Math.min(1, r / 255));
+    const green = Math.max(0, Math.min(1, g / 255));
+    const blue = Math.max(0, Math.min(1, b / 255));
+
+    if (target) {
+      return target.set(red, green, blue, target.a);
+    }
+    return new Color(red, green, blue, 1.0);
+  }
+
+  /**
    * Returns the color components as a hex string (e.g. "#FF0000").
    * @param includeAlpha Whether to include the alpha channel (e.g. "#FF0000FF").
    */

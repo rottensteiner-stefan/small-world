@@ -12,4 +12,5 @@ export enum PostProcessingEffectType {
   TAA = "Taa",
   MOTION_TRAIL = "MotionTrail",
   OUTLINE = "Outline",
+  GRAVITATIONAL_LENSING = "GravitationalLensing",
 }

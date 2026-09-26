@@ -8,3 +8,4 @@ export * from "./HbaoElement.js";
 export * from "./TaaElement.js";
 export * from "./MotionTrailElement.js";
 export * from "./OutlineElement.js";
+export * from "./GravitationalLensingElement.js";

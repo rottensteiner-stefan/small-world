@@ -186,7 +186,10 @@ export class Camera implements CameraInterfaceData {
       (e[15] ?? 0);
     this._viewProjMatrix.transformVector(worldPos, result);
     if (wClip <= 0) {
-      result.z = -1;
+      // Behind the camera. True in-front NDC Z can never drop below -1 (the near plane), so the
+      // sentinel -2 is unambiguous. Callers MUST gate on `z >= -1` (NOT `z > 0`): with
+      // OpenGL-style depth, in-front points closer than ~2x near always have negative NDC Z.
+      result.z = -2;
     }
     return result;
   }

@@ -140,6 +140,13 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Authors/Gurus:** Erin Catto (Creator of Box2D)
 - **Usage:** Essential concepts for resolving constraints, joints, and stable resting contacts using sequential impulses, which heavily influence how we stabilize physics loops and design our collision impulse resolution.
 
+### Plummer Potential Gravity Well (Softened Central Field)
+
+- **File:** `packages/vfx-extras/src/affectors/PointAttractorAffector.ts`, `packages/vfx-extras/src/AccretionDiskEmitter.ts`
+- **Authors/Gurus:** H. C. Plummer (1911)
+- **Source:** [Plummer: "On the Problem of Distribution in Globular Star Clusters" (Monthly Notices of the Royal Astronomical Society, 1911)](https://doi.org/10.1093/mnras/71.5.460)
+- **Usage:** Used in `PointAttractorAffector` to simulate smooth, non-diverging gravitational acceleration for star clusters, planetary gravity, and black holes without numerical singularities or $O(1/r^2)$ explosions near the origin.
+
 ### Fixed-Timestep Render Interpolation
 
 - **File:** `packages/engine/src/physix/PhysicsSystem.ts`
@@ -456,7 +463,15 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** Discrete Laplace filters / edge operators.
 - **Usage:** To approximate local self-shadowing (ambient occlusion / crevices), the curvature (second derivative) of the height values is calculated using a Laplace kernel (4 \* center - sum(neighbors)). This highlights depressions and crevices, which are multiplied with a blurred macro height map.
 
+### Planckian Locus & Thermal Blackbody Radiation
+
+- **File:** `packages/engine/src/core/colors/Color.ts`, `packages/vfx-extras/src/affectors/ThermalCoolingAffector.ts`
+- **Authors/Gurus:** Max Planck (1900), Tanner Helland (2012)
+- **Source:** [Tanner Helland: "How to Convert Temperature (K) to RGB: Algorithm and Code"](https://tannerhelland.com/2012/09/18/subtractive-color-temperature-algorithm.html)
+- **Usage:** Used in `Color.fromTemperature()` and `Color.blackbody()` to compute physically accurate thermal radiation spectra, star temperatures, and glowing accretion disk colors across temperature gradients from $1000\,\text{K}$ to $40000\,\text{K}$.
+
 ## Assets & Fonts
+
 
 ### Damaged Helmet (glTF PBR Sample Model)
 

@@ -124,7 +124,7 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     var beaming: f32 = 1.0;
     var colorShift: vec3f = vec3f(1.0);
     if (8u == u_filterMode) {
-        if (dyn.singularityPos.z > 0.0) {
+        if (dyn.singularityPos.z >= -1.0) {
             let aspect = dims.x / dims.y;
             let center = dyn.singularityPos.xy * 0.5 + vec2f(0.5);
             var dir = uv - center;
@@ -190,7 +190,7 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     }
 
     if (8u == u_filterMode) {
-        if (dyn.singularityPos.z > 0.0) {
+        if (dyn.singularityPos.z >= -1.0) {
             let aspect = dims.x / dims.y;
             let center = dyn.singularityPos.xy * 0.5 + vec2f(0.5);
             var dir = uv - center;
@@ -232,7 +232,7 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         }
 
         if (8u == u_filterMode) {
-            if (dyn.singularityPos.z > 0.0) {
+            if (dyn.singularityPos.z >= -1.0) {
                 let aspect = dims.x / dims.y;
                 let center = dyn.singularityPos.xy * 0.5 + vec2f(0.5);
                 var dir = uv - center;

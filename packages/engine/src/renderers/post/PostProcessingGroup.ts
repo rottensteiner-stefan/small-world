@@ -10,6 +10,7 @@ import {
   TaaElement,
   MotionTrailElement,
   OutlineElement,
+  GravitationalLensingElement,
 } from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 import { Vector3D } from "../../math/index.js";
@@ -31,7 +32,8 @@ export class PostProcessingGroup {
 
   /**
    * Center position of the gravitational lensing / singularity effect in NDC [-1, 1] space.
-   * Z > 0 indicates in front of camera, Z <= 0 indicates behind camera (bypasses lensing).
+   * `Z >= -1` indicates in front of the camera (lenses around it); the sentinel `Z = -2`
+   * (from `Camera.project`) indicates behind the camera and bypasses lensing.
    * Defaults to (0, 0, 1) = center of screen in front of camera.
    */
   public singularityScreenPos: Vector3D = new Vector3D(0, 0, 1);
@@ -49,6 +51,7 @@ export class PostProcessingGroup {
     this.add(new TaaElement());
     this.add(new MotionTrailElement());
     this.add(new OutlineElement());
+    this.add(new GravitationalLensingElement());
   }
 
   /**

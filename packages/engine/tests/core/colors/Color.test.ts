@@ -146,4 +146,49 @@ describe("Color", () => {
     expect(vec.y).toBe(0.5);
     expect(vec.z).toBe(0);
   });
+
+  it("calculates blackbody radiation color ramp", () => {
+    // Cold (0.0): Deep Dark Red
+    const cold = Color.blackbody(0.0);
+    expect(cold.r).toBeCloseTo(0.6);
+    expect(cold.g).toBe(0);
+    expect(cold.b).toBe(0);
+
+    // Warm (0.5): Hot Fiery Orange
+    const warm = Color.blackbody(0.5);
+    expect(warm.r).toBeCloseTo(0.8);
+    expect(warm.g).toBeCloseTo(0.375);
+    expect(warm.b).toBe(0);
+
+    // Blinding white (1.0)
+    const white = Color.blackbody(1.0);
+    expect(white.r).toBeCloseTo(1.0);
+    expect(white.g).toBeCloseTo(1.0);
+    expect(white.b).toBeCloseTo(1.0);
+
+    // Target mutation (zero allocation)
+    const target = new Color();
+    const result = Color.blackbody(0.2, target);
+    expect(result).toBe(target);
+    expect(target.r).toBeCloseTo(0.68);
+  });
+
+  it("converts Kelvin temperature to RGB using Planckian fit", () => {
+    // Candlelight (1900K) -> warm reddish/orange
+    const candle = Color.fromTemperature(1900);
+    expect(candle.r).toBe(1.0);
+    expect(candle.g).toBeLessThan(0.7);
+    expect(candle.b).toBeLessThan(0.3);
+
+    // Daylight / Sun (6500K) -> near pure white / neutral
+    const sun = Color.fromTemperature(6500);
+    expect(sun.r).toBeCloseTo(1.0, 1);
+    expect(sun.g).toBeCloseTo(1.0, 1);
+    expect(sun.b).toBeCloseTo(1.0, 1);
+
+    // Deep blue sky (12000K) -> bluish tint
+    const sky = Color.fromTemperature(12000);
+    expect(sky.b).toBe(1.0);
+    expect(sky.r).toBeLessThan(1.0);
+  });
 });
