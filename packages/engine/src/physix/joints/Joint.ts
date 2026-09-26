@@ -80,6 +80,23 @@ export abstract class Joint {
   public applyForces?(dt: number): void;
 
   /**
+   * True when every dynamic body connected by this joint is currently asleep (static bodies do
+   * not count). A fully-asleep joint has nothing to solve: both endpoints are frozen, so the
+   * solve can be skipped without waking them. This mirrors the collision solver, which only
+   * applies impulses to approaching contacts and therefore never re-wakes settled bodies.
+   */
+  protected get isFullyAsleep(): boolean {
+    const rbA = this.bodyA.rigidBody;
+    const rbB = this.bodyB?.rigidBody;
+    const dynamicA = rbA !== undefined && rbA.inverseMass > 0;
+    const dynamicB = rbB !== undefined && rbB.inverseMass > 0;
+    if (!dynamicA && !dynamicB) return true;
+    if (dynamicA && !rbA!.isSleeping) return false;
+    if (dynamicB && !rbB!.isSleeping) return false;
+    return true;
+  }
+
+  /**
    * Solves velocity constraints using Projected Gauss-Seidel iterations.
    * @param dt Fixed substep delta time in seconds.
    */

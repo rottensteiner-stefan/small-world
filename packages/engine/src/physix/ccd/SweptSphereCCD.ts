@@ -53,10 +53,19 @@ export class SweptVolumeCCD {
   }
 
   /**
-   * Sweeps all registered CCD candidates against nearby colliders and clamps their positions to earliest impact.
+   * Sweeps all registered CCD candidates against nearby colliders and clamps their positions to
+   * earliest impact.
+   *
+   * Callers must reset the broadphase placement of every returned body afterwards
+   * (e.g. {@link PhysicsBroadphase.reinsertCollider}): a clamped position *behind* the swept
+   * one is no longer represented by the octree node it was originally inserted into (that node
+   * covers the unclamped swept volume), so later queries around the body's actual position would
+   * silently miss it.
    * @param broadphase The active physics broadphase structure.
+   * @returns The bodies whose positions were clamped this call.
    */
-  public resolve(broadphase: PhysicsBroadphase): void {
+  public resolve(broadphase: PhysicsBroadphase): Object3D[] {
+    const clamped: Object3D[] = [];
     for (let i = 0; i < this._candidates.length; i++) {
       const candidate = this._candidates[i]!;
       const { obj, prevPos, delta, broadRadius } = candidate;
@@ -106,6 +115,7 @@ export class SweptVolumeCCD {
         obj.position.copyFrom(delta).scale(clampedToi).add(prevPos);
         obj.updateMatrixWorld();
         obj.computeBounds();
+        clamped.push(obj);
       }
 
       MathPool.releaseVector(prevPos);
@@ -113,6 +123,7 @@ export class SweptVolumeCCD {
     }
 
     this._candidates.length = 0;
+    return clamped;
   }
 }
 

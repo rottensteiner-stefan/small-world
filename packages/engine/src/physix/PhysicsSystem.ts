@@ -478,7 +478,12 @@ export class PhysicsSystem {
     this._broadphase.update(allColliders);
 
     if (this._ccd.hasCandidates) {
-      this._ccd.resolve(this._broadphase);
+      const clamped = this._ccd.resolve(this._broadphase);
+      // A clamped body now sits *behind* the swept volume it was placed into by `update()`:
+      // re-insert it so subsequent narrow-phase queries around its real position cannot miss it.
+      for (let i = 0; i < clamped.length; i++) {
+        this._broadphase.reinsertCollider(clamped[i]!);
+      }
     }
 
     this._releasePairs();

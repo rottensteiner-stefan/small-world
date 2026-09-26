@@ -251,43 +251,14 @@ export class PhysicsBroadphase {
     // Placing by the fat bounds guarantees the placement node encloses the whole shell, so any
     // query that intersects the collider's current bounds necessarily reaches its node. The
     // leaf-level overlap test keeps reading the collider's TIGHT bounds at query time, so the
-    // narrow phase still sees exact geometry. We therefore swap each collider's bounds to its
-    // fat proxy for the duration of the (single-threaded, synchronous) reinsert loop and restore
-    // the tight bounds afterwards; `_subdivide()` redistribution inside `Octree.insert()` then
-    // also sees fat bounds, keeping the invariant across spontaneous node splits.
+    // narrow phase still sees exact geometry. See `_placeCollider`, which is also the single
+    // insertion code path used by the CCD-reinsert flow.
     if (this._tree && toReinsert.length > 0) {
-      const originals: (BoundingVolume | undefined)[] = new Array(toReinsert.length);
       for (let i = 0; i < toReinsert.length; i++) {
         const collider = toReinsert[i]!;
         const proxy = this._proxies.get(collider);
         if (!proxy) continue;
-        originals[i] = collider.bounds;
-        collider.bounds = proxy.fatBounds;
-      }
-      try {
-        for (let i = 0; i < toReinsert.length; i++) {
-          const collider = toReinsert[i]!;
-          const proxy = this._proxies.get(collider);
-          if (!proxy) continue;
-
-          // Auto-expand tree root bounds if needed
-          if (!this._tree.root.bounds.containsBox(proxy.fatBounds)) {
-            this._tree.root.bounds.min.min(proxy.fatBounds.min);
-            this._tree.root.bounds.max.max(proxy.fatBounds.max);
-            this._tree.root.bounds.center
-              .copyFrom(this._tree.root.bounds.min)
-              .add(this._tree.root.bounds.max)
-              .scale(0.5);
-          }
-
-          const inserted = this._tree.insert(collider);
-          proxy.inTree = inserted;
-        }
-      } finally {
-        for (let i = 0; i < toReinsert.length; i++) {
-          const collider = toReinsert[i]!;
-          if (originals[i]) collider.bounds = originals[i];
-        }
+        this._placeCollider(collider, proxy);
       }
     }
 
@@ -300,6 +271,70 @@ export class PhysicsBroadphase {
         this._fallback.push(collider);
       }
     }
+  }
+
+  /**
+   * Inserts (or re-inserts) a single collider into the octree, driven by its FAT bounds.
+   *
+   * This is the sole placement code path: `update()` uses it for every collider that left its
+   * fat shell, and {@link reinsertCollider} uses it when an external system (CCD) moved a body
+   * in between updates. The collider's `bounds` is temporarily swapped to the fat proxy for
+   * insertion and restored immediately after, so the octree leaf always encloses the whole fat
+   * shell while the narrow phase keeps reading exact tight bounds.
+   */
+  private _placeCollider(collider: Collidable, proxy: BroadphaseProxy): void {
+    if (!this._tree) return;
+
+    // Auto-expand tree root bounds if needed
+    if (!this._tree.root.bounds.containsBox(proxy.fatBounds)) {
+      this._tree.root.bounds.min.min(proxy.fatBounds.min);
+      this._tree.root.bounds.max.max(proxy.fatBounds.max);
+      this._tree.root.bounds.center
+        .copyFrom(this._tree.root.bounds.min)
+        .add(this._tree.root.bounds.max)
+        .scale(0.5);
+    }
+
+    const original = collider.bounds;
+    collider.bounds = proxy.fatBounds;
+    try {
+      proxy.inTree = this._tree.insert(collider);
+    } finally {
+      collider.bounds = original;
+    }
+  }
+
+  /**
+   * Re-inserts a collider whose position changed outside the normal update cycle (e.g. a body
+   * whose position was clamped by CCD *after* `update()` already placed it). Recomputes the fat
+   * shell from the current tight bounds and places the collider at its new octree node, so
+   * subsequent queries around the body's actual position cannot miss it.
+   * @param collider The collider to re-insert.
+   */
+  public reinsertCollider(collider: Collidable): void {
+    if (!collider.bounds || !this._tree) return;
+
+    let proxy = this._proxies.get(collider);
+    if (!proxy) {
+      const isStatic = collider instanceof Object3D ? collider.isStatic : false;
+      proxy = {
+        collider,
+        fatBounds: new BoundingBox(new Vector3D(), new Vector3D()),
+        inTree: false,
+        isStatic,
+      };
+      this._proxies.set(collider, proxy);
+    }
+
+    // Remove any stale placement from the pre-clamp position first.
+    if (proxy.inTree) {
+      this._tree.remove(collider);
+      proxy.inTree = false;
+    }
+
+    this._computeFatBounds(collider, proxy.fatBounds);
+    this._placeCollider(collider, proxy);
+    this._activeColliders.add(collider);
   }
 
   /**

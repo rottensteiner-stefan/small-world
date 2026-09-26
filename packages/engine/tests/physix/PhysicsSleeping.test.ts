@@ -5,6 +5,7 @@ import { Object3D } from "../../src/core/Object3D.js";
 import { RigidBody } from "../../src/physix/RigidBody.js";
 import { Sphere } from "../../src/geometry/Sphere.js";
 import { StaticCollider } from "../../src/physix/StaticCollider.js";
+import { BallSocketJoint } from "../../src/physix/joints/BallSocketJoint.js";
 import { Vector3D } from "../../src/math/Vector3D.js";
 import { EventDispatcherImpl } from "../../src/core/events/EventDispatcherImpl.js";
 
@@ -139,5 +140,50 @@ describe("PhysicsSleeping", () => {
     }
 
     expect(ball.rigidBody.isSleeping).toBe(false);
+  });
+
+  it("does not wake resting joint-connected bodies (regression: joints re-woke sleepers)", () => {
+    const events = new EventDispatcherImpl();
+    const physics = new PhysicsSystem(events);
+    physics.gravity.set(0, 0, 0);
+    physics.fixedTimeStep = 1 / 60;
+    const scene = new Scene();
+
+    const a = new Object3D("JointA");
+    a.geometry = new Sphere({ radius: 0.5 }).getGeometryData();
+    a.position.set(0, 0, 0);
+    a.rigidBody = new RigidBody(1.0);
+    a.updateMatrixWorld();
+    a.computeBounds();
+    scene.objects.push(a);
+
+    const b = new Object3D("JointB");
+    b.geometry = new Sphere({ radius: 0.5 }).getGeometryData();
+    b.position.set(2, 0, 0);
+    b.rigidBody = new RigidBody(1.0);
+    b.updateMatrixWorld();
+    b.computeBounds();
+    scene.objects.push(b);
+
+    const joint = new BallSocketJoint({
+      bodyA: a,
+      bodyB: b,
+      anchorA: new Vector3D(1, 0, 0),
+      anchorB: new Vector3D(-1, 0, 0),
+    });
+    physics.addJoint(joint);
+
+    // Put both connected bodies to sleep at rest.
+    a.rigidBody!.putToSleep();
+    b.rigidBody!.putToSleep();
+    expect(a.rigidBody!.isSleeping).toBe(true);
+    expect(b.rigidBody!.isSleeping).toBe(true);
+
+    // The solver must not wake them with near-zero constraint impulses.
+    for (let i = 0; i < 20; i++) {
+      physics.step(scene, 1 / 60);
+      expect(a.rigidBody!.isSleeping).toBe(true);
+      expect(b.rigidBody!.isSleeping).toBe(true);
+    }
   });
 });

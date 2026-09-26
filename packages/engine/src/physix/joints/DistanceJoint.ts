@@ -43,6 +43,7 @@ export class DistanceJoint extends Joint {
   /** @inheritdoc */
   public solveVelocity(dt: number): void {
     if (!this.enabled || this.isBroken) return;
+    if (this.isFullyAsleep) return;
 
     const rbA = this.bodyA.rigidBody;
     const rbB = this.bodyB?.rigidBody;
@@ -182,17 +183,20 @@ export class DistanceJoint extends Joint {
       return;
     }
 
-    const impulse = MathPool.acquireVector().set(ux * jMag, uy * jMag, uz * jMag);
+    if (Math.abs(jMag) > 1e-8) {
+      const impulse = MathPool.acquireVector().set(ux * jMag, uy * jMag, uz * jMag);
 
-    if (invMassA > 0 && rbA) {
-      rbA.applyImpulseAtPoint(impulse, pA, centerA);
-    }
-    if (invMassB > 0 && rbB) {
-      impulse.scale(-1);
-      rbB.applyImpulseAtPoint(impulse, pB, centerB);
+      if (invMassA > 0 && rbA) {
+        rbA.applyImpulseAtPoint(impulse, pA, centerA);
+      }
+      if (invMassB > 0 && rbB) {
+        impulse.scale(-1);
+        rbB.applyImpulseAtPoint(impulse, pB, centerB);
+      }
+
+      MathPool.releaseVector(impulse);
     }
 
-    MathPool.releaseVector(impulse);
     MathPool.releaseVector(pA);
     MathPool.releaseVector(pB);
   }
@@ -200,6 +204,7 @@ export class DistanceJoint extends Joint {
   /** @inheritdoc */
   public solvePosition(): void {
     if (!this.enabled || this.isBroken) return;
+    if (this.isFullyAsleep) return;
 
     const rbA = this.bodyA.rigidBody;
     const rbB = this.bodyB?.rigidBody;

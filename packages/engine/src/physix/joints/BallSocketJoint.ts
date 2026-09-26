@@ -17,6 +17,7 @@ export class BallSocketJoint extends Joint {
   /** @inheritdoc */
   public solveVelocity(dt: number): void {
     if (!this.enabled || this.isBroken) return;
+    if (this.isFullyAsleep) return;
 
     const rbA = this.bodyA.rigidBody;
     const rbB = this.bodyB?.rigidBody;
@@ -125,8 +126,8 @@ export class BallSocketJoint extends Joint {
       }
 
       const effInvMass = totalInvMass + kRot;
-      if (effInvMass > 0) {
-        const j = (axis.relV + betaDt * axis.err) / effInvMass;
+      const j = effInvMass > 0 ? (axis.relV + betaDt * axis.err) / effInvMass : 0;
+      if (effInvMass > 0 && Math.abs(j) > 1e-8) {
         totalImpulseSq += j * j;
 
         impulse.set(axis.ux * j, axis.uy * j, axis.uz * j);
@@ -153,6 +154,7 @@ export class BallSocketJoint extends Joint {
   /** @inheritdoc */
   public solvePosition(): void {
     if (!this.enabled || this.isBroken) return;
+    if (this.isFullyAsleep) return;
 
     const rbA = this.bodyA.rigidBody;
     const rbB = this.bodyB?.rigidBody;

@@ -43,6 +43,7 @@ export class SpringJoint extends Joint {
   /** @inheritdoc */
   public override applyForces(_dt: number): void {
     if (!this.enabled || this.isBroken) return;
+    if (this.isFullyAsleep) return;
 
     const rbA = this.bodyA.rigidBody;
     const rbB = this.bodyB?.rigidBody;
@@ -128,18 +129,21 @@ export class SpringJoint extends Joint {
       return;
     }
 
-    const force = MathPool.acquireVector().set(ux * forceMag, uy * forceMag, uz * forceMag);
+    if (Math.abs(forceMag) > 1e-8) {
+      const force = MathPool.acquireVector().set(ux * forceMag, uy * forceMag, uz * forceMag);
 
-    if (invMassA > 0 && rbA) {
-      rbA.applyForceAtPoint(force, pA, centerA);
+      if (invMassA > 0 && rbA) {
+        rbA.applyForceAtPoint(force, pA, centerA);
+      }
+
+      if (invMassB > 0 && rbB) {
+        force.scale(-1);
+        rbB.applyForceAtPoint(force, pB, centerB);
+      }
+
+      MathPool.releaseVector(force);
     }
 
-    if (invMassB > 0 && rbB) {
-      force.scale(-1);
-      rbB.applyForceAtPoint(force, pB, centerB);
-    }
-
-    MathPool.releaseVector(force);
     MathPool.releaseVector(pA);
     MathPool.releaseVector(pB);
   }

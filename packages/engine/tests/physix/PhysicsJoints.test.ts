@@ -244,6 +244,53 @@ describe("Physics Constraints & Joint System", () => {
       expect(wheel.rigidBody.angularVelocity.x).toBeCloseTo(0.0);
       expect(wheel.rigidBody.angularVelocity.z).toBeCloseTo(0.0);
     });
+
+    it("bounds the relative hinge angle with limits (regression: limits were inert)", () => {
+      const events = new EventDispatcherImpl();
+      const physics = new PhysicsSystem(events);
+      physics.gravity.set(0, 0, 0);
+      physics.fixedTimeStep = 1 / 60;
+      const scene = new Scene();
+
+      const a = new Object3D("A");
+      a.geometry = new Cube({ size: 1 }).getGeometryData();
+      a.rigidBody = new RigidBody(1.0);
+      a.updateMatrixWorld();
+      a.computeBounds();
+      scene.objects.push(a);
+
+      const b = new Object3D("B");
+      b.geometry = new Cube({ size: 1 }).getGeometryData();
+      b.rigidBody = new RigidBody(1.0);
+      b.updateMatrixWorld();
+      b.computeBounds();
+      scene.objects.push(b);
+
+      const hinge = new HingeJoint({
+        bodyA: a,
+        bodyB: b,
+        axisA: new Vector3D(0, 1, 0),
+        axisB: new Vector3D(0, 1, 0),
+        enableLimit: true,
+        minAngle: -0.3,
+        maxAngle: 0.3,
+      });
+      physics.addJoint(hinge);
+
+      // Drive a strong relative counter-rotation to slam into the limits.
+      a.rigidBody!.angularVelocity.set(0, -8, 0);
+      b.rigidBody!.angularVelocity.set(0, 8, 0);
+
+      let maxAbs = 0;
+      for (let i = 0; i < 60; i++) {
+        physics.step(scene, 1 / 60);
+        maxAbs = Math.max(maxAbs, Math.abs(hinge.getRelativeAngle()));
+      }
+
+      // With inert limits the pair spun apart to ~6 rad; the limit must keep it bounded.
+      // A small overshoot (~1 frame of relative rotation at the initial speed) is tolerated.
+      expect(maxAbs).toBeLessThan(1.0);
+    });
   });
 
   describe("Joint System Registration & CollideConnected Filtering", () => {
