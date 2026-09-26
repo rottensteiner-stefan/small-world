@@ -1,9 +1,9 @@
 # 🌋 Thermo-Nuclear Code Quality Review (Repository-Wide)
 
-> **Datum:** 2026-09-18  
+> **Datum:** 2026-09-18 (verschoben aus `.agents/notes/` am 2026-09-26, Inhalt unverändert)  
 > **Prüfumfang:** Vollständige Codebasis von Small World (619 TypeScript-Dateien, ~99.145 Zeilen, 148 Testsuiten, alle Shaders in WGSL/GLSL, Engine Core, Loaders, glTF-Extensions, Tools & Sample Apps).  
-> **Angewandter Standard:** [`.agents/skills/thermo-nuclear-code-quality-review-revised/SKILL.md`](../skills/thermo-nuclear-code-quality-review-revised/SKILL.md)  
-> **Status:** Genehmigter Prüfbericht & Sanierungs-Fahrplan.
+> **Angewandter Standard:** `.agents/skills/thermo-nuclear-code-quality-review-revised/SKILL.md`  
+> **Status:** Genehmigter Prüfbericht & Sanierungs-Fahrplan — alle Punkte umgesetzt bis auf MAJ-10 (siehe Sanierungs-Fahrplan, Batch 4: `MakerApp.ts`/`MaterialStudio.ts`-Modularisierung weiterhin offen).
 
 ---
 
@@ -43,40 +43,40 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 ### 3.1 Rendersystem & Shaders
 
 #### [BLK-R1] Out-of-Bounds State-Corruption im Clustered Lighting ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/renderers/passes/WebGLClusterCullPass.ts`](../../packages/engine/src/renderers/passes/WebGLClusterCullPass.ts#L62-L71)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/renderers/WebGLClusterCullPass.test.ts`](../../packages/engine/tests/renderers/WebGLClusterCullPass.test.ts).
+- **Datei:** `packages/engine/src/renderers/passes/WebGLClusterCullPass.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/renderers/WebGLClusterCullPass.test.ts`.
 - **Szenario:** Bei Resize oder Grid-Änderungen prüfte der Code `if (this._grid.length < gridHeight * CLUSTER_TEX_WIDTH * 4)`. Für alle Grids $\le 1024$ Zellen (`gridHeight = 1`) ergab die Prüfung `false`. `_pointCounts` und `_spotCounts` blieben fälschlicherweise bei `Uint8Array(1)`. Zugriffe auf Zelle $> 0$ lasen `undefined` / schrieben `NaN`, wodurch Lichtquellen in WebGL2 ab Zelle 1 verloren gingen und die Szene schwarz blieb.
 - **Abhilfe:** Reallokation von `_grid` und `_pointCounts`/`_spotCounts` entkoppelt und an `if (this._pointCounts.length < numClusters)` gebunden.
 
 #### [BLK-R2] Out-of-Bounds Spot Shadow Array-Zugriff in WGSL & GLSL Shaders ✅ *(BEHOBEN)*
 - **Dateien:** 
-  - [`packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`](../../packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl#L113)
-  - [`packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`](../../packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl#L187)
-  - [`packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl`](../../packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl#L198)
-  - [`packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`](../../packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl#L317)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/renderers/SpotLightPCSS.test.ts`](../../packages/engine/tests/renderers/SpotLightPCSS.test.ts).
+  - `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`
+  - `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`
+  - `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl`
+  - `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/renderers/SpotLightPCSS.test.ts`.
 - **Szenario:** Clustered Loops iterieren über bis zu 64 Spotlights (`j` / `i`), während `spotShadowInfo`, `spotShadowMatrices` und Shadow-Textur-Layers auf 4 Einträge fixiert sind. Bei $j \ge 4$ las der Shader uninitialisierte Uniform-Daten und triggerte PCSS-Sampling auf ungültigen Texture-Layers bzw. Out-of-Bounds Buffer Reads.
 - **Abhilfe:** Striktes `if (j < 4u && global.spotShadowInfo[j].z > 0.5)` in WGSL und `if (i < 4 && u_spotShadowInfo[i].z > 0.5)` in GLSL eingebaut.
 
 #### [BLK-R3] 60-FPS-Pipeline-Rebuild Churn im Post-Processing ✅ *(BEHOBEN)*
 - **Dateien:**
-  - [`packages/engine/src/renderers/post/passes/BloomPassGPU.ts`](../../packages/engine/src/renderers/post/passes/BloomPassGPU.ts#L267)
-  - [`packages/engine/src/renderers/passes/PostProcessPass.ts`](../../packages/engine/src/renderers/passes/PostProcessPass.ts#L252-L264)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/renderers/PostProcessPassUniforms.test.ts`](../../packages/engine/tests/renderers/PostProcessPassUniforms.test.ts).
+  - `packages/engine/src/renderers/post/passes/BloomPassGPU.ts`
+  - `packages/engine/src/renderers/passes/PostProcessPass.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/renderers/PostProcessPassUniforms.test.ts`.
 - **Szenario:** `BloomPassGPU.execute()` erzeugte pro Frame ein neues `GPUTextureView`-Objekt via `createView()`. `PostProcessPass` erkannte geänderte View-Referenzen und baute pro Sekunde 60-mal das gesamte `GPURenderPipeline`-Objekt synchron neu (`createShaderModule`, `createRenderPipeline`, `createBindGroup`).
 - **Abhilfe:** `BloomPassGPU` gibt gecachtes `this._mipViews[0]` zurück (und nutzt wiederverwendbare Uniform-Arrays). In `PostProcessPass` wurde die `GPURenderPipeline`-Kompilierung vollständig von dynamischen `GPUBindGroup`-Texture-Views entkoppelt, sodass View-Wechsel niemals einen Pipeline-Rebuild triggern.
 
 #### [BLK-R4] Stale `dLight`-Referenz-Leck bei gelöschten Richtlichtern ✅ *(BEHOBEN)*
 - **Dateien:**
-  - [`packages/engine/src/renderers/AbstractRenderer.ts`](../../packages/engine/src/renderers/AbstractRenderer.ts#L126-L139)
-  - [`packages/engine/src/interfaces/LightData.ts`](../../packages/engine/src/interfaces/LightData.ts#L20)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/renderers/AbstractWebGLRenderer.test.ts`](../../packages/engine/tests/renderers/AbstractWebGLRenderer.test.ts).
+  - `packages/engine/src/renderers/AbstractRenderer.ts`
+  - `packages/engine/src/interfaces/LightData.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/renderers/AbstractWebGLRenderer.test.ts`.
 - **Szenario:** `extractLights()` leerte `pLights`/`sLights`/`aLights`, setzte aber `_lightData.dLight` nie auf `undefined` zurück. Wurde ein Sonnenlicht gelöscht oder unsichtbar geschaltet (`isVisible = false`), blieben CSM-Schattenpässe endlos für das Geisterlicht aktiv.
 - **Abhilfe:** `this._lightData.dLight = undefined;` zu Beginn von `extractLights()` ergänzt und `LightDataInterface.dLight` typisiert als `DirectionalLight | undefined`.
 
 #### [BLK-R5] Fallback-Kaskaden-Abbruch in `RendererFactory.ts` ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/renderers/RendererFactory.ts`](../../packages/engine/src/renderers/RendererFactory.ts#L52-L105)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/renderers/RendererFactory.test.ts`](../../packages/engine/tests/renderers/RendererFactory.test.ts).
+- **Datei:** `packages/engine/src/renderers/RendererFactory.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/renderers/RendererFactory.test.ts`.
 - **Szenario:** Schlug WebGPU fehl und WebGL2 scheiterte ebenfalls (z. B. Driver-Blocklist oder Context-Fehler), stürzte der Renderer wegen verschachtelter `if (!fallbackToWebGL2)`-Bedingungen mit `throw e` ab, statt auf WebGL1 weiterzukaskadieren.
 - **Abhilfe:** `RendererFactory.create()` auf eine lineare, robuste Kandidaten-Kaskade (`_getFallbackCandidates`) umgestellt: Jeder Backend-Kandidat (`WebGPU` $\to$ `WebGL2` $\to$ `WebGL1`) prüft DeviceCaps und fängt Initialisierungsfehler ab, um nahtlos zum nächsten Fallback weiterzuleiten.
 
@@ -85,20 +85,20 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 ### 3.2 Engine Core, Math & Physics
 
 #### [BLK-C1] 2D-GPU-Textur-Leck beim Beenden ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/renderers/WebGL2/managers/WebGLTextureManager.ts`](../../packages/engine/src/renderers/WebGL2/managers/WebGLTextureManager.ts#L369-L375)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/renderers/TextureRefCounting.test.ts`](../../packages/engine/tests/renderers/TextureRefCounting.test.ts).
+- **Datei:** `packages/engine/src/renderers/WebGL2/managers/WebGLTextureManager.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/renderers/TextureRefCounting.test.ts`.
 - **Szenario:** `WebGLTextureManager.dispose()` leerte nur `_texCubeCache`. Alle 2D-`WebGLTexture`-Objekte in `_texCache` sowie die Zähler in `_texRefCounts` und `_texCubeRefCounts` blieben ungelöscht im VRAM bzw. Memory des Browsers hängen.
 - **Abhilfe:** `dispose()` löscht nun alle `_texCache`-Texturen via `gl.deleteTexture()`, leert `_texCache` und resettet `_texRefCounts` sowie `_texCubeRefCounts`.
 
 #### [BLK-C2] Octree-Extents-Bug im Physik-Broadphase ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/physix/broadphase/PhysicsBroadphase.ts`](../../packages/engine/src/physix/broadphase/PhysicsBroadphase.ts#L68-L76)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/broadphase/PhysicsBroadphase.test.ts`](../../packages/engine/tests/physix/broadphase/PhysicsBroadphase.test.ts).
+- **Datei:** `packages/engine/src/physix/broadphase/PhysicsBroadphase.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/physix/broadphase/PhysicsBroadphase.test.ts`.
 - **Szenario:** Beim Rebuild des Octrees wurde nur `center` aktualisiert, während `min`/`max` auf Frame-1-Werten einfroren (und Instanzen mit `_worldMin`/`_worldMax` teilten). Bewegte Körper außerhalb des initialen Bereichs scheiterten an `containsVolume()` und fielen in den $O(N \times M)$ Fallback.
 - **Abhilfe:** `_tree.root.bounds.min` und `_tree.root.bounds.max` via `copyFrom(this._worldMin)` / `copyFrom(this._worldMax)` vor `_tree.clear()` synchronisiert sowie bei der Instanziierung geklont.
 
 #### [BLK-C3] `Matrix4.scale()` Overload-Crash ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/math/Matrix4.ts`](../../packages/engine/src/math/Matrix4.ts#L577-L627)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/math/Matrix4.test.ts`](../../packages/engine/tests/math/Matrix4.test.ts).
+- **Datei:** `packages/engine/src/math/Matrix4.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/math/Matrix4.test.ts`.
 - **Szenario:** Aufruf mit 3 Zahlen ohne `target` (z. B. `Matrix4.scale(2, 3, 4)`) warf `TypeError: Cannot read properties of undefined (reading 'identity')`, da `target` optional war und ohne Fallback dereferenziert wurde.
 - **Abhilfe:** Eindeutige TypeScript-Overload-Signaturen (`scale(s, target?)` und `scale(x, y, z, target?)`) definiert und robuste Fallback-Instanziierung (`out = target ?? new Matrix4()`) mit Rückgabe des Matrix-Objekts implementiert.
 
@@ -107,20 +107,20 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 ### 3.3 Loaders & glTF Pipeline
 
 #### [BLK-L1] Permanentes Cache-Poisoning bei Netzwerkfehlern ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/loaders/AssetManager.ts`](../../packages/engine/src/loaders/AssetManager.ts#L191-L273)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts`](../../packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts).
+- **Datei:** `packages/engine/src/loaders/AssetManager.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts`.
 - **Szenario:** Schlägt ein Fetch in `loadJson`, `loadText`, `loadBinary` oder `loadImage` fehl, blieb das abgelehnte Promise dauerhaft in der Cache-Map. Wiederholte Ladeversuche schlugen sofort fehl, ohne das Netzwerk erneut anzufragen.
 - **Abhilfe:** In den `catch`-Blöcken von `loadJson`, `loadText`, `loadBinary` und `loadImage` wird der Cache-Key bei Fehlschlägen sofort aus der jeweiligen Map gelöscht (`this._textCache.delete(url)`, etc.), sodass nachfolgende Ladeversuche das Netzwerk sauber erneut anfragen.
 
 #### [BLK-L2] Deadlock bei Stream-Fehler in `streamBinary` ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/loaders/AssetManager.ts`](../../packages/engine/src/loaders/AssetManager.ts#L282-L342)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts`](../../packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts).
+- **Datei:** `packages/engine/src/loaders/AssetManager.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/loaders/AssetManagerCachePoisoning.test.ts`.
 - **Szenario:** Bricht ein Chunk-Stream ab, wurde `_checkCompletion(trackingKey)` übersprungen. `assetManager.isLoaded` blieb dauerhaft `false`, Szenenübergänge froren ein.
 - **Abhilfe:** `streamBinary` vollständig in `try ... finally` gekapselt, Cache-Poisoning bei Stream-Fehlern via `_binaryCache.delete(url)` behoben und Loader-Tracking garantiert aufgeräumt.
 
 #### [BLK-L3] Unaligned TypedArray `RangeError` ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/loaders/gltf/GltfBinaryParser.ts`](../../packages/engine/src/loaders/gltf/GltfBinaryParser.ts#L77-L117)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/loaders/gltf/GltfBinaryParser.test.ts`](../../packages/engine/tests/loaders/gltf/GltfBinaryParser.test.ts).
+- **Datei:** `packages/engine/src/loaders/gltf/GltfBinaryParser.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/loaders/gltf/GltfBinaryParser.test.ts`.
 - **Szenario:** Bei nicht ausgerichteten Byte-Offsets (`byteOffset % 4 !== 0` für `Float32Array`/`Uint32Array` oder `byteOffset % 2 !== 0` für `Uint16Array`) warf der JavaScript-`TypedArray`-Konstruktor einen fatalen `RangeError`.
 - **Abhilfe:** `GltfBinaryParser.getBufferData()` prüft die Ausrichtung (`byteOffset % bytesPerElement === 0`); unaligned Chunks werden via `buffer.slice()` in einen sauber ausgerichteten ArrayBuffer kopiert, inkl. striktem Overflow-Guard gegen Buffer-Überläufe.
 
@@ -130,21 +130,21 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 
 #### [BLK-T1] Zombie-Event-Listener & Engine-Lecks auf Tool-Unmount ✅ *(BEHOBEN)*
 - **Dateien:**
-  - [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts)
-  - [`packages/engine/src/tools/MaterialStudio.ts`](../../packages/engine/src/tools/MaterialStudio.ts)
-  - [`packages/engine/src/tools/Pixler.ts`](../../packages/engine/src/tools/Pixler.ts)
+  - `packages/engine/src/tools/maker/MakerApp.ts`
+  - `packages/engine/src/tools/MaterialStudio.ts`
+  - `packages/engine/src/tools/Pixler.ts`
 - **Status:** **Behoben.**
 - **Szenario:** `MaterialStudio.unmount()` stoppte den Render-Loop nicht; `MakerApp` und `Pixler` entfernten keine anonymen Window- und Canvas-Listener. Unmounten oder Hot-Reloading hinterließ Zombie-Listener, die ganze Szenen-Graphen im Speicher festhielten.
 - **Abhilfe:** `MaterialStudio.unmount()` zerstört die eingebettete `MaterialStudioApp` (`this._app.destroy()`); `Pixler` und `MakerApp` nutzen `AbortController`-Signale für alle DOM- und Window-Events und räumen diese in `unmount()` bzw. `destroy()` rückstandslos ab.
 
 #### [BLK-T2] Undo-Stack Duplikations-Bug bei Gruppen ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts)
-- **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/tools/maker/MakerFeatures.test.ts`](../../packages/engine/tests/tools/maker/MakerFeatures.test.ts).
+- **Datei:** `packages/engine/src/tools/maker/MakerApp.ts`
+- **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/tools/maker/MakerFeatures.test.ts`.
 - **Szenario:** Waren Parent und Child gemeinsam selektiert, duplizierte `duplicateSelection()` den Child-Node doppelt (einmal über den geklonten Parent, einmal separat als Waise).
 - **Abhilfe:** `_getTopLevelSelection()` implementiert: Filtert rekursiv alle Kindelemente heraus, deren Vorfahren bereits in der Selektion enthalten sind, und sichert `duplicateSelection()`, `deleteSelection()` und `groupSelection()` ab.
 
 #### [BLK-T3] Import-Side-Effects in `ibl-gen.ts` ✅ *(BEHOBEN)*
-- **Datei:** [`packages/engine/src/tools/ibl-gen.ts`](../../packages/engine/src/tools/ibl-gen.ts)
+- **Datei:** `packages/engine/src/tools/ibl-gen.ts`
 - **Status:** **Behoben.**
 - **Szenario:** Modul führte beim reinen Importieren `document.addEventListener("DOMContentLoaded")` aus, erzeugte Offscreen-Canvases und instanziierte WebGL2-Kontexte.
 - **Abhilfe:** DOM-Initialisierung in `initIBLGenTool()` gekapselt und Auto-Start mit striktem `#dropzone`-DOM-Guard versehen, sodass das Modul side-effect-frei importiert werden kann.
@@ -156,32 +156,32 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 ### 4.1 Performance & GC-Optimierung
 1. **[MAJ-01] ~770 Vector3D-Allokationen pro Frame in `updateGlobalUBO()` ✅ *(BEHOBEN)***
    - **Dateien:** 
-     - [`packages/engine/src/renderers/WebGL2/WebGL2UniformBuffer.ts`](../../packages/engine/src/renderers/WebGL2/WebGL2UniformBuffer.ts#L48-L62)
-     - [`packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts`](../../packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts#L1435-L1570)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/renderers/WebGL2UniformBufferSetters.test.ts`](../../packages/engine/tests/renderers/WebGL2UniformBufferSetters.test.ts).
+     - `packages/engine/src/renderers/WebGL2/WebGL2UniformBuffer.ts`
+     - `packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/renderers/WebGL2UniformBufferSetters.test.ts`.
    - **Lösung:** `WebGL2UniformBuffer` um direkte skalare Methoden `setVec3(offset, x, y, z)` und `setVec4(offset, x, y, z, w)` erweitert. `WebGL2Renderer.updateGlobalUBO()` schreibt Ambient-, Directional-, Point-, Spot- und Area-Light-Werte nun direkt ohne temporäre `Vector3D`-Objekte (spart ~46.000 GC-Allokationen pro Sekunde).
 
 2. **[MAJ-02] Jim-Arvo-AABB-Transformations-Judo ✅ *(BEHOBEN)***
-   - **Datei:** [`packages/engine/src/physix/BoundingBox.ts`](../../packages/engine/src/physix/BoundingBox.ts#L207-L235)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/BoundingBoxTransform.test.ts`](../../packages/engine/tests/physix/BoundingBoxTransform.test.ts).
+   - **Datei:** `packages/engine/src/physix/BoundingBox.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/physix/BoundingBoxTransform.test.ts`.
    - **Lösung:** `BoundingBox.transform(matrix)` auf den Algorithmus von Jim Arvo umgestellt ($O(1)$, 0 Vektoren, 0 Arrays, keine MathPool-Acquires mehr nötig).
 
 3. **[MAJ-03] `Raycaster` transformiert alle Mesh-Vertices in Weltkoordinaten ✅ *(BEHOBEN)***
-   - **Datei:** [`packages/engine/src/physix/Raycaster.ts`](../../packages/engine/src/physix/Raycaster.ts#L88-L230)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/Raycaster.test.ts`](../../packages/engine/tests/physix/Raycaster.test.ts).
+   - **Datei:** `packages/engine/src/physix/Raycaster.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/physix/Raycaster.test.ts`.
    - **Lösung:** Der Suchstrahl (Ray) wird **einmal** via `worldMatrix.invert()` in den Objekt-Lokalraum transformiert. Der Möller-Trumbore-Schnittpunkttest liest die Vertex-Koordinaten direkt aus den flachen Puffern (`_intersectTriangleDirect`), ohne pro Dreieck 3 Vektoren zu allokieren oder 4x4-Matrizen zu multiplizieren (spart bei 5.000 Dreiecken 15.000 Vektortransformationen pro Frame).
 
 4. **[MAJ-04] MathPool-Thrashing in `EulerIntegrator` ✅ *(BEHOBEN)***
    - **Dateien:**
-     - [`packages/engine/src/physix/solvers/EulerIntegrator.ts`](../../packages/engine/src/physix/solvers/EulerIntegrator.ts#L30-L125)
-     - [`packages/engine/src/math/Quaternion.ts`](../../packages/engine/src/math/Quaternion.ts#L267-L310)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/solvers/EulerIntegrator.test.ts`](../../packages/engine/tests/physix/solvers/EulerIntegrator.test.ts) und [`packages/engine/tests/math/Quaternion.test.ts`](../../packages/engine/tests/math/Quaternion.test.ts).
+     - `packages/engine/src/physix/solvers/EulerIntegrator.ts`
+     - `packages/engine/src/math/Quaternion.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/physix/solvers/EulerIntegrator.test.ts` und `packages/engine/tests/math/Quaternion.test.ts`.
    - **Lösung:** `integrateVelocity`, `applyDisplacement` und `integrateAngular` vollständig auf 0-Allokations-Skalarrechnung umgestellt. Die Rotationsintegration nutzt direkte geschlossene Quaternion-Formeln für Euler YXZ ($\Delta q \cdot q_{\text{current}}$ und closed-form $q \to \text{Euler}$) ohne Matrix-Kompositionen, Decompose-Aufrufe oder MathPool-Thrashing (spart 12 MathPool-Acquires pro rotierendem Körper pro Physik-Substep).
 
 5. **[MAJ-05] Transiente `GPUTextureView`-Allokationen in Schatten-Pässen ✅ *(BEHOBEN)***
    - **Dateien:** 
-     - [`packages/engine/src/renderers/passes/CascadedShadowPassGPU.ts`](../../packages/engine/src/renderers/passes/CascadedShadowPassGPU.ts)
-     - [`packages/engine/src/renderers/passes/SpotShadowPassGPU.ts`](../../packages/engine/src/renderers/passes/SpotShadowPassGPU.ts)
+     - `packages/engine/src/renderers/passes/CascadedShadowPassGPU.ts`
+     - `packages/engine/src/renderers/passes/SpotShadowPassGPU.ts`
    - **Status:** **Behoben.**
    - **Lösung:** Per-Layer-`GPUTextureView`-Arrays (`_cascadeLayerViews`, `_layerViews`) werden direkt bei der FBO-Allokation / beim Resize vorberechnet und im Render-Loop wiederverwendet, statt jeden Frame 8+ temporäre `createView()`-Allokationen zu erzeugen.
 
@@ -190,26 +190,26 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 ### 4.2 UX, Tooling & Architektur
 6. **[MAJ-06] Tastatur-Shortcuts kollidieren mit Formularfeldern ✅ *(BEHOBEN)***
    - **Dateien:**
-     - [`packages/engine/src/core/Input.ts`](../../packages/engine/src/core/Input.ts#L37-L46)
-     - [`packages/engine/src/tools/Pixler.ts`](../../packages/engine/src/tools/Pixler.ts)
-     - [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts)
-     - [`apps/sample-apps/the-whisper/ui/ViennaMapModal.ts`](../../apps/sample-apps/the-whisper/ui/ViennaMapModal.ts)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/core/Input.test.ts`](../../packages/engine/tests/core/Input.test.ts).
+     - `packages/engine/src/core/Input.ts`
+     - `packages/engine/src/tools/Pixler.ts`
+     - `packages/engine/src/tools/maker/MakerApp.ts`
+     - `apps/sample-apps/the-whisper/ui/ViennaMapModal.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/core/Input.test.ts`.
    - **Lösung:** Universeller Guard `isEditingTextInput()` in `core/Input.ts` bereitgestellt (prüft `INPUT`, `TEXTAREA`, `SELECT` sowie `contenteditable` / `isContentEditable`). Alle Tools (`Pixler`, `MakerApp`, `ViennaMapModal`) nutzen nun diesen zentralen Guard, um Tastatur-Shortcuts zuverlässig zu unterdrücken, wenn der Benutzer in Formularfeldern oder editierbaren UI-Elementen tippt.
 
 7. **[MAJ-07] Shift+Arrow Muscle-Memory-Inversion in `MakerApp.ts` ✅ *(BEHOBEN)***
-   - **Datei:** [`packages/engine/src/tools/maker/MakerApp.ts`](../../packages/engine/src/tools/maker/MakerApp.ts#L1950-L2110)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/tools/maker/MakerFeatures.test.ts`](../../packages/engine/tests/tools/maker/MakerFeatures.test.ts).
+   - **Datei:** `packages/engine/src/tools/maker/MakerApp.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/tools/maker/MakerFeatures.test.ts`.
    - **Lösung:** `Shift` standardisiert als `10x`-Multiplikator für Translation (5.0m statt 0.5m) und Skalierung (2.5 statt 0.25) sowie als `6x` (90°-Vierteldrehung) für Rotation. Vertikale Verschiebung/Skalierung/Roll auf `PageUp`/`PageDown` gelegt, sodass `Shift+Pfeiltasten` nun intuitiv 10x in horizontaler Blickrichtung verschiebt (*Photoshop/Blender/Figma-Konvention*).
 
 8. **[MAJ-08] glTF Extension Registry Duplikation ✅ *(BEHOBEN)***
-   - **Datei:** [`packages/engine/src/loaders/gltf/GltfExtensionRegistry.ts`](../../packages/engine/src/loaders/gltf/GltfExtensionRegistry.ts)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/gltf-extensions/tests/Register.test.ts`](../../packages/gltf-extensions/tests/Register.test.ts).
+   - **Datei:** `packages/engine/src/loaders/gltf/GltfExtensionRegistry.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/gltf-extensions/tests/Register.test.ts`.
    - **Lösung:** `registerGltfExtension()` dedupliziert Plugins anhand von `plugin.name` und aktualisiert vorhandene Registrierungen; `unregisterGltfExtension(name)` für sicheres Unregistering bereitgestellt.
 
 9. **[MAJ-09] `KhrTextureBasisu` nutzt rohes `fetch()` ✅ *(BEHOBEN)***
-   - **Datei:** [`packages/gltf-extensions/src/basisu/KhrTextureBasisu.ts`](../../packages/gltf-extensions/src/basisu/KhrTextureBasisu.ts#L50-L56)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/gltf-extensions/tests/KhrTextureBasisu.test.ts`](../../packages/gltf-extensions/tests/KhrTextureBasisu.test.ts).
+   - **Datei:** `packages/gltf-extensions/src/basisu/KhrTextureBasisu.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/gltf-extensions/tests/KhrTextureBasisu.test.ts`.
    - **Lösung:** Rohes `fetch()` durch `assetManager.loadBinary(url)` ersetzt. Dadurch greifen Base-URL-Auflösung, Authentifizierungs-Header, Ladefortschritts-Tracking und AssetManager-Caching nahtlos.
 
 10. **[MAJ-10] Monolithische Dateien über 1.000 Zeilen**
@@ -221,32 +221,32 @@ Dennoch hat der thermo-nukleare Scan in den Tiefen der Subsysteme **kritische Ra
 ## 5. 🟡 MINOR & CODE-JUDO (P2: Eleganz, Bereinigung & Dead Code)
 
 1. **[MIN-01] Toter Mock-AI-Chatbot in `Xtractor.ts` ✅ *(BEHOBEN)***
-   - **Datei:** [`packages/engine/src/tools/Xtractor.ts`](../../packages/engine/src/tools/Xtractor.ts#L740-L815)
+   - **Datei:** `packages/engine/src/tools/Xtractor.ts`
    - **Status:** **Behoben.**
    - **Lösung:** 90 Zeilen toter Fake-AI-Code (`setTimeout`, Doom-Zahlen-Regex) entfernt und durch einen deterministischen, sofort reagierenden Command-Processor für Sprite-Slicing (`slice <N>`, `teile <N>`) ersetzt.
 
 2. **[MIN-02] Literal `\\n` statt echtem `\n` in `MapGenerator.ts` ✅ *(BEHOBEN)***
-   - **Datei:** [`packages/engine/src/tools/MapGenerator.ts`](../../packages/engine/src/tools/MapGenerator.ts#L410-L425)
+   - **Datei:** `packages/engine/src/tools/MapGenerator.ts`
    - **Status:** **Behoben.**
    - **Lösung:** `getMapString()` gibt nun echte Newlines (`\n`) aus. `loadMapString()` unterstützt sowohl Standard-Zeilenumbrüche (`/\r?\n/`) als auch abwärtskompatible escaped Newlines (`\\n`).
 
 3. **[MIN-03] Globale CSS-Verschmutzung in `MaterialStudio.ts` ✅ *(BEHOBEN)***
-   - **Datei:** [`packages/engine/src/tools/MaterialStudio.ts`](../../packages/engine/src/tools/MaterialStudio.ts#L180-L235)
+   - **Datei:** `packages/engine/src/tools/MaterialStudio.ts`
    - **Status:** **Behoben.**
    - **Lösung:** Globale CSS-Variablen (`:root`), universelle Resets (`* { box-sizing }`), globale `body`-Regeln und Scrollbar-Selektoren vollständig in `.swf-ms-container` gekapselt, um DOM-Stylesheets übergeordneter Seiten nicht mehr zu überschreiben.
 
 4. **[MIN-04] Duplizierte prozedurale Geometrie durch Kit-Aufrufe konsolidiert ✅ *(BEHOBEN)***
    - **Dateien:** 
-     - [`apps/sample-apps/the-whisper/builder/BunkerKit.ts`](../../apps/sample-apps/the-whisper/builder/BunkerKit.ts#L320-L375)
-     - [`apps/sample-apps/the-whisper/scenes/flakturm-tunnel/showcase.ts`](../../apps/sample-apps/the-whisper/scenes/flakturm-tunnel/showcase.ts#L790-L796)
-   - **Status:** **Behoben** & regressionstestiert in [`apps/sample-apps/the-whisper/tests/BunkerKit.test.ts`](../../apps/sample-apps/the-whisper/tests/BunkerKit.test.ts).
+     - `apps/sample-apps/the-whisper/builder/BunkerKit.ts`
+     - `apps/sample-apps/the-whisper/scenes/flakturm-tunnel/showcase.ts`
+   - **Status:** **Behoben** & regressionstestiert in `apps/sample-apps/the-whisper/tests/BunkerKit.test.ts`.
    - **Lösung:** Handheld-Laternen-Geometrie aus `flakturm-tunnel/showcase.ts` als wiederverwendbaren `BunkerKit.createHeldLantern()`-Builder extrahiert und redundante Inlined-Mesh-Generierung eliminiert.
 
 5. **[MIN-05] `Raycaster` & `Ray` um Unterstützung für `BoundingType.OBB` erweitert ✅ *(BEHOBEN)***
    - **Dateien:** 
-     - [`packages/engine/src/physix/Ray.ts`](../../packages/engine/src/physix/Ray.ts#L117-L203)
-     - [`packages/engine/src/physix/Raycaster.ts`](../../packages/engine/src/physix/Raycaster.ts#L74-L78)
-   - **Status:** **Behoben** & regressionstestiert in [`packages/engine/tests/physix/Ray.test.ts`](../../packages/engine/tests/physix/Ray.test.ts) und [`packages/engine/tests/physix/Raycaster.test.ts`](../../packages/engine/tests/physix/Raycaster.test.ts).
+     - `packages/engine/src/physix/Ray.ts`
+     - `packages/engine/src/physix/Raycaster.ts`
+   - **Status:** **Behoben** & regressionstestiert in `packages/engine/tests/physix/Ray.test.ts` und `packages/engine/tests/physix/Raycaster.test.ts`.
    - **Lösung:** 0-Allokations-Slab-Schnittpunkttest `Ray.intersectsOBB(obb)` entlang der lokalen orthogonalen OBB-Achsen implementiert und `Raycaster.intersectObjects()` für `BoundingType.OBB` freigeschaltet.
 
 ---

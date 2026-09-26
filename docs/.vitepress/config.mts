@@ -20,6 +20,7 @@ export default defineConfig({
         {
           text: "Spiele & Welten",
           items: [
+            { text: "Überblick & Index", link: "/apps/" },
             { text: "The Whisper — A Viennese Requiem", link: "/apps/the-whisper" },
             { text: "YAD (Dungeon Crawler)", link: "/apps/yad" },
             { text: "Light Cycle Arena", link: "/apps/light-cycle-arena" },
@@ -43,6 +44,7 @@ export default defineConfig({
         {
           text: "Erste Schritte",
           items: [
+            { text: "Überblick & Index", link: "/guides/" },
             { text: "Installation & Einrichtung", link: "/guides/getting-started" },
             { text: "Kommerzielle Indie-Roadmap", link: "/guides/commercial-indie-roadmap" },
           ],
@@ -117,11 +119,10 @@ export default defineConfig({
           items: [
             { text: "Überblick & Index", link: "/research/" },
             { text: "AAA-Rendering-Techniken", link: "/research/aaa-engine-techniques" },
-            { text: "Diorama-Umgebungsarchitektur", link: "/research/diorama-environment-architecture" },
             { text: "Öl- & Pfützen-Shader-Techniken", link: "/research/oil-puddle-shader-technique" },
-            { text: "XDP-Spiele-Netzwerktechnik", link: "/research/xdp-game-networking" },
             { text: "Showcase-Feature-Audit", link: "/research/showcase-feature-audit" },
-            { text: "Codebasis-Architektur-Review", link: "/research/codebase-review-2026-08-22" },
+            { text: "Thermo-Nuclear Review (2026-09-18)", link: "/research/codebase-review-2026-09-18-thermo-nuclear" },
+            { text: "Plan 0: Level-Deskriptoren (2026-09-18)", link: "/research/plan-0-level-descriptors-2026-09-18" },
           ],
         },
       ],

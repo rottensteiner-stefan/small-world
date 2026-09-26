@@ -1,1 +1,1 @@
-See [`AGENTS.md`](.agents/AGENTS.md)
+AGENTS.md

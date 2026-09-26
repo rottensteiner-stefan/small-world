@@ -1,8 +1,8 @@
 # Plan 0 from Phase 1: Architektur-Weichenstellung & Datengetriebene Szenen-Pipeline
 
-> **Status:** Genehmigter Masterplan für den Übergang von imperativen TypeScript-Szenen zu datengetriebenen Level-Deskriptoren und smarter Kit-Metadaten-Auswertung.  
-> **Datum:** 2026-09-18  
-> **Referenzen:** [ADR 0010 (Maker)](../../docs/adr/0010-maker-editor-architecture.md), [ADR 0011 (Asset-Kits)](../../docs/adr/0011-modular-asset-kits-and-remote-catalog.md), [ADR 0016 (Stage Zones)](../../docs/adr/0016-2-5d-stage-zones-as-a-gltf-extension.md), [ADR 0017 (glTF Extension Registry)](../../docs/adr/0017-gltf-extension-plugin-registry.md), [ADR 0019 (Environment Texturing)](../../docs/adr/0019-modular-environment-texturing-and-scale-doctrine.md).
+> **Status:** Genehmigter Masterplan für den Übergang von imperativen TypeScript-Szenen zu datengetriebenen Level-Deskriptoren und smarter Kit-Metadaten-Auswertung. **Umgesetzt und abgelöst durch [ADR 0020](../adr/0020-declarative-level-descriptors-and-kit-runtime.md)** — dieses Dokument bleibt als historischer Schnappschuss der ursprünglichen Q&A-Herleitung stehen.  
+> **Datum:** 2026-09-18 (verschoben aus `.agents/notes/` am 2026-09-26, Inhalt unverändert)  
+> **Referenzen:** [ADR 0010 (Maker)](../adr/0010-maker-editor-architecture.md), [ADR 0011 (Asset-Kits)](../adr/0011-modular-asset-kits-and-remote-catalog.md), [ADR 0016 (Stage Zones)](../adr/0016-2-5d-stage-zones-as-a-gltf-extension.md), [ADR 0017 (glTF Extension Registry)](../adr/0017-gltf-extension-plugin-registry.md), [ADR 0019 (Environment Texturing)](../adr/0019-modular-environment-texturing-and-scale-doctrine.md).
 
 ---
 
@@ -161,7 +161,7 @@ flowchart LR
 ### Frage 2: Wie werden Wände und modulare Räume strukturiert, damit sie nicht monoton wirken?
 **Antwort & Begründung:**
 - Räume variieren stark in ihrer Größe (von der $7 \times 7\,\text{m}$ Koje 42 bis zu $30\,\text{m}$ langen Fluren und Katakomben). Reine Textur-Kachelung führt unweigerlich zu sichtbaren Wiederholungsmustern (Tiling-Artefakte).
-- **Die 4-Säulen-Skalierungsdoktrin ([ADR 0019](../../docs/adr/0019-modular-environment-texturing-and-scale-doctrine.md)):**
+- **Die 4-Säulen-Skalierungsdoktrin ([ADR 0019](../adr/0019-modular-environment-texturing-and-scale-doctrine.md)):**
   1. **Struktureller Rhythmus:** Wandflächen werden im festen $3{,}5\,\text{m}$-Raster durch vertikale Stahlbeton-Pilaster/Säulen (`FlakturmKit.createPillar`) unterbrochen.
   2. **Horizontale Zonierung (Baseboard):** Der untere Wandmeter erhält eine separate Sockelleiste mit Feuchtigkeits-, Schimmel- und Salzausblühungs-Texturen (`concrete_damp_efflorescence`). Der obere Bereich nutzt Schalungsbeton (`concrete_panel_smooth` oder `concrete_board`).
   3. **Decken-Kassetten & Unterzüge:** Decken werden durch Quer- und Längsträger (`createBeam`) in Kassetten aufgeteilt.

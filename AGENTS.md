@@ -8,14 +8,14 @@
 - **Git Permissions & Commit Cadence:** You are explicitly authorized to execute git operations without asking, BUT **do NOT commit immediately after every single micro-edit/change**. Wait until a feature/milestone is cohesively rounded off or the user signals/requests a commit. Every commit message MUST be a pure quote without author/prefixes, and never reused (check `git log` first).
 - **Surgical Changes:** Use `replace` tool for edits. NEVER use `write_file` on existing files.
 - **Data Integrity:** Preserve historical entries in logs/changelogs.
-- **File Storage:** Store scratchpads, sketches, and temporary files locally in the project under `.agents/scratches/`, not in the hard-to-reach agent-specific AppData directory. Exceptions are regular assets or artifacts where the target location is known and logical.
+- **File Storage:** Store scratchpads, sketches, and temporary files locally in the project under `.agents/scratches`, not in the hard-to-reach agent-specific AppData directory. Exceptions are regular assets or artifacts where the target location is known and logical.
 - **Verification:** Run `npm run lint:fix`, `npm run build:lib` and `npm run test` proactively after making changes to catch errors before committing.
 - **Communication:** Telegram-style (concise), use Markdown artifacts for plans/details, precise links (file/lines) instead of copying code, surgical diffs, delegate research to subagents.
 - **Terminal Commands:** You are explicitly allowed to run read-only shell commands (like `grep`, `tail`, `cat`, `ls`, `find`, `git log`, `git diff`), image manipulation tools (`sips`), asset download commands (`curl -sL "https://tripo-data...`), Git operations (`git checkout`, `git add`, `git commit`, `git push`, `git log`, `git branch`), as well as safe project scripts (`npm run lint`, `npm run build`, `npm run test`) in the terminal WITHOUT asking for permission.
 - **Simplicity:** Keep things as simple as possible. Strictly avoid overengineering or preemptive abstraction. Complexity arises naturally on its own.
 - **User Workflow / Persona:** The user is an experienced digital artist/power-user (Photoshop veteran on Mac). Always prioritize robust, high-efficiency keyboard shortcuts, arrow-key nudging/transformations, and low-friction modal key bindings across all tools and editors.
 - **Sparring & Industry Benchmark Doctrine:** When discussing new features, UX, or UI ideas, act as an active sparring partner with a "critical architect hat". Benchmark every proposal against established industry standards (*Unity, Blender, Unreal, Godot, Figma, Photoshop, macOS HIG*). Do not reinvent the wheel: adopt proven muscle-memory conventions, eliminate tooling bloat, and make workflows lightning-fast and intuitive for Small World.
-- **App Docs Convention:** Every app under `apps/<app>/` has a `docs/` subfolder with `concept-dossier.html` (visual concept) and `log.md` (living dev log). The `log.md` is the primary memory for that app — read it at session start, append an entry at session end. Full rules: `.agents/notes/app-docs-convention.md`.
+- **App Docs Convention:** Every app under `apps/<app>/` has a `docs` subfolder with `concept-dossier.html` (visual concept) and `log.md` (living dev log). The `log.md` is the primary memory for that app — read it at session start, append an entry at session end. Full rules: `.agents/notes/app-docs-convention.md`.
 
 ## 2. Core Architectural Laws
 
@@ -27,10 +27,25 @@
 
 ## 3. Detailed Skills
 
-Detailed coding standards, formatting, shader logic, and domain knowledge are outsourced to skills to save context tokens. **Always read the relevant skill before starting a task:**
+Detailed coding standards, formatting, shader logic, and domain knowledge are outsourced to skills under `.agents/skills/` to save context tokens. **Always read the relevant skill before starting a task:**
 - `coding-guide`: For TS templates, DOM assignments, Enum rules, Shader optimizations, Rendering pipeline rules, and Testing.
 - `changelog`: For release standard and commit rules.
 - `domain-modeling`: For maintaining `CONTEXT.md` and recording architecture decisions as ADRs (`docs/adr/`).
 - `maintain-references`: For adding to `REFERENCES.md`.
 - `character-pipeline`: For the end-to-end 2D sketch to rigged 3D game-ready character workflow.
 - `deslop`: For anti-AI-slop and human tone filter.
+- `check-compiler-errors`: Runs compile/typecheck passes and summarizes failures by file/type.
+- `collaborate`: Multi-agent deliberation/negotiation protocol with a human moderator, round-robin turns, and a PID lock.
+- `thermo-nuclear-code-quality-review-revised`: Extremely strict, manually-invoked maintainability review (abstraction quality, spaghetti growth, file size).
+
+## 4. Further Documentation
+
+None of this is pre-loaded — open the relevant file when the task touches that area. This applies to every agent reading this file (Claude Code, Gemini CLI, or any generic AGENTS.md-consuming tool), not only ones with a "Skill" auto-loader:
+- `CONTEXT.md` (repo root): Canonical domain vocabulary/glossary. Read before naming a new concept or touching cross-subsystem code; kept up to date via the `domain-modeling` skill.
+- `docs/adr/` (start at `docs/adr/index.md`): Architecture Decision Records — the "why" behind hard-to-reverse design calls. Check for an existing ADR before revisiting one of these decisions.
+- `docs/guides/` (start at `docs/guides/index.md`): Per-subsystem deep-dive guides (materials, physics, tools, coordinate system, etc.). Read the guide for the subsystem you're touching.
+- `docs/research/` (start at `docs/research/index.md`): Point-in-time research/audit reports — historical context, not living standards.
+- `.agents/notes/backlog.md`: Living, append-only chronological project journal (ideas/open items/decisions, status legend 💡📋🔜✅❌). Worth a glance at the newest entries at session start.
+- `.agents/notes/asset-sourcing-guideline.md`: Living doctrine for asset/texture sourcing (CC0 sources, Tripo3D, small-batch rule).
+- `.agents/notes/app-docs-convention.md`: Living convention that every app under `apps/<app>/docs/` has `concept-dossier.html` + `log.md`.
+- `.agents/notes/reference/`: Standalone HTML deep-dive explainers, linked to from the specific guide/skill that needs them (e.g. 2.5D basics from `docs/guides/2-5d-scenes.md`, leg-occlusion from the `character-pipeline` skill) rather than indexed on their own.

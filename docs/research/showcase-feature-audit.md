@@ -13,6 +13,12 @@ Stand: 2026-08-20.
 > npm-Workspaces-Restrukturierung (selbes Datum) unter `apps/<app>/` statt `src/apps/<app>/`. Die
 > Zeilen unten bleiben als historischer Schnappschuss dieses Audits stehen, entsprechen aber nicht
 > mehr dem aktuellen Stand (nur noch `apps/and-now`, `apps/light-cycle-arena`, `apps/yad`).
+>
+> **Hinweis (2026-09-26):** Weiterhin veraltet und nicht neu auditiert — `apps/showcases/`
+> zählt inzwischen 37 statt 26 Einträge, und `apps/and-now` heißt jetzt
+> `apps/sample-apps/the-whisper` (Apps liegen jetzt unter `apps/sample-apps/<app>/`). Kein
+> Löschkandidat (dies ist eine Feature-Inventur, kein Erledigt/Offen-Ticket), aber ein neues
+> Audit gegen den aktuellen Stand wäre nötig, um die Lückenanalyse wieder verlässlich zu machen.
 
 ## Feature-Matrix
 

@@ -2,7 +2,7 @@
 
 2.5D ist kein besonderer Rendering-Modus — es ist eine Familie alter, gut erprobter Tricks, um Tiefe billig vorzutäuschen. Diese Anleitung führt end-to-end durch den Bau einer 2.5D-Szene mit Small World: ein Hintergrundbild auf eine Kamera abstimmen, festlegen, wo eine Figur laufen darf, die richtige Kamerastrategie wählen, Szenen mit mehr als einem Fluchtpunkt, und eine Handvoll echter Bugs, auf die das eigene Referenzspiel dieser Engine ("The Whisper") dabei gestoßen ist.
 
-> **Verwandt:** Die grundlegende Mechanik von Hintergrund-Ebenen — UVs, `flipY`, Seitenverhältnis — wird in [2.5D-Hintergründe & Textur-Ausrichtung](/guides/coordinate-system#_2-5d-backgrounds-texture-orientation) in der Koordinatensystem-Anleitung behandelt. Diese Anleitung baut darauf auf mit Perspektiv-Abgleich, Bewegungszonen und Kamerastrategie-Abwägungen. Für jede unten erwähnte Klasse und Option siehe die **[API-Referenz](/api/index.html)**.
+> **Verwandt:** Die grundlegende Mechanik von Hintergrund-Ebenen — UVs, `flipY`, Seitenverhältnis — wird in [2.5D-Hintergründe & Textur-Ausrichtung](/guides/coordinate-system#_2-5d-backgrounds-texture-orientation) in der Koordinatensystem-Anleitung behandelt. Diese Anleitung baut darauf auf mit Perspektiv-Abgleich, Bewegungszonen und Kamerastrategie-Abwägungen. Für jede unten erwähnte Klasse und Option siehe die **[API-Referenz](/api/index.html)**. Für eine bebilderte Grundlagen-Erklärung ("Wie 2.5D funktioniert") siehe `.agents/notes/reference/2-5d-grundlagen.html` im Repo.
 
 ## 1. Was "2.5D" eigentlich bedeutet
 

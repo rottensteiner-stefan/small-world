@@ -20,6 +20,46 @@ erzeugen.
 
 ---
 
+## 2026-09-26 — Doku-Restrukturierung: AGENTS.md/.agents/docs vereinheitlicht
+
+- ✅ **AGENTS.md an Repo-Root verschoben** (`.agents/AGENTS.md` → `AGENTS.md`), `CLAUDE.md`/`GEMINI.md`
+  verweisen beide korrekt darauf. AGENTS.md um vollständige Skill-Liste (alle 9 statt 6) und eine
+  neue "Further Documentation"-Sektion ergänzt (Pointer auf `CONTEXT.md`, `docs/adr/`,
+  `docs/guides/`, `docs/research/`), damit auch Nicht-Claude-Code-Agenten (Gemini CLI, generische
+  AGENTS.md-Konsumenten ohne Skill-Tool) die relevanten Standards finden, ohne dass sie bei jedem
+  Request mitgeschickt werden müssen.
+- ✅ **`.agents/notes/` von veralteten Snapshots befreit**, echte "living" Standards
+  (`backlog.md`, `asset-sourcing-guideline.md`, `app-docs-convention.md`) bleiben. Abgeschlossene
+  Prüfberichte wanderten ins bereits etablierte `docs/research/`-Archiv (mit Cross-Links):
+  `thermo-nuclear-codebase-review.md` → `docs/research/codebase-review-2026-09-18-thermo-nuclear.md`,
+  `plan-0-from-phase-1.md` → `docs/research/plan-0-level-descriptors-2026-09-18.md` (mit
+  Vermerk "abgelöst durch ADR 0020").
+- ✅ **`docs/guides/index.md` und `docs/apps/index.md` neu angelegt** (fehlten bisher komplett,
+  obwohl 24 bzw. 4 Dateien im Ordner lagen und schon eigene VitePress-Sidebar-Einträge hatten) —
+  analog zum bestehenden Muster von `docs/adr/index.md`/`docs/research/index.md`.
+- ✅ **`session-state.md` hierher gefaltet** (dieser Eintrag) statt als eigene, seit 2026-09-04
+  stehengebliebene Datei weiterzuführen — ihr einziger Inhalt war ohnehin ein Commit-Rückblick
+  auf die damalige Review-Aufräum-Initiative (`6931b847`…`2f20a63e`, siehe `git log`) plus ein
+  Regelwerk, das inzwischen 1:1 in `AGENTS.md` steht.
+- ✅ **`docs/research/research.txt`** (loses Prompt-Fragment zu einem nie begonnenen
+  "Disc Wars"-Recherche-Auftrag) wurde im Zuge dieser Aufräumaktion entfernt (parallel zur
+  Session, nicht von diesem Agent-Lauf selbst gelöscht, aber bestätigt konsistent mit der
+  Empfehlung oben).
+- ✅ **`docs/research/`-Reviewberichte einzeln gegen den Live-Code verifiziert** (User-Anfrage
+  2026-09-26) und alles wirklich Erledigte entfernt: `codebase-review-2026-08-22.md` (alle 15
+  Findings bestätigt gefixt/bewusst verworfen), `diorama-environment-architecture.md` (alle 3
+  Maßnahmen umgesetzt, u. a. Lampen jetzt `wall_lamp.glb` statt Custom-Geometrie),
+  `projekt-raum.md` (vollständig umgesetzt als `apps/showcases/37/`), `xdp-game-networking.md`
+  (auf User-Wunsch entfernt, unabhängig vom Reference-Charakter). Bewusst NICHT gelöscht:
+  `aaa-engine-techniques.md` (4 echte offene Punkte, u. a. volumetrischer Nebel als nächstes
+  großes Vorhaben), `codebase-review-2026-09-18-thermo-nuclear.md` (2 offene Punkte: MakerApp-/
+  MaterialStudio-Modularisierung, MAJ-10), `showcase-feature-audit.md` (veraltete Inventur statt
+  Erledigt/Offen-Ticket, mit Stale-Hinweis versehen statt gelöscht), `oil-puddle-shader-technique.md`
+  (Referenzformeln-Abschnitt dauerhaft gültig, Pfad-Hinweis ergänzt), `plan-0-level-descriptors-2026-09-18.md`
+  (historische Q&A-Herleitung zu ADR 0020, mit Abgelöst-Vermerk verschoben statt gelöscht).
+
+---
+
 ## 2026-09-13 — Echtes IBL für 6 Showcases + gefundener AO-Uniform-Bug (WebGL1+WebGL2)
 
 - ✅ **Auslöser:** Showcase 15s Spiegelkugeln (`metallic:1.0, roughness:0.02`) wirkten "kaputt

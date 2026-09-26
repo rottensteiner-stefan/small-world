@@ -212,8 +212,11 @@ The engine's flagship standalone 3D scene composer and level editor ([User Guide
 This project provides comprehensive developer documentation, engine guides, and production roadmaps:
 
 - **[Vision & Core Philosophy](VISION.md):** The atmospheric indie game philosophy ("The Stray Principle").
-- **[Maker User Guide & Pro Reference](docs/guides/maker.md):** Complete guide to the standalone in-browser 3D world editor.
-- **[Commercial Indie Game Roadmap & Publisher Strategy](docs/guides/commercial-indie-roadmap.md):** Strategic roadmap from prototype to commercial release on Steam, PlayStation & Xbox (playtime optimization, Tauri packaging, publisher pitching, platform certification, wishlist velocity).
+- **[Domain Glossary](CONTEXT.md):** Canonical terminology for the engine's core architectural concepts.
+- **[Guides](docs/guides/index.md):** Per-subsystem deep-dive guides, including the **[Maker User Guide & Pro Reference](docs/guides/maker.md)** and the **[Commercial Indie Game Roadmap & Publisher Strategy](docs/guides/commercial-indie-roadmap.md)** (Steam/PlayStation/Xbox release strategy, Tauri packaging, publisher pitching).
+- **[Architecture Decision Records](docs/adr/index.md):** The "why" behind every hard-to-reverse engine design call.
+- **[Research & Technical Studies](docs/research/index.md):** Point-in-time deep dives, audits, and technology comparisons.
+- **[AGENTS.md](AGENTS.md):** Workflow conventions and coding standards for AI coding agents working in this repo.
 - **Interactive Guides & API Reference:**
   - Build API documentation with TypeDoc:
     ```bash

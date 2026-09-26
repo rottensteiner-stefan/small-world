@@ -2,6 +2,12 @@
 
 **Kontext:** Aufbauend auf externer Recherche zu Unreal/Godot-Pfützen-Shadern und einem verifizierten Code-Abgleich der `OilSlickMaterial` (`apps/and-now/scenes/character-diorama/OilSlickMaterial.ts`) gegen dieses Feature-Set. Ziel: die Lücken schließen, die sich mit vertretbarem Aufwand lohnen — nicht alles um jeden Preis nachbauen.
 
+> **Hinweis (2026-09-26):** Pfad oben ist veraltet — die Datei liegt inzwischen unter
+> `apps/sample-apps/the-whisper/scenes/character-diorama/OilSlickMaterial.ts` (App umbenannt/
+> verschoben). Phasen 1–3 unten sind laut `.agents/notes/backlog.md` (2026-09-07/08) umgesetzt
+> und live verifiziert; Abschnitt 6 (Referenzformeln) bleibt unabhängig davon als
+> Kalibrierungs-Nachschlagewerk gültig.
+
 **Nicht Bestandteil dieses Fahrplans** (siehe Abschnitt 4 für die Begründung): Rand-Blending zum Untergrund, Nass-Zone im Boden, generisches Decal-System.
 
 ---
