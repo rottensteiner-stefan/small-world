@@ -28,7 +28,7 @@
 ## 3. Detailed Skills
 
 Detailed coding standards, formatting, shader logic, and domain knowledge are outsourced to skills under `.agents/skills/` to save context tokens. **Always read the relevant skill before starting a task:**
-- `coding-guide`: For TS templates, DOM assignments, Enum rules, Shader optimizations, Rendering pipeline rules, and Testing.
+- `coding-guide`: For TS templates, DOM assignments, Enum rules, Shader optimizations, Rendering pipeline rules, Hot-path TypeScript performance, and Testing.
 - `changelog`: For release standard and commit rules.
 - `domain-modeling`: For maintaining `CONTEXT.md` and recording architecture decisions as ADRs (`docs/adr/`).
 - `maintain-references`: For adding to `REFERENCES.md`.

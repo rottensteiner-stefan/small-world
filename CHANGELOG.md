@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.83.2] - 2026-09-27
+
+### "Divide each difficulty into as many parts as is feasible." - René Descartes
+
+- **Architecture & Bugfixes:**
+  - *MakerApp Monolith Split (MAJ-10)*: [`MakerApp.ts`](packages/engine/src/tools/maker/MakerApp.ts) (2,147 lines) split into three focused domain services — [`MakerPrefabPipeline`](packages/engine/src/tools/maker/MakerPrefabPipeline.ts) (prefab save/instantiate + thumbnail capture), [`MakerImportAndZoneTools`](packages/engine/src/tools/maker/MakerImportAndZoneTools.ts) (ASCII/background-image import + click-to-draw stage-zone tooling), and [`MakerToolbarBuilder`](packages/engine/src/tools/maker/MakerToolbarBuilder.ts) (palette/gizmo/snap/camera-bookmark toolbar wiring). `MakerApp` retains only selection, the gizmo drag loop, pointer picking/marqueeing, and the undo-backed scene-edit operations that all three extracted services route back through via constructor-injected callbacks. `MaterialStudio.ts`'s half of MAJ-10 remains open.
+- **Housekeeping & Docs:**
+  - *Hot-Path TypeScript Performance Standard*: Added a new section to the `coding-guide` skill codifying zero-allocation rules for the render/update loop (scratch objects instead of `new`, classic `for` loops over iterator chains, typed arrays, stable object shapes, hoisted lookups), scoped explicitly to hot-path code rather than setup/editor code.
+
 ## [0.83.1] - 2026-09-26
 
 ### "A body at rest stays at rest, and a body in motion stays in motion, unless acted upon by an external force." - Isaac Newton

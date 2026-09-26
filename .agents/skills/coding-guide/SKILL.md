@@ -1,6 +1,6 @@
 ---
 name: coding-guide
-description: Coding standards, TypeScript templates, guard clauses, and shader math optimization references.
+description: Coding standards, TypeScript templates, guard clauses, hot-path performance rules, and shader math optimization references.
 ---
 
 # Small World Coding Guide
@@ -146,6 +146,22 @@ if (luma < 0.3) {
 let c1 = mix(cold, warm, clamp(luma / 0.3, 0.0, 1.0));
 let c2 = mix(c1, hot, clamp((luma - 0.3) / 0.4, 0.0, 1.0));
 srgb = mix(c2, whiteHot, clamp((luma - 0.7) / 0.3, 0.0, 1.0));
+
+---
+
+## 3B. Hot-Path TypeScript Performance ("Zero Allocation in the Loop")
+
+Any code reachable from the per-frame render/update loop (`Scene.update`, `Renderer.render`, behaviors, animation mixers, physics stepping, culling) is a **hot path**. Outside of hot paths, write normal, readable TypeScript — do not micro-optimize one-shot setup/loader/editor code.
+
+- **No per-frame allocation:** Never `new Vector3D()`, `new Matrix4()`, `new Array()`, or create closures/arrow-function callbacks inside a method called every tick. Reuse a scratch instance held as a private field (`_scratchVec3`), or pass an output parameter to write into (`target: Vector3D`) instead of returning a new object.
+- **Reused scratch objects are not shared state:** never let a scratch field leak past the call that fills it — a caller must copy out the values it needs before the next call overwrites the scratch object. Document this contract at the method, and never store a reference to a returned scratch object.
+- **Classic `for` loops over iterator chains:** In a hot path, use `for (let i = 0; i < arr.length; i++)` instead of `.map/.filter/.forEach/.reduce/for-of` on arrays — those allocate intermediate arrays/iterators and add call overhead. `.map/.filter` are fine in setup/one-shot code.
+- **Typed arrays for bulk numeric data:** Prefer `Float32Array`/`Uint16Array`/etc. over `number[]` or arrays-of-objects for vertex/particle/instance data — better cache locality, no per-element boxing.
+- **Stable object shapes (monomorphism):** Initialize every field in the constructor, even to a default/zero value. Never add or `delete` a property after construction, and never assign a field a different type across instances — V8 deoptimizes megamorphic access patterns.
+- **Hoist repeated lookups:** Cache `arr.length`, `this.someArray`, and repeated property/nested-path reads into a local `const` before a loop instead of re-reading them every iteration.
+- **No string concatenation in the loop:** Avoid building strings (e.g. cache keys, debug labels) inside per-frame code paths.
+- **Direct property reads over trivial getters in the innermost loop:** If a getter just returns a field, prefer reading `obj._field` directly in the innermost hot loop (still respecting normal encapsulation everywhere else) rather than routing through an accessor call thousands of times a frame.
+- Trust `npm run build:lib` + `npm run test` to catch correctness regressions from these changes; performance claims themselves should be backed by a quick before/after profile (`performance.now()` around the loop, or the browser profiler) when the change is non-trivial, not just asserted.
 
 ---
 

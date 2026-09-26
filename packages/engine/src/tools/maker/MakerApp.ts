@@ -15,21 +15,16 @@ import {
   PointLight,
   SpotLight,
   AmbientLight,
-  AbstractLight,
   AbstractMaterial,
   WireframeMaterial,
-  BasicMaterial,
-  StandardMaterial,
   Color,
   isEditingTextInput,
 } from "../../core/index.js";
-import { Grid, Cube, Octahedron, Polyline } from "../../geometry/index.js";
+import { Grid, Cube } from "../../geometry/index.js";
 import { Raycaster, BoundingBox, BoundingSphere } from "../../physix/index.js";
 import { BoundingType, CameraStrategyType } from "../../enums/index.js";
-import { EngineOptions, BoundingVolume } from "../../interfaces/index.js";
-import { Vector2D, Vector3D, MathPool, MathUtils } from "../../math/index.js";
-import { StageZone } from "../../core/stage/StageZone.js";
-import { StageZoneMarker } from "../../core/stage/StageZoneMarker.js";
+import { EngineOptions } from "../../interfaces/index.js";
+import { Vector2D, Vector3D, MathPool } from "../../math/index.js";
 
 import { OrbitCameraController, OrbitCameraView } from "./OrbitCameraController.js";
 import { UndoStack } from "./UndoStack.js";
@@ -42,12 +37,11 @@ import { TransformGizmo, GizmoMode, GizmoAxis } from "./TransformGizmo.js";
 import { LightGizmoManager } from "./LightGizmoManager.js";
 import { StageZoneGizmoManager } from "./StageZoneGizmoManager.js";
 import { resolveStageProjection, projectRayToUv } from "./StageProjectionResolver.js";
-import { BackgroundPlane } from "./BackgroundPlane.js";
 import { BackgroundImportPanel } from "./BackgroundImportPanel.js";
-import { Texture } from "../../core/textures/index.js";
 import { MapImportPanel } from "./MapImportPanel.js";
-import { defaultAsciiMapLegend } from "./AsciiMapLegend.js";
-import { GridLevelBuilder } from "../procgen/index.js";
+import { MakerPrefabPipeline } from "./MakerPrefabPipeline.js";
+import { MakerImportAndZoneTools } from "./MakerImportAndZoneTools.js";
+import { MakerToolbarBuilder } from "./MakerToolbarBuilder.js";
 
 export interface MakerAppOptions extends EngineOptions {
   hierarchyContainer: HTMLElement;
@@ -80,20 +74,11 @@ interface MarqueeState {
   isShift: boolean;
 }
 
-/** In-progress click-to-draw state for a new `StageZoneMarker` (ADR 0016 Phase 2). `previewRoot`
- * holds ephemeral handle/line markers rebuilt after every placed point -- never added to
- * `_undo`, since nothing here is a real scene object yet; only `_finishZoneDraw()`'s single
- * `StageZoneMarker` creation is undoable. */
-interface ZoneDrawState {
-  points: { u: number; v: number; scale: number }[];
-  previewRoot: Object3D;
-}
-
 /** Viewport drag of a single existing zone point (handle grabbed in `StageZoneGizmoManager`) --
  * mirrors `GizmoDragState`'s "collect state during the drag, push exactly one undo command at
  * `pointerup`" pattern, applied to a `(u, v)` pair instead of a transform. */
 interface ZonePointDragState {
-  marker: StageZoneMarker;
+  marker: import("../../core/stage/StageZoneMarker.js").StageZoneMarker;
   index: number;
   before: { u: number; v: number };
 }
@@ -104,6 +89,13 @@ interface ZonePointDragState {
  * picking, the undo stack, and wiring between the three panels (Hierarchy/Palette/Property)
  * and the live scene graph. Deliberately does not touch `GadgetInspector` -- see the ADR's
  * "retire only after parity" decision.
+ *
+ * Prefab save/instantiate + thumbnail capture, ASCII/background-image import + zone-draw, and
+ * palette toolbar wiring are extracted into `MakerPrefabPipeline`/`MakerImportAndZoneTools`/
+ * `MakerToolbarBuilder` (MAJ-10 monolith split) -- selection, the gizmo drag loop, pointer
+ * picking/marqueeing, and the undo-backed scene-edit operations stay here, since they all share
+ * `_undo`/`_selection`/`_propertyPanel`/`_project` state tightly enough that splitting them
+ * further would only replace that coupling with equivalent constructor-injected callbacks.
  */
 export class MakerApp extends SmallWorld {
   private readonly _orbit = new OrbitCameraController();
@@ -121,9 +113,11 @@ export class MakerApp extends SmallWorld {
   /** Re-resolved only when the hierarchy actually changes -- mirrors `LightGizmoManager`'s own
    * `hierarchyChanged`-gated re-scan, since a full scene walk every frame is unnecessary. */
   private _stageProjection: ReturnType<typeof resolveStageProjection> = undefined;
-  private _zoneDrawState: ZoneDrawState | undefined;
   private _zonePointDrag: ZonePointDragState | undefined;
-  private _zoneDrawButton: HTMLButtonElement | undefined;
+
+  private _prefabPipeline!: MakerPrefabPipeline;
+  private _importTools!: MakerImportAndZoneTools;
+  private _toolbars!: MakerToolbarBuilder;
 
   /** Insertion-ordered so "the last thing clicked/toggled" (via `Array.from(...).at(-1)`) is
    * well-defined -- `_primary` always mirrors that. */
@@ -155,7 +149,7 @@ export class MakerApp extends SmallWorld {
     return this._undo;
   }
   public get cameraBookmarks(): ReadonlyMap<number, OrbitCameraView> {
-    return this._cameraBookmarks;
+    return this._toolbars.cameraBookmarks;
   }
 
   private get _selected(): Object3D | undefined {
@@ -169,21 +163,14 @@ export class MakerApp extends SmallWorld {
   private static readonly _SECONDARY_HIGHLIGHT_COLOR = new Color(1, 0.7, 0);
   private _hierarchyPanel!: HierarchyPanel;
   private _propertyPanel!: PropertyPanel;
-  private _prefabPalette!: PrefabPalette;
   private _hierarchyDirty = true;
   private _gizmoDrag: GizmoDragState | undefined;
-  private _gizmoButtons: Record<GizmoMode, HTMLButtonElement> | undefined;
-  private _snapButton: HTMLButtonElement | undefined;
   private _marqueeEl!: HTMLElement;
   private _marqueeState: MarqueeState | undefined;
   private _cameraDrag: { lastX: number; lastY: number } | undefined;
-  /** In-memory only, per Maker session -- not part of the glTF world format, so it doesn't
-   * survive a reload. A quality-of-life navigation aid, not scene content. */
-  private readonly _cameraBookmarks = new Map<number, OrbitCameraView>();
-  private _bookmarkButtons: Record<number, HTMLButtonElement> | undefined;
-  /** Set for the duration of `_captureIsolatedThumbnail()`'s temporary camera reframing --
-   * `update()` skips `_orbit.update()` while true so the orbit controller doesn't immediately
-   * overwrite the thumbnail shot on the next frame. */
+  /** Set for the duration of `MakerPrefabPipeline`'s temporary camera reframing while capturing a
+   * prefab thumbnail -- `update()` skips `_orbit.update()` while true so the orbit controller
+   * doesn't immediately overwrite the thumbnail shot on the next frame. */
   private _thumbnailCaptureActive = false;
   private _abortController = new AbortController();
 
@@ -249,24 +236,73 @@ export class MakerApp extends SmallWorld {
       createObject: (factory): void => this.addObject(factory()),
       attachBehavior: (factory): void => this.attachBehaviorToSelection(factory),
     });
-    this._prefabPalette = new PrefabPalette(this._makerOptions.paletteContainer, {
-      saveSelectionAsPrefab: (name): void => this._saveSelectionAsPrefab(name),
-      instantiate: (name): void => this._instantiatePrefab(name),
+
+    this._importTools = new MakerImportAndZoneTools({
+      scene: this.scene,
+      undo: this._undo,
+      project: this._project,
+      addObject: (obj): void => this.addObject(obj),
+      disposeTrashedObject: (obj): void => this._disposeTrashedObject(obj),
+      trashBin: this._trashBin,
+      markHierarchyDirty: (): void => {
+        this._hierarchyDirty = true;
+      },
+      getStageProjection: (): ReturnType<typeof resolveStageProjection> => this._stageProjection,
     });
+
+    const prefabPalette = new PrefabPalette(this._makerOptions.paletteContainer, {
+      saveSelectionAsPrefab: (name): void => this._prefabPipeline.saveSelectionAsPrefab(name),
+      instantiate: (name): void => this._prefabPipeline.instantiatePrefab(name),
+    });
+    this._prefabPipeline = new MakerPrefabPipeline({
+      scene: this.scene,
+      camera: this.camera,
+      canvas: this.canvas,
+      orbit: this._orbit,
+      gizmo: this._gizmo,
+      lightGizmos: this._lightGizmos,
+      stageZoneGizmos: this._stageZoneGizmos,
+      highlightMeshes: this._highlightMeshes,
+      project: this._project,
+      prefabPalette,
+      statusContainer: this._makerOptions.statusContainer,
+      getSelected: (): Object3D | undefined => this._selected,
+      addObject: (obj): void => this.addObject(obj),
+      setThumbnailCaptureActive: (active): void => {
+        this._thumbnailCaptureActive = active;
+      },
+    });
+
     new MapImportPanel(this._makerOptions.paletteContainer, (mapData): void => {
-      void this._importAsciiMap(mapData);
+      void this._importTools.importAsciiMap(mapData);
     });
     new BackgroundImportPanel(this._makerOptions.paletteContainer, this.canvas, (file): void => {
-      void this._importBackgroundImage(file);
+      void this._importTools.importBackgroundImage(file);
     });
 
     this._project.onDirtyChange((dirty) => {
       this._makerOptions.statusContainer.textContent = dirty ? "Unsaved changes…" : "Saved";
     });
-    this._setupProjectToolbar();
-    this._setupSelectionToolbar();
-    this._setupCameraBookmarkToolbar();
-    this._setupGizmoToolbar();
+
+    this._toolbars = new MakerToolbarBuilder({
+      paletteContainer: this._makerOptions.paletteContainer,
+      statusContainer: this._makerOptions.statusContainer,
+      project: this._project,
+      orbit: this._orbit,
+      gizmo: this._gizmo,
+      addObject: (obj): void => this.addObject(obj),
+      refreshPrefabList: (): Promise<void> => this._prefabPipeline.refreshPrefabList(),
+      duplicateSelection: (): void => this.duplicateSelection(),
+      groupSelection: (): void => this.groupSelection(),
+      snapSelectionToGround: (): void => this.snapSelectionToGround(),
+      toggleZoneDrawMode: (): void => this._importTools.toggle(),
+    });
+    this._toolbars.setupProjectToolbar();
+    this._toolbars.setupSelectionToolbar();
+    this._toolbars.setupCameraBookmarkToolbar();
+    this._toolbars.setupGizmoToolbar();
+    if (this._toolbars.zoneDrawButton)
+      this._importTools.setZoneDrawButton(this._toolbars.zoneDrawButton);
 
     const signal = this._abortController.signal;
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault(), { signal });
@@ -294,545 +330,33 @@ export class MakerApp extends SmallWorld {
     this._hierarchyPanel.refresh();
   }
 
-  private _setupProjectToolbar(): void {
-    const button = document.createElement("button");
-    button.className = "maker-palette-btn";
-    button.textContent = "📁 Bind Project Folder";
-    button.addEventListener("click", (): void => {
-      void (async (): Promise<void> => {
-        const bound = await this._project.bind();
-        if (!bound) {
-          this._makerOptions.statusContainer.textContent =
-            "File System Access API unavailable or cancelled";
-          return;
-        }
-        // Merge-in rather than replace: keeps the scope small for Phase 1 -- a full "close and
-        // reopen a project" flow (clearing existing content first) is a later-phase concern.
-        const loadedRoot = await this._project.load();
-        if (loadedRoot) {
-          for (const child of [...loadedRoot.children]) {
-            this.addObject(child);
-          }
-        }
-        await this._refreshPrefabList();
-        this._makerOptions.statusContainer.textContent = "Saved";
-      })();
-    });
-    this._makerOptions.paletteContainer.prepend(button);
-  }
-
-  private async _refreshPrefabList(): Promise<void> {
-    const names = await this._project.listPrefabs();
-    const entries = await Promise.all(
-      names.map(async (name) => {
-        const thumbnailDataUrl = await this._project.loadPrefabThumbnail(name);
-        return thumbnailDataUrl ? { name, thumbnailDataUrl } : { name };
-      }),
-    );
-    this._prefabPalette.setEntries(entries);
-  }
-
-  private _saveSelectionAsPrefab(name: string): void {
-    const obj = this._selected;
-    if (!obj) return;
-    void (async (): Promise<void> => {
-      const saved = await this._project.savePrefab(name, obj);
-      if (saved) {
-        const thumbnail = await this._captureIsolatedThumbnail(obj);
-        if (thumbnail) await this._project.savePrefabThumbnail(name, thumbnail);
-      }
-      this._makerOptions.statusContainer.textContent = saved
-        ? `Saved prefab "${name}"`
-        : "Bind a project folder first to save prefabs";
-      if (saved) await this._refreshPrefabList();
-    })();
-  }
-
-  /** Walks up from `obj` to whichever ancestor is a direct child of the scene root -- the unit
-   * `_captureIsolatedThumbnail()` keeps visible while hiding every other top-level object. */
-  private _topLevelAncestor(obj: Object3D): Object3D {
-    let node = obj;
-    while (node.parent && node.parent !== this.scene.root) node = node.parent;
-    return node;
-  }
-
-  private _boundsToAabb(bounds: BoundingVolume): { min: Vector3D; max: Vector3D } | undefined {
-    if (BoundingType.BOX === bounds.type) {
-      const box = bounds as BoundingBox;
-      return { min: box.min.clone(), max: box.max.clone() };
-    }
-    if (BoundingType.SPHERE === bounds.type) {
-      const sphere = bounds as BoundingSphere;
-      const r = new Vector3D(sphere.radius, sphere.radius, sphere.radius);
-      return { min: sphere.center.clone().sub(r), max: sphere.center.clone().add(r) };
-    }
-    return undefined;
-  }
-
-  /** Combined world-space AABB of `obj`'s own bounds plus every descendant's -- a prefab is
-   * often more than one mesh (a barrel + its lid, a lamp + its glass), so framing on just `obj`
-   * itself would clip the rest. @returns undefined if nothing in the subtree carries geometry. */
-  private _computeSubtreeWorldBounds(obj: Object3D): { min: Vector3D; max: Vector3D } | undefined {
-    obj.updateMatrixWorld();
-    let min: Vector3D | undefined;
-    let max: Vector3D | undefined;
-    const visit = (node: Object3D): void => {
-      if (node.geometry) {
-        node.computeBounds();
-        const aabb = node.bounds && this._boundsToAabb(node.bounds);
-        if (aabb) {
-          min = min
-            ? new Vector3D(
-                Math.min(min.x, aabb.min.x),
-                Math.min(min.y, aabb.min.y),
-                Math.min(min.z, aabb.min.z),
-              )
-            : aabb.min;
-          max = max
-            ? new Vector3D(
-                Math.max(max.x, aabb.max.x),
-                Math.max(max.y, aabb.max.y),
-                Math.max(max.z, aabb.max.z),
-              )
-            : aabb.max;
-        }
-      }
-      for (const child of node.children) visit(child);
-    };
-    visit(obj);
-    return min && max ? { min, max } : undefined;
-  }
-
-  /** Points the camera at `obj`'s combined subtree bounds from a fixed 3/4 angle, distance scaled
-   * to the bounds' size. Falls back to a default distance around the object's own position if it
-   * (and its subtree) carries no geometry at all -- an empty group is still worth a thumbnail
-   * showing roughly where its pivot sits, not a hard failure. */
-  private _frameCameraOn(obj: Object3D): void {
-    const aabb = this._computeSubtreeWorldBounds(obj);
-    let center: Vector3D;
-    let radius: number;
-    if (aabb) {
-      center = aabb.min.clone().add(aabb.max).scale(0.5);
-      radius = aabb.max.clone().sub(aabb.min).length() / 2;
-    } else {
-      obj.updateMatrixWorld();
-      center = obj.getWorldPosition();
-      radius = 1;
-    }
-    const distance = Math.max(1, radius * 2.2);
-    const direction = new Vector3D(1, 0.75, 1).normalize();
-    this.camera.position.copyFrom(center.clone().add(direction.scale(distance)));
-    this.camera.target.copyFrom(center);
-  }
-
-  /** Captures a PNG snapshot of just `obj` (and its subtree) in isolation for a prefab
-   * thumbnail: hides the gizmo, the selection highlight boxes, and every OTHER top-level scene
-   * object except lights (so unrelated level content doesn't show up in frame, but the shot
-   * isn't left completely unlit), then reframes the camera on `obj`'s own bounds -- a dedicated
-   * shot, not whatever the user happened to be looking at.
-   * Pauses the orbit camera controller for the duration (`_thumbnailCaptureActive`, checked in
-   * `update()`) so it doesn't immediately overwrite this temporary framing on the next tick.
-   *
-   * Waits two `requestAnimationFrame`s (the first only guarantees the visibility/camera changes
-   * are *scheduled*; the second is what actually runs after the browser has painted a frame with
-   * them applied) before reading the canvas, then restores everything -- visibility, camera
-   * position/target, and the orbit controller's own view state (`OrbitCameraController.getView()`/
-   * `setView()`, the same snapshot mechanism camera bookmarks use).
-   *
-   * Races that against a 1s timeout: a tab that loses visibility right after the click can pause
-   * `requestAnimationFrame` indefinitely (real browser behavior, not just a test artifact), which
-   * would otherwise hang every step after this one (the status text, the prefab list refresh)
-   * forever, not just silently skip the thumbnail.
-   * @returns undefined if the canvas can't be read, or the timeout wins, rather than throwing --
-   * a missing thumbnail is cosmetic, not worth failing the whole "Save as Prefab" action over.
-   */
-  private _captureIsolatedThumbnail(obj: Object3D): Promise<string | undefined> {
-    const wasGizmoVisible = this._gizmo.root.isVisible;
-    const wasLightGizmosVisible = this._lightGizmos.root.isVisible;
-    const wasStageZoneGizmosVisible = this._stageZoneGizmos.root.isVisible;
-    const wasHighlightVisible = this._highlightMeshes.map((mesh) => mesh.isVisible);
-    this._gizmo.root.isVisible = false;
-    this._lightGizmos.root.isVisible = false;
-    this._stageZoneGizmos.root.isVisible = false;
-    for (const mesh of this._highlightMeshes) mesh.isVisible = false;
-
-    const topAncestor = this._topLevelAncestor(obj);
-    // Scene lights (SunLight/Fill, added at the same top level as anything the palette places)
-    // must stay visible -- hiding them along with everything else would leave the isolated shot
-    // completely unlit.
-    const hiddenSiblings = this.scene.root.children.filter(
-      (child) =>
-        child !== topAncestor &&
-        !this._highlightMeshes.includes(child) &&
-        child !== this._gizmo.root &&
-        child !== this._lightGizmos.root &&
-        child !== this._stageZoneGizmos.root &&
-        !this._lightGizmos.isHelperMesh(child) &&
-        !this._stageZoneGizmos.isHelperMesh(child) &&
-        !(child instanceof AbstractLight),
-    );
-    const wasSiblingVisible = hiddenSiblings.map((child) => child.isVisible);
-    for (const child of hiddenSiblings) child.isVisible = false;
-
-    const savedView = this._orbit.getView();
-    const savedCameraPosition = this.camera.position.clone();
-    const savedCameraTarget = this.camera.target.clone();
-    this._thumbnailCaptureActive = true;
-    this._frameCameraOn(obj);
-
-    const restore = (): void => {
-      this._thumbnailCaptureActive = false;
-      this._orbit.setView(savedView);
-      this.camera.position.copyFrom(savedCameraPosition);
-      this.camera.target.copyFrom(savedCameraTarget);
-      this._gizmo.root.isVisible = wasGizmoVisible;
-      this._lightGizmos.root.isVisible = wasLightGizmosVisible;
-      this._stageZoneGizmos.root.isVisible = wasStageZoneGizmosVisible;
-      this._highlightMeshes.forEach((mesh, i) => {
-        mesh.isVisible = wasHighlightVisible[i]!;
-      });
-      hiddenSiblings.forEach((child, i) => {
-        child.isVisible = wasSiblingVisible[i]!;
-      });
-    };
-
-    const capture = new Promise<string | undefined>((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          try {
-            resolve(this.canvas.toDataURL("image/png"));
-          } catch {
-            resolve(undefined);
-          }
-        });
-      });
-    });
-    const timeout = new Promise<undefined>((resolve) => {
-      setTimeout(() => resolve(undefined), 1000);
-    });
-
-    return Promise.race([capture, timeout]).then((result) => {
-      restore();
-      return result;
-    });
-  }
-
-  private _instantiatePrefab(name: string): void {
-    void (async (): Promise<void> => {
-      const instance = await this._project.loadPrefab(name);
-      if (instance) this.addObject(instance);
-    })();
-  }
-
-  /** Bridges MapGenerator's ASCII/`GridLevelBuilder` pipeline into Maker (ADR 0010 Phase 2C):
-   * builds the map directly into the live scene, then wraps whatever `GridLevelBuilder` added as
-   * a single undo step -- it adds objects via `scene.add()` itself, so there is nothing to defer
-   * the way `addObject()` normally does; capturing the before/after child sets is what makes it
-   * undoable after the fact. Rough starting scaffold, not a finished level -- see
-   * `AsciiMapLegend`'s doc comment. */
-  private async _importAsciiMap(mapData: string): Promise<void> {
-    const before = new Set(this.scene.root.children);
-    await new GridLevelBuilder().build(this.scene, mapData, {
-      legend: defaultAsciiMapLegend(),
-      defaultFloorMaterial: new StandardMaterial({ color: new Color(0.4, 0.4, 0.42) }),
-    });
-    const added = this.scene.root.children.filter((child) => !before.has(child));
-    if (0 === added.length) return;
-
-    this._undo.execute({
-      label: `Import ASCII Map (${added.length} objects)`,
-      redo: () => {
-        for (const obj of added) this.scene.add(obj);
-        this._hierarchyDirty = true;
-        this._project.scheduleAutosave(() => this.scene.root);
-      },
-      undo: () => {
-        for (const obj of added) this._trashBin.add(obj);
-        this._hierarchyDirty = true;
-        this._project.scheduleAutosave(() => this.scene.root);
-      },
-      discard: () => {
-        for (const obj of added) this._disposeTrashedObject(obj);
-      },
-    });
-  }
-
-  /** Decodes the dropped/picked file and places it as a `BackgroundPlane` sized to preserve its
-   * aspect ratio exactly (height is always derived from width, never entered independently, so
-   * the reference image can never end up stretched -- see ADR 0016 Phase 2). Re-importing while
-   * a `BackgroundPlane` already exists keeps its current width (so re-tracing zones on a
-   * replacement image doesn't silently change scale) and simply swaps the old plane out --
-   * intentionally not folded into the new plane's own undo step, since replacing a reference
-   * image is a "just do it" action, not something worth a multi-part undo/redo round trip. */
-  private async _importBackgroundImage(file: File): Promise<void> {
-    // Matches `AssetManager.loadImage(url, undefined, flipY=true)`'s own decode options exactly
-    // (see `flakturm-tunnel/showcase.ts`'s `Texture.fromUrl(..., { flipY: true })`) -- a plain
-    // `createImageBitmap(file)` decodes top-down, but this engine's texture-sampling convention
-    // expects bottom-up, so the image renders upside down without this.
-    const bitmap = await createImageBitmap(file, {
-      colorSpaceConversion: "none",
-      imageOrientation: "flipY",
-    });
-    const aspect = bitmap.width / bitmap.height;
-    const existing = this._findBackgroundPlane();
-    const width = existing?.width ?? 10;
-    const height = width / aspect;
-
-    if (existing) {
-      this.scene.remove(existing);
-      this._hierarchyDirty = true;
-    }
-
-    const plane = new BackgroundPlane({ texture: Texture.fromImage(bitmap), width, height });
-    plane.position.set(0, height / 2, 0);
-    this.addObject(plane);
-  }
-
-  private _findBackgroundPlane(): BackgroundPlane | undefined {
-    for (const child of this.scene.root.children) {
-      if (child instanceof BackgroundPlane) return child;
-    }
-    return undefined;
-  }
-
-  /** Enters/exits click-to-draw mode for a new `StageZoneMarker` (ADR 0016 Phase 2). Silently
-   * does nothing if there's no resolved projection yet (see `StageProjectionResolver`) -- there
-   * would be nowhere to actually place a point. */
-  public toggleZoneDrawMode(): void {
-    if (this._zoneDrawState) {
-      this._cancelZoneDraw();
-      return;
-    }
-    if (!this._stageProjection) return;
-
-    this._zoneDrawState = { points: [], previewRoot: new Object3D("ZoneDrawPreview") };
-    this.scene.add(this._zoneDrawState.previewRoot);
-    this._zoneDrawButton?.classList.add("active");
-  }
-
-  private _cancelZoneDraw(): void {
-    if (!this._zoneDrawState) return;
-    this.scene.remove(this._zoneDrawState.previewRoot);
-    this._zoneDrawState = undefined;
-    this._zoneDrawButton?.classList.remove("active");
-  }
-
-  private _addZoneDrawPoint(u: number, v: number): void {
-    if (!this._zoneDrawState) return;
-    this._zoneDrawState.points.push({ u, v, scale: 1.0 });
-    this._refreshZoneDrawPreview();
-  }
-
-  /** Rebuilds the ephemeral preview (placed-point handles + an open connecting polyline) from
-   * scratch after every click -- simplest correct approach given how few points a zone actually
-   * has; no live segment follows the mouse between clicks, only committed points are shown. */
-  private _refreshZoneDrawPreview(): void {
-    const state = this._zoneDrawState;
-    const projection = this._stageProjection;
-    if (!state || !projection) return;
-
-    for (const child of state.previewRoot.children.slice()) state.previewRoot.remove(child);
-
-    const worldPoints = state.points.map((p) => {
-      const w = projection.toWorld(p.u, p.v);
-      return new Vector3D(w.x, w.y, w.z);
-    });
-
-    const previewColor = new Color(1.0, 0.6, 0.1);
-    for (const wp of worldPoints) {
-      const handle = new Object3D("ZoneDrawHandle");
-      handle.geometry = new Octahedron({ radius: 0.08 }).getGeometryData();
-      handle.material = new BasicMaterial({ color: previewColor });
-      handle.position.copyFrom(wp);
-      state.previewRoot.add(handle);
-    }
-
-    if (2 <= worldPoints.length) {
-      const line = new Object3D("ZoneDrawLine");
-      line.geometry = new Polyline({ points: worldPoints, closed: false }).getGeometryData();
-      line.material = new WireframeMaterial(previewColor);
-      state.previewRoot.add(line);
-    }
-  }
-
-  /** Closes the zone being drawn (min. 3 points) into a real `StageZoneMarker`, added through
-   * the normal `addObject()` undo path -- exactly one undo command for the whole multi-click
-   * interaction, the same "collect state locally, commit once at the end" pattern as
-   * `_finishGizmoDrag()`. No-op below 3 points (can't form a polygon). */
-  private _finishZoneDraw(): void {
-    const state = this._zoneDrawState;
-    if (!state || 3 > state.points.length) return;
-
-    this.scene.remove(state.previewRoot);
-    this._zoneDrawState = undefined;
-    this._zoneDrawButton?.classList.remove("active");
-
-    const zone = new StageZone({
-      id: `zone_${MathUtils.generateUUID()}`,
-      name: "New Zone",
-      points: state.points,
-    });
-    this.addObject(new StageZoneMarker(zone));
-  }
-
-  /** Duplicate/Group buttons -- mirrors the `Ctrl/Cmd+D`/`Ctrl/Cmd+G` shortcuts handled in
-   * `_onMakerKeyDown`. Both silently no-op with nothing selected, same as the palette's other
-   * selection-dependent actions (e.g. "Save as Prefab"). */
-  private _setupSelectionToolbar(): void {
-    const row = document.createElement("div");
-    row.className = "maker-gizmo-toolbar";
-
-    const duplicate = document.createElement("button");
-    duplicate.className = "maker-palette-btn";
-    duplicate.textContent = "⧉ Duplicate (Ctrl+D)";
-    duplicate.addEventListener("click", (): void => this.duplicateSelection());
-    row.appendChild(duplicate);
-
-    const group = document.createElement("button");
-    group.className = "maker-palette-btn";
-    group.textContent = "▤ Group (Ctrl+G)";
-    group.addEventListener("click", (): void => this.groupSelection());
-    row.appendChild(group);
-
-    const ground = document.createElement("button");
-    ground.className = "maker-palette-btn";
-    ground.textContent = "⬇ Ground (End)";
-    ground.title = "Snap selected object(s) to floor level (End)";
-    ground.addEventListener("click", (): void => this.snapSelectionToGround());
-    row.appendChild(ground);
-
-    this._makerOptions.paletteContainer.prepend(row);
-  }
-
-  /** Nine numbered viewport-view slots -- mirrors the `1`-`9`/`Ctrl+1`-`9` shortcuts handled in
-   * `_onMakerKeyDown`. Left-click jumps to a saved view (no-op if the slot is empty);
-   * right-click saves the current view into it, same "left acts, right configures" split as
-   * Unity/Unreal's numpad camera bookmarks, adapted to mouse-only use. */
-  private _setupCameraBookmarkToolbar(): void {
-    const row = document.createElement("div");
-    row.className = "maker-gizmo-toolbar";
-    const buttons: Partial<Record<number, HTMLButtonElement>> = {};
-    for (let slot = 1; slot <= 9; slot++) {
-      const button = document.createElement("button");
-      button.className = "maker-palette-btn";
-      button.textContent = `📷${slot}`;
-      button.title = "Left-click: jump to view. Right-click: save current view here.";
-      button.addEventListener("click", (): void => this.jumpToCameraBookmark(slot));
-      button.addEventListener("contextmenu", (e: MouseEvent): void => {
-        e.preventDefault();
-        this.saveCameraBookmark(slot);
-      });
-      row.appendChild(button);
-      buttons[slot] = button;
-    }
-    this._bookmarkButtons = buttons as Record<number, HTMLButtonElement>;
-    this._makerOptions.paletteContainer.prepend(row);
-  }
-
   /** Saves the current viewport view into bookmark `slot` (1-9), overwriting whatever was
    * there. */
   public saveCameraBookmark(slot: number): void {
-    this._cameraBookmarks.set(slot, this._orbit.getView());
-    this._bookmarkButtons?.[slot]?.classList.add("active");
+    this._toolbars.saveCameraBookmark(slot);
   }
 
   /** Jumps to bookmark `slot`, if one has been saved -- silent no-op otherwise. */
   public jumpToCameraBookmark(slot: number): void {
-    const view = this._cameraBookmarks.get(slot);
-    if (view) this._orbit.setView(view);
-  }
-
-  /** Move/Rotate/Scale mode buttons -- mirrors the `W`/`E`/`R` shortcuts handled in
-   * `_onMakerKeyDown`, Blender/Godot/Unity convention. */
-  private _setupGizmoToolbar(): void {
-    const row = document.createElement("div");
-    row.className = "maker-gizmo-toolbar";
-    const buttons: Partial<Record<GizmoMode, HTMLButtonElement>> = {};
-    const specs: { mode: GizmoMode; label: string }[] = [
-      { mode: "translate", label: "Move (W)" },
-      { mode: "rotate", label: "Rotate (E)" },
-      { mode: "scale", label: "Scale (R)" },
-    ];
-    for (const { mode, label } of specs) {
-      const button = document.createElement("button");
-      button.className = "maker-palette-btn";
-      button.textContent = label;
-      button.addEventListener("click", (): void => this._setGizmoMode(mode));
-      row.appendChild(button);
-      buttons[mode] = button;
-    }
-    this._gizmoButtons = buttons as Record<GizmoMode, HTMLButtonElement>;
-
-    const snapBtn = document.createElement("button");
-    snapBtn.className = "maker-palette-btn active";
-    snapBtn.title = "Toggle grid/angle snapping (X). Use [ and ] to change grid size.";
-    snapBtn.addEventListener("click", (): void => {
-      this.toggleSnap();
-    });
-    row.appendChild(snapBtn);
-    this._snapButton = snapBtn;
-    this._updateSnapButton();
-
-    const decGrid = document.createElement("button");
-    decGrid.className = "maker-palette-btn";
-    decGrid.textContent = "[-]";
-    decGrid.title = "Decrease grid snap size ([)";
-    decGrid.addEventListener("click", (): void => {
-      this.stepGrid(-1);
-    });
-    row.appendChild(decGrid);
-
-    const incGrid = document.createElement("button");
-    incGrid.className = "maker-palette-btn";
-    incGrid.textContent = "[+]";
-    incGrid.title = "Increase grid snap size (])";
-    incGrid.addEventListener("click", (): void => {
-      this.stepGrid(1);
-    });
-    row.appendChild(incGrid);
-
-    const drawZoneBtn = document.createElement("button");
-    drawZoneBtn.className = "maker-palette-btn";
-    drawZoneBtn.textContent = "✏️ Draw Zone (Z)";
-    drawZoneBtn.title =
-      "Click to place points (min. 3), Enter to close the zone, Escape to cancel.";
-    drawZoneBtn.addEventListener("click", (): void => this.toggleZoneDrawMode());
-    row.appendChild(drawZoneBtn);
-    this._zoneDrawButton = drawZoneBtn;
-
-    this._makerOptions.paletteContainer.prepend(row);
-    this._setGizmoMode("translate");
+    this._toolbars.jumpToCameraBookmark(slot);
   }
 
   public toggleSnap(): boolean {
-    const enabled = this._gizmo.toggleSnap();
-    this._updateSnapButton();
-    return enabled;
+    return this._toolbars.toggleSnap();
   }
 
   public stepGrid(dir: 1 | -1): number {
-    const step = this._gizmo.stepGrid(dir);
-    this._updateSnapButton();
-    return step;
+    return this._toolbars.stepGrid(dir);
   }
 
-  private _updateSnapButton(): void {
-    if (!this._snapButton) return;
-    this._snapButton.textContent = `🧲 ${this._gizmo.snap.translate}m (X)`;
-    this._snapButton.classList.toggle("active", this._gizmo.snap.enabled);
-  }
-
-  private _setGizmoMode(mode: GizmoMode): void {
-    this._gizmo.setMode(mode);
-    if (!this._gizmoButtons) return;
-    for (const m of Object.keys(this._gizmoButtons) as GizmoMode[]) {
-      this._gizmoButtons[m].classList.toggle("active", m === mode);
-    }
+  /** Enters/exits click-to-draw mode for a new `StageZoneMarker` (ADR 0016 Phase 2). */
+  public toggleZoneDrawMode(): void {
+    this._importTools.toggle();
   }
 
   protected override update(deltaTime: number): void {
-    // Both would immediately undo `_captureIsolatedThumbnail()`'s temporary camera framing and
-    // hidden highlight boxes for that one shot.
+    // Would immediately undo `MakerPrefabPipeline`'s temporary camera framing and hidden
+    // highlight boxes for that one shot.
     if (!this._thumbnailCaptureActive) {
       this._orbit.update(this.camera, this.input);
       this._syncHighlight();
@@ -1440,11 +964,11 @@ export class MakerApp extends SmallWorld {
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
 
-    if (this._zoneDrawState) {
+    if (this._importTools.isDrawingZone) {
       if (this._stageProjection) {
         this._raycaster.setFromCamera(ndc, this.camera);
         const uv = projectRayToUv(this._raycaster.ray, this._stageProjection);
-        if (uv) this._addZoneDrawPoint(uv.u, uv.v);
+        if (uv) this._importTools.addPoint(uv.u, uv.v);
       }
       return; // Drawing consumes every click -- no gizmo/selection while active.
     }
@@ -1798,15 +1322,15 @@ export class MakerApp extends SmallWorld {
       this._hierarchyDirty = true;
       return;
     }
-    if (this._zoneDrawState) {
+    if (this._importTools.isDrawingZone) {
       if ("Escape" === event.key) {
         event.preventDefault();
-        this._cancelZoneDraw();
+        this._importTools.cancel();
         return;
       }
       if ("Enter" === event.key) {
         event.preventDefault();
-        this._finishZoneDraw();
+        this._importTools.finish();
         return;
       }
     }
@@ -1814,7 +1338,7 @@ export class MakerApp extends SmallWorld {
     if ("z" === event.key.toLowerCase() && !event.ctrlKey && !event.metaKey && !event.altKey) {
       if (this._isEditingField()) return;
       event.preventDefault();
-      this.toggleZoneDrawMode();
+      this._importTools.toggle();
       return;
     }
 
@@ -1857,7 +1381,7 @@ export class MakerApp extends SmallWorld {
     if ("x" === key) {
       if (this._isEditingField()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
-      this.toggleSnap();
+      this._toolbars.toggleSnap();
       return;
     }
 
@@ -1866,15 +1390,15 @@ export class MakerApp extends SmallWorld {
       if (this._isEditingField()) return;
       if (event.altKey) return;
       event.preventDefault();
-      if (event.ctrlKey || event.metaKey) this.saveCameraBookmark(slot);
-      else this.jumpToCameraBookmark(slot);
+      if (event.ctrlKey || event.metaKey) this._toolbars.saveCameraBookmark(slot);
+      else this._toolbars.jumpToCameraBookmark(slot);
       return;
     }
 
     if ("w" === key || "e" === key || "r" === key) {
       if (this._isEditingField()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
-      this._setGizmoMode("w" === key ? "translate" : "e" === key ? "rotate" : "scale");
+      this._toolbars.setGizmoMode("w" === key ? "translate" : "e" === key ? "rotate" : "scale");
       return;
     }
 
@@ -1882,7 +1406,7 @@ export class MakerApp extends SmallWorld {
       if (this._isEditingField()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       event.preventDefault();
-      this.stepGrid("[" === event.key ? -1 : 1);
+      this._toolbars.stepGrid("[" === event.key ? -1 : 1);
       return;
     }
 
@@ -1917,7 +1441,7 @@ export class MakerApp extends SmallWorld {
     let minY = Infinity;
     for (const obj of objs) {
       obj.updateMatrixWorld();
-      const aabb = this._computeSubtreeWorldBounds(obj);
+      const aabb = this._prefabPipeline.computeSubtreeWorldBounds(obj);
       if (aabb) {
         minY = Math.min(minY, aabb.min.y);
       } else {
