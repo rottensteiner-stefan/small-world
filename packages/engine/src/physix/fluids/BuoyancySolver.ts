@@ -21,15 +21,26 @@ export class BuoyancySolver {
    * @param gravity Global gravity vector.
    * @returns Drag multipliers for linear and angular motion.
    */
+  private static readonly _result: FluidForcesResult = {
+    linearDrag: 1.0,
+    angularDrag: 1.0,
+  };
+
+  /**
+   * Applies hydrostatic buoyancy, fluid flow forces, and computes damping multipliers.
+   * @param obj The Object3D to test and apply forces to.
+   * @param fluidVolumes Active fluid volumes in the scene.
+   * @param gravity Global gravity vector.
+   * @returns Drag multipliers for linear and angular motion.
+   */
   public static applyFluidForces(
     obj: Object3D,
     fluidVolumes: readonly FluidVolume[],
     gravity: Vector3D,
   ): FluidForcesResult {
-    const result: FluidForcesResult = {
-      linearDrag: 1.0,
-      angularDrag: 1.0,
-    };
+    const result = BuoyancySolver._result;
+    result.linearDrag = 1.0;
+    result.angularDrag = 1.0;
 
     if (!obj.bounds || fluidVolumes.length === 0 || !obj.rigidBody) {
       return result;
@@ -81,8 +92,25 @@ export class BuoyancySolver {
     }
 
     if (submergedRatioTotal > 0 && rb.inverseMass > 0) {
+      let volume: number;
+      if (boundsA.type === BoundingType.BOX) {
+        const box = boundsA as BoundingBox;
+        volume = Math.max(
+          0.0001,
+          (box.max.x - box.min.x) * (box.max.y - box.min.y) * (box.max.z - box.min.z),
+        );
+      } else if (boundsA.type === BoundingType.SPHERE) {
+        const r = (boundsA as BoundingSphere).radius;
+        volume = (4.0 / 3.0) * Math.PI * r * r * r;
+      } else {
+        const r = boundsA.getBroadRadius();
+        volume = (4.0 / 3.0) * Math.PI * r * r * r;
+      }
+
       const mass = 1.0 / rb.inverseMass;
-      const buoyForceY = -gravity.y * mass * maxDensity * submergedRatioTotal;
+      // Archimedes' Principle: F_buoy = rho_fluid * V_submerged * g
+      const displacedVolume = volume * submergedRatioTotal;
+      const buoyForceY = -gravity.y * maxDensity * displacedVolume;
       rb.forces.y += buoyForceY;
 
       if (flowX !== 0 || flowY !== 0 || flowZ !== 0) {

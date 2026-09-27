@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.84.1] - 2026-09-27
+
+### "Measure what is measurable, and make measurable what is not so." - Galileo Galilei
+
+- **Architecture & Bugfixes:**
+  - *Normal Matrix Transposition Fix*: [`Matrix3.getNormalMatrix()`](packages/engine/src/math/Matrix3.ts) corrected to compute the true transposed inverse $(M^{-1})^T = \frac{1}{\det M} \text{Cof}(M)$ in column-major order rather than inverting the cofactor transposition, preserving strict orthogonality for surface normals under non-uniform scaling; added `Matrix3.transformVector()` and dedicated test suite [`Matrix3.test.ts`](packages/engine/tests/math/Matrix3.test.ts).
+  - *Gear Kinematics Counter-Rotation*: [`GearMath.getMeshingRotation()`](packages/engine/src/math/GearMath.ts) corrected to subtract `rollAngle` instead of adding it, ensuring meshing external gears counter-rotate in opposing directions per physical gearing laws; added [`GearMath.test.ts`](packages/engine/tests/math/GearMath.test.ts).
+  - *LookAt Collinear Singularity Protection*: [`Matrix4.lookAt()`](packages/engine/src/math/Matrix4.ts) hardened against degenerating into zero matrices when eye-to-target and up vectors are collinear along the X axis, perturbing orthogonal components based on primary axis alignment.
+  - *Spatial Query Surface Normal Accuracy*: [`SpatialQueries.sphereCast()`](packages/engine/src/physix/solvers/SpatialQueries.ts) now computes exact perpendicular surface normals for `BoundingBox` (AABB) and `OBB` colliders based on the closest hit face rather than pointing radially towards the bounding volume center.
+  - *Quaternion Render-Interpolation & Tensor Angular Acceleration*: [`EulerIntegrator.interpolateTransform()`](packages/engine/src/physix/solvers/EulerIntegrator.ts) now synchronizes and interpolates `obj.quaternion` alongside Euler rotation; [`EulerIntegrator.integrateAngular()`](packages/engine/src/physix/solvers/EulerIntegrator.ts) now utilizes the 3D principal moments of inertia (`inverseInertiaTensor`).
+  - *ConvexHull Normal Transformation*: [`ConvexHull.transform()`](packages/engine/src/physix/ConvexHull.ts) now transforms face normals using a cached normal matrix instead of the model matrix, keeping SAT separation axes orthogonal under non-uniform scale.
+  - *Archimedean Buoyancy Hydrostatics*: [`BuoyancySolver.applyFluidForces()`](packages/engine/src/physix/fluids/BuoyancySolver.ts) rewritten to compute hydrostatic buoyant force from displaced volume ($F_A = \rho_{\text{fluid}} \cdot V_{\text{submerged}} \cdot g$) rather than scaling with the body's own mass; cached static result object to eliminate per-call heap allocations.
+  - *OBB Local Geometry Offset Preservation*: [`OBB`](packages/engine/src/physix/OBB.ts) gained `_localCenter` tracking to preserve non-zero geometry offsets across `transform()` calls and `Object3D.computeBounds()`.
+- **Housekeeping & Docs:**
+  - *Thermo-Nuclear Quality Review*: Completed Chapter 1 of the Thermo-Nuclear Code Quality Review, resolving all 8 mathematical and physical formula errors ([`.agents/notes/thermo-nuclear-code-quality-review-2026-09-27.md`](.agents/notes/thermo-nuclear-code-quality-review-2026-09-27.md)).
+
 ## [0.84.0] - 2026-09-27
 
 ### "It's not what you don't know that gets you into trouble. It's what you know for sure that just ain't so." - Mark Twain

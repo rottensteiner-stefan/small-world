@@ -1,4 +1,4 @@
-import { Vector3D, Matrix4 } from "../math/index.js";
+import { Vector3D, Matrix4, Matrix3 } from "../math/index.js";
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
 import { BoundingType } from "../enums/index.js";
 import { Collision } from "./Collision.js";
@@ -189,14 +189,19 @@ export class ConvexHull implements BoundingVolume {
     return false;
   }
 
+  private static readonly _scratchNormalMatrix: Matrix3 = new Matrix3();
+
   /** @inheritdoc */
   public transform(matrix: Matrix4): void {
     for (let i: number = 0; i < this._localVertices.length; i++) {
       this.vertices[i]!.copyFrom(this._localVertices[i]!);
       matrix.transformVector(this.vertices[i]!);
     }
+    ConvexHull._scratchNormalMatrix.getNormalMatrix(matrix);
     for (let i: number = 0; i < this._localFaceNormals.length; i++) {
-      this.faceNormals[i]!.copyFrom(this._localFaceNormals[i]!).transformDirection(matrix);
+      this.faceNormals[i]!.copyFrom(this._localFaceNormals[i]!);
+      ConvexHull._scratchNormalMatrix.transformVector(this.faceNormals[i]!);
+      this.faceNormals[i]!.normalize();
     }
     for (let i: number = 0; i < this._localEdgeDirections.length; i++) {
       this.edgeDirections[i]!.copyFrom(this._localEdgeDirections[i]!).transformDirection(matrix);

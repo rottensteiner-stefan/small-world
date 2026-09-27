@@ -74,10 +74,10 @@ export class EulerIntegrator {
   public static integrateAngular(obj: Object3D, fluidAngularDrag: number, dt: number): void {
     const rb = obj.rigidBody!;
 
-    // angularAcceleration = torque / inertia
-    rb.angularAcceleration.x = rb.torque.x * rb.inverseInertia;
-    rb.angularAcceleration.y = rb.torque.y * rb.inverseInertia;
-    rb.angularAcceleration.z = rb.torque.z * rb.inverseInertia;
+    // angularAcceleration = torque / inertia (using 3D principal moments of inertia)
+    rb.angularAcceleration.x = rb.torque.x * rb.inverseInertiaTensor.x;
+    rb.angularAcceleration.y = rb.torque.y * rb.inverseInertiaTensor.y;
+    rb.angularAcceleration.z = rb.torque.z * rb.inverseInertiaTensor.z;
 
     // w = w + alpha * dt
     rb.angularVelocity.x += rb.angularAcceleration.x * dt;
@@ -140,9 +140,21 @@ export class EulerIntegrator {
 
     obj.position.copyFrom(blendPos);
     obj.rotation.copyFrom(blendRot);
+
+    let trueQuat = null;
+    if (obj.quaternion) {
+      trueQuat = MathPool.acquireQuaternion().copyFrom(obj.quaternion);
+      obj.quaternion.setFromEuler(blendRot);
+    }
+
     obj.updateMatrixWorld();
 
     obj.position.copyFrom(truePos);
     obj.rotation.copyFrom(trueRot);
+
+    if (obj.quaternion && trueQuat) {
+      obj.quaternion.copyFrom(trueQuat);
+      MathPool.releaseQuaternion(trueQuat);
+    }
   }
 }

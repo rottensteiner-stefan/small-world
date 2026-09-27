@@ -21,20 +21,20 @@ describe("FluidVolume & Buoyancy", () => {
 
     const scene = new Scene();
 
-    // Create a 2x2x2 crate (mass 1.0)
+    // Create a 1x1x1 neutrally buoyant crate (mass 1.0 kg, volume 1.0 m^3)
     const crate = new Object3D("Crate");
-    crate.position.set(0, -1, 0); // Center at Y=-1. Bounds min.y=-2, max.y=0.
-    crate.bounds = new BoundingBox(new Vector3D(-1, -2, -1), new Vector3D(1, 0, 1));
+    crate.position.set(0, -1, 0); // Center at Y=-1. Bounds min.y=-1.5, max.y=-0.5.
+    crate.bounds = new BoundingBox(new Vector3D(-0.5, -1.5, -0.5), new Vector3D(0.5, -0.5, 0.5));
     crate.rigidBody = new RigidBody(1.0); // 1kg
     scene.add(crate);
 
     // Initial state:
-    // Crate Y = -1. Bounding box Y is from -2 to 0.
+    // Crate Y = -1. Bounding box Y is from -1.5 to -0.5.
     // Water top is Y = 0.
-    // Crate min.y (-2) < water top (0). Submerged depth = 0 - (-2) = 2.
-    // Object height = 2. Ratio = 2/2 = 1.0 (fully submerged).
-    // Buoyancy force = -(-10) * 1.0 * 1.0 * 1.0 = +10.
-    // Gravity = -10.
+    // Crate is fully submerged (ratio = 1.0).
+    // Volume = 1.0 m^3, displaced water = 1.0 kg.
+    // Buoyancy force = -(-10) * 1.0 * 1.0 = +10 N.
+    // Gravity force = -10 N.
     // Total acceleration = 10 (buoyancy) + (-10) (gravity) = 0.
     // Let's step the simulation.
     crate.updateMatrixWorld();

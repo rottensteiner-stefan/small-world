@@ -119,7 +119,6 @@ export class GearMath {
 
     // To align tooth with gap, we add half a tooth step of gear 2
     const gapOffset = toothAngle2 / 2.0;
-
-    return oppositeAngle + rollAngle + gapOffset;
+    return oppositeAngle - rollAngle + gapOffset;
   }
 }

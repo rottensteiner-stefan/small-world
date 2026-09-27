@@ -20,6 +20,17 @@ erzeugen.
 
 ---
 
+## 2026-09-27 — Thermo-Nuclear Code Quality Review (Formel- & Performance-Audit)
+
+- 📋 **Thermo-Nuclear Review durchgeführt** (`.agents/notes/thermo-nuclear-code-quality-review-2026-09-27.md`).
+  Umfassendes Audit über Math, Physix, Shaders, WebGL/WebGPU-Pipelines und Zero-Allocation-Hot-Paths.
+  Identifizierte Kern-Handlungsfelder:
+  1. **Mathematische/Physikalische Formelfehler (P0/P1):** Invertierte Normalenmatrix `Matrix3.getNormalMatrix` ($(M^{-1})^T$), invertierte Drehrichtung `GearMath.getMeshingRotation`, `Matrix4.lookAt` X-Singularität, `sphereCast` Box-Normalenfehler, Rotations-Render-Interpolation für Quaternions, unphysikalische Masse-Skalierung bei `BuoyancySolver`.
+  2. **Shader- & Beleuchtungs-Bugs (P0/P1):** Doppelte Negierung der Sonnenrichtung in WebGL2 (`light_calc*.frag.glsl`), WebGPU HBAO-Normalen auf $(0,0,-1)$ fixiert, invertierter Glas-Spotlight-Konus, WebGPU CSM Fallback auf Cascade 0.
+  3. **Hot-Path & Runtime-Performance (P0/P1):** Vector-Leak im `ContactSolver` (3 geleckte Vektoren pro Substep), `acquireTextures` Objektliteral-Flut pro Draw-Call (>2400 Allokationen/Frame), `GPUBindGroup`-Recreation in Shadow-Passes, 4-fache redundante Szenentraversierung pro Frame, fehlende WebGL2-Hardware-VAOs in `Mesh.ts`.
+
+---
+
 ## 2026-09-27 — ADR 0024: Entwicklungswerkzeuge als eigenes Ökosystem-Paket
 
 - 📋 **`@small-world/tools`-Paket beschlossen** (`docs/adr/0024-tools-ecosystem-package.md`).

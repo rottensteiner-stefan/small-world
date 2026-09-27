@@ -1,0 +1,178 @@
+# Thermo-Nuclear Code Quality Review (2026-09-27) — verifizierte Neuauflage
+
+> **Modus:** Unbarmherzig, analytisch, tiefgehend. Fokus auf mathematischer Exaktheit, physikalischer Konsistenz, Zero-Allocation im Hot-Path und kompromissloser Runtime-Performance.
+> **Prüfgegenstand:** Small World Core (`packages/engine`), Math, Physix, Renderer & Passes, Shader (GLSL/WGSL), Post-Processing sowie Dokumentations- & ADR-Abgleich.
+> **Hinweis:** Diese Fassung ist die *verifizierte* Neuauflage. Jeder Claim des Erstberichts wurde gegen den Code/Shader unabhängig nachgerechnet und mit Status gekennzeichnet ((CHECK) = bestätigt, (KORRIGIERT) = in Punkten korrigiert, (WIDERLEGT) = nicht haltbar). Persönliche, über den Erstbericht hinausgehende Befunde sind als `[NEU]` gekennzeichnet.
+
+---
+
+## 0. Executive Summary & Gesamtbewertung
+
+| Disziplin | Status | Befund |
+| :--- | :---: | :--- |
+| **Mathematische & Physikalische Formeln** | 🚨 **Kritisch** | **8 Formel-/Berechnungsfehler** verifiziert. Schwerwiegendste: `Matrix3.getNormalMatrix` liefert die reine Inverse statt $(M^{-1})^T$; nicht nachgebessertes WGSL-Gegenstück zur GLSL-Fallback-Logik; inverser Auftrieb. |
+| **Shader & Beleuchtungs-Mathematik** | 🚨 **Kritisch** | **6 schwere Shader-Bugs verifiziert** — allen voran die doppelte Negierung der Directional-Light-Richtung unter WebGL2 (Lichtseite dunkel, Rückseiten hell). |
+| **Hot-Path-Performance & Zero-Allocation** | ⚠️ **Ungenügend** | **12+ massive GC-/CPU-Bottlenecks** verifiziert; zusätzlich 2 neue Hot-Path-Allokationen gefunden (`BuoyancySolver`-Ergebnisobjekt pro Körper & Substap, `BoundingBox`-Allokation je `sphereCast`). |
+| **Doku vs. Realität** | 🟡 **Teilweise** | ADR-0008-Aussage überholt (Update-Notiz existiert), REFERENCES-Clearcoat-Aussage weicht im WebGPU-Code ab. Die HBAO-Teilaussage des Erstberichts ist nicht haltbar (widerlegt). |
+| **Architektur & Datei-Größen (>1k Zeilen)** | 🟡 **Monolithen** | `WebGPURenderer` 2.233 Z., `WebGL2Renderer` 1.629 Z., `Collision` 1.263 Z. — bestätigt, Zerlegung weiter offen. |
+
+---
+
+## 1. Verifikation der mathematischen & physikalischen Claims
+
+### 1.1 ✅ [MATH-BUG] `Matrix3.ts`: `getNormalMatrix` liefert $M^{-1}$ statt $(M^{-1})^T$
+* **Status:** ✅ **Erledigt (v0.84.1)** — Column-Major Transposition in `Matrix3.getNormalMatrix` korrigiert zu $(M^{-1})^T = \frac{1}{\det M} \text{Cof}(M)$, `transformVector` ergänzt, dedizierte Unit-Tests in `Matrix3.test.ts` hinzugefügt.
+
+### 1.2 ✅ [MATH-BUG] `GearMath.ts`: `getMeshingRotation` invertiert die Abrollrichtung
+* **Status:** ✅ **Erledigt (v0.84.1)** — Kinematische Gegenrotation `oppositeAngle - rollAngle + gapOffset` korrigiert, Unit-Tests in `GearMath.test.ts` hinzugefügt.
+
+### 1.3 ✅ [MATH-BUG] `Matrix4.lookAt`: degenerierte X-kollineare Singularität
+* **Status:** ✅ **Erledigt (v0.84.1)** — Achsen-orthogonale Perturbation (`if (Math.abs(up.z) < 0.999) z.z += ε else z.x += ε`) implementiert, Unit-Tests für Kollinearität entlang X und Y in `Matrix4.test.ts` hinzugefügt.
+
+### 1.4 ✅ [PHYSICS-BUG] `sphereCast` verwendet Zentrums- statt Oberflächennormalen
+* **Status:** ✅ **Erledigt (v0.84.1)** — Exakte Flächennormalen-Berechnung für `BoundingBox` (AABB) und `OBB` implementiert.
+
+### 1.5 ✅ [PHYSICS-BUG] Rotations-Render-Interpolation wird bei Quaternion-Objekten umgangen
+* **Status:** ✅ **Erledigt (v0.84.1)** — `EulerIntegrator.interpolateTransform` synchronisiert und interpoliert nun auch `obj.quaternion`, `integrateAngular` nutzt zudem den 3D-Hauptträgheitstensor `inverseInertiaTensor`.
+
+### 1.6 ✅ [PHYSICS-BUG] `ConvexHull.transform` transformiert Normalen mit Weltmatrix statt Normalenmatrix
+* **Status:** ✅ **Erledigt (v0.84.1)** — Flächennormalen werden nun mittels `_scratchNormalMatrix.getNormalMatrix(matrix)` transformiert und normalisiert.
+
+### 1.7 ✅ [PHYSICS-BUG] `BuoyancySolver` skaliert Auftrieb mit eigener Masse
+* **Status:** ✅ **Erledigt (v0.84.1)** — Auf echtes archimedisches Prinzip umgestellt ($F_A = \rho_{\text{fluid}} \cdot V_{\text{verdrängt}} \cdot g$), Allokation via statischem `_result` eliminiert.
+
+### 1.8 ✅ [PHYSICS-BUG] `OBB.transform` verwirft lokalen Geometrie-Offset
+* **Status:** ✅ **Erledigt (v0.84.1)** — `_localCenter` in `OBB` eingeführt und in `transform()` und `Object3D.computeBounds()` vollständig berücksichtigt.
+
+---
+
+## 2. Verifikation der Shader-, Beleuchtungs- & Shadow-Claims
+
+### 2.1 [CHECK][SHADER-MATH-BUG] WebGL2: Directional-Light-Richtung doppelt negiert
+* **Dateien:** `DirectionalLight.applyTo` (`core/lights/DirectionalLight.ts#L353-L360`: `data.dDir = -direction`), WebGL2 `light_calc.frag.glsl:6` & `light_calc_pbr.frag.glsl:62` (`normalize(-u_dirLightDir)`), WebGL1 `light_calc.frag.glsl:6` (`normalize(u_dirLightDir)`), WebGPU `lighting.wgsl:10`/`lighting_pbr.wgsl:23` (`normalize(global.dirLightDir.xyz)`).
+* **Nachrechnung (alle drei Backends gegengeprüft):** WebGL1 und WebGPU nutzen `dDir` (zeigt zur Lichtquelle). WebGL2 negiert *nochmals*: $L$ zeigt von der Sonne weg. Nach oben gerichtete, von der Sonne getroffene Flächen werden dunkel; Unterseiten hell. **Bestätigt, P0 — der gravierendste Shader-Fehler des Reviews.**
+
+### 2.2 [CHECK][SHADER-MATH-BUG] WebGPU HBAO-Normalenrekonstruktion nagelt Normalen auf $(0,0,-1)$
+* **Datei:** `core/materials/shaders/AO.frag.wgsl#L42-L50`
+* **Nachrechnung:** Beide Nachbarpixel werden mit demselben `linearZ` des Zentrums-Pixels rekonstruiert (Z. 43–44 übergeben `linearZ`, nicht die Nachbar-Tiefe). Damit ist $dPosDx=(\Delta x\cdot z,0,0)$, $dPosDy=(0,\Delta y\cdot z,0)$; das Kreuzprodukt ergibt strikt $(0,0,\Delta x\Delta y z^2)$, und nach Vorzeichenkorrektur `if (normal.z > 0) normal = -normal` ist jede Normale $(0,0,-1)$. HBAO berechnet Horizon-Winkel gegen eine blickflache Ebene statt gegen echte Geometrie. `AO.frag.glsl` (WebGL2) ist von der gleichen Struktur betroffen — dort muss geprüft werden, ob die Nachbar-`linearZ`-Abfragen real sind (GLSL kann `texture()` mit gezielten UVs sampeln). **Bestätigt, P0.**
+
+### 2.3 [CHECK][SHADER-MATH-BUG] WebGPU Glass/Frostglass: Spotlight-Konus invertiert
+* **Dateien:** `core/materials/shaders/Glass.frag.wgsl#L85-L86`, `Frostglass.frag.wgsl#L85-L86`
+* **Nachrechnung:** `params.x = cos(angle)`, `params.y = cos(angle·(1−penumbra))` (`WebGL2Renderer.ts:1486` bzw. `WebGPURenderer.ts:2064`). Da `angle > innerAngle`, ist `params.x < params.y` → `epsilon = params.x - params.y < 0`. Im Kegelinnern ($\theta > \cos_{\text{inner}}$, Zähler positiv) wird durch negatives `epsilon` dividiert → `clamp→0` (dunkel); außerhalb → 1 (hell). Kegel ist invertiert. **Bestätigt, P0.** Die GLSL-Variante ist korrekt (`smoothstep(params.x, params.y, θ)` mit aufsteigenden Kanten) — reine WGSL-Divergenz.
+
+### 2.4 [CHECK][SHADER-MATH-BUG] CSM Cascade-Selection-Fallback außerhalb tiefster Kaskade
+* **Dateien:** `web_gpu/chunks/lighting.wgsl#L15-L21`, `lighting_pbr.wgsl#L32-L38`
+* **Nachrechnung:** Im WGSL wird `var cascadeIndex = 0u` initialisiert; liegt `viewDist` jenseits der letzten Kaskade, greift keine Schleifen-`if`, `cascadeIndex` bleibt `0u` und `blendToNext` mischt Kaskade 0 in Kaskade 1. Die GLSL-Variante initialisiert korrekt `int cascadeIndex = numCascades - 1` (`light_calc.frag.glsl:13`). **Bestätigt als WGSL-vs-GLSL-Inkonsistenz, P1** (kein Crash, aber falsche/riesige Schattenkaskade im Fernbereich).
+
+### 2.5 [CHECK][SHADER-MATH-BUG] Non-PBR-Spot & Area-Lights ignorieren `distance`/`decay`
+* **Dateien:** `web_gpu/chunks/lighting.wgsl#L106`, `web_gl2/chunks/light_calc.frag.glsl#L190`, und — im Erstbericht nicht erwähnt — die **Area-Lights** (`lighting.wgsl#L144`, `light_calc.frag.glsl#L254`) nutzen dieselbe feste Dämpfung $1/(1+0.1d+0.01d^2)$ ohne Distanz-Windowing.
+* **Bestätigt und erweitert:** Nicht nur Spot-, sondern auch Area-Lights ignorieren `distance`/`decay` der Konfiguration; Point-Lights und PBR-Spots implementieren beides korrekt. **P1.**
+
+### 2.6 [CHECK][SHADER-MATH-BUG] WGSL `opRepeat` — Modulo-Vorzeichenparität
+* **Dateien:** `web_gpu/chunks/sdf_math.wgsl#L88` vs. `web_gl2/chunks/sdf_math.glsl#L88`
+* **Nachrechnung:** GLSL `mod(a,b)` ist floored (Ergebnis ≥ 0 bei b>0), WGSL `%` ist symmetrischer Rest (Vorzeichen des Dividenden). Für negative Koordinaten spiegelt die WGSL-Domain-Wiederholung das Gitter an der Nullachse — exakt der bekannte SDF-WGSL-Fallstrick. Fix: `q − c·floor(q/c) − 0.5·c`. **Bestätigt, P2** (nur WGSL-SDF-Demo kritisch, keine Produktions-Parität).
+
+### 2.7 [CHECK][PARITY-BUG] GLSL-Materialien ohne `[FOG_CALC]` & Alpha-Cutout
+* **Dateien:** `Phong.frag.glsl`, `Lambert.frag.glsl`, `Basic.frag.glsl` (WebGL2): kein `[FOG_CALC]`; `Phong.frag.glsl` zudem ohne `if (finalAlpha < extraParams.y) discard;`. WGSL-Gegenstücke (`Phong.frag.wgsl:18-22` u. a.) enthalten beides. `FOG_CALC` ist als `glsl300`-Chunk registriert (`CoreShaderChunks.ts:81`), wird aber in diesen Materialien nie injiziert. **Bestätigt, P2.**
+
+---
+
+## 3. Verifikation der Hot-Path-/Zero-Allocation-Claims
+
+### 3.1 [CHECK] `acquireTextures`: Objektliteral + `Object.keys` pro Objekt & Pass
+* **Dateien:** `GPUTextureResourceCache.ts#L480-L498`, `WebGLTextureManager.ts#L386-L404`
+* **Verifikation:** Zwei unabhängige Instanzen derselben Fehlstruktur: `snapshot = { ...lastTextures }` plus `Object.keys(textures)` pro Aufruf. Bei 4 Passes × 200 Objekten = 800 Aufrufé → 800 weggeworfene Literale + 800 String-Arrays pro Frame (drei Backends). **Bestätigt, P1.** Elegante Lösung: Diff über *vorgehaltene* Key-Zahl (konstanter Slot-Index je Material-Key) statt Property-Enumerierung.
+
+### 3.2 [CHECK] WebGPU Shadow-Pass: `GPUBindGroup` pro Frame neu erzeugt
+* **Dateien:** `CascadedShadowPassGPU.ts#L102`, `SpotShadowPassGPU.ts#L92`
+* **Verifikation:** `this._shadowCasterBindGroup = renderer._createGlobalBindGroup(scene)` läuft in jedem Frame (der Guard `_bindGroupNeedsShadowRebuild` schützt nur `globalBindGroup`). Pro Frame eine frische Treiber-BindGroup auf dem Device. **Bestätigt, P1.**
+
+### 3.3 [CHECK] 4-fach redundante Szenen-Traversierung + 4-fache Transparent-Sortierung
+* **Dateien:** `CascadedShadowPassGPU.ts#L106`, `SpotShadowPassGPU.ts#L96`, `DepthPrePassGPU.ts#L59`, `MainRenderPass.ts#L34`
+* **Verifikation:** Jeder Pass ruft `scene.getVisibleObjectsSorted()` — je rekursiver `_collectVisible`-Durchlauf + Transparent-`sort` (O(n log n), `Scene.ts#L261`). 4 Baumerkundungen + 4 Sortierungen pro Frame. **Bestätigt, P1.** Judo-Ziel: einmalige Auflösung in `render()` und Weitergabe der Listen an die Passes (Ausnahme: Kaskaden brauchen eine lichtraumspezifische Filterung, aber *nicht* eine neue Szenen-Markierung).
+
+### 3.4 [CHECK] `ContactSolver`: 3 Vektoren lecken je Solve aus dem Pool
+* **Datei:** `physix/solvers/ContactSolver.ts` — acquiriert: `result, rv, zeroVel, posCorr, impulse, vt, relTangent, impulseT, contactPt, velA, velB` (Z. 118–128); released (Z. 645–652): nur 8. `contactPt`, `velA`, `velB` fehlen. Da `MathPool` bei Pool-Leere auf `new Vector3D()` zurückfällt (`MathPool.ts#L22`), erzwingt das Leck kontinuierliche Neuallokation pro Physik-Substep. **Bestätigt, P0.** (In zeilenweise Abweichung vom Erstbericht: Zahlen identisch, ich zähle 11 vs. 8.)
+
+### 3.5 [CHECK] Fehlende Hardware-VAOs auf WebGL2
+* **Dateien:** `Mesh.bind` (`renderers/Mesh.ts#L122-L183`), Aufruf `WebGL2Renderer.ts#L1406-L1413`
+* **Verifikation:** Standard-Draws binden 6–8 Attribute manuell (1 × `bindBuffer` + `vertexAttribPointer` + `enableVertexAttribArray` je Attribut) plus Element-Buffer je Draw. WebGL2 böte `bindVertexArray`. Bei 500 Objekten ≈ 6.000 Treiberaufrufe, ersetzbar durch 1 VAO-Bind. **Bestätigt, P2** — größter verbleibender Forward in der WebGL2-Statistik.
+
+### 3.6 [CHECK] Innere Schleifen-Allokationen (Joints & SAT)
+* **Dateien:** `BallSocketJoint.ts#L83-L87`, `HingeJoint.ts#L267-L271` (frisches `axes[]` mit 3 Literalen je Iteration), `Collision.ts#L1100-L1105` & `L1190-L1195` (`{overlap,x,y,z}`-Literal in `_satPolytopes`/`_satHullSphere` — auch in rein booleschen Tests, Z. 104 f.).
+* **Korrektur zum Erstbericht:** Die beanstandeten Zeilenangaben 1026–1037 betreffen `_boxAsHull`/`_obbAsHull` (eine *Wiederverwendungs*-Optimierung mit Scratch-Cornern) — die eigentlichen Objektllokationen liegen bei Z. 1100 und Z. 1190. **Bestätigt, P1; Zeilen im Erstbericht unpräzise.**
+
+### 3.7 [CHECK/ERGÄNZUNGEN] Weitere Hot-Path-Allokationen
+* `ClusterGrid.ts#L161`: Ergebnisliteral je Licht pro Frame — bestätigt. P2.
+* `F_Schlick`/`F_SchlickRoughness` (`pbr_math.frag.glsl:20/25`, dazu WGSL-Gegenstück): `pow(..., 5.0)` statt 3 Multiplikationen — bestätigt, aber driverseitig oft zu Polynom foldbar; **P3/P2**.
+* `Object3D.lookAt(…, up = new Vector3D(0,1,0))`, `getWorldPosition(out = new Vector3D())` — Default-Argumente allozieren bei Weglassen — bestätigt, P2 (nur wenn Aufrufer den Out-Param weglassen).
+
+---
+
+## 4. Persönliche, über den Erstbericht hinausgehende Befunde `[NEU]`
+
+### 4.1 [NEU][PERF-HOTPATH, P1] `BuoyancySolver.applyFluidForces` alloziert je Körper & Physik-Substep
+* **Datei:** `packages/engine/src/physix/fluids/BuoyancySolver.ts#L29-L32`
+* **Befund:** `const result = { linearDrag: 1.0, angularDrag: 1.0 }` ist ein frisches Objektliteral *pro dynamischem Körper pro Substep*, auch wenn gar kein Fluid vorhanden ist. `_internalStep` ruft die Funktion für jeden Körper in jeder Substep (`PhysicsSystem.ts#L296`). Bei 100 Körpern × 4 Substep = 400 Literale/Frame nur für `linearDrag/angularDrag`. Der Rückgabewert wird ohnehin unmittelbar danach nur numerisch konsumiert — hier ist ein Out-/Scratch-Parameter die offensichtliche, saubere Lösung (konsistent zum sonstigen `MathPool`-Muster der Engine).
+
+### 4.2 [NEU][PERF-HOTPATH, P1] `sphereCast`/Queries allozieren `BoundingBox` + Query-Hit pro Aufruf
+* **Datei:** `packages/engine/src/physix/solvers/SpatialQueries.ts` — Z. 187 `new BoundingBox(sweptMin, sweptMax)` je Sweep; Z. 211–217 bei fehlendem `outHit` zusätzlich ein vollständiges `RaycastHit`-Literal mit 2 `new Vector3D()` plus Object-Spread `...(collider instanceof Object3D ? { object } : {})`.
+* **Befund:** Character-Controller und Reflexionsabfragen rufen `sphereCast` pro Frame → garantiert Heap-Druck. Die Engine hat `MathPool` etabliert; `sphereCast` ist der einzige Query-Pfad, der dagegen ein frisches `BoundingBox`-Objekt baut (die gematchten `MathPool.releaseVector(sweptMin/Max)` in Z. 191–192 verstärken den Gegensatz). **Eigener Befund, P1.**
+
+### 4.3 [NEU][DESIGN, P2] Render-Interpolation hinterlässt inkonsistenten Zwischenzustand (Matrix ≠ Position/Rotation)
+* **Dateien:** `solvers/EulerIntegrator.ts#L141-L146`, Aufrufer `PhysicsSystem.applyRenderInterpolation()#L250-L267`
+* **Befund:** `applyRenderInterpolation` setzt `position/rotation` auf die Blend-Pose, ruft `updateMatrixWorld()`, stellt danach `position/rotation` auf die wahren Werte zurück, komponiert die Matrix aber *nicht* erneut. Zwischen diesem Zeitpunkt und der nächsten Physik-Substep (welche `matrix` wieder konsistent setzt) lesen Renderer/Culling `worldMatrix` = Blend, während Behaviors `obj.position/rotation` = wahr sehen — zwei Wahrheiten gleichzeitig. Wenn zwischen zwei Substep-Frames kein `_internalStep` läuft, bleibt `worldMatrix` dauerhaft auf der letzten Blend-Pose. **Korrekturvorschlag:** Entweder Blend-Pose in lokale Scratch-Puffern (nicht in die kanonischen `position`/`rotation`) mit eigener `updateMatrixWorld`-Semantik, oder nach dem Restore die Matrix erneut aus den wahren Werten komponieren. (Neigung — der Interpolationsmechanismus schreibt *in den Live-Zustand* statt in den Render-Kanal; das ist die eigentliche Design-Schwäche.)
+
+### 4.4 [NEU][PERF, P2] `Matrix4.lookAt` ist pool-korrekt, aber `Object3D.lookAt` komponiert zweimalig über `decompose`
+* **Dateien:** `core/Object3D.ts#L310-L324`
+* **Befund:** `lookAt` invertiert die Blick-Matrix und dekomponiert sie komplett (inkl. Skalierung-Standard `(1,1,1)`), nur um Euler/Quaternion zu extrahieren — das ist semantisch korrekt. Nachteil: Zwei aufeinanderfolgende `lookAt`-Aufrufe (z. B. in Behaviors pro Frame) kosten jede Invertierung + Dekomposition. Für einen LookRotation-Pfad mit gegebener Basis (z. B. `LookAtBehavior`) wäre eine direkte Quaternion/Achsen-Konstruktion ohne volle Matrix-Inversion der saubere Hot-Path (vergleichbar dem, was `Matrix4.lookAt` ohnehin schon an Achsen berechnet). **Hinweis, kein Blocker.**
+
+### 4.5 [NEU][PARITY, P1] WebGL1-Shadowless-Pfad bleibt von 3.5 unberührt, aber WebGL1/WebGL2 unterscheiden sich in der Spot-`params`-Auswertung
+* **Befund nach Abgleich:** WebGL1 `light_calc` kennt weder CSM noch PCSS (kein `u_dirShadowMapRaw`), nutzt aber *dieselben* `params.x/params.y` für den Spot-Konus wie WebGL2. Da `params.x < params.y` gilt, ist die WebGL1/WebGL2-Spot-Softness-Formel `smoothstep(params.x, params.y, θ)` konsistent. **Kein Bug** — aber drei Backends berechnen den Konus auf drei verschiedene Weisen (GLSL `smoothstep`, WGSL PBR `(θ−params.y)/(params.x−params.y)`, WGSL Non-PBR `smoothstep`), mit der einen invertierten Ausnahme in Glass/Frostglass (2.3). Die Dreifach-Replikation der Beleuchtungslogik ist selbst das strukturelle Problem.
+
+### 4.6 [NEU][DOC, WIDERLEGT] HBAO-Teil der REFERENCES-Kritik hält nicht
+* **Befund:** Der Erstbericht behauptet, `REFERENCES.md` (HBAO-Abschnitt) verspräche, WebGPU HBAO binde Geometrienormalen ein. Der HBAO-Abschnitt (Z. 344 ff.) beschreibt ausschließlich die Screen-Space-Horizon-Methode mit `dot(directionToSample, normal)` und dem rekonstruierten Normalen-Term — keine Zusage, Geometrienormalen zu binden. Ein solches Versprechen existiert im referenzierten Abschnitt nicht; die Kritik ist insoweit **widerlegt**. Der Clearcoat-Teil der REFERENCES-Kritik ist dagegen **haltbar**: `REFERENCES.md:253 ff.` dokumentiert $F_{cc}=F_{Schlick}(N_{cc}\cdot V,\dots)$ und $D_{cc}=D_{GGX}(N_{cc}\cdot H,\dots)$ mit getrennter Klarlack-Normale $N_{cc}$; der WebGL2-Code erfüllt das (`light_calc_pbr.frag.glsl:38-44`), der WebGPU-Code *nicht* (`lighting_pbr.wgsl:75-80,143-148` verwendet `dotNH` der Basis-Normale und sampelt keine `clearcoatNormalMap`). **Doku-vs-Code-Gap nur im WebGPU-Zweig.**
+
+### 4.7 [NEU][ADR] ADR 0008: Kern-Aussage überholt, aber mit Update-Notiz
+* **Befund:** Der ADR-Kerntext (Z. 55 ff.) beschreibt eine eigene szenengebundene Traversierung in `_dispatchHzbTest()`. Der Code (`WebGPURenderer.ts#L942-L994`) liest `scene.lastFrustumVisibleObjects`, ein Byproduct von `getVisibleObjectsSorted()`; eine eigene Traversierung existiert nicht mehr. Der ADR enthält eine **Update-Notiz** (Z. 66 ff.) zur Entfernung des alten `lastVisibleObjects`-Feldes, adressiert aber die konkrete Umschreibung von „eigener Traversierung“ auf „Byproduct-Nutzung“ nicht. **Hinweis:** `lastFrustumVisibleObjects` ist nur gültig, wenn pro Frame eine `getVisibleObjectsSorted`-Auflösung mit *Hauptkamera* gelaufen ist (sonst veraltet die Kandidatenliste). Der Code dokumentiert die Abhängigkeit aufrichtig (Z. 942-947), das ADR hinkt hinterher. **Bestätigt als Doku-Lücke, P3.**
+
+---
+
+## 5. Strukturelle Wertung (`[CODE-JUDO]`)
+
+Die im Erstbericht skizzierte Judo-Roadmap bleibt richtig und wird bestätigt, mit Präzisierungen:
+
+1. **Single-Pass-Renderlist (P1):** Einmal pro Frame `getVisibleObjectsSorted` → Listen an Main/Depth/Spot/Cascade- Pass. Erspart 3 `_collectVisible`-Baumerkundungen + 3 Transparent-Sortierungen. Sorgfaltspflicht: Kaskaden-/Spot-Pass brauchen lichtraumgefilterte Caster — das ist eine *Filterung*, keine Neuerkundung.
+2. **VAO-Kapselung in `Mesh` (P2):** 6–8 Treiberaufrufe → 1 `bindVertexArray`; `Mesh.bind` entfällt als öffentliches Attribut-Bind-API (Struktur-Bereinigung über Perf-Gewinn hinaus).
+3. **Inline-Skalar-Arithmetik in `RigidBody.applyImpulse` (P1):** erspart `MathPool.acquireVector()`-Roundtrips dort, wo nur 3 Skalare mutiert werden.
+4. **`BoundingBox`/Query-Scratch-Pool (P1, [NEU]):** `sphereCast`/`boxCast` mit wiederverwendbarer Query-Box statt `new BoundingBox(...)`.
+5. **Monolithen.** `WebGPURenderer` (2.233 Z.) und `WebGL2Renderer` (1.629 Z.) bleiben die größten Einzelvollstreckungsrisiken; Zerlegung in Sub-Manager (analog `MaterialStudio`/`MakerApp`) ist strukturell vorgezeichnet, aber ein eigenes, größeres Projekt.
+
+**Mangelnde Code-Judo-Möglichkeit, die ich sehe:** Der `ContactSolver`-Deriviert-Pfad (SGS, Kontakte, Trigger) ist trotz der Vektor-Leak-Größe vergleichsweise sauber aufgebaut; die eigentliche Verhärtung ist hier Übernahme der drei Leak-Vektoren und die Pool-Disziplin, nicht der Zustandsentwurf. `Collision.resolve`' `{overlap,x,y,z}`-Rückgabetyp sollte zu einem mitgeführten Scratch-Out-Parameter (analog `_obbSat*`-Felder) umgebaut werden, statt eines Literal-Objekts — die Klasse hat dieses Muster für OBB/Hull bereits perfektioniert (Z. 51–58), der Sphere-Pfad fällt nur aus der Reihe.
+
+---
+
+## 6. Priorisierte Maßnahmen-Matrix (konsolidiert, inkl. [NEU])
+
+| Priorität | Typ | Komponente | Maßnahme |
+| :---: | :---: | :--- | :--- |
+| **P0** | `[MATH-BUG]` | `Matrix3.ts` | `getNormalMatrix`: fehlende Transposition von $M^{-1}$ → $(M^{-1})^T$ einbauen (Kofaktormatrix). |
+| **P0** | `[SHADER-MATH-BUG]` | WebGL2 `light_calc*.frag.glsl` | Doppelte Negierung `-u_dirLightDir` entfernen (2.1). |
+| **P0** | `[SHADER-MATH-BUG]` | `AO.frag.wgsl` (u. GLSL) | Nachbar-`linearZ`-Abfragen für $dPosDx/dPosDy$ statt Zentrum-Z pro Pixel (2.2). |
+| **P0** | `[SHADER-MATH-BUG]` | `Glass/Frostglass.frag.wgsl` | `epsilon = params.y − params.x` (2.3). |
+| **P0** | `[PERF-HOTPATH]` | `ContactSolver.ts` | `contactPt/velA/velB` freigeben (3.4). |
+| **P1** | `[PHYSICS-BUG]` | `SpatialQueries.ts` | Echte Flächennormalen im `sphereCast` (Oberfläche = nächster Punkt der Fläche), nicht Zentrum→Punkt (1.4). |
+| **P1** | `[PHYSICS-BUG]` | `BuoyancySolver.ts` | Auftrieb auf Archimedes-Formel umstellen — benötigt Volumen/`ρ_body`; `mass`-Skalierung entfernen (1.7). |
+| **P1** | `[MATH-BUG]` | `GearMath.ts` | `rotZ2 = oppositeAngle − rollAngle + gapOffset` (1.2). |
+| **P1** | `[PERF-HOTPATH]` | Texture-Manager | `acquireTextures` ohne Literal-Snapshot/`Object.keys` (3.1). |
+| **P1** | `[PERF-HOTPATH]` | WebGPU Shadow-Passes | `_shadowCasterBindGroup` über dirty-flag cachen (3.2). |
+| **P1** | `[PERF-HOTPATH]` | WebGPU Passes | Single-Pass-Renderlist; 4-fach Traversierung auflösen (3.3). |
+| **P1** | `[PERF-HOTPATH][NEU]` | `BuoyancySolver` | Ergebnis-Objekt → Scratch-Parameter (4.1). |
+| **P1** | `[PERF-HOTPATH][NEU]` | `SpatialQueries` | Wiederverwendbare Sweep-`BoundingBox` statt `new BoundingBox` je Query (4.2). |
+| **P1** | `[SHADER-MATH-BUG]` | WGSL CSM | `var cascadeIndex = numCascades − 1u` (2.4). |
+| **P2** | `[PARITY-BUG]` | GLSL Materialien | `[FOG_CALC]` + Alpha-Cutout in Phong/Lambert/Basic nachrüsten (2.7). |
+| **P2** | `[PERF-HOTPATH]` | `Mesh.ts`/`WebGL2Renderer` | Native WebGL2-VAOs (3.5). |
+| **P2** | `[SHADER-MATH-BUG]` | WGSL SDF | `opRepeat`-Modulo-Ersatz via `floor` (2.6). |
+| **P2** | `[MATH-BUG]` | `Matrix4.lookAt` | Dynamische Wahl der am wenigsten ausgerichteten Achse statt `z.x += ε` (1.3). |
+| **P2** | `[PERF][NEU]` | `EulerIntegrator` | Interpolation in Scratch-Pose statt Live-Zustand; Matrix-Konsistenz (4.3). |
+| **P3** | `[DOC]` | `REFERENCES.md` | Clearcoat-WeGPU-Diskrepanz dokumentieren/korrigieren; HBAO-Behauptung bereinigen (4.6). |

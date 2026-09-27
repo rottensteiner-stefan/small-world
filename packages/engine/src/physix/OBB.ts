@@ -16,6 +16,11 @@ export class OBB implements BoundingVolume {
   public halfExtents: Vector3D = new Vector3D(0.5, 0.5, 0.5);
 
   /**
+   * Unscaled local center offset, used as the source of truth for `transform()`.
+   */
+  private _localCenter: Vector3D = new Vector3D();
+
+  /**
    * Unscaled local half-extents, used as the source of truth for `transform()`.
    * Keeping this separate from `halfExtents` prevents repeated `transform()` calls
    * from cumulatively multiplying the scale into `halfExtents` (see `transform()`).
@@ -30,11 +35,30 @@ export class OBB implements BoundingVolume {
   ];
 
   constructor(center?: Vector3D, halfExtents?: Vector3D) {
-    if (center) this.center.copyFrom(center);
+    if (center) {
+      this.center.copyFrom(center);
+      this._localCenter.copyFrom(center);
+    }
     if (halfExtents) {
       this.halfExtents.copyFrom(halfExtents);
       this._localHalfExtents.copyFrom(halfExtents);
     }
+  }
+
+  /**
+   * Sets the unscaled local center offset.
+   */
+  public setLocalCenter(x: number, y: number, z: number): void {
+    this._localCenter.set(x, y, z);
+    this.center.set(x, y, z);
+  }
+
+  /**
+   * Copies the unscaled local center offset from a vector.
+   */
+  public copyLocalCenterFrom(v: Vector3D): void {
+    this._localCenter.copyFrom(v);
+    this.center.copyFrom(v);
   }
 
   /**
@@ -111,8 +135,9 @@ export class OBB implements BoundingVolume {
   public transform(matrix: Matrix4): void {
     const e = matrix.data;
 
-    // 1. Extract position
-    this.center.set(e[12]!, e[13]!, e[14]!);
+    // 1. Transform local center to world position
+    this.center.copyFrom(this._localCenter);
+    matrix.transformVector(this.center);
 
     // 2. Extract rotation (local axes) and scale
     const sx = Math.hypot(e[0]!, e[1]!, e[2]!);

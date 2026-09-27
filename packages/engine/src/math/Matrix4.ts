@@ -453,7 +453,11 @@ export class Matrix4 {
 
     const x = MathPool.acquireVector().copyFrom(up).cross(z).normalize();
     if (x.lengthSq() === 0) {
-      z.x += 0.0001;
+      if (Math.abs(up.z) < 0.999) {
+        z.z += 0.0001;
+      } else {
+        z.x += 0.0001;
+      }
       z.normalize();
       x.copyFrom(up).cross(z).normalize();
     }

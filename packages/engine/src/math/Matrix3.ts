@@ -85,16 +85,19 @@ export class Matrix3 {
 
     const detInv: number = 1.0 / det;
 
+    // Column 0: C11, C21, C31
     te[0] = t11 * detInv;
-    te[1] = (n31 * n23 - n33 * n21) * detInv;
-    te[2] = (n32 * n21 - n31 * n22) * detInv;
+    te[1] = t12 * detInv;
+    te[2] = t13 * detInv;
 
-    te[3] = t12 * detInv;
+    // Column 1: C12, C22, C32
+    te[3] = (n31 * n23 - n33 * n21) * detInv;
     te[4] = (n33 * n11 - n31 * n13) * detInv;
-    te[5] = (n31 * n12 - n32 * n11) * detInv;
+    te[5] = (n21 * n13 - n23 * n11) * detInv;
 
-    te[6] = t13 * detInv;
-    te[7] = (n21 * n13 - n23 * n11) * detInv;
+    // Column 2: C13, C23, C33
+    te[6] = (n32 * n21 - n31 * n22) * detInv;
+    te[7] = (n31 * n12 - n32 * n11) * detInv;
     te[8] = (n22 * n11 - n21 * n12) * detInv;
 
     return this;
@@ -142,5 +145,25 @@ export class Matrix3 {
     te[2] = a31 * b11 + a32 * b21 + a33 * b31;
     te[5] = a31 * b12 + a32 * b22 + a33 * b32;
     te[8] = a31 * b13 + a32 * b23 + a33 * b33;
+  }
+
+  /**
+   * Transforms a Vector3D by this 3x3 matrix (result = M * v).
+   * @param v The vector to transform.
+   * @param result Optional target vector (defaults to v).
+   * @returns The transformed vector.
+   */
+  public transformVector(
+    v: { x: number; y: number; z: number },
+    result: { x: number; y: number; z: number } = v,
+  ): typeof result {
+    const x = v.x,
+      y = v.y,
+      z = v.z;
+    const e = this.data;
+    result.x = e[0]! * x + e[3]! * y + e[6]! * z;
+    result.y = e[1]! * x + e[4]! * y + e[7]! * z;
+    result.z = e[2]! * x + e[5]! * y + e[8]! * z;
+    return result;
   }
 }

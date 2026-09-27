@@ -4,6 +4,8 @@ import { Collision } from "../Collision.js";
 import { Collidable } from "../../interfaces/index.js";
 import { BoundingBox } from "../BoundingBox.js";
 import { BoundingSphere } from "../BoundingSphere.js";
+import { OBB } from "../OBB.js";
+import { BoundingType } from "../../enums/index.js";
 import { PhysicsBroadphase } from "../broadphase/PhysicsBroadphase.js";
 import { Ray } from "../Ray.js";
 import { RaycastHit } from "../RaycastHit.js";
@@ -225,12 +227,57 @@ export class SpatialQueries {
       }
 
       if (closestCollider.bounds) {
-        hit.normal.copyFrom(hit.point).sub(closestCollider.bounds.center);
-        const nLen = hit.normal.length();
-        if (nLen > 1e-8) {
-          hit.normal.scale(1.0 / nLen);
+        const bounds = closestCollider.bounds;
+        if (bounds.type === BoundingType.BOX) {
+          const box = bounds as BoundingBox;
+          const dxMin = Math.abs(hit.point.x - box.min.x);
+          const dxMax = Math.abs(hit.point.x - box.max.x);
+          const dyMin = Math.abs(hit.point.y - box.min.y);
+          const dyMax = Math.abs(hit.point.y - box.max.y);
+          const dzMin = Math.abs(hit.point.z - box.min.z);
+          const dzMax = Math.abs(hit.point.z - box.max.z);
+
+          const minD = Math.min(dxMin, dxMax, dyMin, dyMax, dzMin, dzMax);
+          if (minD === dxMin) hit.normal.set(-1, 0, 0);
+          else if (minD === dxMax) hit.normal.set(1, 0, 0);
+          else if (minD === dyMin) hit.normal.set(0, -1, 0);
+          else if (minD === dyMax) hit.normal.set(0, 1, 0);
+          else if (minD === dzMin) hit.normal.set(0, 0, -1);
+          else hit.normal.set(0, 0, 1);
+        } else if (bounds.type === BoundingType.OBB) {
+          const obb = bounds as OBB;
+          const localHit = MathPool.acquireVector().copyFrom(hit.point).sub(obb.center);
+          const lx = localHit.dot(obb.axes[0]!);
+          const ly = localHit.dot(obb.axes[1]!);
+          const lz = localHit.dot(obb.axes[2]!);
+          MathPool.releaseVector(localHit);
+
+          const hx = obb.halfExtents.x;
+          const hy = obb.halfExtents.y;
+          const hz = obb.halfExtents.z;
+
+          const dxMin = Math.abs(lx + hx);
+          const dxMax = Math.abs(lx - hx);
+          const dyMin = Math.abs(ly + hy);
+          const dyMax = Math.abs(ly - hy);
+          const dzMin = Math.abs(lz + hz);
+          const dzMax = Math.abs(lz - hz);
+
+          const minD = Math.min(dxMin, dxMax, dyMin, dyMax, dzMin, dzMax);
+          if (minD === dxMin) hit.normal.copyFrom(obb.axes[0]!).scale(-1);
+          else if (minD === dxMax) hit.normal.copyFrom(obb.axes[0]!);
+          else if (minD === dyMin) hit.normal.copyFrom(obb.axes[1]!).scale(-1);
+          else if (minD === dyMax) hit.normal.copyFrom(obb.axes[1]!);
+          else if (minD === dzMin) hit.normal.copyFrom(obb.axes[2]!).scale(-1);
+          else hit.normal.copyFrom(obb.axes[2]!);
         } else {
-          hit.normal.copyFrom(direction).scale(-1).normalize();
+          hit.normal.copyFrom(hit.point).sub(bounds.center);
+          const nLen = hit.normal.length();
+          if (nLen > 1e-8) {
+            hit.normal.scale(1.0 / nLen);
+          } else {
+            hit.normal.copyFrom(direction).scale(-1).normalize();
+          }
         }
       }
 

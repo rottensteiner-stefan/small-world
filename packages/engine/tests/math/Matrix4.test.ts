@@ -146,4 +146,31 @@ describe("Matrix4", () => {
       expect(target.data[15]).toBe(1);
     });
   });
+
+  describe("lookAt", () => {
+    it("should construct valid non-degenerate matrix when eye-target and up are collinear along X-axis", () => {
+      const eye = new Vector3D(10, 0, 0);
+      const target = new Vector3D(0, 0, 0);
+      const up = new Vector3D(1, 0, 0); // parallel to view direction along X
+      const m = new Matrix4();
+
+      Matrix4.lookAt(eye, target, up, m);
+
+      // Determinant of a pure rotation/view matrix must be 1.0 (non-degenerate)
+      const d = m.determinant();
+      expect(Math.abs(d)).toBeCloseTo(1, 3);
+    });
+
+    it("should construct valid non-degenerate matrix when eye-target and up are collinear along Y-axis", () => {
+      const eye = new Vector3D(0, 10, 0);
+      const target = new Vector3D(0, 0, 0);
+      const up = new Vector3D(0, 1, 0);
+      const m = new Matrix4();
+
+      Matrix4.lookAt(eye, target, up, m);
+
+      const d = m.determinant();
+      expect(Math.abs(d)).toBeCloseTo(1, 3);
+    });
+  });
 });
