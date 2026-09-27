@@ -466,6 +466,11 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this._activeCubeFace = activeCubeFace ?? 0;
   }
 
+  /** @inheritdoc */
+  public override get isOffscreenRenderTarget(): boolean {
+    return this._activeRenderTarget !== null;
+  }
+
   public resetStateCache(): void {
     this._stateCullFaceEnabled = null;
     this._stateCullFaceMode = -1;

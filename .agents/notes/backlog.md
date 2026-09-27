@@ -20,6 +20,61 @@ erzeugen.
 
 ---
 
+## 2026-09-27 — Showcase 16 Spiegelungs-Fixes + offener Mond-Magnifikations-Bug (GL2)
+
+- ✅ **Cubemap-Hemisphären-Bug in `DynamicReflectionProbe` gefunden und gefixt** (Auslöser: User
+  bemerkte in Showcase 15, dass GL2 den Schachbrettboden in beiden Kugel-Hemisphären spiegelte,
+  GPU nur in der unteren, dafür bis zum Rand). Root Cause: `DynamicReflectionProbe._FACE_DIRECTIONS`
+  ist eine einzige, renderer-agnostische Tabelle für die 6 Cube-Face-Up-Vektoren, geschrieben für
+  die Top-Left-Origin-Konvention (WebGPU/D3D/Metal) — WebGL2/WebGL1 brauchen für FBO-basiertes
+  Cube-Face-Rendering negierte Up-Vektoren (klassische OpenGL-Konvention, exakt spiegelverkehrt
+  zu three.js' `CubeCamera`-Referenz), was hier fehlte. Fix: neue `_FACE_DIRECTIONS_GL`-Tabelle,
+  Auswahl über `renderer.type` (`WEB_GL1`/`WEB_GL2` → GL-Tabelle, sonst unverändert). Live in allen
+  3 Renderern von Showcase 15 UND 16 verifiziert und vom User bestätigt ("Jetzt ist es auf allen 3
+  Renderern gleich").
+- ✅ **Showcase 16 Skybox zu dunkel — neue, hellere IBL-Assets gebacken.** `env.webp` (Mittelwert
+  RGB 46/56/69) durch neu generierte, deutlich hellere Variante ersetzt (Mittelwert 75/113/139,
+  p95 208 statt 157) — Gemini-Bild-Gen (`gemini-3.1-flash-image`, Referenzbild = altes Original)
+  für ein neues Äquirektangular-Panorama im selben Nebel/Sternenfeld-Stil, gebacken über die
+  bestehende `public/tools/ibl-gen.html`-Pipeline (Browser-Automation, Blob-Abgriff via lokalem
+  Python-Empfangsserver statt Downloads-Ordner — Chrome-Downloads liefen ins Leere/anderswohin),
+  `cwebp -lossless` für den finalen WebP-Export. Ersetzt: `env.webp`, `irradiance.webp`,
+  `brdf_lut.webp`, `prefilter/mip0-4.webp`. Live in allen 3 Renderern verifiziert: sichtbar
+  hellerer, farbigerer Himmel/Boden bei gleicher Ästhetik.
+- ✅ **Echter, unabhängiger Bug gefunden+gefixt: Schatten-Kaskaden-Auswahl für Offscreen-Kameras.**
+  Die Cascade-Auswahl in `light_calc_pbr.frag.glsl`/`light_calc.frag.glsl` wählt den CSM-Split
+  über die Distanz zur AKTUELLEN Kamera (`u_viewPos`) — korrekt für die Hauptkamera, aber die
+  Kaskaden selbst werden nur einmal pro Frame relativ zur Hauptkamera gefittet
+  (`Scene.updateLights()`). Eine Reflection-Probe/Planar-Reflection sitzt an einer ganz anderen
+  Position, bekommt aber dieselbe (falsche) Kaskade zugewiesen. Fix: neuer
+  `AbstractWebGLRenderer.isOffscreenRenderTarget`-Getter (WebGL1+WebGL2 implementiert), genutzt in
+  `WebGLShadowPass` (überspringt den redundanten Cascade-Atlas-Rebuild für Offscreen-Renders) und
+  `WebGL2Renderer.renderBatch()` (deaktiviert Directional-Shadow-Sampling explizit für
+  Offscreen-Targets, fällt in den bestehenden "Shadow aus"-Uniform-Pfad). Kompiliert/lint/Tests
+  grün (1180/1180), keine Regression in der Hauptkamera-Ansicht.
+- 📋 **Offen — Mond-Spiegelung in Showcase 16 zeigt in WebGL2 (nicht WebGPU) einen riesigen,
+  komplett schwarzen Fleck**, wenn ein naher Orbit-Mond auf einer der 3 großen Spiegelkugeln
+  reflektiert wird. **Per kontrolliertem Vergleich bei identischem `_time`-Wert (deterministische
+  Mond-Orbit-Phase, kein Zufalls-Timing) bestätigt: echter GL2-spezifischer Renderer-Bug**, keine
+  korrekte Nahfeld-Vergrößerungs-Optik (GPU zeigt an derselben Stelle/Zeit einen normal großen
+  dunklen Fleck, GL2 einen die halbe Kugel bedeckenden). Ausgeschlossen als Ursache (alle live per
+  gezieltem Ein-/Ausblenden bzw. Konsolen-Instrumentierung getestet): orbitierendes Point Light
+  (Ausblenden ändert nichts), Directional-Shadow-Berechnung (der Fix oben behebt dieses Symptom
+  NICHT), LOD/Mipmap-Sampling von `u_envMap` (LOD hart auf 0 gezwungen → kein Unterschied). Ein
+  letzter Check (`renderTarget.isLoaded === false`, leere `_renderTargetCubeFbos`-Map beim direkten
+  GL-Readback von Probe1s Cube-Textur) deutete auf einen möglichen FBO-Ladefehler hin, ließ sich
+  aber nicht mehr sauber verifizieren, weil eine parallel laufende zweite Session währenddessen
+  live an genau denselben Dateien (`WebGL2Renderer.ts`, `ClusterGrid.ts`, `cluster_cull.wgsl`,
+  Tonemapping-Kette) arbeitete — echtes Konfundierungsrisiko für die letzten Testrunden, siehe
+  [[project_and_now_concurrent_sessions]]-Präzedenzfall (dort And-Now-Branch, hier derselbe
+  Effekt auf dem geteilten Vite-Dev-Server). Nächster Schritt bräuchte entweder einen Zeitpunkt
+  ohne parallele Fremd-Edits an diesen Dateien, oder echtes GPU-Frame-Capture-Tooling (Spector.js
+  o.ä.), um den tatsächlichen Cube-Face-Textur-Inhalt direkt zu inspizieren statt indirekt über
+  Bildschirm-Sampling zu schließen. Auf User-Wunsch hier gestoppt und dokumentiert statt
+  weiter auf Verdacht zu fixen.
+
+---
+
 ## 2026-09-27 — Thermo-Nuclear Code Quality Review (Formel- & Performance-Audit)
 
 - 📋 **Thermo-Nuclear Review durchgeführt** (`.agents/notes/thermo-nuclear-code-quality-review-2026-09-27.md`).

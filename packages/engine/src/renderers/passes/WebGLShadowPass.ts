@@ -31,7 +31,13 @@ export class WebGLShadowPass implements WebGLRenderPass {
   ): void {
     if (!(renderer instanceof WebGL2Renderer)) return;
 
-    renderer.renderShadowMaps(extractedLights, renderList.opaqueBatches);
+    // Skip rebuilding the shadow atlas for a secondary offscreen camera (a DynamicReflectionProbe
+    // face or a PlanarReflectionNode) -- see `isOffscreenRenderTarget`'s doc comment. The atlas
+    // already reflects the main camera's frame; only `updateGlobalUBO` needs to run so this
+    // camera's own view/position are current for the color pass that follows.
+    if (!renderer.isOffscreenRenderTarget) {
+      renderer.renderShadowMaps(extractedLights, renderList.opaqueBatches);
+    }
     renderer.updateGlobalUBO(vp, camPos, extractedLights, near, far);
   }
 }

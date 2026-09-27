@@ -20,6 +20,9 @@ class TestWebGLRenderer extends AbstractWebGLRenderer {
   public override renderBatch(): void {}
   protected override releaseObjectResources(): void {}
   public override resetStateCache(): void {}
+  public override get isOffscreenRenderTarget(): boolean {
+    return false;
+  }
   public override bindMainRenderTarget(): boolean {
     return true;
   }

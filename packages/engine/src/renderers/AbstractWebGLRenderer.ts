@@ -105,6 +105,18 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
 
   public abstract resetStateCache(): void;
 
+  /**
+   * True while the current `render()` call is targeting an offscreen `RenderTarget`/
+   * `RenderTargetCube` (a `DynamicReflectionProbe` face or a `PlanarReflectionNode`), rather
+   * than the main camera's canvas. `WebGLShadowPass` uses this to skip re-rendering the
+   * directional-light cascade atlas for these secondary, differently-angled cameras -- the
+   * atlas is fit to the main camera once per frame and shared by every pass; rebuilding it
+   * from a probe's much wider, differently-positioned view clobbered it with geometry culled
+   * to that probe's frustum, which could leave nearby dynamic objects (e.g. an orbiting moon)
+   * unlit/black in the reflection.
+   */
+  public abstract get isOffscreenRenderTarget(): boolean;
+
   public abstract bindMainRenderTarget(): boolean;
   public abstract bindPostProcessRenderTarget(): void;
   public abstract copyToOpaqueTexture(): void;

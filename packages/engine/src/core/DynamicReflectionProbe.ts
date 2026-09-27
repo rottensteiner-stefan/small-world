@@ -5,6 +5,7 @@ import { PerspectiveProjection } from "../math/projections/index.js";
 import { Renderer } from "../interfaces/index.js";
 import { RenderTargetCube } from "./textures/index.js";
 import { Vector3D, MathPool, MathUtils } from "../math/index.js";
+import { RendererType } from "../enums/index.js";
 
 /**
  * A probe that renders the environment into a CubeMap from its position.
@@ -28,6 +29,12 @@ export class DynamicReflectionProbe extends Object3D {
    * 3: -Y (Bottom)
    * 4: +Z (Front)
    * 5: -Z (Back)
+   *
+   * Up-vectors for a top-left-origin backend (WebGPU/D3D/Metal). WebGL's bottom-left
+   * framebuffer origin needs every up-vector negated relative to this table when rendering
+   * into an FBO-attached cube face, or the 4 side faces come out vertically flipped and
+   * floor/sky content bleeds into the wrong hemisphere of a mirror reflection (see
+   * `_FACE_DIRECTIONS_GL` below, and three.js's `CubeCamera` for the same reference convention).
    */
   private static readonly _FACE_DIRECTIONS = [
     { dir: new Vector3D(1, 0, 0), up: new Vector3D(0, 1, 0) }, // Positive X
@@ -36,6 +43,16 @@ export class DynamicReflectionProbe extends Object3D {
     { dir: new Vector3D(0, -1, 0), up: new Vector3D(0, 0, 1) }, // Negative Y (Look down, up is +Z)
     { dir: new Vector3D(0, 0, 1), up: new Vector3D(0, 1, 0) }, // Positive Z
     { dir: new Vector3D(0, 0, -1), up: new Vector3D(0, 1, 0) }, // Negative Z
+  ];
+
+  /** Same face/direction order as `_FACE_DIRECTIONS`, up-vectors negated for WebGL's FBO cube-face convention. */
+  private static readonly _FACE_DIRECTIONS_GL = [
+    { dir: new Vector3D(1, 0, 0), up: new Vector3D(0, -1, 0) }, // Positive X
+    { dir: new Vector3D(-1, 0, 0), up: new Vector3D(0, -1, 0) }, // Negative X
+    { dir: new Vector3D(0, 1, 0), up: new Vector3D(0, 0, 1) }, // Positive Y
+    { dir: new Vector3D(0, -1, 0), up: new Vector3D(0, 0, -1) }, // Negative Y
+    { dir: new Vector3D(0, 0, 1), up: new Vector3D(0, -1, 0) }, // Positive Z
+    { dir: new Vector3D(0, 0, -1), up: new Vector3D(0, -1, 0) }, // Negative Z
   ];
 
   constructor(name: string = "DynamicReflectionProbe", resolution: number = 256) {
@@ -75,10 +92,15 @@ export class DynamicReflectionProbe extends Object3D {
 
     // Update faces based on time-slicing
     const facesToUpdate = MathUtils.clamp(this.facesPerFrame, 1, 6);
+    const isWebGL =
+      renderer.type === RendererType.WEB_GL1 || renderer.type === RendererType.WEB_GL2;
+    const faceDirections = isWebGL
+      ? DynamicReflectionProbe._FACE_DIRECTIONS_GL
+      : DynamicReflectionProbe._FACE_DIRECTIONS;
 
     for (let i = 0; i < facesToUpdate; i++) {
       const faceIndex = this._currentFace;
-      const dirInfo = DynamicReflectionProbe._FACE_DIRECTIONS[faceIndex]!;
+      const dirInfo = faceDirections[faceIndex]!;
 
       // Set camera lookAt and up
       this.probeCamera.target.set(
