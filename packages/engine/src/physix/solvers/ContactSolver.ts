@@ -642,6 +642,9 @@ export class ContactSolver {
     this._prevCollisionPairs = this._currentCollisionPairs;
     this._currentCollisionPairs = tempColl;
 
+    MathPool.releaseVector(velB);
+    MathPool.releaseVector(velA);
+    MathPool.releaseVector(contactPt);
     MathPool.releaseVector(impulseT);
     MathPool.releaseVector(relTangent);
     MathPool.releaseVector(vt);

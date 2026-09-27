@@ -239,13 +239,45 @@ export class Scene {
     }
   }
 
+  private _lastCamX: number = NaN;
+  private _lastCamY: number = NaN;
+  private _lastCamZ: number = NaN;
+  private _lastVp: Float32Array | undefined = undefined;
+
+  /**
+   * Invalidates the cached RenderList, forcing `getVisibleObjectsSorted()` to re-traverse
+   * the scene graph on its next call.
+   */
+  public markRenderListDirty(): void {
+    this._lastCamX = NaN;
+  }
+
   /**
    * Returns visible objects, respecting BOTH user visibility and frustum state.
    * Separates opaque and transparent objects.
    * Opaque Grouping: shaderId -> topology -> matUuid -> Object3D[]
    * Transparent: Object3D[] sorted back-to-front
    */
-  public getVisibleObjectsSorted(_vp: Float32Array, camPos: Vector3D): RenderList {
+  public getVisibleObjectsSorted(
+    vp: Float32Array,
+    camPos: Vector3D,
+    forceRefresh: boolean = false,
+  ): RenderList {
+    if (
+      !forceRefresh &&
+      this._lastCamX === camPos.x &&
+      this._lastCamY === camPos.y &&
+      this._lastCamZ === camPos.z &&
+      this._lastVp === vp
+    ) {
+      return this._renderList;
+    }
+
+    this._lastCamX = camPos.x;
+    this._lastCamY = camPos.y;
+    this._lastCamZ = camPos.z;
+    this._lastVp = vp;
+
     // Clear the persistent list without destroying the structures (Monomorphism/GC optimization)
     this._renderList.transparent.length = 0;
     const batches = this._renderList.opaqueBatches;

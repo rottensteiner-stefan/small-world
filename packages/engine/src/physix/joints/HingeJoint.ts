@@ -42,6 +42,12 @@ const BAUMGARTE = 0.2;
  * `getRelativeAngle()` grows.
  */
 export class HingeJoint extends Joint {
+  private static readonly _scratchAxes = [
+    { ux: 1, uy: 0, uz: 0, relV: 0, err: 0 },
+    { ux: 0, uy: 1, uz: 0, relV: 0, err: 0 },
+    { ux: 0, uy: 0, uz: 1, relV: 0, err: 0 },
+  ];
+
   /** Local hinge axis on bodyA. */
   public axisA: Vector3D;
   /** Local hinge axis on bodyB. */
@@ -264,11 +270,13 @@ export class HingeJoint extends Joint {
     const errZ = pB.z - pA.z;
     const betaDt = 0.2 / dt;
 
-    const axes = [
-      { ux: 1, uy: 0, uz: 0, relV: relVx, err: errX },
-      { ux: 0, uy: 1, uz: 0, relV: relVy, err: errY },
-      { ux: 0, uy: 0, uz: 1, relV: relVz, err: errZ },
-    ];
+    const axes = HingeJoint._scratchAxes;
+    axes[0]!.relV = relVx;
+    axes[0]!.err = errX;
+    axes[1]!.relV = relVy;
+    axes[1]!.err = errY;
+    axes[2]!.relV = relVz;
+    axes[2]!.err = errZ;
 
     let totalImpulseSq = 0;
 

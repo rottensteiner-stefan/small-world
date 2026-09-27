@@ -53,6 +53,7 @@ export class Collision {
   private static _hullSatBestX = 0;
   private static _hullSatBestY = 0;
   private static _hullSatBestZ = 0;
+  private static readonly _satResult = { overlap: 0, x: 0, y: 0, z: 0 };
 
   // Reused world-space corner arrays for treating a BoundingBox/OBB as an 8-vertex
   // convex hull in `_satPolytopes`, avoiding a fresh Vector3D[8] allocation per test.
@@ -1097,12 +1098,12 @@ export class Collision {
       }
     }
 
-    return {
-      overlap: this._hullSatMinOverlap,
-      x: this._hullSatBestX,
-      y: this._hullSatBestY,
-      z: this._hullSatBestZ,
-    };
+    const res = this._satResult;
+    res.overlap = this._hullSatMinOverlap;
+    res.x = this._hullSatBestX;
+    res.y = this._hullSatBestY;
+    res.z = this._hullSatBestZ;
+    return res;
   }
 
   /**
@@ -1187,12 +1188,12 @@ export class Collision {
       if (!this._considerHullSphereAxis(ax, ay, az, h.vertices, center, radius)) return null;
     }
 
-    return {
-      overlap: this._hullSatMinOverlap,
-      x: this._hullSatBestX,
-      y: this._hullSatBestY,
-      z: this._hullSatBestZ,
-    };
+    const res = this._satResult;
+    res.overlap = this._hullSatMinOverlap;
+    res.x = this._hullSatBestX;
+    res.y = this._hullSatBestY;
+    res.z = this._hullSatBestZ;
+    return res;
   }
 
   private static _considerHullSphereAxis(

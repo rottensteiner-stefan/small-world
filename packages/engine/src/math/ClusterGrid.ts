@@ -136,6 +136,7 @@ export function lightClusterCoverage(
   dims: ClusterGridDims,
   near: number,
   far: number,
+  out?: LightClusterCoverage,
 ): LightClusterCoverage {
   let cellMinX = 0;
   let cellMaxX = dims.x - 1;
@@ -158,14 +159,21 @@ export function lightClusterCoverage(
 
   const dMin = Math.max(viewDist - radius, near);
   const dMax = Math.min(viewDist + radius, far);
-  return {
-    cellMinX,
-    cellMaxX,
-    cellMinY,
-    cellMaxY,
-    sliceMin: zSliceFromViewDepth(dMin, near, far, dims.z),
-    sliceMax: zSliceFromViewDepth(dMax, near, far, dims.z),
+  const result = out ?? {
+    cellMinX: 0,
+    cellMaxX: 0,
+    cellMinY: 0,
+    cellMaxY: 0,
+    sliceMin: 0,
+    sliceMax: 0,
   };
+  result.cellMinX = cellMinX;
+  result.cellMaxX = cellMaxX;
+  result.cellMinY = cellMinY;
+  result.cellMaxY = cellMaxY;
+  result.sliceMin = zSliceFromViewDepth(dMin, near, far, dims.z);
+  result.sliceMax = zSliceFromViewDepth(dMax, near, far, dims.z);
+  return result;
 }
 
 function clampInt(value: number, lo: number, hi: number): number {

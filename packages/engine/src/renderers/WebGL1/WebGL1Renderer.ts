@@ -1207,20 +1207,21 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     obj: Object3D,
     textures: Record<string, Texture | CubeTexture | undefined>,
   ): void {
-    const lastTextures = this._lastKnownTextures.get(obj);
-    const snapshot: Record<string, Texture | CubeTexture | undefined> = {};
+    let lastTextures = this._lastKnownTextures.get(obj);
+    if (!lastTextures) {
+      lastTextures = {};
+      this._lastKnownTextures.set(obj, lastTextures);
+    }
 
-    for (const key of Object.keys(textures)) {
+    for (const key in textures) {
       const current = textures[key];
-      const last = lastTextures?.[key];
+      const last = lastTextures[key];
       if (current !== last) {
         if (last) this._releaseTexture(last);
         if (current) this._acquireTexture(current);
+        lastTextures[key] = current;
       }
-      snapshot[key] = current;
     }
-
-    this._lastKnownTextures.set(obj, snapshot);
   }
 
   private _acquireTexture(tex: Texture | CubeTexture): void {

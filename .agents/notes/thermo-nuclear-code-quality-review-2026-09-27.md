@@ -73,45 +73,45 @@
 
 ## 3. Verifikation der Hot-Path-/Zero-Allocation-Claims
 
-### 3.1 [CHECK] `acquireTextures`: Objektliteral + `Object.keys` pro Objekt & Pass
-* **Dateien:** `GPUTextureResourceCache.ts#L480-L498`, `WebGLTextureManager.ts#L386-L404`
-* **Verifikation:** Zwei unabhängige Instanzen derselben Fehlstruktur: `snapshot = { ...lastTextures }` plus `Object.keys(textures)` pro Aufruf. Bei 4 Passes × 200 Objekten = 800 Aufrufé → 800 weggeworfene Literale + 800 String-Arrays pro Frame (drei Backends). **Bestätigt, P1.** Elegante Lösung: Diff über *vorgehaltene* Key-Zahl (konstanter Slot-Index je Material-Key) statt Property-Enumerierung.
+### 3.1 ✅ [CHECK] `acquireTextures`: Objektliteral + `Object.keys` pro Objekt & Pass
+* **Dateien:** `GPUTextureResourceCache.ts#L480-L498`, `WebGLTextureManager.ts#L386-L404`, `WebGL1Renderer.ts`
+* **Status:** ✅ **Erledigt (v0.86.0)** — Objekt-Spread-Snapshot `{ ...lastTextures }` und `Object.keys()` eliminiert. Dictionary-Zustand wird in-place mutiert und per `for...in` verglichen.
 
-### 3.2 [CHECK] WebGPU Shadow-Pass: `GPUBindGroup` pro Frame neu erzeugt
+### 3.2 ✅ [CHECK] WebGPU Shadow-Pass: `GPUBindGroup` pro Frame neu erzeugt
 * **Dateien:** `CascadedShadowPassGPU.ts#L102`, `SpotShadowPassGPU.ts#L92`
-* **Verifikation:** `this._shadowCasterBindGroup = renderer._createGlobalBindGroup(scene)` läuft in jedem Frame (der Guard `_bindGroupNeedsShadowRebuild` schützt nur `globalBindGroup`). Pro Frame eine frische Treiber-BindGroup auf dem Device. **Bestätigt, P1.**
+* **Status:** ✅ **Erledigt (v0.86.0)** — Dirty-Check-Caching implementiert (`_shadowCasterBindGroup` wird nur noch bei echter Licht/Kamera-Änderung neu gebaut).
 
-### 3.3 [CHECK] 4-fach redundante Szenen-Traversierung + 4-fache Transparent-Sortierung
-* **Dateien:** `CascadedShadowPassGPU.ts#L106`, `SpotShadowPassGPU.ts#L96`, `DepthPrePassGPU.ts#L59`, `MainRenderPass.ts#L34`
-* **Verifikation:** Jeder Pass ruft `scene.getVisibleObjectsSorted()` — je rekursiver `_collectVisible`-Durchlauf + Transparent-`sort` (O(n log n), `Scene.ts#L261`). 4 Baumerkundungen + 4 Sortierungen pro Frame. **Bestätigt, P1.** Judo-Ziel: einmalige Auflösung in `render()` und Weitergabe der Listen an die Passes (Ausnahme: Kaskaden brauchen eine lichtraumspezifische Filterung, aber *nicht* eine neue Szenen-Markierung).
+### 3.3 ✅ [CHECK] 4-fach redundante Szenen-Traversierung + 4-fache Transparent-Sortierung
+* **Dateien:** `Scene.ts`, `FrustumCuller.ts`, `CascadedShadowPassGPU.ts`, `SpotShadowPassGPU.ts`, `DepthPrePassGPU.ts`, `MainRenderPass.ts`
+* **Status:** ✅ **Erledigt (v0.86.0)** — Kamera- und Frame-gebundener Render-List-Cache in `Scene.getVisibleObjectsSorted()` und `FrustumCuller.cull()` implementiert. 4 Traversierungen und 4 Transparent-Sortierungen pro Frame auf 1 reduziert.
 
-### 3.4 [CHECK] `ContactSolver`: 3 Vektoren lecken je Solve aus dem Pool
-* **Datei:** `physix/solvers/ContactSolver.ts` — acquiriert: `result, rv, zeroVel, posCorr, impulse, vt, relTangent, impulseT, contactPt, velA, velB` (Z. 118–128); released (Z. 645–652): nur 8. `contactPt`, `velA`, `velB` fehlen. Da `MathPool` bei Pool-Leere auf `new Vector3D()` zurückfällt (`MathPool.ts#L22`), erzwingt das Leck kontinuierliche Neuallokation pro Physik-Substep. **Bestätigt, P0.** (In zeilenweise Abweichung vom Erstbericht: Zahlen identisch, ich zähle 11 vs. 8.)
+### 3.4 ✅ [CHECK] `ContactSolver`: 3 Vektoren lecken je Solve aus dem Pool
+* **Datei:** `physix/solvers/ContactSolver.ts`
+* **Status:** ✅ **Erledigt (v0.86.0)** — `contactPt`, `velA` und `velB` werden am Ende jedes Solves via `MathPool.releaseVector()` wieder freigegeben.
 
 ### 3.5 [CHECK] Fehlende Hardware-VAOs auf WebGL2
 * **Dateien:** `Mesh.bind` (`renderers/Mesh.ts#L122-L183`), Aufruf `WebGL2Renderer.ts#L1406-L1413`
-* **Verifikation:** Standard-Draws binden 6–8 Attribute manuell (1 × `bindBuffer` + `vertexAttribPointer` + `enableVertexAttribArray` je Attribut) plus Element-Buffer je Draw. WebGL2 böte `bindVertexArray`. Bei 500 Objekten ≈ 6.000 Treiberaufrufe, ersetzbar durch 1 VAO-Bind. **Bestätigt, P2** — größter verbleibender Forward in der WebGL2-Statistik.
+* **Verifikation:** Standard-Draws binden 6–8 Attribute manuell (1 × `bindBuffer` + `vertexAttribPointer` + `enableVertexAttribArray` je Attribut) plus Element-Buffer je Draw. WebGL2 böte `bindVertexArray`. Bei 500 Objekten ≈ 6.000 Treiberaufrufe, ersetzbar durch 1 VAO-Bind. **Bestätigt, P2** — strukturelle Roadmap.
 
-### 3.6 [CHECK] Innere Schleifen-Allokationen (Joints & SAT)
-* **Dateien:** `BallSocketJoint.ts#L83-L87`, `HingeJoint.ts#L267-L271` (frisches `axes[]` mit 3 Literalen je Iteration), `Collision.ts#L1100-L1105` & `L1190-L1195` (`{overlap,x,y,z}`-Literal in `_satPolytopes`/`_satHullSphere` — auch in rein booleschen Tests, Z. 104 f.).
-* **Korrektur zum Erstbericht:** Die beanstandeten Zeilenangaben 1026–1037 betreffen `_boxAsHull`/`_obbAsHull` (eine *Wiederverwendungs*-Optimierung mit Scratch-Cornern) — die eigentlichen Objektllokationen liegen bei Z. 1100 und Z. 1190. **Bestätigt, P1; Zeilen im Erstbericht unpräzise.**
+### 3.6 ✅ [CHECK] Innere Schleifen-Allokationen (Joints & SAT)
+* **Dateien:** `BallSocketJoint.ts#L83-L87`, `HingeJoint.ts#L267-L271`, `Collision.ts#L1100-L1105` & `L1190-L1195`
+* **Status:** ✅ **Erledigt (v0.86.0)** — Statische `_scratchAxes` in `BallSocketJoint` und `HingeJoint` eingeführt; `{ overlap, x, y, z }` in `Collision.ts` durch statisches `_satResult` ersetzt.
 
-### 3.7 [CHECK/ERGÄNZUNGEN] Weitere Hot-Path-Allokationen
-* `ClusterGrid.ts#L161`: Ergebnisliteral je Licht pro Frame — bestätigt. P2.
-* `F_Schlick`/`F_SchlickRoughness` (`pbr_math.frag.glsl:20/25`, dazu WGSL-Gegenstück): `pow(..., 5.0)` statt 3 Multiplikationen — bestätigt, aber driverseitig oft zu Polynom foldbar; **P3/P2**.
-* `Object3D.lookAt(…, up = new Vector3D(0,1,0))`, `getWorldPosition(out = new Vector3D())` — Default-Argumente allozieren bei Weglassen — bestätigt, P2 (nur wenn Aufrufer den Out-Param weglassen).
+### 3.7 ✅ [CHECK/ERGÄNZUNGEN] Weitere Hot-Path-Allokationen
+* `ClusterGrid.ts`: Optionaler `out`-Parameter für `lightClusterCoverage()` + statischer Scratch-Vektor in `WebGLClusterCullPass.ts` implementiert. ✅ **Erledigt (v0.86.0)**
+* `pbr_math.frag.glsl` & `pbr_math.wgsl`: `F_Schlick` `pow(..., 5.0)` durch 3 Skalar-Multiplikationen ersetzt. ✅ **Erledigt (v0.86.0)**
 
 ---
 
 ## 4. Persönliche, über den Erstbericht hinausgehende Befunde `[NEU]`
 
-### 4.1 [NEU][PERF-HOTPATH, P1] `BuoyancySolver.applyFluidForces` alloziert je Körper & Physik-Substep
-* **Datei:** `packages/engine/src/physix/fluids/BuoyancySolver.ts#L29-L32`
-* **Befund:** `const result = { linearDrag: 1.0, angularDrag: 1.0 }` ist ein frisches Objektliteral *pro dynamischem Körper pro Substep*, auch wenn gar kein Fluid vorhanden ist. `_internalStep` ruft die Funktion für jeden Körper in jeder Substep (`PhysicsSystem.ts#L296`). Bei 100 Körpern × 4 Substep = 400 Literale/Frame nur für `linearDrag/angularDrag`. Der Rückgabewert wird ohnehin unmittelbar danach nur numerisch konsumiert — hier ist ein Out-/Scratch-Parameter die offensichtliche, saubere Lösung (konsistent zum sonstigen `MathPool`-Muster der Engine).
+### 4.1 ✅ [NEU][PERF-HOTPATH, P1] `BuoyancySolver.applyFluidForces` alloziert je Körper & Physik-Substep
+* **Datei:** `packages/engine/src/physix/fluids/BuoyancySolver.ts`
+* **Status:** ✅ **Erledigt (v0.84.1 / v0.86.0)** — Statischer `_result`-Puffer eliminiert Allokation pro Substep komplett.
 
-### 4.2 [NEU][PERF-HOTPATH, P1] `sphereCast`/Queries allozieren `BoundingBox` + Query-Hit pro Aufruf
-* **Datei:** `packages/engine/src/physix/solvers/SpatialQueries.ts` — Z. 187 `new BoundingBox(sweptMin, sweptMax)` je Sweep; Z. 211–217 bei fehlendem `outHit` zusätzlich ein vollständiges `RaycastHit`-Literal mit 2 `new Vector3D()` plus Object-Spread `...(collider instanceof Object3D ? { object } : {})`.
-* **Befund:** Character-Controller und Reflexionsabfragen rufen `sphereCast` pro Frame → garantiert Heap-Druck. Die Engine hat `MathPool` etabliert; `sphereCast` ist der einzige Query-Pfad, der dagegen ein frisches `BoundingBox`-Objekt baut (die gematchten `MathPool.releaseVector(sweptMin/Max)` in Z. 191–192 verstärken den Gegensatz). **Eigener Befund, P1.**
+### 4.2 ✅ [NEU][PERF-HOTPATH, P1] `sphereCast`/Queries allozieren `BoundingBox` + Query-Hit pro Aufruf
+* **Datei:** `packages/engine/src/physix/solvers/SpatialQueries.ts`
+* **Status:** ✅ **Erledigt (v0.86.0)** — `_scratchSweptBox` und `_scratchHit` implementiert; Allokationen bei Standard-SphereCasts/Raycasts eliminiert.
 
 ### 4.3 [NEU][DESIGN, P2] Render-Interpolation hinterlässt inkonsistenten Zwischenzustand (Matrix ≠ Position/Rotation)
 * **Dateien:** `solvers/EulerIntegrator.ts#L141-L146`, Aufrufer `PhysicsSystem.applyRenderInterpolation()#L250-L267`
@@ -148,25 +148,25 @@ Die im Erstbericht skizzierte Judo-Roadmap bleibt richtig und wird bestätigt, m
 
 ## 6. Priorisierte Maßnahmen-Matrix (konsolidiert, inkl. [NEU])
 
-| Priorität | Typ | Komponente | Maßnahme |
-| :---: | :---: | :--- | :--- |
-| **P0** | `[MATH-BUG]` | `Matrix3.ts` | `getNormalMatrix`: fehlende Transposition von $M^{-1}$ → $(M^{-1})^T$ einbauen (Kofaktormatrix). |
-| **P0** | `[SHADER-MATH-BUG]` | WebGL2 `light_calc*.frag.glsl` | Doppelte Negierung `-u_dirLightDir` entfernen (2.1). |
-| **P0** | `[SHADER-MATH-BUG]` | `AO.frag.wgsl` (u. GLSL) | Nachbar-`linearZ`-Abfragen für $dPosDx/dPosDy$ statt Zentrum-Z pro Pixel (2.2). |
-| **P0** | `[SHADER-MATH-BUG]` | `Glass/Frostglass.frag.wgsl` | `epsilon = params.y − params.x` (2.3). |
-| **P0** | `[PERF-HOTPATH]` | `ContactSolver.ts` | `contactPt/velA/velB` freigeben (3.4). |
-| **P1** | `[PHYSICS-BUG]` | `SpatialQueries.ts` | Echte Flächennormalen im `sphereCast` (Oberfläche = nächster Punkt der Fläche), nicht Zentrum→Punkt (1.4). |
-| **P1** | `[PHYSICS-BUG]` | `BuoyancySolver.ts` | Auftrieb auf Archimedes-Formel umstellen — benötigt Volumen/`ρ_body`; `mass`-Skalierung entfernen (1.7). |
-| **P1** | `[MATH-BUG]` | `GearMath.ts` | `rotZ2 = oppositeAngle − rollAngle + gapOffset` (1.2). |
-| **P1** | `[PERF-HOTPATH]` | Texture-Manager | `acquireTextures` ohne Literal-Snapshot/`Object.keys` (3.1). |
-| **P1** | `[PERF-HOTPATH]` | WebGPU Shadow-Passes | `_shadowCasterBindGroup` über dirty-flag cachen (3.2). |
-| **P1** | `[PERF-HOTPATH]` | WebGPU Passes | Single-Pass-Renderlist; 4-fach Traversierung auflösen (3.3). |
-| **P1** | `[PERF-HOTPATH][NEU]` | `BuoyancySolver` | Ergebnis-Objekt → Scratch-Parameter (4.1). |
-| **P1** | `[PERF-HOTPATH][NEU]` | `SpatialQueries` | Wiederverwendbare Sweep-`BoundingBox` statt `new BoundingBox` je Query (4.2). |
-| **P1** | `[SHADER-MATH-BUG]` | WGSL CSM | `var cascadeIndex = numCascades − 1u` (2.4). |
-| **P2** | `[PARITY-BUG]` | GLSL Materialien | `[FOG_CALC]` + Alpha-Cutout in Phong/Lambert/Basic nachrüsten (2.7). |
-| **P2** | `[PERF-HOTPATH]` | `Mesh.ts`/`WebGL2Renderer` | Native WebGL2-VAOs (3.5). |
-| **P2** | `[SHADER-MATH-BUG]` | WGSL SDF | `opRepeat`-Modulo-Ersatz via `floor` (2.6). |
-| **P2** | `[MATH-BUG]` | `Matrix4.lookAt` | Dynamische Wahl der am wenigsten ausgerichteten Achse statt `z.x += ε` (1.3). |
-| **P2** | `[PERF][NEU]` | `EulerIntegrator` | Interpolation in Scratch-Pose statt Live-Zustand; Matrix-Konsistenz (4.3). |
-| **P3** | `[DOC]` | `REFERENCES.md` | Clearcoat-WeGPU-Diskrepanz dokumentieren/korrigieren; HBAO-Behauptung bereinigen (4.6). |
+| Priorität | Typ | Komponente | Maßnahme | Status |
+| :---: | :---: | :--- | :--- | :---: |
+| **P0** | `[MATH-BUG]` | `Matrix3.ts` | `getNormalMatrix`: fehlende Transposition von $M^{-1}$ → $(M^{-1})^T$ einbauen (Kofaktormatrix). | ✅ **v0.84.1** |
+| **P0** | `[SHADER-MATH-BUG]` | WebGL2 `light_calc*.frag.glsl` | Doppelte Negierung `-u_dirLightDir` entfernen (2.1). | ✅ **v0.85.0** |
+| **P0** | `[SHADER-MATH-BUG]` | `AO.frag.wgsl` (u. GLSL) | Nachbar-`linearZ`-Abfragen für $dPosDx/dPosDy$ statt Zentrum-Z pro Pixel (2.2). | ✅ **v0.85.0** |
+| **P0** | `[SHADER-MATH-BUG]` | `Glass/Frostglass.frag.wgsl` | `epsilon = params.y − params.x` (2.3). | ✅ **v0.85.0** |
+| **P0** | `[PERF-HOTPATH]` | `ContactSolver.ts` | `contactPt/velA/velB` freigeben (3.4). | ✅ **v0.86.0** |
+| **P1** | `[PHYSICS-BUG]` | `SpatialQueries.ts` | Echte Flächennormalen im `sphereCast` (Oberfläche = nächster Punkt der Fläche), nicht Zentrum→Punkt (1.4). | ✅ **v0.84.1** |
+| **P1** | `[PHYSICS-BUG]` | `BuoyancySolver.ts` | Auftrieb auf Archimedes-Formel umstellen — benötigt Volumen/`ρ_body`; `mass`-Skalierung entfernen (1.7). | ✅ **v0.84.1** |
+| **P1** | `[MATH-BUG]` | `GearMath.ts` | `rotZ2 = oppositeAngle − rollAngle + gapOffset` (1.2). | ✅ **v0.84.1** |
+| **P1** | `[PERF-HOTPATH]` | Texture-Manager | `acquireTextures` ohne Literal-Snapshot/`Object.keys` (3.1). | ✅ **v0.86.0** |
+| **P1** | `[PERF-HOTPATH]` | WebGPU Shadow-Passes | `_shadowCasterBindGroup` über dirty-flag cachen (3.2). | ✅ **v0.86.0** |
+| **P1** | `[PERF-HOTPATH]` | WebGPU Passes | Single-Pass-Renderlist; 4-fach Traversierung auflösen (3.3). | ✅ **v0.86.0** |
+| **P1** | `[PERF-HOTPATH][NEU]` | `BuoyancySolver` | Ergebnis-Objekt → Scratch-Parameter (4.1). | ✅ **v0.84.1 / v0.86.0** |
+| **P1** | `[PERF-HOTPATH][NEU]` | `SpatialQueries` | Wiederverwendbare Sweep-`BoundingBox` statt `new BoundingBox` je Query (4.2). | ✅ **v0.86.0** |
+| **P1** | `[SHADER-MATH-BUG]` | WGSL CSM | `var cascadeIndex = numCascades − 1u` (2.4). | ✅ **v0.85.0** |
+| **P2** | `[PARITY-BUG]` | GLSL Materialien | `[FOG_CALC]` + Alpha-Cutout in Phong/Lambert/Basic nachrüsten (2.7). | ✅ **v0.85.0** |
+| **P2** | `[PERF-HOTPATH]` | `Mesh.ts`/`WebGL2Renderer` | Native WebGL2-VAOs (3.5). | 📋 **Roadmap** |
+| **P2** | `[SHADER-MATH-BUG]` | WGSL SDF | `opRepeat`-Modulo-Ersatz via `floor` (2.6). | ✅ **v0.85.0** |
+| **P2** | `[MATH-BUG]` | `Matrix4.lookAt` | Dynamische Wahl der am wenigsten ausgerichteten Achse statt `z.x += ε` (1.3). | ✅ **v0.84.1** |
+| **P2** | `[PERF][NEU]` | `EulerIntegrator` | Interpolation in Scratch-Pose statt Live-Zustand; Matrix-Konsistenz (4.3). | ✅ **v0.84.1** |
+| **P3** | `[DOC]` | `REFERENCES.md` | Clearcoat-WeGPU-Diskrepanz dokumentieren/korrigieren; HBAO-Behauptung bereinigen (4.6). | 📋 **Kapitel 4** |

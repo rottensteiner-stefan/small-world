@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.86.0] - 2026-09-27
+
+### "Speed is useful only if you are running in the right direction." - Joel Barker
+
+- **Performance & Zero-Allocation:**
+  - *Physics Contact Solver Pool Leak Elimination (P0)*: Fixed vector pool memory leak in [`ContactSolver.ts`](packages/engine/src/physix/solvers/ContactSolver.ts) by releasing `contactPt`, `velA`, and `velB` back to `MathPool`, preventing runaway heap allocation and fallback `new Vector3D()` instantiations during iterative impulse solves.
+  - *Texture Manager & Texture Resource Cache Zero-Allocation (P1)*: Replaced object-literal clones (`{ ...lastTextures }`) and `Object.keys()` iterations in [`GPUTextureResourceCache.ts`](packages/engine/src/renderers/WebGPU/managers/GPUTextureResourceCache.ts), [`WebGLTextureManager.ts`](packages/engine/src/renderers/WebGL2/managers/WebGLTextureManager.ts), and [`WebGL1Renderer.ts`](packages/engine/src/renderers/WebGL1/WebGL1Renderer.ts) with direct dictionary caching and `for...in` traversal, eliminating hundreds of garbage collections per frame across render passes.
+  - *WebGPU Shadow Pass Bind Group Caching (P1)*: Added dirty check caching to `_shadowCasterBindGroup` in [`CascadedShadowPassGPU.ts`](packages/engine/src/renderers/passes/CascadedShadowPassGPU.ts) and [`SpotShadowPassGPU.ts`](packages/engine/src/renderers/passes/SpotShadowPassGPU.ts), avoiding redundant driver bind group creation every frame.
+  - *Single-Pass Scene Traversals & Sorted Render List Caching (P1)*: Added camera-keyed frame cache in [`Scene.ts`](packages/engine/src/core/Scene.ts) (`getVisibleObjectsSorted()`) and [`FrustumCuller.ts`](packages/engine/src/core/FrustumCuller.ts) (`cull()`), cutting redundant quad-traversals and transparent sorting passes across depth pre-passes, shadow passes, and main passes down to a single pass per frame.
+  - *Joint & SAT Inner Loop Allocation Freeing (P1)*: Eliminated per-iteration `axes` array/object allocations in [`BallSocketJoint.ts`](packages/engine/src/physix/joints/BallSocketJoint.ts) and [`HingeJoint.ts`](packages/engine/src/physix/joints/HingeJoint.ts) using static scratch axes; converted `{ overlap, x, y, z }` object literals in [`Collision.ts`](packages/engine/src/physix/Collision.ts) to static scratch results.
+  - *Spatial Query Scratch Caching (P1)*: Replaced per-query `new BoundingBox()` instantiations and `RaycastHit` allocations in [`SpatialQueries.ts`](packages/engine/src/physix/solvers/SpatialQueries.ts) with static scratch boxes and hits.
+  - *Cluster Grid Coverage Scratch Optimization (P2)*: Added optional `out` parameter to [`ClusterGrid.lightClusterCoverage()`](packages/engine/src/math/ClusterGrid.ts) and reused static scratch vectors in [`WebGLClusterCullPass.ts`](packages/engine/src/renderers/passes/WebGLClusterCullPass.ts).
+  - *PBR Schlick Fresnel Math Optimization (P2)*: Optimized `F_Schlick` power computation in [`pbr_math.frag.glsl`](packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/pbr_math.frag.glsl) and [`pbr_math.wgsl`](packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/pbr_math.wgsl) from expensive `pow(..., 5.0)` to 3 scalar multiplications (`x2 * x2 * x`).
+- **Housekeeping & Docs:**
+  - *Thermo-Nuclear Quality Review*: Completed Chapter 3 of the Thermo-Nuclear Code Quality Review, eliminating critical hot-path GC bottlenecks and driver allocations ([`.agents/notes/thermo-nuclear-code-quality-review-2026-09-27.md`](.agents/notes/thermo-nuclear-code-quality-review-2026-09-27.md)).
+
 ## [0.85.0] - 2026-09-27
 
 ### "Nothing can dim the light which shines from within." - Maya Angelou

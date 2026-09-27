@@ -14,11 +14,15 @@ fn G_SchlickGGX(dotNL: f32, dotNV: f32, roughness: f32) -> f32 {
 }
 
 fn F_Schlick(cosTheta: f32, F0: vec3f) -> vec3f {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    let x = clamp(1.0 - cosTheta, 0.0, 1.0);
+    let x2 = x * x;
+    return F0 + (1.0 - F0) * (x2 * x2 * x);
 }
 
 fn F_SchlickRoughness(cosTheta: f32, F0: vec3f, roughness: f32) -> vec3f {
-    return F0 + (max(vec3f(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    let x = clamp(1.0 - cosTheta, 0.0, 1.0);
+    let x2 = x * x;
+    return F0 + (max(vec3f(1.0 - roughness), F0) - F0) * (x2 * x2 * x);
 }
 
 fn linearToSRGB(color: vec3f) -> vec3f {

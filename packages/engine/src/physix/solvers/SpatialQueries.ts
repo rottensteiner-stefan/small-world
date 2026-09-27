@@ -18,6 +18,13 @@ import { RaycastHit } from "../RaycastHit.js";
  */
 export class SpatialQueries {
   private readonly _queryHits: Collidable[] = [];
+  private readonly _scratchSweptBox: BoundingBox = new BoundingBox();
+  private readonly _scratchHit: RaycastHit = {
+    distance: 0,
+    point: new Vector3D(),
+    normal: new Vector3D(),
+    collider: null as unknown as Collidable,
+  };
 
   constructor(private readonly _broadphase: PhysicsBroadphase) {}
 
@@ -71,13 +78,7 @@ export class SpatialQueries {
     MathPool.releaseVector(hitNorm);
 
     if (closestCollider !== null && closestT <= maxDistance) {
-      const hit = outHit ?? {
-        distance: 0,
-        point: new Vector3D(),
-        normal: new Vector3D(),
-        collider: closestCollider,
-        ...(closestCollider instanceof Object3D ? { object: closestCollider } : {}),
-      };
+      const hit = outHit ?? this._scratchHit;
       hit.distance = closestT;
       hit.point.copyFrom(bestPt);
       hit.normal.copyFrom(bestNorm);
@@ -186,9 +187,10 @@ export class SpatialQueries {
       Math.max(origin.z, origin.z + delta.z) + radius,
     );
 
-    const sweptBox = new BoundingBox(sweptMin, sweptMax);
+    this._scratchSweptBox.min.copyFrom(sweptMin);
+    this._scratchSweptBox.max.copyFrom(sweptMax);
     this._queryHits.length = 0;
-    this._broadphase.queryVolume(sweptBox, this._queryHits, mask);
+    this._broadphase.queryVolume(this._scratchSweptBox, this._queryHits, mask);
 
     MathPool.releaseVector(sweptMin);
     MathPool.releaseVector(sweptMax);
@@ -210,13 +212,7 @@ export class SpatialQueries {
 
     if (closestCollider !== null && earliestToi <= 1.0) {
       const hitDistance = earliestToi * distanceLimit;
-      const hit = outHit ?? {
-        distance: 0,
-        point: new Vector3D(),
-        normal: new Vector3D(),
-        collider: closestCollider,
-        ...(closestCollider instanceof Object3D ? { object: closestCollider } : {}),
-      };
+      const hit = outHit ?? this._scratchHit;
       hit.distance = hitDistance;
       hit.point.copyFrom(delta).scale(earliestToi).add(origin);
       hit.collider = closestCollider;

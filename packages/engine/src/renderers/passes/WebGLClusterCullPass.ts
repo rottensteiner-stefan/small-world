@@ -33,6 +33,14 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
   private _indices = new Uint32Array(CLUSTER_TEX_WIDTH * 2);
   private _warnedGridUnit: boolean = false;
   private _warnedIndexUnit: boolean = false;
+  private _scratchCoverage = {
+    cellMinX: 0,
+    cellMaxX: 0,
+    cellMinY: 0,
+    cellMaxY: 0,
+    sliceMin: 0,
+    sliceMax: 0,
+  };
 
   public execute(
     renderer: AbstractWebGLRenderer,
@@ -166,6 +174,7 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
       dims,
       near,
       far,
+      this._scratchCoverage,
     );
 
     for (let z = coverage.sliceMin; z <= coverage.sliceMax; z++) {
@@ -226,6 +235,7 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
       dims,
       near,
       far,
+      this._scratchCoverage,
     );
 
     for (let z = coverage.sliceMin; z <= coverage.sliceMax; z++) {

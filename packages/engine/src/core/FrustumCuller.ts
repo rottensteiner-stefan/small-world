@@ -21,6 +21,7 @@ export class FrustumCuller {
    * Culls objects in the scene that are outside the camera frustum.
    */
   public cull(scene: Scene, vpMatrix: Matrix4): number {
+    scene.markRenderListDirty();
     this._frustum.setFromMatrix(vpMatrix);
     this.lastIntersectedNodes.clear();
 
