@@ -1,27 +1,32 @@
 import { AbstractCameraEffect } from "./AbstractCameraEffect.js";
 import { CameraEffectType } from "../../../enums/index.js";
+import { Color } from "../../colors/index.js";
 
 /**
- * A flash effect for the camera (simulated via target offset or potentially other means).
- * Note: A real flash might need renderer support, but here we can simulate a 'jolt'.
+ * A post-processing screen flash for the camera (e.g. an explosion or impact hit-flash).
+ * Drives `flashIntensity`/`flashColor`, which the engine forwards each frame into the
+ * renderer's post-processing `FlashElement` -- this is a real full-screen overlay, not a
+ * camera-position jolt.
  */
 export class FlashEffect extends AbstractCameraEffect {
   /** @inheritdoc */
   public override readonly type: CameraEffectType = CameraEffectType.FLASH;
 
-  private _intensity: number;
+  private _peakIntensity: number;
   private _duration: number;
   private _elapsed: number = 0;
 
   /**
    * Creates a new FlashEffect.
-   * @param intensity The intensity of the flash.
+   * @param intensity The peak flash intensity in [0, 1].
    * @param duration The duration of the flash in seconds.
+   * @param color The tint color of the flash (defaults to white).
    */
-  constructor(intensity: number = 1.0, duration: number = 0.2) {
+  constructor(intensity: number = 1.0, duration: number = 0.2, color: Color = Color.WHITE) {
     super();
-    this._intensity = intensity;
+    this._peakIntensity = intensity;
     this._duration = duration;
+    this.flashColor.copyFrom(color);
   }
 
   /** @inheritdoc */
@@ -30,13 +35,12 @@ export class FlashEffect extends AbstractCameraEffect {
 
     if (this._elapsed >= this._duration) {
       this.isFinished = true;
-      this.targetOffset.set(0, 0, 0);
+      this.flashIntensity = 0;
       return;
     }
 
-    // Just a quick jolt up and down
-    const progress: number = this._elapsed / this._duration;
-    const offset: number = Math.sin(progress * Math.PI) * this._intensity;
-    this.targetOffset.y = offset;
+    // Instant attack, quadratic decay -- reads as a snappy hit-flash rather than a fade-in.
+    const remaining: number = 1 - this._elapsed / this._duration;
+    this.flashIntensity = this._peakIntensity * remaining * remaining;
   }
 }

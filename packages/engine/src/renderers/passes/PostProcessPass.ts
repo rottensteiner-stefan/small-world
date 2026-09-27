@@ -24,9 +24,9 @@ export class PostProcessPass implements RenderPass {
   private _bindGroup?: GPUBindGroup;
   private _uniformBuffer?: GPUBuffer;
   private _sampler?: GPUSampler;
-  /** 40 floats (160 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the continuous tuning
-   * parameters (incl. color grading & gravitational lensing), packed as 10x vec4f. */
-  private _uniformData: Float32Array = new Float32Array(40);
+  /** 44 floats (176 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the continuous tuning
+   * parameters (incl. color grading, gravitational lensing & flash), packed as 11x vec4f. */
+  private _uniformData: Float32Array = new Float32Array(44);
   private _builtTextureView?: GPUTextureView;
   private _builtBloomTextureView?: GPUTextureView;
   private _builtHbaoTextureView?: GPUTextureView;
@@ -55,13 +55,17 @@ export class PostProcessPass implements RenderPass {
     const outline = group.get<import("../post/index.js").OutlineElement>(
       PostProcessingEffectType.OUTLINE,
     );
+    const flash = group.get<import("../post/index.js").FlashElement>(
+      PostProcessingEffectType.FLASH,
+    );
 
     // Only structural flags/modes -- these gate real WGSL code paths (branch taken, sample
     // count) and require a shader rebuild. Continuous tuning values (exposure, vignette
     // offset/darkness/roundness, grain intensity, bloom intensity/color, grading
     // contrast/saturation/temperature/tint/lift/gamma/gain, quantize steps, outline
-    // thickness/sensitivity/color) live in the per-frame DynUniforms buffer instead (see
-    // execute()) and deliberately do NOT appear here -- tuning them must never rebuild.
+    // thickness/sensitivity/color, flash color/intensity) live in the per-frame DynUniforms
+    // buffer instead (see execute()) and deliberately do NOT appear here -- tuning them must
+    // never rebuild.
     return [
       group.filterMode,
       tm && tm.enabled ? 1 : 0,
@@ -73,6 +77,7 @@ export class PostProcessPass implements RenderPass {
       quant && quant.enabled ? 1 : 0,
       hbao && hbao.enabled ? 1 : 0,
       outline && outline.enabled ? 1 : 0,
+      flash && flash.enabled ? 1 : 0,
     ].join("|");
   }
 
@@ -88,7 +93,7 @@ export class PostProcessPass implements RenderPass {
     });
 
     this._uniformBuffer ??= device.createBuffer({
-      size: 160, // DynUniforms: 10 x vec4f
+      size: 176, // DynUniforms: 11 x vec4f
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -140,6 +145,9 @@ export class PostProcessPass implements RenderPass {
     const outline = group.get<import("../post/index.js").OutlineElement>(
       PostProcessingEffectType.OUTLINE,
     );
+    const flash = group.get<import("../post/index.js").FlashElement>(
+      PostProcessingEffectType.FLASH,
+    );
 
     const tmEnabled = tm && tm.enabled;
     const vigEnabled = vig && vig.enabled;
@@ -149,6 +157,7 @@ export class PostProcessPass implements RenderPass {
     const quantEnabled = quant && quant.enabled;
     const hbaoEnabled = hbao && hbao.enabled;
     const outlineEnabled = outline && outline.enabled;
+    const flashEnabled = flash && flash.enabled;
 
     // Inject only STRUCTURAL parameters as WGSL constants -- these gate real code paths (branch
     // taken, sample count), so changing them legitimately needs a rebuild. Continuous tuning
@@ -185,6 +194,10 @@ export class PostProcessPass implements RenderPass {
     assembledFrag = assembledFrag.replace(
       "const u_outlineEnabled: u32 = 0u;",
       `const u_outlineEnabled: u32 = ${outlineEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_flashEnabled: u32 = 0u;",
+      `const u_flashEnabled: u32 = ${flashEnabled ? 1 : 0}u;`,
     );
     assembledFrag = assembledFrag.replace(
       "const u_filterMode: u32 = 0u;",
@@ -302,6 +315,9 @@ export class PostProcessPass implements RenderPass {
     const outline = group.get<import("../post/index.js").OutlineElement>(
       PostProcessingEffectType.OUTLINE,
     );
+    const flash = group.get<import("../post/index.js").FlashElement>(
+      PostProcessingEffectType.FLASH,
+    );
 
     const d = this._uniformData;
     d[0] = (performance.now() % 100000) / 1000.0; // a.x: time
@@ -349,6 +365,11 @@ export class PostProcessPass implements RenderPass {
     d[37] = lensing ? lensing.spaghettification : 0.15; // lensingParams.y: spaghettification
     d[38] = lensing ? lensing.relativisticBeaming : 1.2; // lensingParams.z: relativisticBeaming
     d[39] = lensing ? lensing.ringGlowIntensity : 2.5; // lensingParams.w: ringGlowIntensity
+
+    d[40] = flash ? flash.color.r : 1.0; // flashParams.x: color.r
+    d[41] = flash ? flash.color.g : 1.0; // flashParams.y: color.g
+    d[42] = flash ? flash.color.b : 1.0; // flashParams.z: color.b
+    d[43] = flash ? flash.intensity : 0.0; // flashParams.w: intensity
 
     renderer.gpuDevice!.queue.writeBuffer(this._uniformBuffer!, 0, d);
 

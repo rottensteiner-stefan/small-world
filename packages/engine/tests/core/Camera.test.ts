@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Camera, PerspectiveProjection, Vector3D } from "../../src/index.js";
+import { Camera, CameraEffectType, PerspectiveProjection, Vector3D } from "../../src/index.js";
 
 describe("Camera project & screenToWorld", () => {
   it("should project a centered point in front of camera to NDC (0, 0)", () => {
@@ -63,5 +63,82 @@ describe("Camera project & screenToWorld", () => {
     const nearPoint = camera.project(new Vector3D(0, 0, 10 - 0.15));
     expect(nearPoint.z).toBeLessThan(0); // in front, but NDC Z is negative
     expect(nearPoint.z).toBeGreaterThanOrEqual(-1); // still treated as in front
+  });
+});
+
+describe("Camera effects", () => {
+  function makeCamera(): Camera {
+    return new Camera(
+      new PerspectiveProjection({ fov: Math.PI / 2, aspect: 1, near: 0.1, far: 100 }),
+    );
+  }
+
+  it("removeEffect cancels a specific effect instance before it finishes on its own", () => {
+    const camera = makeCamera();
+    const effect = camera.applyEffect(CameraEffectType.FLASH, 1.0, 10);
+
+    camera.update(camera.target, 0, 0, 0.016);
+    expect(camera.flashIntensity).toBeGreaterThan(0);
+
+    camera.removeEffect(effect);
+    camera.update(camera.target, 0, 0, 0.016);
+    expect(camera.flashIntensity).toBe(0);
+  });
+
+  it("clearEffects(type) only removes effects of that type", () => {
+    const camera = makeCamera();
+    const shake = camera.applyEffect(CameraEffectType.SHAKE, 0.5, 10);
+    camera.applyEffect(CameraEffectType.FLASH, 1.0, 10);
+
+    camera.clearEffects(CameraEffectType.FLASH);
+    camera.update(camera.target, 0, 0, 0.016);
+
+    expect(camera.flashIntensity).toBe(0);
+    expect(shake.isFinished).toBe(false);
+  });
+
+  it("clearEffects() with no type removes everything", () => {
+    const camera = makeCamera();
+    camera.applyEffect(CameraEffectType.SHAKE, 0.5, 10);
+    camera.applyEffect(CameraEffectType.FLASH, 1.0, 10);
+
+    camera.clearEffects();
+    camera.update(camera.target, 0, 0, 0.016);
+
+    expect(camera.flashIntensity).toBe(0);
+  });
+
+  it("clamps the aggregated flashIntensity at 1 even when multiple flashes overlap", () => {
+    const camera = makeCamera();
+    camera.applyEffect(CameraEffectType.FLASH, 0.9, 1.0);
+    camera.applyEffect(CameraEffectType.FLASH, 0.9, 1.0);
+
+    camera.update(camera.target, 0, 0, 0.001);
+
+    expect(camera.flashIntensity).toBeLessThanOrEqual(1);
+    expect(camera.flashIntensity).toBeGreaterThan(0.9);
+  });
+
+  it("re-triggering SHAKE via applyEffect merges into the existing instance instead of stacking", () => {
+    const camera = makeCamera();
+    const first = camera.applyEffect(CameraEffectType.SHAKE, 0.5, 0.5);
+    const second = camera.applyEffect(CameraEffectType.SHAKE, 0.5, 0.5);
+
+    expect(second).toBe(first);
+  });
+
+  it("applies the rotation channel to the view direction without moving the camera position", () => {
+    const camera = makeCamera();
+    camera.position.set(0, 0, 10);
+    camera.target.set(0, 0, 0);
+
+    const before = camera.position.clone();
+    camera.applyEffect(CameraEffectType.SHAKE, 0.9, 1.0);
+    camera.update(camera.target, 0, 0, 0.016);
+
+    // Position is untouched by rotation-only shake (unlike the old positional jolt).
+    expect(camera.position.x).toBe(before.x);
+    expect(camera.position.y).toBe(before.y);
+    expect(camera.position.z).toBe(before.z);
   });
 });

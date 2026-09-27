@@ -14,6 +14,7 @@ const u_bloomEnabled: u32 = 0u;
 const u_hbaoEnabled: u32 = 0u;
 const u_quantizeEnabled: u32 = 0u;
 const u_outlineEnabled: u32 = 0u;
+const u_flashEnabled: u32 = 0u;
 const u_filterMode: u32 = 0u;
 
 // Continuous post-process tuning values, written every frame via queue.writeBuffer -- unlike the
@@ -31,6 +32,7 @@ struct DynUniforms {
     grading2: vec4f, // [gammaG, gammaB, gainR, gainG]
     singularityPos: vec4f, // [screenPosX, screenPosY, screenPosZ, eventHorizonRadius]
     lensingParams: vec4f, // [strength, spaghettification, relativisticBeaming, ringGlowIntensity]
+    flashParams: vec4f, // [color.r, color.g, color.b, intensity]
 }
 @group(0) @binding(2) var<uniform> dyn: DynUniforms;
 
@@ -90,6 +92,8 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     let u_liftColor = dyn.grading1.xyz;
     let u_gammaColor = vec3f(dyn.grading1.w, dyn.grading2.x, dyn.grading2.y);
     let u_gainColor = vec3f(dyn.grading2.z, dyn.grading2.w, dyn.c.w);
+    let u_flashColor = dyn.flashParams.rgb;
+    let u_flashIntensity = dyn.flashParams.w;
 
     let dims = vec2f(textureDimensions(hdrTexture, 0));
 
@@ -352,6 +356,12 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         let edge = clamp(sqrt(gx * gx + gy * gy) * u_outlineSensitivity * 3.0, 0.0, 1.0);
 
         srgb = mix(srgb, u_outlineColor, edge);
+    }
+
+    // Full-screen flash overlay (e.g. hit/explosion feedback), driven per-frame by the active
+    // camera's flash effects -- applied last so it reads as a true screen flash over everything.
+    if (1u == u_flashEnabled) {
+        srgb = mix(srgb, u_flashColor, clamp(u_flashIntensity, 0.0, 1.0));
     }
 
     return vec4f(srgb, 1.0);

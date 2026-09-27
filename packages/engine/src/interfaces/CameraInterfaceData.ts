@@ -5,6 +5,7 @@ import { AbstractProjection } from "../math/projections/index.js";
 import { Matrix4, Vector3D } from "../math/index.js";
 import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
 import { Behavior } from "../core/behaviors/index.js";
+import { Color } from "../core/colors/index.js";
 
 /**
  * Interface representing the core data and API of a camera.
@@ -40,6 +41,12 @@ export interface CameraInterfaceData {
 
   /** The unique type identifier of the active strategy. */
   readonly activeStrategyType: string;
+
+  /** The combined post-processing flash intensity of all active camera effects, in [0, 1]. */
+  readonly flashIntensity: number;
+
+  /** The tint color of the currently strongest active flash contribution. */
+  readonly flashColor: Color;
 
   /** The combined view-projection matrix as a Float32Array. */
   viewProjectionMatrix: Float32Array;
@@ -87,18 +94,40 @@ export interface CameraInterfaceData {
   update(targetPos: Vector3D, dx: number, dy: number, deltaTime?: number): void;
 
   /**
-   * Adds a new effect to the camera.
+   * Adds a new effect to the camera. If an existing effect of the same `type` accepts a merge
+   * (see `CameraEffect.merge`), `effect` is absorbed into it instead of being added separately.
    * @param effect The effect to add.
+   * @returns The effect that now represents this addition: either `effect` itself, or the
+   * existing effect `effect` was merged into.
    */
-  addEffect(effect: CameraEffect): void;
+  addEffect(effect: CameraEffect): CameraEffect;
+
+  /**
+   * Removes a specific effect instance, e.g. to cancel it before it finishes on its own.
+   * @param effect The effect instance to remove.
+   */
+  removeEffect(effect: CameraEffect): void;
+
+  /**
+   * Removes all active effects, or all effects of a specific type.
+   * @param type If given, only effects of this type are removed; otherwise all are.
+   */
+  clearEffects(type?: CameraEffectType): void;
 
   /**
    * Creates and adds a new effect by its type.
    * @param type The type of effect.
    * @param intensity The intensity factor.
    * @param duration The duration in seconds.
+   * @param color The tint color, only used by effects that support one (e.g. Flash).
+   * @returns The effect that was added (or the existing effect it was merged into).
    */
-  applyEffect(type: CameraEffectType, intensity?: number, duration?: number): void;
+  applyEffect(
+    type: CameraEffectType,
+    intensity?: number,
+    duration?: number,
+    color?: Color,
+  ): CameraEffect;
 
   /**
    * Adjusts the zoom level (radius, FOV, or orthographic bounds).

@@ -46,6 +46,8 @@ export class PostProcessPassGL {
   private _uLensingSpaghetti: WebGLUniformLocation | null = null;
   private _uLensingBeaming: WebGLUniformLocation | null = null;
   private _uLensingRingGlow: WebGLUniformLocation | null = null;
+  private _uFlashColor: WebGLUniformLocation | null = null;
+  private _uFlashIntensity: WebGLUniformLocation | null = null;
 
   private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
@@ -72,11 +74,13 @@ export class PostProcessPassGL {
     const outline = group.get<import("../index.js").OutlineElement>(
       PostProcessingEffectType.OUTLINE,
     );
+    const flash = group.get<import("../index.js").FlashElement>(PostProcessingEffectType.FLASH);
 
     // Only structural flags/modes trigger a shader rebuild (matching WebGPU).
     // Continuous tuning values (exposure, gamma, vignette darkness/offset, grain intensity,
     // bloom intensity/color, grading contrast/saturation/temperature/tint/lift/gamma/gain,
-    // quantize steps, outline thickness/color) are set via uniforms per frame.
+    // quantize steps, outline thickness/color, flash color/intensity) are set via uniforms per
+    // frame.
     return [
       group.filterMode,
       tm && tm.enabled ? 1 : 0,
@@ -88,6 +92,7 @@ export class PostProcessPassGL {
       quant && quant.enabled ? 1 : 0,
       hbao && hbao.enabled ? 1 : 0,
       outline && outline.enabled ? 1 : 0,
+      flash && flash.enabled ? 1 : 0,
     ].join("|");
   }
 
@@ -128,6 +133,7 @@ export class PostProcessPassGL {
     const outline = group.get<import("../index.js").OutlineElement>(
       PostProcessingEffectType.OUTLINE,
     );
+    const flash = group.get<import("../index.js").FlashElement>(PostProcessingEffectType.FLASH);
 
     const tmEnabled = tm && tm.enabled;
     const vigEnabled = vig && vig.enabled;
@@ -137,6 +143,7 @@ export class PostProcessPassGL {
     const quantEnabled = quant && quant.enabled;
     const hbaoEnabled = hbao && hbao.enabled;
     const outlineEnabled = outline && outline.enabled;
+    const flashEnabled = flash && flash.enabled;
 
     // Inject ONLY structural feature flags as compile-time macros
     frag = frag.replace(
@@ -170,6 +177,10 @@ export class PostProcessPassGL {
     frag = frag.replace(
       "uniform int u_outlineEnabled;",
       `#define u_outlineEnabled ${outlineEnabled ? 1 : 0}`,
+    );
+    frag = frag.replace(
+      "uniform int u_flashEnabled;",
+      `#define u_flashEnabled ${flashEnabled ? 1 : 0}`,
     );
     frag = frag.replace("uniform int u_filterMode;", `#define u_filterMode ${group.filterMode}`);
 
@@ -226,6 +237,8 @@ export class PostProcessPassGL {
     this._uLensingSpaghetti = gl.getUniformLocation(p, "u_lensingSpaghetti");
     this._uLensingBeaming = gl.getUniformLocation(p, "u_lensingBeaming");
     this._uLensingRingGlow = gl.getUniformLocation(p, "u_lensingRingGlow");
+    this._uFlashColor = gl.getUniformLocation(p, "u_flashColor");
+    this._uFlashIntensity = gl.getUniformLocation(p, "u_flashIntensity");
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
@@ -301,6 +314,7 @@ export class PostProcessPassGL {
     const outline = group.get<import("../index.js").OutlineElement>(
       PostProcessingEffectType.OUTLINE,
     );
+    const flash = group.get<import("../index.js").FlashElement>(PostProcessingEffectType.FLASH);
 
     if (this._uBloomIntensity) gl.uniform1f(this._uBloomIntensity, bloom ? bloom.intensity : 0.0);
     if (this._uBloomColor) {
@@ -366,6 +380,11 @@ export class PostProcessPassGL {
     if (this._uLensingRingGlow) {
       gl.uniform1f(this._uLensingRingGlow, lensing ? lensing.ringGlowIntensity : 2.5);
     }
+    if (this._uFlashColor) {
+      if (flash) gl.uniform3f(this._uFlashColor, flash.color.r, flash.color.g, flash.color.b);
+      else gl.uniform3f(this._uFlashColor, 1.0, 1.0, 1.0);
+    }
+    if (this._uFlashIntensity) gl.uniform1f(this._uFlashIntensity, flash ? flash.intensity : 0.0);
 
     // Blit to the default (canvas) framebuffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);

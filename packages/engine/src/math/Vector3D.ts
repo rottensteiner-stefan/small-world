@@ -267,6 +267,34 @@ export class Vector3D implements Vector {
   }
 
   /**
+   * Rotates this vector in place by a quaternion. Accepts any quaternion-shaped object
+   * (avoids importing the `Quaternion` class here, which would create a circular
+   * dependency since `Quaternion` itself imports `Vector3D`).
+   * @param q The rotation quaternion (x, y, z, w components).
+   * @returns this
+   */
+  public applyQuaternion(q: { x: number; y: number; z: number; w: number }): this {
+    const x: number = this.x;
+    const y: number = this.y;
+    const z: number = this.z;
+    const qx: number = q.x;
+    const qy: number = q.y;
+    const qz: number = q.z;
+    const qw: number = q.w;
+
+    const ix: number = qw * x + qy * z - qz * y;
+    const iy: number = qw * y + qz * x - qx * z;
+    const iz: number = qw * z + qx * y - qy * x;
+    const iw: number = -qx * x - qy * y - qz * z;
+
+    this.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+    this.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+    this.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+
+    return this;
+  }
+
+  /**
    * Linearly interpolates this vector toward another vector by a factor `t`.
    * @param v The target vector.
    * @param t The interpolation factor, typically in [0, 1] (0 = stays at this, 1 = becomes v).

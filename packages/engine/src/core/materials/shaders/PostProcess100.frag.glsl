@@ -27,6 +27,10 @@ uniform float u_time;
 uniform int u_quantizeEnabled;
 uniform float u_quantizeSteps;
 
+uniform int u_flashEnabled;
+uniform vec3 u_flashColor;
+uniform float u_flashIntensity;
+
 // Random noise
 float random(vec2 st) {
     vec3 p3 = fract(vec3(st.xyx) * 0.1031);
@@ -116,6 +120,12 @@ void main() {
     // Quantize Colors (Posterization / Color Banding)
     if (u_quantizeEnabled == 1) {
         srgb = floor(srgb * u_quantizeSteps) / u_quantizeSteps;
+    }
+
+    // Full-screen flash overlay (e.g. hit/explosion feedback), driven per-frame by the active
+    // camera's flash effects -- applied last so it reads as a true screen flash over everything.
+    if (u_flashEnabled == 1) {
+        srgb = mix(srgb, u_flashColor, clamp(u_flashIntensity, 0.0, 1.0));
     }
 
     gl_FragColor = vec4(srgb, 1.0);

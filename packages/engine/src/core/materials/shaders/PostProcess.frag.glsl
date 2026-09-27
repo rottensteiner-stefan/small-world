@@ -41,6 +41,9 @@ uniform float u_lensingStrength;
 uniform float u_lensingSpaghetti;
 uniform float u_lensingBeaming;
 uniform float u_lensingRingGlow;
+uniform int u_flashEnabled;
+uniform vec3 u_flashColor;
+uniform float u_flashIntensity;
 
 uniform int u_filterMode;
 
@@ -330,6 +333,12 @@ void main() {
         float edge = clamp(sqrt(gx * gx + gy * gy) * u_outlineSensitivity * 3.0, 0.0, 1.0);
 
         srgb = mix(srgb, u_outlineColor, edge);
+    }
+
+    // Full-screen flash overlay (e.g. hit/explosion feedback), driven per-frame by the active
+    // camera's flash effects -- applied last so it reads as a true screen flash over everything.
+    if (u_flashEnabled == 1) {
+        srgb = mix(srgb, u_flashColor, clamp(u_flashIntensity, 0.0, 1.0));
     }
 
     fragColor = vec4(srgb, 1.0);

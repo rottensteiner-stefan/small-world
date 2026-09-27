@@ -165,6 +165,11 @@ export interface PostProcessingEffectsConfig {
     radius?: number;
     color?: { r: number; g: number; b: number } | [number, number, number];
   };
+  /** Full-screen flash overlay, driven per-frame by camera `FlashEffect`s (e.g. hit/explosion feedback). */
+  flash?: {
+    enabled?: boolean;
+    color?: { r: number; g: number; b: number } | [number, number, number];
+  };
   /**
    * Parametric color grading (contrast/saturation/temperature-tint/lift-gamma-gain), applied
    * after tone mapping. Distinct from `filterMode`'s camera-look presets -- an always-available

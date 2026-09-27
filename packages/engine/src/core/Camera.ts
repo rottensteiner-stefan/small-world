@@ -1,5 +1,5 @@
 import { AbstractProjection } from "../math/projections/index.js";
-import { MathPool, Matrix4, Vector3D } from "../math/index.js";
+import { MathPool, Matrix4, Quaternion, Vector3D } from "../math/index.js";
 import { CameraEffectFactory, CameraStrategyFactory } from "./cameras/index.js";
 import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
 import {
@@ -9,6 +9,7 @@ import {
   CameraStrategy,
 } from "../interfaces/index.js";
 import { Behavior, attachBehavior, detachBehavior } from "./behaviors/Behavior.js";
+import { Color } from "./colors/index.js";
 
 /**
  * Standard implementation of the CameraInterfaceData.
@@ -40,6 +41,11 @@ export class Camera implements CameraInterfaceData {
   private _strategy!: CameraStrategy;
 
   private _effects: CameraEffect[] = [];
+  private _yawOffset: number = 0;
+  private _pitchOffset: number = 0;
+  private _flashIntensity: number = 0;
+  private readonly _flashColor: Color = new Color(1, 1, 1);
+  private readonly _effectQuat: Quaternion = new Quaternion();
 
   private _viewMatrix: Matrix4 = new Matrix4();
   private _viewProjMatrix: Matrix4 = new Matrix4();
@@ -124,6 +130,18 @@ export class Camera implements CameraInterfaceData {
     for (const effect of this._effects) {
       finalPos.add(effect.offset);
       finalTarget.add(effect.targetOffset);
+    }
+
+    if (0 !== this._yawOffset || 0 !== this._pitchOffset) {
+      // Rotate the view direction (not the position) around the camera, so shake can never
+      // clip it through geometry, and the effect stays independent of the target distance.
+      const direction = MathPool.acquireVector().copyFrom(finalTarget).sub(finalPos);
+      const euler = MathPool.acquireVector().set(this._pitchOffset, this._yawOffset, 0);
+      this._effectQuat.setFromEuler(euler);
+      direction.applyQuaternion(this._effectQuat);
+      finalTarget.copyFrom(finalPos).add(direction);
+      MathPool.releaseVector(direction);
+      MathPool.releaseVector(euler);
     }
 
     Matrix4.lookAt(finalPos, finalTarget, this.up, this._viewMatrix);
@@ -231,6 +249,16 @@ export class Camera implements CameraInterfaceData {
   }
 
   /** @inheritdoc */
+  public get flashIntensity(): number {
+    return this._flashIntensity;
+  }
+
+  /** @inheritdoc */
+  public get flashColor(): Color {
+    return this._flashColor;
+  }
+
+  /** @inheritdoc */
   public update(targetPos: Vector3D, dx: number, dy: number, deltaTime: number = 0.016): void {
     for (let i = 0; i < this.behaviors.length; i++) {
       const b = this.behaviors[i]!;
@@ -255,15 +283,66 @@ export class Camera implements CameraInterfaceData {
       }
     }
 
+    // Aggregate the rotation/flash channels across all active effects. Position (`offset`/
+    // `targetOffset`) is summed directly in `updateViewMatrix()` instead, since it's applied
+    // there alongside the rotation.
+    let yaw: number = 0;
+    let pitch: number = 0;
+    let flash: number = 0;
+    let strongestFlash: number = 0;
+    for (const effect of this._effects) {
+      yaw += effect.yawOffset;
+      pitch += effect.pitchOffset;
+      flash += effect.flashIntensity;
+      if (effect.flashIntensity > strongestFlash) {
+        strongestFlash = effect.flashIntensity;
+        this._flashColor.copyFrom(effect.flashColor);
+      }
+    }
+    this._yawOffset = yaw;
+    this._pitchOffset = pitch;
+    this._flashIntensity = Math.min(1, flash);
+
     this.updateViewMatrix();
   }
 
   /**
-   * Adds a new effect to the camera.
+   * Adds a new effect to the camera. If an existing effect of the same type accepts a merge,
+   * `effect` is absorbed into it instead of stacking a separate, independently-decaying instance.
    * @param effect The effect to add.
+   * @returns The effect that now represents this addition.
    */
-  public addEffect(effect: CameraEffect): void {
+  public addEffect(effect: CameraEffect): CameraEffect {
+    for (const existing of this._effects) {
+      if (existing.type === effect.type && true === existing.merge?.(effect)) {
+        return existing;
+      }
+    }
     this._effects.push(effect);
+    return effect;
+  }
+
+  /**
+   * Removes a specific effect instance.
+   * @param effect The effect instance to remove.
+   */
+  public removeEffect(effect: CameraEffect): void {
+    const index: number = this._effects.indexOf(effect);
+    if (-1 !== index) {
+      this._effects.splice(index, 1);
+    }
+  }
+
+  /**
+   * Removes all active effects, or all effects of a specific type.
+   * @param type If given, only effects of this type are removed; otherwise all are.
+   */
+  public clearEffects(type?: CameraEffectType): void {
+    if (undefined === type) {
+      this._effects.length = 0;
+      return;
+    }
+    this._effects = this._effects.filter((effect: CameraEffect): boolean => effect.type !== type);
   }
 
   /**
@@ -271,8 +350,15 @@ export class Camera implements CameraInterfaceData {
    * @param type The type of effect.
    * @param intensity The intensity.
    * @param duration The duration in seconds.
+   * @param color The tint color, only used by effects that support one (e.g. Flash).
+   * @returns The effect that now represents this addition.
    */
-  public applyEffect(type: CameraEffectType, intensity?: number, duration?: number): void {
-    this.addEffect(CameraEffectFactory.create(type, intensity, duration));
+  public applyEffect(
+    type: CameraEffectType,
+    intensity?: number,
+    duration?: number,
+    color?: Color,
+  ): CameraEffect {
+    return this.addEffect(CameraEffectFactory.create(type, intensity, duration, color));
   }
 }

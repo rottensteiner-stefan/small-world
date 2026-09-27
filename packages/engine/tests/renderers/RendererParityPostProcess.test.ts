@@ -9,6 +9,7 @@ import {
   QuantizeElement,
   OutlineElement,
   GravitationalLensingElement,
+  FlashElement,
 } from "../../src/renderers/post/elements/index.js";
 import { PostProcessingEffectType } from "../../src/enums/index.js";
 import { PostProcessPassGL } from "../../src/renderers/post/passes/PostProcessPassGL.js";
@@ -211,6 +212,11 @@ describe("Post-Processing Renderer Parity (WebGL2 vs WebGPU)", () => {
     lensing.relativisticBeaming = 1.5;
     lensing.ringGlowIntensity = 3.0;
 
+    const flash = group.get<FlashElement>(PostProcessingEffectType.FLASH)!;
+    flash.enabled = true;
+    flash.color.set(1.0, 0.3, 0.2);
+    flash.intensity = 0.65;
+
     // 1. Execute WebGL2 Pass
     const { gl, uniforms } = createMockGL();
     const glPass = new PostProcessPassGL(gl, true);
@@ -227,7 +233,7 @@ describe("Post-Processing Renderer Parity (WebGL2 vs WebGPU)", () => {
 
     const gpuData = getWrittenUniforms();
     expect(gpuData).toBeDefined();
-    expect(gpuData!.length).toBe(40); // 10 x vec4f (160 bytes)
+    expect(gpuData!.length).toBe(44); // 11 x vec4f (176 bytes)
 
     // === VERIFY 1:1 UNIFORM PARITY ===
 
@@ -316,6 +322,14 @@ describe("Post-Processing Renderer Parity (WebGL2 vs WebGPU)", () => {
     expect(gpuData![38]).toBeCloseTo(lensing.relativisticBeaming);
     expect(uniforms.get("u_lensingRingGlow")).toBeCloseTo(lensing.ringGlowIntensity);
     expect(gpuData![39]).toBeCloseTo(lensing.ringGlowIntensity);
+
+    // Flash overlay
+    expect(uniforms.get("u_flashColor")).toEqual([flash.color.r, flash.color.g, flash.color.b]);
+    expect(gpuData![40]).toBeCloseTo(flash.color.r);
+    expect(gpuData![41]).toBeCloseTo(flash.color.g);
+    expect(gpuData![42]).toBeCloseTo(flash.color.b);
+    expect(uniforms.get("u_flashIntensity")).toBeCloseTo(flash.intensity);
+    expect(gpuData![43]).toBeCloseTo(flash.intensity);
   });
 
   it("correctly propagates singularity sentinel (Z = -2 behind camera) to bypass lensing in both pipelines", () => {

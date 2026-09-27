@@ -11,6 +11,7 @@ import {
   MotionTrailElement,
   OutlineElement,
   GravitationalLensingElement,
+  FlashElement,
 } from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 import { Vector3D } from "../../math/index.js";
@@ -52,6 +53,7 @@ export class PostProcessingGroup {
     this.add(new MotionTrailElement());
     this.add(new OutlineElement());
     this.add(new GravitationalLensingElement());
+    this.add(new FlashElement());
   }
 
   /**
@@ -226,6 +228,21 @@ export class PostProcessingGroup {
             lensing.singularityScreenPos.set(p[0], p[1], p[2]);
           } else if (typeof p === "object" && p !== null) {
             lensing.singularityScreenPos.set(p.x, p.y, p.z);
+          }
+        }
+      }
+    }
+
+    if (effects.flash) {
+      const flash = this.get<FlashElement>(PostProcessingEffectType.FLASH);
+      if (flash) {
+        if (effects.flash.enabled !== undefined) flash.enabled = effects.flash.enabled;
+        if (effects.flash.color !== undefined) {
+          const col = effects.flash.color;
+          if (Array.isArray(col)) {
+            flash.color.set(col[0], col[1], col[2]);
+          } else if (typeof col === "object" && col !== null) {
+            flash.color.set(col.r, col.g, col.b);
           }
         }
       }
