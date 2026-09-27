@@ -327,7 +327,17 @@ export class MarchingCubes extends AbstractGeometry {
       }
     }
 
+    const uvList: number[] = [];
+    const sizeX = Math.max(0.0001, this.max.x - this.min.x);
+    const sizeY = Math.max(0.0001, this.max.y - this.min.y);
+    for (let i = 0; i < this._vertexList.length; i += 3) {
+      const vx = this._vertexList[i]!;
+      const vy = this._vertexList[i + 1]!;
+      uvList.push((vx - this.min.x) / sizeX, (vy - this.min.y) / sizeY);
+    }
+
     this._vertices = new Float32Array(this._vertexList);
+    this._uvs = new Float32Array(uvList);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
     this.computeNormals();

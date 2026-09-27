@@ -446,7 +446,15 @@ export class VoronoiCells extends AbstractGeometry {
       }
     }
 
+    const uv: number[] = [];
+    const sizeX = Math.max(0.0001, this.bounds.max.x - this.bounds.min.x);
+    const sizeY = Math.max(0.0001, this.bounds.max.y - this.bounds.min.y);
+    for (let i = 0; i < v.length; i += 3) {
+      uv.push((v[i]! - this.bounds.min.x) / sizeX, (v[i + 1]! - this.bounds.min.y) / sizeY);
+    }
+
     this._vertices = new Float32Array(v);
+    this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
     this.computeNormals();

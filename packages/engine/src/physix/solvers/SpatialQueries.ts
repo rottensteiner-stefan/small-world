@@ -19,6 +19,7 @@ import { RaycastHit } from "../RaycastHit.js";
 export class SpatialQueries {
   private readonly _queryHits: Collidable[] = [];
   private readonly _scratchSweptBox: BoundingBox = new BoundingBox();
+  private readonly _scratchSweepSphere: BoundingSphere = new BoundingSphere(new Vector3D(), 0);
   private readonly _scratchHit: RaycastHit = {
     distance: 0,
     point: new Vector3D(),
@@ -168,7 +169,9 @@ export class SpatialQueries {
     outHit?: RaycastHit,
     ignoreTriggers: boolean = true,
   ): RaycastHit | null {
-    const sweepSphere = new BoundingSphere(origin, radius);
+    this._scratchSweepSphere.center.copyFrom(origin);
+    this._scratchSweepSphere.radius = radius;
+    const sweepSphere = this._scratchSweepSphere;
     const delta = MathPool.acquireVector().copyFrom(direction);
     const dirLen = delta.length();
     const distanceLimit = Number.isFinite(maxDistance) ? maxDistance : 100000;

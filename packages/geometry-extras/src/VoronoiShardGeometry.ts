@@ -35,7 +35,27 @@ export class VoronoiShardGeometry extends AbstractGeometry {
       }
     }
 
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity;
+    for (let i = 0; i < v.length; i += 3) {
+      const px = v[i]!;
+      const py = v[i + 1]!;
+      if (px < minX) minX = px;
+      if (px > maxX) maxX = px;
+      if (py < minY) minY = py;
+      if (py > maxY) maxY = py;
+    }
+    const sizeX = Math.max(0.0001, maxX - minX);
+    const sizeY = Math.max(0.0001, maxY - minY);
+    const uv: number[] = [];
+    for (let i = 0; i < v.length; i += 3) {
+      uv.push((v[i]! - minX) / sizeX, (v[i + 1]! - minY) / sizeY);
+    }
+
     this._vertices = new Float32Array(v);
+    this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
     this.computeNormals();

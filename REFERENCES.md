@@ -10,6 +10,237 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Rechneronline - Zahnrad berechnen](https://rechneronline.de/pi/zahnrad.php)
 - **Usage:** The underlying formulas for generating isometric trapezoidal teeth, pitch circles, and radii for the 3D gear were taken from this tool and adapted.
 
+### `HollowCylinder` (Hohlzylinder / Cylindrical Shell)
+
+- **File:** `packages/engine/src/geometry/HollowCylinder.ts`
+- **Source:** [Rechneronline - Hohlzylinder berechnen](https://rechneronline.de/pi/hohlzylinder.php)
+- **Formulas:**
+  - Wall thickness: $b = r_1 - r_2$
+  - Volume: $V = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi(r_1^2 - r_2^2)h$
+  - Lateral surface area (outer + inner): $M = \frac{\theta_{\text{len}}}{2\pi} \cdot 2\pi(r_1 + r_2)h$
+  - Total surface area: $A = 2\pi(r_1 + r_2)(r_1 - r_2 + h)$ (for closed cylinder)
+- **Usage:** Provides exact procedural mesh generation for hollow cylinders / pipes with distinct normal vectors across the outer wall, inner wall, top annular cap, bottom annular cap, and sector cut planes. Includes closed-form geometric property calculations ($V$, $M$, $A$, $b$).
+
+### `Barrel` (Fass / Keplersches Fass)
+
+- **File:** `packages/engine/src/geometry/Barrel.ts`
+- **Authors/Gurus:** Johannes Kepler (1615, *Nova Stereometria Doliorum Vinariorum*)
+- **Source:** [Rechneronline - Fass berechnen](https://rechneronline.de/pi/fass.php)
+- **Formulas:**
+  - Kepler's barrel volume formula: $V \approx \frac{\theta_{\text{len}}}{2\pi} \cdot \frac{\pi \cdot h}{3} \left(2R^2 + \frac{r_{\text{top}}^2 + r_{\text{bottom}}^2}{2}\right)$
+  - Space diagonal: $d = \sqrt{h^2 + 4r^2}$
+  - Parabolic bulging radius profile: $r(y) = R - (R - r) \cdot \left(\frac{2y}{h}\right)^2$
+- **Usage:** Procedural geometry for barrels, casks, kegs, and bulging containers with analytic surface normal derivations along the parabolic profile and crisp planar circular caps. Includes exact geometric calculations ($V$, $d$, $r(y)$).
+
+### `TruncatedCone` (Kegelstumpf / Conical Frustum)
+
+- **File:** `packages/engine/src/geometry/TruncatedCone.ts`
+- **Source:** [Rechneronline - Kegelstumpf berechnen](https://rechneronline.de/pi/kegelstumpf.php)
+- **Formulas:**
+  - Slant height (Mantellinie): $s = \sqrt{(r_1 - r_2)^2 + h^2}$
+  - Lateral surface area (Mantelfläche): $M = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi(r_1 + r_2)s$
+  - Total surface area: $A = M + \pi r_1^2 + \pi r_2^2$
+  - Volume: $V = \frac{\theta_{\text{len}}}{2\pi} \cdot \frac{\pi h}{3}(r_1^2 + r_1 r_2 + r_2^2)$
+- **Usage:** Procedural truncated cone geometry with mathematically exact surface normal slopes along the mantle, planar circular caps, and closed-form analytical geometric calculations.
+
+### `CutCylinder` (Zylinderabschnitt / Oblique Cut Cylinder)
+
+- **File:** `packages/engine/src/geometry/CutCylinder.ts`
+- **Source:** [Rechneronline - Zylinderabschnitt berechnen](https://rechneronline.de/pi/zylinderabschnitt.php)
+- **Formulas:**
+  - Semi-major axis of elliptical top: $a = \sqrt{r^2 + \left(\frac{h_2 - h_1}{2}\right)^2}$
+  - Cut angle: $\alpha = \arctan\left(\frac{h_2 - h_1}{2r}\right)$
+  - Volume: $V = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi r^2 \frac{h_1 + h_2}{2}$
+  - Lateral surface area (Mantelfläche): $M = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi r (h_1 + h_2)$
+  - Total surface area: $A = \pi r (r + a + h_1 + h_2)$ (Base circle + Top ellipse + Mantle)
+- **Usage:** Procedural cylinder sliced obliquely by an inclined cutting plane, creating an elliptical top face with distinct normals and exact geometric analysis methods.
+
+### `PointedPillar` (Spitze Säule / Frustum Column with Conical Roof Tip)
+
+- **File:** `packages/engine/src/geometry/PointedPillar.ts`
+- **Source:** [Rechneronline - Spitze Säule berechnen](https://rechneronline.de/pi/spitze-saeule.php)
+- **Formulas:**
+  - Column slant height: $s_1 = \sqrt{(a - b)^2 + h_1^2}$
+  - Tip slant height: $s_2 = \sqrt{b^2 + h_2^2}$
+  - Lateral surface area (Mantelfläche): $M = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi \left((a + b)s_1 + b s_2\right)$
+  - Base area: $A_{\text{base}} = \pi a^2$
+  - Total surface area: $A = \pi a^2 + M$
+  - Volume: $V = \frac{\theta_{\text{len}}}{2\pi} \cdot \frac{\pi}{3} \left(h_1(a^2 + ab + b^2) + b^2 h_2\right)$
+- **Usage:** Procedural architectural columns and obelisks consisting of a tapered shaft topped by a conical roof/tip with split normals across the transition ridge for crisp shading.
+
+### `SphericalTriangleSector` (Kugeldreieck-Sektor / Spherical Triangle Wedge)
+
+- **File:** `packages/engine/src/geometry/SphericalTriangleSector.ts`
+- **Source:** [Rechneronline - Kugeldreieck-Sektor berechnen](https://rechneronline.de/pi/kugeldreiecksektor.php)
+- **Formulas:**
+  - Base equatorial arc length: $a = \alpha \cdot r$
+  - Curved spherical triangle surface area: $S = \alpha \cdot r^2$
+  - Planar bounding area (two meridian quarter circles + equator sector): $A_{\text{planar}} = \frac{\pi + \alpha}{2} r^2$
+  - Total surface area: $A = \frac{3\alpha + \pi}{2} r^2$
+  - Volume: $V = \frac{\alpha \cdot r^3}{3}$
+- **Usage:** Procedural spherical triangle pyramid wedge geometry extending from the north pole to the equator, featuring separate normals for curved and planar faces.
+
+### `SphericalCap` (Kugelsegment / Kugelkappe / Spherical Dome)
+
+- **File:** `packages/engine/src/geometry/SphericalCap.ts`
+- **Source:** [Rechneronline - Kugelsegment berechnen](https://rechneronline.de/pi/kugelsegment.php)
+- **Formulas:**
+  - Base radius: $a = \sqrt{h(2r - h)}$
+  - Curved dome surface area (Kappenmantel): $M = \frac{\theta_{\text{len}}}{2\pi} \cdot 2\pi r h$
+  - Base circular area: $A_{\text{base}} = \pi a^2 = \pi h(2r - h)$
+  - Total surface area: $A = M + A_{\text{base}} = \pi h(4r - h)$
+  - Volume: $V = \frac{\theta_{\text{len}}}{2\pi} \cdot \frac{\pi h^2}{3}(3r - h)$
+- **Usage:** Procedural spherical dome and segment geometry sliced at height $h$ from the apex of a sphere of radius $r$, with analytical surface normal calculations and closed planar circular base.
+
+### `Arch` (Bogen / Rundbogen / Roman Bridge Arch)
+
+- **File:** `packages/engine/src/geometry/Arch.ts`
+- **Source:** [Rechneronline - Bogen berechnen](https://rechneronline.de/pi/bogen.php)
+- **Formulas:**
+  - Front/back face area: $A_{\text{face}} = h l - \frac{\pi r^2}{2}$
+  - Intrados (vault tunnel ceiling) area: $A_{\text{intrados}} = \pi r t$
+  - Outer boundary area: $A_{\text{outer}} = 2t(l + h - r)$
+  - Total surface area: $A = 2\left(h l - \frac{\pi r^2}{2}\right) + \pi r t + 2t(l + h - r)$
+  - Volume: $V = \left(h l - \frac{\pi r^2}{2}\right) t$
+- **Usage:** Procedural Roman masonry arch block with a semicircular vault tunnel carved out, watertight triangulated front/back faces, and inward-facing normals along the curved intrados ceiling.
+
+### `Annulus` (Kreisring / Planar Flat Circular Ring)
+
+- **File:** `packages/engine/src/geometry/Annulus.ts`
+- **Source:** [Rechneronline - Kreisring berechnen](https://rechneronline.de/pi/kreisring.php)
+- **Formulas:**
+  - Ring width / wall thickness: $b = R - r$
+  - Median radius: $r_{\text{med}} = \frac{R + r}{2}$
+  - Tangent chord length: $l = 2\sqrt{R^2 - r^2}$
+  - Perimeter: $U = \frac{\theta_{\text{len}}}{2\pi} \cdot 2\pi (R + r)$
+  - Area: $A = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi(R^2 - r^2) = \pi b(2r + b) = 2\pi b r_{\text{med}}$
+- **Usage:** Planar 2D circular ring lying in the X-Z plane with normal $(0, 1, 0)$ and concentric UV coordinates, suitable for ground decals, disc rings, and planar halo effects.
+
+### `OpenFrame` (Offener Rahmen / U-Profile)
+
+- **File:** `packages/engine/src/geometry/OpenFrame.ts`
+- **Source:** [Rechneronline - Offener Rahmen berechnen](https://rechneronline.de/pi/offener-rahmen.php)
+- **Formulas:**
+  - Outer width $a$, Inner width $b = a - 2c$
+  - Outer height $h$, Inner height $i = h - c$
+  - Wall/beam thickness $c$
+  - Perimeter: $u = 2a + 4h - 4c = a + b + 2c + 2h + 2i$
+  - Cross-sectional area: $A = c(2h + b) = c(2h + a - 2c) = 2ch + cb$
+  - 3D Volume: $V = A \cdot t$
+  - 3D Total surface area: $A_{\text{total}} = 2A + u \cdot t$
+- **Usage:** Procedural U-shaped profile geometry that can render either as a 2D planar polygon in the X-Z plane or as a solid 3D extruded channel/beam with distinct outward-facing normals and closed-form analytical geometric calculations.
+
+### `LShape` (L-Form / Winkelprofil / Angle Profile)
+
+- **File:** `packages/engine/src/geometry/LShape.ts`
+- **Source:** [Rechneronline - L-Form berechnen](https://rechneronline.de/pi/L-form.php)
+- **Formulas:**
+  - Outer sides $a, b$, Wall thickness $c$
+  - Inner sides: $a' = a - c$, $b' = b - c$
+  - Perimeter: $u = 2(a + b)$
+  - Cross-sectional area: $A = c(a + b - c) = ac + b'c$
+  - 3D Volume: $V = A \cdot t$
+  - 3D Total surface area: $A_{\text{total}} = 2A + u \cdot t$
+- **Usage:** Procedural L-beam angle profile geometry supporting both 2D planar rendering and 3D prism extrusion with exact normal vectors across all inner and outer facets and analytical geometric methods.
+
+### `Rhombus` (Raute / Gleichseitiges Viereck / Diamond)
+
+- **File:** `packages/engine/src/geometry/Rhombus.ts`
+- **Source:** [Rechneronline - Raute berechnen](https://rechneronline.de/pi/raute.php)
+- **Formulas:**
+  - Side length $a$, Acute angle $\alpha$
+  - Diagonals: $e = 2a \cos(\alpha / 2)$, $f = 2a \sin(\alpha / 2)$
+  - Incircle radius: $r_i = \frac{a \sin \alpha}{2} = \frac{e f}{4a}$
+  - Height: $h = a \sin \alpha = \frac{e f}{2a}$
+  - Perimeter: $u = 4a = 2\sqrt{e^2 + f^2}$
+  - Area: $A = a^2 \sin \alpha = \frac{e \cdot f}{2} = a \cdot h$
+  - 3D Volume: $V = A \cdot t$
+  - 3D Total surface area: $A_{\text{total}} = 2A + u \cdot t$
+- **Usage:** Procedural equilateral rhombus / diamond geometry aligned along its diagonals $e$ and $f$, with support for 2D plane rendering and 3D extruded prism geometry.
+
+### `TriStar` (Dreistern / 3-Pointed Star / Concave Hexagon)
+
+- **File:** `packages/engine/src/geometry/TriStar.ts`
+- **Source:** [Rechneronline - Dreistern berechnen](https://rechneronline.de/pi/dreistern.php)
+- **Formulas:**
+  - Arm edge length $a$, Inner apex angle $\alpha$
+  - Outer angle: $\beta = 120^\circ + \alpha = \frac{2\pi}{3} + \alpha$
+  - Arm base width: $b = \sqrt{2a^2(1 - \cos \alpha)} = 2a \sin(\alpha / 2)$
+  - Arm height: $i = \sqrt{\frac{4a^2 - b^2}{4}} = a \cos(\alpha / 2)$
+  - Tip distance / chord length: $l = \sqrt{2a^2(1 - \cos \beta)}$
+  - Total height: $h = \frac{\sqrt{3}}{2} l$
+  - Outer tip circumradius: $R = \frac{l}{\sqrt{3}} = a \cos(\alpha / 2) + \frac{a}{\sqrt{3}} \sin(\alpha / 2)$
+  - Inner notch radius: $r_{\text{in}} = \frac{b}{\sqrt{3}} = \frac{2a}{\sqrt{3}} \sin(\alpha / 2)$
+  - Perimeter: $u = 6a$
+  - Area: $A = \frac{3}{2} i b + \frac{\sqrt{3}}{4} b^2$
+  - 3D Volume: $V = A \cdot t$
+  - 3D Total surface area: $A_{\text{total}} = 2A + u \cdot t$
+- **Usage:** Procedural 3-pointed star geometry (concave equilateral hexagon for $\alpha < 60^\circ$) formed by 3 isosceles triangular arms on a central equilateral triangle, with exact analytical methods and 2D/3D meshing.
+
+### `CylindricalArch` (Zylinderbogen / Rohrbogen / Curved Pipe Elbow)
+
+- **File:** `packages/engine/src/geometry/CylindricalArch.ts`
+- **Source:** [Rechneronline - Zylinderbogen berechnen](https://rechneronline.de/pi/zylinderbogen.php)
+- **Formulas:**
+  - Pipe radius $r$, Inner bend radius $a$
+  - Major torus radius: $R = a + r$
+  - Sweep angle: $\theta_{\text{arc}}$ (default $\pi / 2 = 90^\circ$ for perpendicular pipe connection)
+  - Mantle lateral surface area: $M = 2\pi \cdot \theta_{\text{arc}} (a + r) r = \pi^2 (a + r) r$ (for $90^\circ$)
+  - Total surface area: $A = M + 2\pi r^2 = \pi^2 (a + r) r + 2\pi r^2$ (with circular end caps)
+  - Volume: $V = \pi \cdot \theta_{\text{arc}} (a + r) r^2 = \frac{1}{2} \pi^2 (a + r) r^2$ (for $90^\circ$)
+  - Surface-to-volume ratio: $A / V$
+- **Usage:** Procedural quarter-torus cylindrical elbow pipe geometry for smoothly joining perpendicular pipes, with analytical surface normal calculations and closed planar circular caps.
+
+### `Cone` (Kegel / Circular Cone)
+
+- **File:** `packages/engine/src/geometry/Cone.ts`
+- **Source:** [Rechneronline - Kegel berechnen](https://rechneronline.de/pi/kegel.php)
+- **Formulas:**
+  - Base radius $r$, Height $h$
+  - Slant height (Mantellinie): $m = \sqrt{h^2 + r^2}$
+  - Lateral surface area (Mantelfläche): $M = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi r m$
+  - Base area: $A_{\text{base}} = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi r^2$
+  - Total surface area: $A = M + A_{\text{base}} = \pi r (r + m)$
+  - Volume: $V = \frac{\theta_{\text{len}}}{2\pi} \cdot \frac{1}{3} \pi r^2 h$
+  - Apex angle (Öffnungswinkel): $\alpha = 2 \arcsin(r / m)$
+  - Base angle (Basiswinkel): $\beta = \frac{\pi - \alpha}{2} = \arctan(h / r)$
+  - Surface-to-volume ratio: $A / V$
+- **Usage:** Standard circular cone geometry with analytical geometric helper methods for all slant, surface, volume, and angular properties.
+
+### `HollowTruncatedCone` (Hohlkegelstumpf / Truncated Hollow Cone)
+
+- **File:** `packages/engine/src/geometry/HollowTruncatedCone.ts`
+- **Source:** [Rechneronline - Hohlkegelstumpf berechnen](https://rechneronline.de/pi/hohlkegelstumpf.php)
+- **Formulas:**
+  - Outer base radius $R$, Outer top radius $r$
+  - Inner base radius $S$, Inner top radius $s$
+  - Height $h$, Wall thickness $d = R - S = r - s$
+  - Outer slant height: $m_{\text{outer}} = \sqrt{(R - r)^2 + h^2}$
+  - Inner slant height: $m_{\text{inner}} = \sqrt{(S - s)^2 + h^2}$
+  - Outer lateral area: $M_{\text{outer}} = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi (R + r) m_{\text{outer}}$
+  - Inner lateral area: $M_{\text{inner}} = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi (S + s) m_{\text{inner}}$
+  - Bottom annular cap area: $A_{\text{bottom}} = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi (R^2 - S^2)$
+  - Top annular cap area: $A_{\text{top}} = \frac{\theta_{\text{len}}}{2\pi} \cdot \pi (r^2 - s^2)$
+  - Total surface area: $A = M_{\text{outer}} + M_{\text{inner}} + A_{\text{bottom}} + A_{\text{top}}$
+  - Volume: $V = \frac{\theta_{\text{len}}}{2\pi} \cdot \frac{\pi h}{3} (R^2 + R r + r^2 - S^2 - S s - s^2)$
+  - Surface-to-volume ratio: $A / V$
+- **Usage:** Procedural hollow conical frustum / reducer geometry with distinct normals across outer mantle, inner mantle, top annular cap, and bottom annular cap.
+
+### `Capsule` (Kapsel / Spherocylinder)
+
+- **File:** `packages/engine/src/geometry/Capsule.ts`
+- **Source:** [Rechneronline - Kapsel berechnen](https://rechneronline.de/pi/kapsel.php)
+- **Formulas:**
+  - Sphere radius $r$, Cylinder height $h$
+  - Total capsule length: $l = h + 2r$
+  - Lateral cylinder area: $A_{\text{cyl}} = 2\pi r h$
+  - Combined hemispherical caps area: $A_{\text{caps}} = 4\pi r^2$
+  - Total surface area: $A = 2\pi r (2r + h) = 4\pi r^2 + 2\pi r h$
+  - Volume: $V = \pi r^2 (\frac{4}{3}r + h) = \frac{4}{3}\pi r^3 + \pi r^2 h$
+  - Surface-to-volume ratio: $A / V$
+- **Usage:** Procedural spherocylinder capsule geometry combining a cylindrical center with hemispherical end caps and exact analytical surface and volume methods.
+
+
 ### Matrix and Quaternion Derivations (General Reference)
 
 - **File:** Mainly affects `packages/engine/src/math/Matrix4.ts`, `packages/engine/src/math/Quaternion.ts`, `packages/engine/src/math/Matrix3.ts` as well as cameras/projections.
@@ -146,6 +377,15 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Authors/Gurus:** H. C. Plummer (1911)
 - **Source:** [Plummer: "On the Problem of Distribution in Globular Star Clusters" (Monthly Notices of the Royal Astronomical Society, 1911)](https://doi.org/10.1093/mnras/71.5.460)
 - **Usage:** Used in `PointAttractorAffector` to simulate smooth, non-diverging gravitational acceleration for star clusters, planetary gravity, and black holes without numerical singularities or $O(1/r^2)$ explosions near the origin.
+
+### Hydrostatic Buoyancy (Fluid Volume & Buoyancy Solver)
+
+- **File:** `packages/engine/src/physix/fluids/BuoyancySolver.ts`, `packages/engine/src/physix/FluidVolume.ts`, `packages/engine/src/physix/PhysicsSystem.ts`
+- **Authors/Gurus:** Archimedes of Syracuse (3rd century BC)
+- **Formulas:**
+  - Buoyant force: $F_{\text{buoy}} = \rho_{\text{fluid}} \cdot V_{\text{submerged}} \cdot g$ (Archimedes' principle), with the submerged volume $V_{\text{submerged}}$ derived from the collider's intersection with the fluid volume; sphere volume $V = \frac{4}{3}\pi r^3$, box volume $V = w \cdot h \cdot d$ respectively.
+- **Source:** Standard hydrostatic law of physics (Archimedes' principle); universally taught in physics curricula.
+- **Usage:** `BuoyancySolver` computes the upward buoyant force on a rigid body intersecting a fluid volume's surface (per submerged-collider fraction) together with fluid flow forces, and reports the resulting linear/angular drag multipliers back to the `PhysicsSystem`. Provides stable float/sink behaviour and interaction damping for buoyant props, vehicles, and containers in fluid scenes.
 
 ### Fixed-Timestep Render Interpolation
 
@@ -342,6 +582,15 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** ["Percentage-Closer Soft Shadows"](https://download.nvidia.com/developer/presentations/2005/I3D/I3D_05_Percentage_Closer_Soft_Shadows.pdf) — SIGGRAPH 2005
 - **Usage:** Upgrades the directional-light PCF pass to a variable-radius filter: a blocker search over a small ring of raw (non-comparison) depth reads estimates how far the average occluder sits below the receiver, which then scales the PCF sample radius so contact shadows stay sharp while shadows further from their caster soften — contact-hardening soft shadows from a single shadow map, no extra light samples or pre-pass needed.
 
+### Clustered / Tiled Forward+ Lighting (Light Culling)
+
+- **File:** `packages/engine/src/renderers/passes/WebGLClusterCullPass.ts`, `packages/engine/src/renderers/passes/ClusterCullPassGPU.ts`, `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/lights.frag.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`; architecture decisions in `docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md`
+- **Authors/Gurus:** Emil Persson (humus.name); comparative research against three.js `ClusteredLighting`, Godot renderer docs and Babylon.js clustered lighting (see `docs/research/aaa-engine-techniques.md`)
+- **Source:**
+  - [Practical Clustered Shading (Emil Persson)](https://www.humus.name/Articles/PracticalClusteredShading.pdf)
+  - [A Primer on Efficient Rendering & Clustered Shading (aortiz.me)](http://www.aortiz.me/2018/12/21/CG.html)
+- **Usage:** Divides the view frustum into a fixed 3D cluster grid and pre-computes per-cluster light lists before the forward pass, so a fragment only ever evaluates the few lights whose coverage range touches its cluster instead of iterating all scene lights. WebGPU runs compute-based light culling on the shared `ClusterGrid` (`ClusterCullPassGPU`); WebGL2 falls back to CPU-side culling (`WebGLClusterCullPass`, fixed per-cluster capacity, no atomics, packing into two textures within the 16-texture-unit limit) using `lightClusterCoverage()` to limit the lights evaluated in `lights.frag.glsl`/`lighting.wgsl`.
+
 ### Image-Space Horizon-Based Ambient Occlusion (HBAO)
 
 - **File:** `packages/engine/src/core/materials/shaders/AO.frag.glsl`, `packages/engine/src/core/materials/shaders/AO.frag.wgsl`, `packages/engine/src/renderers/post/passes/AOPassGL.ts`, `packages/engine/src/renderers/post/passes/AOPassGPU.ts`, `packages/engine/src/renderers/post/elements/HbaoElement.ts`
@@ -405,6 +654,12 @@ This document serves to record external sources, algorithms, mathematical deriva
 ### Asynchronous Asset Loading
 
 - **Usage:** Provides unified static factories like `Texture.fromUrl()` with promise-based loading. This ensures asynchronous image decoding integrates smoothly into the synchronous render loop, often falling back to a placeholder pixel until the GPU upload is fully complete.
+
+### AAA Rendering Techniques (Research Sources, 2026-09-27)
+
+- **Source:** [AAA-Rendering-Techniken — Wunschliste & Bestand (`docs/research/aaa-engine-techniques.md`)](https://github.com/rottensteiner-stefan/small-world/blob/main/docs/research/aaa-engine-techniques.md)
+- **Authors/Gurus (named in research):** Emil Persson (humus.name, clustered shading), Sébastien Hillaire & Frostbite (volumetric rendering, SIGGRAPH 2015), "therealmjp" (shadow-map sampling), Alex Tardif (cascaded shadow maps with soft shadows), XeGTAO/Intel GameDev (ground-truth AO), Valdemir D. (game feel on the web), plus Unreal/Unity/Godot/Babylon.js/three.js documentation.
+- **Usage:** Consolidated research on forward lighting, shadows, occlusion culling, volumetric fog and post-processing compared against industry engines. Verified against the live engine on 2026-09-27: implemented items are fixed bestand (clustered lighting, PCSS, CSM polishing, HBAO, simplified TAA, HZB occlusion culling, game feel), remaining items are a maintained wishlist (froxel volumetric fog, full GTAO, LOD, full TAA). The full source list lives in the document's "Quellen" appendix.
 
 ## Graphics APIs (WebGPU / WebGL)
 

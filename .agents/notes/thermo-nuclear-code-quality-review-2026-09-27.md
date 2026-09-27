@@ -89,9 +89,9 @@
 * **Datei:** `physix/solvers/ContactSolver.ts`
 * **Status:** ✅ **Erledigt (v0.86.0)** — `contactPt`, `velA` und `velB` werden am Ende jedes Solves via `MathPool.releaseVector()` wieder freigegeben.
 
-### 3.5 [CHECK] Fehlende Hardware-VAOs auf WebGL2
+### 3.5 ✅ [CHECK] Fehlende Hardware-VAOs auf WebGL2
 * **Dateien:** `Mesh.bind` (`renderers/Mesh.ts#L122-L183`), Aufruf `WebGL2Renderer.ts#L1406-L1413`
-* **Verifikation:** Standard-Draws binden 6–8 Attribute manuell (1 × `bindBuffer` + `vertexAttribPointer` + `enableVertexAttribArray` je Attribut) plus Element-Buffer je Draw. WebGL2 böte `bindVertexArray`. Bei 500 Objekten ≈ 6.000 Treiberaufrufe, ersetzbar durch 1 VAO-Bind. **Bestätigt, P2** — strukturelle Roadmap.
+* **Status:** ✅ **Erledigt (v0.86.0)** — Native WebGL2-VAOs implementiert: `WebGLProgramCache` reserviert Attribut-Locations 0-5 (sowie Instancing 6-9/10) vor dem Linken via `bindAttribLocation`; `Mesh` baut pro Geometrie ein `vao` (`Mesh.bindVAO`), das alle Vertex-Attribut-Pointer in einem Aufruf wiederherstellt. Standard- und Shadow-Pfade des `WebGL2Renderer` binden jetzt das VAO (Fallback auf `Mesh.bind` für WebGL1/instanzlose Kontexte); der Instancing-Pfad isoliert sich explizit auf das Default-VAO (`bindVertexArray(null)`), um die gecachten VAOs nicht zu verunreinigen. 6-8 Treiberaufrufe → 1 Bind; `Mesh.bind` bleibt für WebGL1 + Instancing erhalten.
 
 ### 3.6 ✅ [CHECK] Innere Schleifen-Allokationen (Joints & SAT)
 * **Dateien:** `BallSocketJoint.ts#L83-L87`, `HingeJoint.ts#L267-L271`, `Collision.ts#L1100-L1105` & `L1190-L1195`
@@ -100,6 +100,7 @@
 ### 3.7 ✅ [CHECK/ERGÄNZUNGEN] Weitere Hot-Path-Allokationen
 * `ClusterGrid.ts`: Optionaler `out`-Parameter für `lightClusterCoverage()` + statischer Scratch-Vektor in `WebGLClusterCullPass.ts` implementiert. ✅ **Erledigt (v0.86.0)**
 * `pbr_math.frag.glsl` & `pbr_math.wgsl`: `F_Schlick` `pow(..., 5.0)` durch 3 Skalar-Multiplikationen ersetzt. ✅ **Erledigt (v0.86.0)**
+* `Object3D.lookAt`/`getWorldPosition`: Default-Instanzen (`new Vector3D(0,1,0)` / `new Vector3D()`) durch geteilte Modul-Scratch-Konstanten ersetzt — keine Heap-Allokation mehr bei weggelassenen Argumenten. ✅ **Erledigt (v0.86.0)**
 
 ---
 
@@ -111,7 +112,7 @@
 
 ### 4.2 ✅ [NEU][PERF-HOTPATH, P1] `sphereCast`/Queries allozieren `BoundingBox` + Query-Hit pro Aufruf
 * **Datei:** `packages/engine/src/physix/solvers/SpatialQueries.ts`
-* **Status:** ✅ **Erledigt (v0.86.0)** — `_scratchSweptBox` und `_scratchHit` implementiert; Allokationen bei Standard-SphereCasts/Raycasts eliminiert.
+* **Status:** ✅ **Erledigt (v0.86.0)** — `_scratchSweptBox` und `_scratchHit` implementiert; Allokationen bei Standard-SphereCasts/Raycasts eliminiert. **Restbefund `new BoundingSphere(origin, radius)` je `sphereCast` ebenfalls beseitigt** (v0.86.0): `_scratchSweepSphere` als Feld-Scratch ersetzt die Letzt-Allokation.
 
 ### 4.3 [NEU][DESIGN, P2] Render-Interpolation hinterlässt inkonsistenten Zwischenzustand (Matrix ≠ Position/Rotation)
 * **Dateien:** `solvers/EulerIntegrator.ts#L141-L146`, Aufrufer `PhysicsSystem.applyRenderInterpolation()#L250-L267`
@@ -137,7 +138,7 @@
 Die im Erstbericht skizzierte Judo-Roadmap bleibt richtig und wird bestätigt, mit Präzisierungen:
 
 1. **Single-Pass-Renderlist (P1):** Einmal pro Frame `getVisibleObjectsSorted` → Listen an Main/Depth/Spot/Cascade- Pass. Erspart 3 `_collectVisible`-Baumerkundungen + 3 Transparent-Sortierungen. Sorgfaltspflicht: Kaskaden-/Spot-Pass brauchen lichtraumgefilterte Caster — das ist eine *Filterung*, keine Neuerkundung.
-2. **VAO-Kapselung in `Mesh` (P2):** 6–8 Treiberaufrufe → 1 `bindVertexArray`; `Mesh.bind` entfällt als öffentliches Attribut-Bind-API (Struktur-Bereinigung über Perf-Gewinn hinaus).
+2. **VAO-Kapselung in `Mesh` (P2):** ~~6–8 Treiberaufrufe → 1 `bindVertexArray`; `Mesh.bind` entfällt als öffentliches Attribut-Bind-API (Struktur-Bereinigung über Perf-Gewinn hinaus).~~ ✅ **Umgesetzt (v0.86.0)** — siehe 3.5; `Mesh.bind` bleibt (mit Fallback-Signatur) für WebGL1 + Instancing erhalten.
 3. **Inline-Skalar-Arithmetik in `RigidBody.applyImpulse` (P1):** erspart `MathPool.acquireVector()`-Roundtrips dort, wo nur 3 Skalare mutiert werden.
 4. **`BoundingBox`/Query-Scratch-Pool (P1, [NEU]):** `sphereCast`/`boxCast` mit wiederverwendbarer Query-Box statt `new BoundingBox(...)`.
 5. **Monolithen.** `WebGPURenderer` (2.233 Z.) und `WebGL2Renderer` (1.629 Z.) bleiben die größten Einzelvollstreckungsrisiken; Zerlegung in Sub-Manager (analog `MaterialStudio`/`MakerApp`) ist strukturell vorgezeichnet, aber ein eigenes, größeres Projekt.
@@ -165,7 +166,10 @@ Die im Erstbericht skizzierte Judo-Roadmap bleibt richtig und wird bestätigt, m
 | **P1** | `[PERF-HOTPATH][NEU]` | `SpatialQueries` | Wiederverwendbare Sweep-`BoundingBox` statt `new BoundingBox` je Query (4.2). | ✅ **v0.86.0** |
 | **P1** | `[SHADER-MATH-BUG]` | WGSL CSM | `var cascadeIndex = numCascades − 1u` (2.4). | ✅ **v0.85.0** |
 | **P2** | `[PARITY-BUG]` | GLSL Materialien | `[FOG_CALC]` + Alpha-Cutout in Phong/Lambert/Basic nachrüsten (2.7). | ✅ **v0.85.0** |
-| **P2** | `[PERF-HOTPATH]` | `Mesh.ts`/`WebGL2Renderer` | Native WebGL2-VAOs (3.5). | 📋 **Roadmap** |
+| **P2** | `[PERF-HOTPATH]` | `Mesh.ts`/`WebGL2Renderer` | Native WebGL2-VAOs (3.5). | ✅ **v0.86.0** |
+| **P3** | `[PERF-HOTPATH]` | `SpatialQueries` | Rest-Allokation `new BoundingSphere` je `sphereCast` → `_scratchSweepSphere` (4.2). | ✅ **v0.86.0** |
+| **P3** | `[PERF-HOTPATH]` | `Object3D` | `lookAt`/`getWorldPosition` Default-Argumente → geteilte Scratch-Konstanten (3.7). | ✅ **v0.86.0** |
+| **P3** | `[ROBUSTNESS]` | `Scene` | `add`/`remove` invalidieren den Render-List-Cache (`markRenderListDirty`) gegen Stale-Lists bei Out-of-Loop-Mutationen (3.3). | ✅ **v0.86.0** |
 | **P2** | `[SHADER-MATH-BUG]` | WGSL SDF | `opRepeat`-Modulo-Ersatz via `floor` (2.6). | ✅ **v0.85.0** |
 | **P2** | `[MATH-BUG]` | `Matrix4.lookAt` | Dynamische Wahl der am wenigsten ausgerichteten Achse statt `z.x += ε` (1.3). | ✅ **v0.84.1** |
 | **P2** | `[PERF][NEU]` | `EulerIntegrator` | Interpolation in Scratch-Pose statt Live-Zustand; Matrix-Konsistenz (4.3). | ✅ **v0.84.1** |

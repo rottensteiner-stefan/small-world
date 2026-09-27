@@ -45,6 +45,24 @@ export class WebGLProgramCache {
   private static readonly _RESERVED_GLOBAL_UNIT_START = 8;
   private static readonly _RESERVED_GLOBAL_UNIT_END = 16;
 
+  /**
+   * Fixed attribute-location reservations, bound via `bindAttribLocation` BEFORE linking.
+   * Making these locations deterministic across every compiled program is what lets a single
+   * per-mesh VAO (`Mesh.bindVAO`) be valid for any program; without it the driver could assign
+   * different locations per program and a cached VAO would silently point at the wrong buffers.
+   * `a_instanceMatrix` is a `mat4` and thus occupies locations 6-9; `a_instanceData` sits at 10.
+   */
+  private static readonly _FIXED_ATTRIBUTE_LOCATIONS: ReadonlyArray<readonly [number, string]> = [
+    [0, "a_position"],
+    [1, "a_normal"],
+    [2, "a_uv"],
+    [3, "a_tangent"],
+    [4, "a_joints"],
+    [5, "a_weights"],
+    [6, "a_instanceMatrix"],
+    [10, "a_instanceData"],
+  ];
+
   private _programs = new Map<string, WebGL2ProgramCacheEntry>();
   private _lastKnownProgramKey = new WeakMap<Object3D, string>();
   private readonly _shaderRegistry: ShaderRegistry;
@@ -232,6 +250,9 @@ export class WebGLProgramCache {
     const p: WebGLProgram = this._gl.createProgram()!;
     this._gl.attachShader(p, v);
     this._gl.attachShader(p, f);
+    for (const [location, name] of WebGLProgramCache._FIXED_ATTRIBUTE_LOCATIONS) {
+      this._gl.bindAttribLocation(p, location, name);
+    }
     this._gl.linkProgram(p);
 
     if (!this._gl.getProgramParameter(p, this._gl.LINK_STATUS)) {

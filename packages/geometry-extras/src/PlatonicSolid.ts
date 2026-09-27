@@ -339,7 +339,12 @@ export class PlatonicSolid extends AbstractGeometry {
       }
     }
     for (let i = 0; i < v.length; i += 3) {
-      uv.push(0, 0);
+      const vx = v[i]!;
+      const vy = v[i + 1]!;
+      const vz = v[i + 2]!;
+      const u = 0.5 + Math.atan2(vz, vx) / (2 * Math.PI);
+      const vCoord = 0.5 - Math.asin(Math.min(1, Math.max(-1, vy / this.radius))) / Math.PI;
+      uv.push(u, vCoord);
     }
 
     this._vertices = new Float32Array(v);

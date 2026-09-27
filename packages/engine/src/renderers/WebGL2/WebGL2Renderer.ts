@@ -734,12 +734,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
         const mesh = this._geometry.getOrCreateMesh(o, o.geometry);
 
-        mesh.bind(
-          cache.attributes.get("a_position")!,
-          cache.attributes.get("a_normal")!,
-          cache.attributes.get("a_uv")!,
-          cache.attributes.get("a_tangent")!,
-        );
+        if (mesh.vaoCapable) {
+          mesh.bindVAO();
+        } else {
+          mesh.bind(
+            cache.attributes.get("a_position")!,
+            cache.attributes.get("a_normal")!,
+            cache.attributes.get("a_uv")!,
+            cache.attributes.get("a_tangent")!,
+          );
+        }
         mesh.draw(drawMode, batch!.wireframeMode);
       }
     }
@@ -1263,6 +1267,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (isInstanced) {
         const instMesh = o as InstancedMesh;
 
+        // Instanced draws configure their base attributes + instance-matrices manually and reset
+        // them again afterwards, so they run on the DEFAULT VAO -- never on a mesh's cached VAO,
+        // whose pointers must stay pristine for the non-instanced path.
+        this.gl.bindVertexArray(null);
+
         this._scratchModelMatrix.set(instMesh.worldMatrix.data);
         const uModel = u.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
@@ -1403,14 +1412,18 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         // Bind and Draw Geometry
         const mesh = this._geometry.getOrCreateMesh(o, o.geometry);
 
-        mesh.bind(
-          cache.attributes.get("a_position")!,
-          cache.attributes.get("a_normal")!,
-          cache.attributes.get("a_uv")!,
-          cache.attributes.get("a_tangent")!,
-          cache.attributes.get("a_joints") ?? -1,
-          cache.attributes.get("a_weights") ?? -1,
-        );
+        if (mesh.vaoCapable) {
+          mesh.bindVAO();
+        } else {
+          mesh.bind(
+            cache.attributes.get("a_position")!,
+            cache.attributes.get("a_normal")!,
+            cache.attributes.get("a_uv")!,
+            cache.attributes.get("a_tangent")!,
+            cache.attributes.get("a_joints") ?? -1,
+            cache.attributes.get("a_weights") ?? -1,
+          );
+        }
 
         const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
         mesh.draw(drawMode, wireframeMode);

@@ -27,6 +27,7 @@ function makeMockGl(): WebGL2RenderingContext {
     getProgramInfoLog: vi.fn(() => ""),
     deleteShader: vi.fn((s: object) => shaders.delete(s)),
     deleteProgram: vi.fn(),
+    bindAttribLocation: vi.fn(),
     getAttribLocation: vi.fn(() => 0),
     getUniformLocation: vi.fn(() => ({})),
     getActiveUniform: vi.fn(() => null),

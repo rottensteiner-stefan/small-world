@@ -93,10 +93,12 @@ export class Scene {
 
   public add(...objs: Object3D[]): void {
     this.root.add(...objs);
+    this.markRenderListDirty();
   }
 
   public remove(...objs: Object3D[]): void {
     this.root.remove(...objs);
+    this.markRenderListDirty();
   }
 
   private _collectSubtree(obj: Object3D, out: Object3D[]): void {

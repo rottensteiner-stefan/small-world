@@ -36,6 +36,14 @@ export class Mesh {
   /** Number of live Object3D instances currently referencing this mesh's geometry. */
   public refCount: number = 0;
 
+  /**
+   * Lazily-built WebGL2 VAO capturing every vertex-attribute pointer at the engine-wide fixed
+   * locations 0-5 (see `WebGLProgramCache._FIXED_ATTRIBUTE_LOCATIONS`), so a single
+   * `bindVertexArray` replaces one `bindBuffer`+`vertexAttribPointer`+`enableVertexAttribArray`
+   * per attribute. Never populated on WebGL1.
+   */
+  public vao: WebGLVertexArrayObject | undefined = undefined;
+
   private _gl: WebGLRenderingContext | WebGL2RenderingContext;
 
   /**
@@ -183,6 +191,62 @@ export class Mesh {
   }
 
   /**
+   * Whether this mesh can draw through a cached VAO (WebGL2 contexts only).
+   * WebGL1 has no VAO support and keeps using `bind()`.
+   */
+  public get vaoCapable(): boolean {
+    return typeof (this._gl as WebGL2RenderingContext).createVertexArray === "function";
+  }
+
+  /**
+   * Binds this mesh's cached VAO (built lazily on first use), which restores every vertex
+   * attribute pointer in one call instead of re-issuing per-attribute GL calls every draw.
+   * The index buffer is NOT captured here -- `draw()` rebinds the element buffer it needs.
+   */
+  public bindVAO(): void {
+    if (!this.vaoCapable) return;
+    const gl = this._gl as WebGL2RenderingContext;
+    if (!this.vao) this._buildVAO(gl);
+    if (this.vao) gl.bindVertexArray(this.vao);
+  }
+
+  /**
+   * Captures the attribute pointers for locations 0-5 (position/normal/uv/tangent/joints/
+   * weights, the fixed reservations from `WebGLProgramCache`) into a fresh VAO. Missing
+   * buffers disable their location so a later program sees the GL default constant, matching
+   * what `bind()` does per draw.
+   */
+  private _buildVAO(gl: WebGL2RenderingContext): void {
+    const vao = gl.createVertexArray();
+    if (!vao) return;
+    gl.bindVertexArray(vao);
+    this._setupAttribute(gl, 0, this.vbo, 3, this._gl.FLOAT);
+    this._setupAttribute(gl, 1, this.nbo, 3, this._gl.FLOAT);
+    this._setupAttribute(gl, 2, this.tbo, 2, this._gl.FLOAT);
+    this._setupAttribute(gl, 3, this.tanbo, 3, this._gl.FLOAT);
+    this._setupAttribute(gl, 4, this.jbo, 4, this._gl.FLOAT);
+    this._setupAttribute(gl, 5, this.wbo, 4, this._gl.FLOAT);
+    gl.bindVertexArray(null);
+    this.vao = vao;
+  }
+
+  private _setupAttribute(
+    gl: WebGL2RenderingContext,
+    index: number,
+    buffer: WebGLBuffer | undefined,
+    size: number,
+    type: number,
+  ): void {
+    if (buffer) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.enableVertexAttribArray(index);
+      gl.vertexAttribPointer(index, size, type, false, 0, 0);
+    } else {
+      gl.disableVertexAttribArray(index);
+    }
+  }
+
+  /**
    * Draws the mesh using the appropriate GL call.
    * @param mode The draw mode (e.g. TRIANGLES, LINES).
    */
@@ -228,5 +292,10 @@ export class Mesh {
     if (this.tbo) this._gl.deleteBuffer(this.tbo);
     if (this.jbo) this._gl.deleteBuffer(this.jbo);
     if (this.wbo) this._gl.deleteBuffer(this.wbo);
+    if (this.vao) {
+      const gl = this._gl as WebGL2RenderingContext;
+      if (typeof gl.deleteVertexArray === "function") gl.deleteVertexArray(this.vao);
+      this.vao = undefined;
+    }
   }
 }

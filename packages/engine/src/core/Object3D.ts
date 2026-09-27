@@ -11,6 +11,12 @@ import { shallowCloneWithValueTypes } from "./CloneUtils.js";
  * WebGPU HZB occlusion culling (i.e. every object on WebGL1/WebGL2) don't carry the field. */
 const occlusionCulledMap = new WeakMap<Object3D, boolean>();
 
+/** Shared exposed default for `lookAt()`'s `up` parameter -- never mutated by the method. */
+const _UNIT_UP = new Vector3D(0, 1, 0);
+
+/** Shared scratch backing `getWorldPosition()` when the caller omits `out` -- overwritten on each call. */
+const _scratchWorldPosition = new Vector3D();
+
 let _nextObjectId = 1;
 
 /**
@@ -313,7 +319,7 @@ export class Object3D implements Collidable {
     return this;
   }
 
-  public lookAt(target: Vector3D, up: Vector3D = new Vector3D(0, 1, 0)): this {
+  public lookAt(target: Vector3D, up: Vector3D = _UNIT_UP): this {
     const m = MathPool.acquireMatrix();
     Matrix4.lookAt(this.position, target, up, m);
     m.invert();
@@ -349,9 +355,10 @@ export class Object3D implements Collidable {
    * Reads this object's position in world space, i.e. after resolving the full parent
    * chain -- unlike `position`, which is always local to its immediate parent. Requires
    * `worldMatrix` to be current (see `updateMatrixWorld()`).
-   * @param out Optional vector to write into, to avoid allocating one per call.
+   * @param out Optional vector to write into, to avoid allocating one per call. If omitted, a
+   * shared module-level scratch is used and overwritten by the next call.
    */
-  public getWorldPosition(out: Vector3D = new Vector3D()): Vector3D {
+  public getWorldPosition(out: Vector3D = _scratchWorldPosition): Vector3D {
     return out.set(
       this.worldMatrix.data[12]!,
       this.worldMatrix.data[13]!,

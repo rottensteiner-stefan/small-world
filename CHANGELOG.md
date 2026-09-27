@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.87.0] - 2026-09-27
+
+### "The universe is under no obligation to make sense to you." - Neil deGrasse Tyson
+
+- **Features:**
+  - *8 New Standard Geometry Primitives*: Added `OpenFrame`, `LShape`, `Rhombus`, `TriStar`, `CylindricalArch`, and `HollowTruncatedCone` as first-class standard engine primitives ([`packages/engine/src/geometry/`](packages/engine/src/geometry/)), plus enhanced analytical formula methods on `Cone` and `Capsule`. All shapes include fully outward-facing normals, UV maps, and correct winding order for both 2D planar and 3D volumetric representations.
+  - *Showcase 6 — Full Geometry Catalogue (48 Entries)*: All 48 known geometries are now on display in [`apps/showcases/6/showcase.ts`](apps/showcases/6/showcase.ts). 3D bodies show as a triplet (Wireframe + Random PBR Solid + Fireplace-Brick PBR), 2D planar shapes as a pair (Wireframe + Solid), 1D primitives as a single Wireframe. Every booth has a white ground plaque with navy-blue text showing the English geometry name.
+- **Architecture & Bugfixes:**
+  - *Outward-Facing Normal Guarantee*: Introduced a dot-product self-verifying `addQuad` convention across all new geometry classes, ensuring 100% outward normals in the Small World right-handed (+Y-up, -Z-forward) coordinate system.
+- **Housekeeping & Docs:**
+  - *REFERENCES.md*: All 8 new geometry entries documented under `## Geometry & Mathematics` with full analytical formulas, derivations, and citations to `rechneronline.de`.
+  - *Test Coverage*: [`NewRechneronlineGeometries.test.ts`](packages/engine/tests/geometry/NewRechneronlineGeometries.test.ts) and [`OutwardFacingNormals.test.ts`](packages/engine/tests/geometry/OutwardFacingNormals.test.ts) cover all mathematical properties, UV layout, and normal orientation. [`Showcase6Plaques.test.ts`](apps/showcases/tests/Showcase6Plaques.test.ts) enforces that every geometry has a plaque, wire/solid/brick instances, and zero bounding-box overlaps.
+
 ## [0.86.0] - 2026-09-27
 
 ### "Speed is useful only if you are running in the right direction." - Joel Barker

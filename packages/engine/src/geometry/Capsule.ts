@@ -17,6 +17,17 @@ export interface CapsuleOptions {
 
 /**
  * A capsule geometry consisting of a cylinder with hemispherical caps.
+ * Also known as a spherocylinder (Sphärozylinder).
+ *
+ * Mathematical formulas:
+ * - Sphere radius: $r$
+ * - Cylinder length: $h$
+ * - Total capsule length: $l = h + 2r$
+ * - Surface area: $A = 2\pi r(2r + h) = 4\pi r^2 + 2\pi r h$
+ * - Volume: $V = \pi r^2 (\frac{4}{3}r + h) = \frac{4}{3}\pi r^3 + \pi r^2 h$
+ * - Surface-to-volume ratio: $A / V$
+ *
+ * @see https://rechneronline.de/pi/kapsel.php
  */
 export class Capsule extends AbstractGeometry {
   /** The radius of the capsule. */
@@ -40,6 +51,50 @@ export class Capsule extends AbstractGeometry {
     this.radialSegments = Math.max(3, Math.floor(radialSegments));
     this.capSegments = Math.max(1, Math.floor(capSegments));
     this.generateGeometryData();
+  }
+
+  /**
+   * Calculates the total tip-to-tip length $l = h + 2r$.
+   */
+  public getTotalLength(): number {
+    return this.length + 2 * this.radius;
+  }
+
+  /**
+   * Calculates the cylinder body lateral area $A_{\text{cyl}} = 2\pi r h$.
+   */
+  public getCylinderLateralArea(): number {
+    return 2 * Math.PI * this.radius * this.length;
+  }
+
+  /**
+   * Calculates the surface area of both hemispherical caps combined $A_{\text{caps}} = 4\pi r^2$.
+   */
+  public getHemisphereArea(): number {
+    return 4 * Math.PI * this.radius * this.radius;
+  }
+
+  /**
+   * Calculates the total surface area $A = 2\pi r (2r + h) = 4\pi r^2 + 2\pi r h$.
+   */
+  public getTotalSurfaceArea(): number {
+    return 2 * Math.PI * this.radius * (2 * this.radius + this.length);
+  }
+
+  /**
+   * Calculates the total volume $V = \pi r^2 (\frac{4}{3}r + h) = \frac{4}{3}\pi r^3 + \pi r^2 h$.
+   */
+  public getVolume(): number {
+    return Math.PI * this.radius * this.radius * ((4 / 3) * this.radius + this.length);
+  }
+
+  /**
+   * Calculates the surface-to-volume ratio $A / V$.
+   */
+  public getSurfaceToVolumeRatio(): number {
+    const vol = this.getVolume();
+    if (vol <= 0) return 0;
+    return this.getTotalSurfaceArea() / vol;
   }
 
   /** @inheritdoc */
