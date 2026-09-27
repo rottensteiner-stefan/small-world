@@ -437,6 +437,16 @@ export abstract class SmallWorld {
     // running at full speed during hit-stop, which is what sells the freeze-frame impact.
     this.camera.update(this.camera.target, 0, 0, deltaTime);
 
+    // Forward the camera's aggregated flash state into the renderer's post-processing element,
+    // mirroring the TAA jitter feedback above but in the opposite direction (camera -> renderer).
+    const flashNode = this.renderer.postProcessing.get<
+      import("../renderers/post/index.js").FlashElement
+    >(PostProcessingEffectType.FLASH);
+    if (flashNode) {
+      flashNode.intensity = this.camera.flashIntensity;
+      flashNode.color.copyFrom(this.camera.flashColor);
+    }
+
     if (this.interactionManager) {
       this.interactionManager.update();
     }

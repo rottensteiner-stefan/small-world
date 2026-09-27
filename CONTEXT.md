@@ -89,7 +89,7 @@ The stored data a Cluster reads at lookup time: an offset+count into a flat list
 _Avoid_: Light Grid (ambiguous with "Cluster grid", the whole 3D structure, rather than one cell's list)
 
 **Post-Processing (Pipeline)**:
-The fixed, hardcoded effect order (Bloom -> HBAO -> Tonemapping -> Vignette -> Grain -> Quantize) that every enabled effect runs through.
+The fixed, hardcoded effect order (Bloom -> HBAO -> Tonemapping -> Vignette -> Grain -> Quantize -> Flash) that every enabled effect runs through. Flash is deliberately last so it reads as a true full-screen overlay over everything else, not a color adjustment blended into the scene.
 _Avoid_: treating `PostProcessingEffectsConfig`'s object shape as an ordered list — enabling effects doesn't reorder them; the sequence itself is not configurable.
 
 **Scene Graph**:
