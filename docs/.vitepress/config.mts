@@ -122,7 +122,6 @@ export default defineConfig({
             { text: "AAA-Rendering-Techniken", link: "/research/aaa-engine-techniques" },
             { text: "Öl- & Pfützen-Shader-Techniken", link: "/research/oil-puddle-shader-technique" },
             { text: "Showcase-Feature-Audit", link: "/research/showcase-feature-audit" },
-            { text: "Thermo-Nuclear Review (2026-09-18)", link: "/research/codebase-review-2026-09-18-thermo-nuclear" },
             { text: "Plan 0: Level-Deskriptoren (2026-09-18)", link: "/research/plan-0-level-descriptors-2026-09-18" },
           ],
         },

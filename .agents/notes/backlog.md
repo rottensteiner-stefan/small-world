@@ -129,6 +129,13 @@ erzeugen.
   StateMachineBehavior, CameraStrategyType.FIXED, CCD, OBB — alle weiterhin 0 Treffer in `apps/`);
   `HbaoElement` (#27/29/32) und `Line` (#6) inzwischen geschlossen; historische Feature-Matrix
   bleibt als Referenz-Anhang erhalten. `docs/research/index.md`-Eintrag entsprechend aktualisiert.
+  → **Update selbes Datum zum obigen Eintrag (`codebase-review-2026-09-18-thermo-nuclear.md`,
+  „bewusst NICHT gelöscht"):** Die Angaben im Backlog sind überholt — die Datei wurde im
+  Verlauf des 2026-09-27 doch entfernt (paralleler Workstream): ihre einzigen beiden offenen
+  Punkte (MakerApp-Modularisierung, MAJ-10) sind an diesem Tag umgesetzt worden
+  (`MaterialStudio.ts`/`MakerApp.ts` modularisiert), wodurch das Review-File ohne offene Inhalte
+  war. VitePress-Sidebar-Link in `docs/.vitepress/config.mts` entsprechend entfernt
+  (Konsistenz-Nachtrag in derselben Session).
 
 ---
 
