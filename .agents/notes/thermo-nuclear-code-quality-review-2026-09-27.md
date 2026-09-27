@@ -92,6 +92,7 @@
 ### 3.5 ✅ [CHECK] Fehlende Hardware-VAOs auf WebGL2
 * **Dateien:** `Mesh.bind` (`renderers/Mesh.ts#L122-L183`), Aufruf `WebGL2Renderer.ts#L1406-L1413`
 * **Status:** ✅ **Erledigt (v0.86.0)** — Native WebGL2-VAOs implementiert: `WebGLProgramCache` reserviert Attribut-Locations 0-5 (sowie Instancing 6-9/10) vor dem Linken via `bindAttribLocation`; `Mesh` baut pro Geometrie ein `vao` (`Mesh.bindVAO`), das alle Vertex-Attribut-Pointer in einem Aufruf wiederherstellt. Standard- und Shadow-Pfade des `WebGL2Renderer` binden jetzt das VAO (Fallback auf `Mesh.bind` für WebGL1/instanzlose Kontexte); der Instancing-Pfad isoliert sich explizit auf das Default-VAO (`bindVertexArray(null)`), um die gecachten VAOs nicht zu verunreinigen. 6-8 Treiberaufrufe → 1 Bind; `Mesh.bind` bleibt für WebGL1 + Instancing erhalten.
+* **Browser-Smoke-Test (Dev-Server, WebGL2, v0.86.0):** Instancing+Schatten (Showcase 16): 120 FPS, 0 Relinks, 0 GL-Fehler; PBR-glTF+Schatten (Showcase 13): 120 FPS, 0 Relinks, VAO-Pfad aktiv (480 VAO-Binds/Frame); Wireframe+LINE_LIST (Showcase 2): 120 FPS, 0 Relinks. Skinning (Joints/Weights) wird von keinem Showcase live abgedeckt — der VAO-Zweig deaktiviert fehlende Locations 4/5 identisch zum bisherigen `bind()`-Verhalten.
 
 ### 3.6 ✅ [CHECK] Innere Schleifen-Allokationen (Joints & SAT)
 * **Dateien:** `BallSocketJoint.ts#L83-L87`, `HingeJoint.ts#L267-L271`, `Collision.ts#L1100-L1105` & `L1190-L1195`
@@ -130,6 +131,14 @@
 
 ### 4.7 ✅ [NEU][ADR] ADR 0008: Update-Notiz zu `scene.lastFrustumVisibleObjects`
 * **Status:** ✅ **Erledigt** — `docs/adr/0008-hzb-occlusion-culling-webgpu-only.md` aktualisiert: dokumentiert nun explizit die Nutzung der szenengebundenen Byproduct-Liste `scene.lastFrustumVisibleObjects` zur Vermeidung redundanter Szenentraversierungen.
+
+### 4.8 ✅ [NEU][PERF-HOTPATH, P1] WebGL2-Shader-Churn-Stottern durch Shadow-Acquire-Refcount
+
+* **Befund (Browser-Smoke-Test, v0.86.0):** Showcase 16 ruckelte auf WebGL2 (14,5 FPS), WebGL1 war flüssig. Messung: **24 Shader-Compiles + 12 Links + 12 Deletes pro Frame, dauerhaft** — ein permanenter Neucompilierungs-Sturm.
+* **Root-Cause:** `WebGL2Renderer._renderShadowScene()` (Z. 725 ff.) akquirierte das `DEPTH`-Programm **pro Objekt** über `acquireProgram`. Der Single-Slot `_lastKnownProgramKey` (WeakMap, ein Key pro Objekt) kollidierte damit pro Frame: Shadow-Pass setzt den Key des Casters auf `DEPTH`, der Standard-Pass setzt ihn auf den Material-Key → `acquireProgram` teilt den jeweils anderen Key frei; ist das Objekt der letzte Halter, wird das **geteilte Programm gelöscht und im nächsten Frame neu kompiliert** (nur 3 eindeutige Programme — depth/IBL/env —, aber 360 Links = 360 Deletes in 2 s). WebGL1 akquiriert kein DEPTH-Programm (Z. 981 nur Standard) → deshalb nur WebGL2 betroffen.
+* **Fix (WebGL2Renderer):** Shadow-Pass akquiriert `DEPTH` nicht mehr pro Objekt. Das `DEPTH`-Programm ist Renderer-Infrastruktur (feste Cascade/Spot-Varianten, via `getProgram` Z. 624/661 resident) statt Objekt-Resource; sein Refcount bleibt 0 und es wird nie mehr mid-frame evakuiert (Freigabe erst in `dispose()`). Die Semantik von `WebGLProgramCache` ist unverändert (`ProgramRefCounting.test.ts` weiter grün); der `_lastKnownProgramKey` eines Casters bleibt stabil auf dem Material-Key.
+* **Messung nach Fix:** **0 Links, 0 Compiles, 0 Deletes** im 2-s- bis 5-s-Fenster, **120 FPS** (Showcase 16 und 13, headless). Effekt ~ **8× FPS-Gewinn**.
+* **Einordnung:** Vorbestehender Bug (per A/B-Basis-Code verifiziert: identisches 12-Links/Frame-Muster). Kein Bezug zu VAO/`bindAttribLocation`. Verbleibendes, separates Umgebungsrauschen (headless SwiftShader, 16 Textur-Units): vorbestehende `INVALID_OPERATION`-Warnungen im Shadow-Bind-Pfad (`MAX_TEXTURE_IMAGE_UNITS`-Fallback), ebenfalls auf Basis-Code messbar (10046 vs. 9157 Fehler/8-10 s — mein Fix reduziert sie).
 
 ---
 
@@ -170,6 +179,7 @@ Die im Erstbericht skizzierte Judo-Roadmap bleibt richtig und wird bestätigt, m
 | **P3** | `[PERF-HOTPATH]` | `SpatialQueries` | Rest-Allokation `new BoundingSphere` je `sphereCast` → `_scratchSweepSphere` (4.2). | ✅ **v0.86.0** |
 | **P3** | `[PERF-HOTPATH]` | `Object3D` | `lookAt`/`getWorldPosition` Default-Argumente → geteilte Scratch-Konstanten (3.7). | ✅ **v0.86.0** |
 | **P3** | `[ROBUSTNESS]` | `Scene` | `add`/`remove` invalidieren den Render-List-Cache (`markRenderListDirty`) gegen Stale-Lists bei Out-of-Loop-Mutationen (3.3). | ✅ **v0.86.0** |
+| **P1** | `[PERF-HOTPATH][NEU]` | `WebGL2Renderer._renderShadowScene` | Entfall der per-Objekt-`DEPTH`-Akquise (Refcount-Flip-Flop → Shader-Churn-Stottern, 4.8). | ✅ **v0.86.0** |
 | **P2** | `[SHADER-MATH-BUG]` | WGSL SDF | `opRepeat`-Modulo-Ersatz via `floor` (2.6). | ✅ **v0.85.0** |
 | **P2** | `[MATH-BUG]` | `Matrix4.lookAt` | Dynamische Wahl der am wenigsten ausgerichteten Achse statt `z.x += ε` (1.3). | ✅ **v0.84.1** |
 | **P2** | `[PERF][NEU]` | `EulerIntegrator` | Interpolation in Scratch-Pose statt Live-Zustand; Matrix-Konsistenz (4.3). | ✅ **v0.84.1** |

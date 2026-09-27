@@ -722,10 +722,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       for (const o of objects) {
         if (!o.castShadow || !o.geometry) continue;
 
-        this._programCache.acquireProgram(
-          o,
-          this._programCache.programCacheKey(MaterialType.DEPTH, false, []),
-        );
+        // NOTE: This pass deliberately does NOT acquireProgram() the DEPTH program per object.
+        // The DEPTH program is renderer-infrastructure (fixed cascade/spot variants, already
+        // compiled via getProgram above), not a per-object resource. Acquiring it here would
+        // overwrite each caster's `_lastKnownProgramKey` with the DEPTH key, forcing the
+        // standard pass to release-and-reacquire the object's real material key every frame --
+        // and when the object is the last holder of that material program, the shared program
+        // is DELETED and RECOMPILED each frame (the "shader churn" stutter). Leaves the DEPTH
+        // program resident across the session like any other infrastructure resource.
         this._textures.acquireTextures(o, manifest.textures);
 
         this._scratchModelMatrix.set(o.worldMatrix.data);
