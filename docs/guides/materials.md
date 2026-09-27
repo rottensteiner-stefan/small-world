@@ -1,60 +1,60 @@
-# Materialien & Shader
+# Materials & Shaders
 
-Small World nutzt ein flexibles, physikalisch-basiertes Rendering-Fundament (PBR) mit starkem Fokus auf eigene Shader-Integration.
+Small World uses a flexible, physically-based rendering (PBR) foundation with a strong focus on custom shader integration.
 
-## Kern-Materialien
+## Core materials
 
-- `StandardMaterial`: Das primäre PBR-Material, basierend auf dem Cook-Torrance-BRDF-Modell. Unterstützt `color`, `metallic`, `roughness` sowie Diffuse-, Normal-, Roughness- und Emissive-Texturen.
-- `PhongMaterial` & `LambertMaterial`: Nicht-PBR-Materialien für Specular und Diffuse, für klassisches stilisiertes Rendering.
-- `BasicMaterial` & `WireframeMaterial`: Unlit-Materialien für Wireframe-Debugging, UI-Elemente oder flache stilisierte Assets.
-- `GlassMaterial` & `FrostglassMaterial`: Echtzeit-Screen-Space-Refraction (SSR) mit konfigurierbarem `ior`, `thickness` und `transmission`.
-- `SpriteMaterial`: 2D/2.5D kamera-zugewandte Billboards und Partikel.
-- `RetroScreenMaterial`: Spezialisiertes Material, das alte CRT-Monitore mit Scanlines und chromatischer Aberration nachahmt.
+- `StandardMaterial`: The primary PBR material, based on the Cook-Torrance BRDF model. Supports `color`, `metallic`, `roughness`, and diffuse, normal, roughness, and emissive textures.
+- `PhongMaterial` & `LambertMaterial`: Non-PBR specular and diffuse materials, for classic stylized rendering.
+- `BasicMaterial` & `WireframeMaterial`: Unlit materials for wireframe debugging, UI elements, or flat stylized assets.
+- `GlassMaterial` & `FrostglassMaterial`: Real-time screen-space refraction (SSR) with configurable `ior`, `thickness`, and `transmission`.
+- `SpriteMaterial`: 2D/2.5D camera-facing billboards and particles.
+- `RetroScreenMaterial`: A specialized material that mimics old CRT monitors with scanlines and chromatic aberration.
 
 ---
 
-## Fluid- & Flüssigkeitsoberflächen (ADR 0013)
+## Fluid & liquid surfaces (ADR 0013)
 
-Gemäß **ADR 0013** bietet Small World eine vereinheitlichte Architektur für Flüssigkeiten, aufgeteilt in zwei Hauptfamilien, die sich optimierte Shader-Chunks teilen (`liquid_gerstner_wave`, `liquid_worley_noise`):
+Per **ADR 0013**, Small World provides a unified architecture for liquids, split into two main families that share optimized shader chunks (`liquid_gerstner_wave`, `liquid_worley_noise`):
 
-### 1. Wave-Familie (transparent & refraktiv)
+### 1. Wave family (transparent & refractive)
 
-Angetrieben von mathematischer Gerstner-Wellenverschiebung im Vertex-Shader und Worley-Noise-Schnittschaum im Fragment-Shader.
+Driven by mathematical Gerstner wave displacement in the vertex shader and Worley-noise intersection foam in the fragment shader.
 
-- `OpenWaterMaterial`: Realistisches PBR-Ozean-/Wasser-Material mit Gerstner-Wellen, Fresnel-Reflexionen und **Opaque Depth-Fade** für weiche Uferlinien.
-- `StylizedWaterMaterial`: Leichtgewichtiges Toon-/Anime-Wasser mit scharfen Schaum-Abschnitten und Cel-Shading-Tönungsparametern.
+- `OpenWaterMaterial`: Realistic PBR ocean/water material with Gerstner waves, Fresnel reflections, and **opaque depth fade** for soft shorelines.
+- `StylizedWaterMaterial`: Lightweight toon/anime water with sharp foam bands and cel-shading tint parameters.
 
 ```typescript
-import { Object3D, Plane, OpenWaterMaterial, Color } from "small-world";
+import { Object3D, Plane, OpenWaterMaterial, Color } from "@small-world/engine";
 
 const ocean = new Object3D("Ocean");
 ocean.geometry = new Plane({
   width: 100,
   height: 100,
-  widthSegments: 128, // Hohe Tessellierung für Gerstner-Wellen-Vertex-Verschiebung
+  widthSegments: 128, // High tessellation for Gerstner wave vertex displacement
   heightSegments: 128,
 }).getGeometryData();
 
 ocean.material = new OpenWaterMaterial({
   waterColor: new Color(0.1, 0.4, 0.6),
   deepWaterColor: new Color(0.01, 0.05, 0.2),
-  waveSpeed: 1.0,
+  speed: 1.0,
   foamDistance: 0.8,
 });
 
 this.scene.add(ocean);
 ```
 
-### 2. Flow-Familie (noise-getrieben & emissive-fähig)
+### 2. Flow family (noise-driven & emissive-capable)
 
-Angetrieben von prozeduralem Noise-Fluss und Verzerrung auf der Oberfläche, unterstützt opakes Depth-Writing oder transluzentes Blending.
+Driven by procedural noise flow and distortion on the surface, supports opaque depth-writing or translucent blending.
 
-- `FluidSurfaceMaterial`: Die generalisierte Basisklasse für flow-basierte Flüssigkeiten.
-- `LavaMaterial`: Opakes geschmolzenes Gestein mit einstellbarer Emissive-Glüh-Intensität und thermischen Hitze-Farbverläufen.
-- `SlimeMaterial`: Transluzenter, triefender toxischer Schleim mit Umgebungs-Kantenglühen und hoher Oberflächenviskosität.
+- `FluidSurfaceMaterial`: The generalized base class for flow-based liquids.
+- `LavaMaterial`: Opaque molten rock with adjustable emissive glow intensity and thermal heat gradients.
+- `SlimeMaterial`: Translucent, dripping toxic slime with ambient edge glow and high surface viscosity.
 
 ```typescript
-import { Object3D, Plane, LavaMaterial, Color } from "small-world";
+import { Object3D, Plane, LavaMaterial, Color } from "@small-world/engine";
 
 const lavaPool = new Object3D("LavaPool");
 lavaPool.geometry = new Plane({ width: 30, height: 30 }).getGeometryData();

@@ -1,22 +1,22 @@
-# Ein eigenes Spiel bauen
+# Building Your Own Game
 
-Die **Small World Engine** ist darauf ausgelegt, von einfach rotierenden Würfeln bis zu voll ausgebauten Game-Loops mit eigener Logik, Controllern und UI zu skalieren.
+The **Small World Engine** is designed to scale from simple rotating cubes to fully-fledged game loops with custom logic, controllers, and UI.
 
-## Die Architektur eines Spiels
+## The Architecture of a Game
 
-Ein typisches Projekt sollte in folgende modulare Teile aufgeteilt werden:
-1. **Die App (`MyGameApp.ts`)**: Erweitert `SmallWorld`. Baut die Szene auf, lädt Texturen und initialisiert Kamera und UI.
-2. **Der Level-Builder**: Nutzt `GridLevelBuilder` oder generiert den Szenengraphen prozedural.
-3. **Der Controller (`MyController.ts`)**: Erweitert `FirstPersonController` oder `OrbitController`. Das ist die Kernlogik für Eingabe und Bewegung.
-4. **Die UI (`MyHud.ts`)**: Ein entkoppeltes HTML-Overlay, das auf `Events` lauscht.
+A typical project should be split into the following modular parts:
+1. **The app (`MyGameApp.ts`)**: Extends `SmallWorld`. Builds the scene, loads textures, and initializes the camera and UI.
+2. **The level builder**: Uses `GridLevelBuilder` or generates the scene graph procedurally.
+3. **The controller (`MyController.ts`)**: Extends `FirstPersonController` or `OrbitController`. This is the core logic for input and movement.
+4. **The UI (`MyHud.ts`)**: A decoupled HTML overlay that listens to `Events`.
 
-## 1. Einen eigenen Controller erstellen
+## 1. Creating Your Own Controller
 
-In Small World sind Controller schlicht `Behavior`-Komponenten, die an eine Kamera oder ein Objekt angehängt werden. Die eingebauten Controller können erweitert werden, um spielspezifische Logik wie Schießen, Raycasting oder Item-Aufnahme hinzuzufügen.
+In Small World, controllers are simply `Behavior` components attached to a camera or an object. The built-in controllers can be extended to add game-specific logic such as shooting, raycasting, or item pickup.
 
 ```typescript
-import { FirstPersonController, FirstPersonControllerOptions } from "small-world";
-import { Keys } from "small-world";
+import { FirstPersonController, FirstPersonControllerOptions } from "@small-world/engine";
+import { Keys } from "@small-world/engine";
 
 export class MyController extends FirstPersonController {
   constructor(options: FirstPersonControllerOptions = {}) {
@@ -24,27 +24,27 @@ export class MyController extends FirstPersonController {
   }
 
   public override update(deltaTime: number): void {
-    // 1. Die Basisklasse WASD-Bewegung und Kollision handhaben lassen
+    // 1. Let the base class handle WASD movement and collision
     super.update(deltaTime);
 
-    // 2. Eigene Logik hinzufügen (z. B. Schießen)
+    // 2. Add custom logic (e.g. shooting)
     if (this._options.input.isPressed(Keys.SPACE)) {
-       // Eine Kugel abfeuern, einen Raycast durchführen...
+       // Fire a bullet, perform a raycast...
        console.log("Pew pew!");
 
-       // Den injizierten EventBus nutzen
+       // Use the injected EventBus
        this.events.dispatchEvent("shoot-weapon", { ammoCost: 1 });
     }
   }
 }
 ```
 
-## 2. Die Anwendung starten (Bootstrapping)
+## 2. Starting the Application (Bootstrapping)
 
-Jetzt verbinden wir Controller, Szene und UI in unserer `SmallWorld`-Unterklasse.
+Now let's wire up the controller, scene, and UI in our `SmallWorld` subclass.
 
 ```typescript
-import { SmallWorld } from "small-world";
+import { SmallWorld } from "@small-world/engine";
 import { MyController } from "./MyController.js";
 import { MyHud } from "./MyHud.js";
 
@@ -52,11 +52,11 @@ export class MyGameApp extends SmallWorld {
   private _hud!: MyHud;
 
   protected async setupScene(): Promise<void> {
-    // UI initialisieren – den Event-Bus explizit übergeben
+    // Initialize the UI - pass the event bus explicitly
     this._hud = new MyGameHUD(this.events);
 
-    // Unseren eigenen Controller als Behavior an die Kamera anhängen.
-    // Das Behavior-System handhabt die Update-Schleife automatisch.
+    // Attach our own controller as a behavior on the camera.
+    // The behavior system handles the update loop automatically.
     this.camera.addBehavior(
       new MyController({
         scene: this.scene,
@@ -67,26 +67,26 @@ export class MyGameApp extends SmallWorld {
   }
 
   protected override update(deltaTime: number): void {
-    // Game-Loop-Logik...
+    // Game loop logic...
   }
 }
 
-// Das Spiel starten
+// Start the game
 const app = new MyGameApp();
 app.start();
 ```
 
-Durch diese Code-Struktur bleiben Spiellogik (Controller), Render-Logik (App/Scene) und Benutzeroberfläche (HUD) vollständig unabhängig und leicht zu testen oder zu refaktorisieren!
+This code structure keeps game logic (controller), rendering logic (app/scene), and the user interface (HUD) fully independent and easy to test or refactor!
 
-## Referenz-Implementierung: YAD (Yet Another Dungeon)
+## Reference Implementation: YAD (Yet Another Dungeon)
 
-Die Small World Engine enthält einen vollständigen, funktionsfähigen Showcase namens **YAD (Yet Another Dungeon)**. YAD ist die kanonische Referenzarchitektur für den Bau eines echten Spiels.
+The Small World Engine includes a complete, working showcase called **YAD (Yet Another Dungeon)**, located at `apps/sample-apps/yad`. YAD is the canonical reference architecture for building a real game.
 
-YAD demonstriert:
-1. **Nahtlose Werkzeug-Integration:** Wie eigenständige Werkzeuge (`Pixler`, `MapGenerator`, `Xtractor`) über `app.events` mit dem Spiel kommunizieren, ohne die Render-Schleife zu unterbrechen – kein Forge-Overlay nötig.
-2. **Prozedurale Level-Generierung:** Wie die `GridLevelBuilder`-Erweiterung eine ASCII-String-Karte in 3D-Meshes parst und dabei `EnemyBehavior`-gesteuerte Gegner-Sprites und Pickup-Sprites erzeugt.
-3. **Gegner-Logik:** Wie `EnemyBehavior` eine einfache distanzbasierte Verfolgungslogik implementiert (Erkennungsradius, Verfolgung, Angriffsnähe). YAD nutzt für Gegner nicht das `StateMachine`-/FSM-Modul der Engine — es steht aber zur Verfügung (siehe [Zustandsautomaten](./state-machines)), falls reichhaltigere Zustandslogik gebraucht wird.
-4. **Eigene Controller:** `YadController` erbt von `FirstPersonController` und fügt Schrittgeräusche hinzu (über eine injizierte `AudioSystem`-Instanz), Waffen-Schwenk-Animation (gerendert von `YadHud`) und raygecastete Angriffe.
-5. **Entkoppelte UI (`YadHud`):** Ein striktes HTML-Overlay, das auf `AppEvents` lauscht, um Lebensbalken zu aktualisieren und Chat-Nachrichten zu protokollieren.
+YAD demonstrates:
+1. **Seamless tool integration:** How standalone tools (`Pixler`, `MapGenerator`, `Xtractor`) communicate with the game via `app.events` without interrupting the render loop - no Forge overlay required.
+2. **Procedural level generation:** How the `GridLevelBuilder` extension parses an ASCII string map into 3D meshes, spawning `EnemyBehavior`-driven enemy sprites and pickup sprites.
+3. **Enemy logic:** How `EnemyBehavior` implements simple distance-based pursuit logic (detection radius, pursuit, attack range). YAD does not use the engine's `StateMachine`/FSM module for its enemies - it's available (see [State Machines](./state-machines)) if richer state logic is needed.
+4. **A custom controller:** `Controller` (in `core/behaviors/Controller.ts`) inherits from `FirstPersonController` and adds footstep sounds (via an injected `AudioSystem` instance), weapon-sway animation (rendered by `Hud`), and raycasted attacks.
+5. **Decoupled UI (`Hud`, in `core/Hud.ts`):** A strict HTML overlay that listens to `AppEvents` to update health bars and log chat messages.
 
-Beim Start eines neuen Projekts wird dringend empfohlen, `apps/yad` durchzulesen, um zu verstehen, wie die Architektur skaliert!
+When starting a new project, it is strongly recommended to read through `apps/sample-apps/yad` to understand how the architecture scales!

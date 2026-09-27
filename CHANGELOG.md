@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.84.0] - 2026-09-27
+
+### "It's not what you don't know that gets you into trouble. It's what you know for sure that just ain't so." - Mark Twain
+
+- **Features:**
+  - *Real Post-Processing Camera Flash*: [`FlashEffect`](packages/engine/src/core/cameras/effects/FlashEffect.ts) now drives an actual full-screen flash overlay through a new `PostProcessingEffectType.FLASH` / [`FlashElement`](packages/engine/src/renderers/post/elements/FlashElement.ts), wired per-frame from the camera into the renderer ([`SmallWorld.ts`](packages/engine/src/core/SmallWorld.ts)) across WebGPU (`DynUniforms` extended to 11×vec4f) and both WebGL shader pipelines — previously it only produced a camera-position jolt, never an actual screen flash.
+  - *`@small-world/tools` Ecosystem Package (ADR 0024)*: Maker, MaterialStudio, Pixler, Xtractor, MapGenerator, and Forge moved out of the core engine into their own package (`packages/tools/`), reachable via `attachDevTools(app)` instead of the removed `EngineOptions.enableInspector` — a breaking change for any app that relied on that flag; 12 showcases and 1 sample app migrated to the new call.
+- **Architecture & Bugfixes:**
+  - *Camera Shake Rewrite*: [`ShakeEffect`](packages/engine/src/core/cameras/effects/ShakeEffect.ts) now shakes pitch/yaw rotation instead of position (rotating the view direction can never clip the camera through geometry, unlike a positional offset) and uses a single clamped trauma value (Eiserloh's model) via a new optional `CameraEffect.merge()` hook, instead of stacking unboundedly many independent shake instances on repeated triggers.
+  - *Camera Cancel API*: [`Camera`](packages/engine/src/core/Camera.ts) gained `removeEffect()`/`clearEffects()`; `applyEffect()`/`addEffect()` now return the resulting effect.
+- **Housekeeping & Docs:**
+  - *`docs/guides/` Fully Translated to English*: All 25 guides converted from German to English and verified line-by-line against the current codebase, fixing real staleness found along the way (wrong class names, moved file paths, a non-existent `AppEvents` construct, an invented ASCII-legend, a duplicated section number, dead anchor links, and inconsistent `"small-world"` import examples unified to the actually-working `@small-world/engine` specifier).
+  - *Research Archive Cleanup*: The `thermo-nuclear` code-quality review (`docs/research/codebase-review-2026-09-18-thermo-nuclear.md`) closed and removed — all findings resolved except a deliberately out-of-scope group of four >1000-line files, tracked in `.agents/notes/backlog.md` instead. `aaa-engine-techniques.md` and `showcase-feature-audit.md` rebuilt as maintainable wishlists of open items instead of point-in-time snapshots.
+
 ## [0.83.2] - 2026-09-27
 
 ### "Divide each difficulty into as many parts as is feasible." - René Descartes

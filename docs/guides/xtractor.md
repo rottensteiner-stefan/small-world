@@ -1,10 +1,10 @@
-# Xtractor (Bild-Zuschnitt & -Schnitte)
+# Xtractor (Image Cropping & Cutting)
 
-Sprites aus einem Referenzblatt oder Screenshot herauszuziehen bedeutet normalerweise einen Umweg über einen externen Bildeditor. **Xtractor** ist eine In-Browser-Werkbank, um ein Bild zu laden, einen Bereich davon auszuwählen und diesen Ausschnitt direkt an [Pixler](/guides/pixler) zur weiteren Pixel-Bearbeitung zu übergeben — ohne die Seite zu verlassen.
+Pulling sprites out of a reference sheet or screenshot usually means a detour through an external image editor. **Xtractor** is an in-browser workbench for loading an image, selecting a region of it, and handing that crop directly to [Pixler](/guides/pixler) for further pixel editing — without leaving the page.
 
-## Aktivieren
+## Enabling it
 
-Wie die anderen eingebauten Entwickler-Werkzeuge wird Xtractor automatisch verdrahtet, sobald ihr `attachDevTools(app)` aus `@small-world/tools` aufruft (siehe [The Forge](/guides/forge#die-forge-in-die-eigene-app-integrieren)):
+Like the other built-in dev tools, Xtractor is wired up automatically as soon as you call `attachDevTools(app)` from `@small-world/tools` (see [The Forge](/guides/forge#integrating-the-forge-into-your-own-app)):
 
 ```typescript
 import { SmallWorld } from "@small-world/engine";
@@ -15,55 +15,55 @@ attachDevTools(app);
 app.start();
 ```
 
-**Strg+Alt+G** (oder **Cmd+Alt+G**) drücken, um das Forge-Overlay zu öffnen, in dem Xtractor als "Asset Extractor"-Fenster erscheint.
+Press **Ctrl+Alt+G** (or **Cmd+Alt+G**) to open the Forge overlay, where Xtractor appears as the "Asset Extractor" window.
 
-::: tip Eigenständige Seite
-Xtractor ist außerdem unter `/tools/xtractor.html` als in sich geschlossene Seite verfügbar. Beachtet, dass es sich um eine **separate, von Hand duplizierte Kopie** des HTML/CSS/JS des Werkzeugs handelt, nicht um einen dünnen Wrapper um dieselbe Klasse — Feature-Parität zwischen beiden wird von Hand gepflegt. Die eigenständige Seite hat keinen gemeinsamen Event-Bus, kann also Ausschnitte nicht an Pixler übergeben (siehe [Einschränkungen](#einschraenkungen) unten).
+::: tip Standalone page
+Xtractor is also available as a self-contained page at `/tools/xtractor.html`. Note that this is a **separate, hand-duplicated copy** of the tool's HTML/CSS/JS, not a thin wrapper around the same class — feature parity between the two is maintained by hand. The standalone page has no shared event bus, so it cannot hand crops off to Pixler (see [Limitations](#einschraenkungen) below).
 :::
 
-::: tip Eigenes Paket seit ADR 0024
-`Xtractor` lebt in `@small-world/tools` (`packages/tools/`), einem eigenen Workspace-Paket über `@small-world/engine` — siehe [ADR 0024](/adr/0024-tools-ecosystem-package).
+::: tip Own package since ADR 0024
+`Xtractor` lives in `@small-world/tools` (`packages/tools/`), a separate workspace package layered on top of `@small-world/engine` — see [ADR 0024](/adr/0024-tools-ecosystem-package).
 :::
 
-## Ein Bild laden
+## Loading an image
 
-Drei Wege, ein Bild auf das Canvas zu bekommen, die alle im selben 1:1-Pixelmaßstab-Canvas landen (Zoom auf dem Bildschirm ist CSS-Skalierung, kein Resampling):
+Three ways to get an image onto the canvas, all of which land at the same 1:1 pixel-scale canvas (on-screen zoom is CSS scaling, not resampling):
 
-- **Hochladen** — der "Upload Image"-Button öffnet einen Dateiauswahl-Dialog.
-- **Drag & Drop** — eine Bilddatei irgendwo auf das Canvas ziehen.
-- **URL** — eine URL in das Textfeld einfügen und "Load" klicken. Cross-Origin-Bilder, die keine freizügigen CORS-Header senden, laden nicht; Xtractor zeigt eine erklärende Meldung statt die Anfrage zu proxen — das Bild herunterzuladen und lokal hochzuladen ist der verlässliche Fallback.
-- **Aus der Zwischenablage einfügen** — `Strg/Cmd+V`, während Xtractor das oberste sichtbare Forge-Fenster ist, fügt ein Bild direkt aus eurer Zwischenablage ein. Das funktioniert nur, wenn Xtractor im Forge-Overlay angedockt ist; die eigenständige Seite hat kein Paste-Handling.
+- **Upload** — the "Upload Image" button opens a file picker dialog.
+- **Drag & drop** — drag an image file anywhere onto the canvas.
+- **URL** — paste a URL into the text field and click "Load". Cross-origin images that don't send permissive CORS headers won't load; Xtractor shows an explanatory message instead of proxying the request — downloading the image and uploading it locally is the reliable fallback.
+- **Paste from clipboard** — `Ctrl/Cmd+V`, while Xtractor is the topmost visible Forge window, pastes an image directly from your clipboard. This only works when Xtractor is docked in the Forge overlay; the standalone page has no paste handling.
 
-## Einen Bereich auswählen
+## Selecting a region
 
-Zwei Auswahlwerkzeuge, umschaltbar über die Toolbar:
+Two selection tools, switchable via the toolbar:
 
-- **Rect** (Standard) — per Klick-und-Ziehen eine rechteckige Auswahl zeichnen (mindestens 10×10px).
-- **Circle** — dieselbe Klick-und-Zieh-Geste, schneidet aber auf einen elliptischen/kreisförmigen Bereich statt ein Rechteck zu.
-- **Hand** — verschiebt das Canvas, statt eine Auswahl zu zeichnen.
+- **Rect** (default) — draw a rectangular selection by click-and-drag (minimum 10×10px).
+- **Circle** — the same click-and-drag gesture, but crops to an elliptical/circular region instead of a rectangle.
+- **Hand** — pans the canvas instead of drawing a selection.
 
-Sobald eine Auswahl existiert, könnt ihr:
+Once a selection exists, you can:
 
-- Sie **ziehen**, um sie neu zu positionieren, oder die **X/Y/W/H**-Zahlenfelder für pixelgenaue Anpassung bearbeiten.
-- Mit den +/- -Buttons oder `Strg` + Mausrad **zoomen** (10 %–1000 %, zoomt um den Cursor).
-- Sie mit **Clear Selection** löschen.
+- **Drag** it to reposition, or edit the **X/Y/W/H** number fields for pixel-precise adjustment.
+- **Zoom** with the +/- buttons or `Ctrl` + mouse wheel (10%–1000%, zooms around the cursor).
+- **Clear** it with the Clear Selection button.
 
-## Einen Ausschnitt an Pixler senden
+## Sending a crop to Pixler
 
-Sobald eine Auswahl existiert, erscheint über dem Chat-Panel eine Vorschau-Pille mit einem **"An Pixler"**-Button. Ein Klick darauf sendet den Ausschnitt (als PNG-Data-URL) direkt in das angedockte [Pixler](/guides/pixler)-Fenster über den gemeinsamen Event-Bus der Engine — das ist die eine voll funktionsfähige Werkzeug-übergreifende Integration in diesem Werkzeug. Eine entsprechende Übergabe an Map Generator oder Material Studio gibt es nicht.
+Once a selection exists, a preview pill with a **"Send to Pixler"** button appears above the chat panel. Clicking it sends the crop (as a PNG data URL) directly into the docked [Pixler](/guides/pixler) window via the engine's shared event bus — this is the one fully functional cross-tool integration in this tool. There is no equivalent handoff to Map Generator or Material Studio.
 
-## Das Chat-Panel
+## The chat panel
 
-::: warning Das ist eine Attrappe, kein echter KI-Assistent
-Das Chat-Panel rechts sieht aus wie ein KI-Assistent, ist aber mit keinem Vision-Modell oder Backend verbunden. Es ist eine fest verdrahtete, regex-basierte Demo: enthält eure Nachricht (bei aktiver Auswahl) ein Schlüsselwort wie "10", "slice" oder "schneide", zerschneidet es die Auswahl in 10 vertikale Streifen fester Breite und zeigt jeden als herunterladbares PNG. Alles andere bekommt eine generische "sag mir, was ich tun soll"-Antwort. Der Quellcode hat eine explizite `@DEVELOPER_NOTE`, die dies als Platzhalter für einen echten `fetch()`-Aufruf an ein Vision-Modell-Backend markiert.
+::: warning This is a mockup, not a real AI assistant
+The chat panel on the right looks like an AI assistant, but is not connected to any vision model or backend. It's a hardcoded, regex-based demo: if your message (with an active selection) contains a keyword like "10", "slice", or "cut", it slices the selection into 10 fixed-width vertical strips and shows each as a downloadable PNG. Anything else gets a generic "tell me what to do" response. The source has an explicit `@DEVELOPER_NOTE` marking this as a placeholder for a real `fetch()` call to a vision model backend.
 :::
 
-Das ist heute der einzige Export-Pfad im Werkzeug — es gibt keinen "Ausschnitt herunterladen"- oder "In Zwischenablage kopieren"-Button für eine Auswahl allein; ihr sendet sie entweder an Pixler oder bittet den Attrappen-Chat, sie in zehn Teile zu schneiden.
+Today this is the only export path in the tool — there is no "download crop" or "copy to clipboard" button for a selection alone; you either send it to Pixler or ask the mock chat to cut it into ten pieces.
 
-## Einschränkungen {#einschraenkungen}
+## Limitations {#einschraenkungen}
 
-- **PDF-Upload funktioniert nicht.** Der Dateiauswahl-Dialog akzeptiert PDFs, aber die Auswahl einer solchen zeigt nur eine Meldung, dass PDF-Unterstützung für "Phase 2" geplant ist — es existiert noch keine PDF.js-Integration.
-- **Der Chat-Assistent ist vollständig attrappenhaft** (siehe oben) — es ist kein echtes KI-Backend angebunden.
-- **Das Zerschneiden ist fest auf 10 gleiche vertikale Streifen verdrahtet.** Es gibt keine konfigurierbare Rastergröße, keine Zeilen, keinen Atlas-/Metadaten-Export — das bleibt weit hinter einem allgemeinen Sprite-Atlas-Generator zurück.
-- **Kein Zustands-Erhalt.** Das Wiederöffnen des Forge-Fensters verliert euer geladenes Bild, die Auswahl und den Chat-Verlauf.
-- **Die eigenständige `xtractor.html`-Seite ist eine separate Kopie** des Werkzeugs ohne Event-Bus — keine Pixler-Übergabe, kein Zwischenablage-Einfügen. Jedes Feature, das der echten `Xtractor`-Klasse hinzugefügt wird, muss von Hand dorthin portiert werden, um synchron zu bleiben.
+- **PDF upload does not work.** The file picker dialog accepts PDFs, but selecting one just shows a message that PDF support is planned for "Phase 2" — no PDF.js integration exists yet.
+- **The chat assistant is entirely a mockup** (see above) — no real AI backend is wired up.
+- **Slicing is hardcoded to 10 equal vertical strips.** There is no configurable grid size, no rows, no atlas/metadata export — this falls well short of a general sprite atlas generator.
+- **No state persistence.** Reopening the Forge window loses your loaded image, selection, and chat history.
+- **The standalone `xtractor.html` page is a separate copy** of the tool with no event bus — no Pixler handoff, no clipboard paste. Any feature added to the real `Xtractor` class has to be ported there by hand to stay in sync.

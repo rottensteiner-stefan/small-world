@@ -1,43 +1,44 @@
-# Modulares Ökosystem & Domänen-Schichtung
+# Modular Ecosystem & Domain Layering
 
-Gemäß **ADR 0014** folgt Small World einer strikten 4-Schichten-Domänenarchitektur statt generischer Sammel-Ordner.
+Per **ADR 0014**, Small World follows a strict 4-tier domain architecture instead of a generic catch-all folder.
 
-## Paket-Landschaft
+## Package landscape
 
-Seit der npm-Workspaces-Restrukturierung lebt die Engine in einem einzigen Paket (`@small-world/engine`, `packages/engine/`), und optionaler, domänenspezifischer Code wird in **separate Ökosystem-Pakete** ausgelagert, die ausschließlich von `@small-world/engine` abhängen — nie umgekehrt. Dadurch bleibt der Kern schlank und Dritt-Entwickler können eigene Pakete nach demselben Muster beisteuern.
+Since the npm-workspaces restructuring, the engine lives in a single package (`@small-world/engine`, `packages/engine/`), and optional, domain-specific code is factored out into **separate ecosystem packages** that depend exclusively on `@small-world/engine` — never the other way around. This keeps the core lean and lets third-party developers contribute their own packages following the same pattern.
 
-| Paket | Verzeichnis | Zweck |
+| Package | Directory | Purpose |
 | --- | --- | --- |
-| `@small-world/gltf-extensions` | `packages/gltf-extensions/` | Datenebenen-gltF-Extensions (Draco, BasisU/KTX2) — siehe ADR 0017/0018 |
-| `@small-world/geometry-extras` | `packages/geometry-extras/` | Exotische & prozedurale Geometrien (Supershapes, Torus-Knoten, Lathe, Platonische Körper, parametrische Flächen, gefüllte Polygone, Voronoi-Zellen, Marching Cubes) außerhalb des Kern-Primitiven-Katalogs |
-| `@small-world/physics-extras` | `packages/physics-extras/` | Höherstufige Physik-Bausteine (z.B. Voronoi-Frakturen mit `ConvexHull`-Kollidern) |
-| `@small-world/tools` | `packages/tools/` | Entwicklungswerkzeuge (Maker, Material Studio, Pixler, Xtractor, Map Generator, Forge) — siehe [ADR 0024](/adr/0024-tools-ecosystem-package) |
+| `@small-world/gltf-extensions` | `packages/gltf-extensions/` | Data-level glTF extensions (Draco, BasisU/KTX2) — see ADR 0017/0018 |
+| `@small-world/geometry-extras` | `packages/geometry-extras/` | Exotic & procedural geometries (supershapes, torus knots, lathe, Platonic solids, parametric surfaces, filled polygons, Voronoi cells, marching cubes) outside the core primitive catalog |
+| `@small-world/physics-extras` | `packages/physics-extras/` | Higher-level physics building blocks (e.g. Voronoi fractures with `ConvexHull` colliders) |
+| `@small-world/vfx-extras` | `packages/vfx-extras/` | GPU-instanced particle/VFX pipeline (`ParticleSystem`, `ParticleMeshRenderer`, `AccretionDiskEmitter`, force-field affectors such as `PointAttractorAffector`/`VortexAffector`/`TurbulenceAffector`) — see [ADR 0022](/adr/0022-gpu-instanced-vfx-pipeline-and-extras-package) |
+| `@small-world/tools` | `packages/tools/` | Development tools (Maker, Material Studio, Pixler, Xtractor, Map Generator, Forge) — see [ADR 0024](/adr/0024-tools-ecosystem-package) |
 
-Jedes Extras-Paket extended zentrale öffentliche Verträge der Engine (`AbstractGeometry`, `GltfExtensionPlugin`, ...) und ist eigenständig testbar — dasselbe Erweiterungsprinzip, das ADR 0018 für die gltf-Datenebene und ADR 0021 für Geometrie/Physik festlegen.
+Each extras package extends central public engine contracts (`AbstractGeometry`, `GltfExtensionPlugin`, ...) and is independently testable — the same extension principle that ADR 0018 establishes for the glTF data level and ADR 0021 establishes for geometry/physics.
 
-## Domänenstruktur
+## Domain structure
 
-1. **Ebene 1 — Kern-Engine (`packages/engine/src/core/`, `packages/engine/src/renderers/`, `packages/engine/src/geometry/`, `packages/engine/src/math/`):**
-   Mathematik, Szenengraph, Kameras, Renderer, Passes, Shader und Kern-Primitive (inklusive `BillboardInstancer` und `ImposterBaker`).
-2. **Ebene 2 — Umgebung & Atmosphäre (`packages/engine/src/environment/`):**
-   Wetter, atmosphärische Partikelsysteme (`WeatherEmitter`), Himmelssysteme und Flüssigkeitsoberflächen.
-3. **Ebene 3 — Behaviors & Simulation (`packages/engine/src/core/behaviors/`, `packages/engine/src/behaviors/`):**
-   Controller, Sensoren, Animationsschleifen und ambientes Kreaturenleben (`RatGroomingBehavior`, `GroomingRat`).
-4. **Ebene 4 — ProcGen & Werkzeug-Erweiterungspunkt (`packages/engine/src/tools/procgen/`, `packages/engine/src/tools/forge/ForgeTool.ts`):**
-   Prozedurale Level-Generatoren (`GridLevelBuilder`) und die `ForgeTool`-Schnittstelle. Die konkreten Autoring-Werkzeuge selbst (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`) leben seit [ADR 0024](/adr/0024-tools-ecosystem-package) im eigenen Paket `@small-world/tools`, nicht mehr im Kern.
+1. **Tier 1 — Core engine (`packages/engine/src/core/`, `packages/engine/src/renderers/`, `packages/engine/src/geometry/`, `packages/engine/src/math/`):**
+   Math, scene graph, cameras, renderers, passes, shaders, and core primitives (including `BillboardInstancer` and `ImposterBaker`).
+2. **Tier 2 — Environment & atmosphere (`packages/engine/src/environment/`):**
+   Weather, atmospheric particle systems (`WeatherEmitter`), sky systems, and liquid surfaces.
+3. **Tier 3 — Behaviors & simulation (`packages/engine/src/core/behaviors/`, `packages/engine/src/behaviors/`):**
+   Controllers, sensors, animation loops, and ambient creature life (`RatGroomingBehavior`, `GroomingRat`).
+4. **Tier 4 — ProcGen & tool extension point (`packages/engine/src/tools/procgen/`, `packages/engine/src/tools/forge/ForgeTool.ts`):**
+   Procedural level generators (`GridLevelBuilder`) and the `ForgeTool` interface. The concrete authoring tools themselves (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`) have lived in their own `@small-world/tools` package since [ADR 0024](/adr/0024-tools-ecosystem-package), no longer in the core.
 
-## Beispiel: Prozedurale Raster-Generierung (`GridLevelBuilder`)
+## Example: Procedural grid generation (`GridLevelBuilder`)
 
-`GridLevelBuilder` liegt in `packages/engine/src/tools/procgen/` (exportiert über die `@small-world/engine`-Tooling-Oberfläche, ein echtes Laufzeit-Feature statt eines Entwicklungswerkzeugs) und erlaubt es, 3D-Level aus ASCII-Rastern zu definieren.
+`GridLevelBuilder` lives in `packages/engine/src/tools/procgen/` (exported through the `@small-world/engine` tooling surface, a genuine runtime feature rather than a development tool) and lets you define 3D levels from ASCII grids.
 
-### Verwendung
+### Usage
 
 ```typescript
 import { GridLevelBuilder, GridLevelConfig, Object3D } from "@small-world/engine";
 
 const builder = new GridLevelBuilder();
 
-// Die Legende definieren, die ASCII-Zeichen auf Meshes oder Logik abbildet
+// Define the legend that maps ASCII characters to meshes or logic
 const config: GridLevelConfig = {
   gridSize: 2.0,
   legend: {
@@ -45,24 +46,24 @@ const config: GridLevelConfig = {
       type: "custom",
       onBuild: (x, y, worldX, worldZ) => {
         const wall = new Object3D(`Wall_${x}_${y}`);
-        // Geometrie, Materialien hinzufügen...
+        // Add geometry, materials...
         wall.position.set(worldX, 1.0, worldZ);
-        return wall; // Zurückgegebenes Objekt wird automatisch zur Szene hinzugefügt
+        return wall; // Returned object is automatically added to the scene
       },
     },
     "P": {
       type: "custom",
       onBuild: (x, y, worldX, worldZ) => {
         this.camera.position.set(worldX, 1.0, worldZ);
-        return undefined; // Wir fügen kein Objekt hinzu, wir bewegen nur die Kamera
+        return undefined; // We add no object, we just move the camera
       },
     },
   },
 };
 
-// Die Karte als einzelnen, zeilenumbruch-getrennten String definieren
+// Define the map as a single, newline-separated string
 const myMap = ["#######", "#P    #", "#######"].join("\n");
 
-// Die Karte bauen (async — löst zur Weltposition des ersten "P"-Spawns auf, oder zur Kartenmitte)
+// Build the map (async — resolves to the world position of the first "P" spawn, or the map center)
 await builder.build(this.scene, myMap, config);
 ```

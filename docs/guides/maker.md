@@ -1,230 +1,235 @@
-# Maker (Welten- & Szeneneditor) — Profi-Anleitung & Referenz
+# Maker (World & Scene Editor) — Pro Guide & Reference
 
-**Maker** ist der eigenständige, browserbasierte 3D-Szenen- und Umgebungseditor von Small World (`/tools/maker.html`). Speziell für digitale Künstler und Power-User zugeschnitten, schließt Maker die Lücke zwischen prozeduraler Engine-Entwicklung und visueller Szenenkomposition — keine handgeschriebenen Szenen-Layout-Dateien mehr nötig, dafür ein latenzfreier, tastaturgetriebener Workflow.
+**Maker** is Small World's standalone, browser-based 3D scene and environment editor (`/tools/maker.html`). Built specifically for digital artists and power users, Maker closes the gap between procedural engine development and visual scene composition — no more hand-written scene layout files, just a low-latency, keyboard-driven workflow.
 
 ```
 +-------------------------------------------------------------------------------------------------------+
-|  Header: [Maker - Small World]   [📷1][📷2]..[📷9]   [🧲 0.50m][[][]]   [⬇ Boden]   [Speichern/Status] |
+|  Header: [Maker - Small World]   [📷1][📷2]..[📷9]   [🧲 0.50m][[][]]   [⬇ Floor]   [Save/Status]      |
 +-------------------+---------------------------------------------------------------+-------------------+
-| Hierarchie & Add  | Viewport & interaktive Werkzeuge                              | Inspector         |
-| - Szenenbaum      | - Orbit-Kamera & 9 schnelle View-Bookmarks (1-9 / Strg+1-9)   | - Transform       |
-| - Primitive       | - Immer-obenauf-Transform-Gizmo (W: Move / E: Rotate / R: Sc) |   (X/Y/Z Nudge)   |
-| - Lichter         | - Kamera-kardinales Tastatur-Nudging (Pfeile / BildAuf/-Ab)   | - Materialien(PBR)|
-| - Prefabs (Thumb) | - Dynamisches Snapping (0,1m - 2,0m / 15° / 0,25)             |   (Rough/Metal/α) |
-| - ASCII-Map-Impt  | - 2D-Auswahlrechteck & Cyan/Bernstein-Cluster-Hervorhebung    | - Behaviors       |
-|                   | - Pivot-relative Multi-Objekt-Gruppentransformationen         |   (Factory Batch) |
+| Hierarchy & Add   | Viewport & interactive tools                                  | Inspector         |
+| - Scene tree      | - Orbit camera & 9 quick view bookmarks (1-9 / Ctrl+1-9)      | - Transform       |
+| - Primitives      | - Always-on-top transform gizmo (W: Move / E: Rotate / R: Sc) |   (X/Y/Z nudge)   |
+| - Lights          | - Camera-cardinal keyboard nudging (arrows / PageUp/Down)     | - Materials (PBR) |
+| - Prefabs (thumb) | - Dynamic snapping (0.1m - 2.0m / 15° / 0.25)                 |   (Rough/Metal/α) |
+| - ASCII map import| - 2D marquee selection & cyan/amber cluster highlighting      | - Behaviors       |
+|                   | - Pivot-relative multi-object group transforms                |   (factory batch) |
 +-------------------+---------------------------------------------------------------+-------------------+
-| Footer: Autosave-Status (Alle Änderungen in scene.gltf gespeichert / 500ms Debounce)                  |
+| Footer: Autosave status (all changes saved to scene.gltf / 500ms debounce)                             |
 +-------------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 1. Power-User-Ergonomie & schnelles Tastatur-Nudging
+## 1. Power-user ergonomics & fast keyboard nudging
 
-Maker ist um eine "Hände-auf-der-Tastatur"-Philosophie herum gebaut, stark inspiriert von professionellen Digital-Art- und 3D-Modeling-Paketen (Blender, Photoshop, Unreal Engine).
+Maker is built around a "hands on the keyboard" philosophy, heavily inspired by professional digital-art and 3D-modeling packages (Blender, Photoshop, Unreal Engine).
 
-### Kamera-kardinales Richtungs-Nudging
-Das Verschieben von Objekten über die Pfeiltasten ist **kamera-perspektiven-bewusst**:
-- **XZ-Ebenen-Bodenbewegung:** Drücken von $\uparrow$, $\downarrow$, $\leftarrow$ oder $\rightarrow$ berechnet in Echtzeit die dominante kardinale Ausrichtung der Kamera im Weltraum (Nord, Ost, Süd, West).
-  - $\uparrow$ verschiebt die Auswahl immer **vom Betrachter weg** (in die Bildtiefe).
-  - $\downarrow$ verschiebt die Auswahl immer **zum Betrachter hin**.
-  - $\rightarrow$ verschiebt die Auswahl immer **visuell nach rechts**.
-  - $\leftarrow$ verschiebt die Auswahl immer **visuell nach links**.
-- **Höhenbewegung (Y-Achse):**
-  - `Shift` + $\uparrow$ oder `Bild auf`: Bewegt ausgewählte Objekte um das aktive Raster-Snap-Inkrement **nach oben (+Y)**.
-  - `Shift` + $\downarrow$ oder `Bild ab`: Bewegt ausgewählte Objekte um das aktive Raster-Snap-Inkrement **nach unten (-Y)**.
+### Camera-cardinal directional nudging
+Moving objects via the arrow keys is **camera-perspective-aware**:
+- **XZ-plane ground movement:** pressing $\uparrow$, $\downarrow$, $\leftarrow$, or $\rightarrow$ computes the camera's dominant cardinal orientation in world space in real time (North, East, South, West).
+  - $\uparrow$ always moves the selection **away from the viewer** (into image depth).
+  - $\downarrow$ always moves the selection **toward the viewer**.
+  - $\rightarrow$ always moves the selection **visually to the right**.
+  - $\leftarrow$ always moves the selection **visually to the left**.
+- **Height movement (Y axis):**
+  - `Shift` + $\uparrow$ or `Page Up`: moves selected objects by the active grid snap increment **upward (+Y)**.
+  - `Shift` + $\downarrow$ or `Page Down`: moves selected objects by the active grid snap increment **downward (-Y)**.
 
-### Modale Transformations-Hotkeys
-Die Pfeiltasten passen sich dynamisch an den aktiven Gizmo-Modus oder Tastatur-Modifikator an:
-| Modus / Modifikator | Aktion der Pfeiltasten | Schrittgröße |
+### Modal transform hotkeys
+The arrow keys adapt dynamically to the active gizmo mode or keyboard modifier:
+| Mode / modifier | Arrow key action | Step size |
 |---|---|---|
-| **Move-Modus (<kbd>W</kbd>)** (Standard) | Position verschieben (XZ / Y mit Shift) | Aktueller Raster-Snap (`0,1m` – `2,0m`) |
-| **Rotate-Modus (<kbd>E</kbd>)** oder <kbd>Alt + Pfeile</kbd> | Rotation um Yaw (Y) / Pitch (X) | Winkel-Snap ($15^\circ$ / $\pi / 12$) |
-| **Scale-Modus (<kbd>R</kbd>)** oder <kbd>Alt + Shift + Pfeile</kbd> | Objekt skalieren (Uniform / Achse) | Skalierungs-Snap ($0,25$) |
+| **Move mode (<kbd>W</kbd>)** (default) | Shift position (XZ / Y with Shift) | Current grid snap (`0.1m` – `2.0m`) |
+| **Rotate mode (<kbd>E</kbd>)** or <kbd>Alt + arrows</kbd> | Rotate yaw (Y) / pitch (X) | Angle snap ($15^\circ$ / $\pi / 12$) |
+| **Scale mode (<kbd>R</kbd>)** or <kbd>Alt + Shift + arrows</kbd> | Scale object (uniform / axis) | Scale snap ($0.25$) |
 
-### Am Boden einrasten (<kbd>Ende</kbd> / `⬇ Boden`)
-Drücken von <kbd>Ende</kbd> (oder Klick auf `⬇ Boden`) berechnet die exakte untere Weltraum-Bounding-Box-Grenze (`min.y`) für die gesamte aktuelle Auswahl (Einzelobjekt oder Multi-Selektions-Cluster) und verschiebt sie vertikal so, dass die Unterkante exakt bündig bei `Y = 0` (der Weltboden-Ebene) sitzt.
-
----
-
-## 2. Dynamisches Snapping-System & Rasterauflösungs-Stufung
-
-Snapping ist in Maker **standardmäßig aktiviert**, um sauberen, modularen Szenenaufbau ohne mikroskopische Lücken oder Fehlausrichtungen zu gewährleisten.
-
-- **Soforttoggle:** <kbd>X</kbd> drücken oder auf `🧲 Snap` klicken, um Snapping spontan ein-/auszuschalten.
-- **Schnelle Raster-Stufungs-Hotkeys:**
-  - <kbd>[</kbd> : **Feineres Raster** — stuft durch die Auflösungen abwärts (`2,0m` $\rightarrow$ `1,0m` $\rightarrow$ `0,5m` $\rightarrow$ `0,25m` $\rightarrow$ `0,1m`).
-  - <kbd>]</kbd> : **Gröberes Raster** — stuft durch die Auflösungen aufwärts (`0,1m` $\rightarrow$ `0,25m` $\rightarrow$ `0,5m` $\rightarrow$ `1,0m` $\rightarrow$ `2,0m`).
-- **Präzisions-Parameter:**
-  - **Translations-Snap:** Standard `0,5m` (einstellbar von `0,1m` bis `2,0m`).
-  - **Rotations-Snap:** Feste $15^\circ$ ($0,2618\text{ rad}$) Winkel-Quantisierung.
-  - **Skalierungs-Snap:** Feste `0,25`-Schrittmultiplikatoren.
+### Snap to floor (<kbd>End</kbd> / `⬇ Floor`)
+Pressing <kbd>End</kbd> (or clicking `⬇ Floor`) computes the exact lower world-space bounding-box bound (`min.y`) for the entire current selection (single object or multi-selection cluster) and moves it vertically so its bottom edge sits exactly flush with `Y = 0` (the world floor plane).
 
 ---
 
-## 3. Mehrfachauswahl, Auswahlrechteck & pivot-relative Cluster
+## 2. Dynamic snapping system & grid-resolution stepping
 
-Maker unterstützt vollständige Multi-Objekt-Workflows mit voller Parität zwischen Viewport- und Hierarchie-Interaktionen.
+Snapping is **enabled by default** in Maker, to ensure clean, modular scene construction without microscopic gaps or misalignments.
+
+- **Instant toggle:** press <kbd>X</kbd> or click `🧲 Snap` to toggle snapping on/off on the fly.
+- **Quick grid-stepping hotkeys:**
+  - <kbd>[</kbd>: **Finer grid** — steps down through resolutions (`2.0m` $\rightarrow$ `1.0m` $\rightarrow$ `0.5m` $\rightarrow$ `0.25m` $\rightarrow$ `0.1m`).
+  - <kbd>]</kbd>: **Coarser grid** — steps up through resolutions (`0.1m` $\rightarrow$ `0.25m` $\rightarrow$ `0.5m` $\rightarrow$ `1.0m` $\rightarrow$ `2.0m`).
+- **Precision parameters:**
+  - **Translation snap:** default `0.5m` (adjustable from `0.1m` to `2.0m`).
+  - **Rotation snap:** fixed $15^\circ$ ($0.2618\text{ rad}$) angle quantization.
+  - **Scale snap:** fixed `0.25` step multiples.
+
+---
+
+## 3. Multi-selection, marquee selection & pivot-relative clusters
+
+Maker supports full multi-object workflows with full parity between viewport and hierarchy interactions.
 
 ```
-                    [Primär: Cyan-Wireframe] (Aktiver Inspector & Pivot-Anker)
+                    [Primary: cyan wireframe] (active inspector & pivot anchor)
                               |
-                              +--- [Sekundär: Bernstein-Wireframe]
-                              +--- [Sekundär: Bernstein-Wireframe]
+                              +--- [Secondary: amber wireframe]
+                              +--- [Secondary: amber wireframe]
 ```
 
-### Auswahl-Mechanik
-- **Einzelauswahl:** Linksklick auf ein Objekt im Viewport oder Klick auf eine Zeile im Hierarchie-Panel.
-- **Additive Mehrfachauswahl:** <kbd>Shift</kbd>, <kbd>Strg</kbd> oder <kbd>Cmd</kbd> gedrückt halten und dabei Objekte im Viewport oder Zeilen im Hierarchie-Panel anklicken, um sie zur Auswahlmenge hinzuzufügen/zu entfernen.
-- **2D-Auswahlrechteck:** Klicken und Ziehen über einen leeren Bereich des Viewports zeichnet ein 2D-Auswahlrechteck (`.maker-marquee-box`). Maker projiziert alle Bounding-Volumes der Szenenobjekte über die View-Projection-Matrix der Kamera in den Bildschirmraum, um alles innerhalb des Rechtecks auszuwählen. <kbd>Shift</kbd> während des Ziehens gedrückt halten, um die aktuelle Auswahl additiv zu erweitern.
+### Selection mechanics
+- **Single selection:** left-click an object in the viewport or click a row in the hierarchy panel.
+- **Additive multi-selection:** hold <kbd>Shift</kbd>, <kbd>Ctrl</kbd>, or <kbd>Cmd</kbd> while clicking objects in the viewport or rows in the hierarchy panel to add/remove them from the selection set.
+- **2D marquee selection:** click and drag over an empty area of the viewport to draw a 2D marquee box (`.maker-marquee-box`). Maker projects all scene-object bounding volumes through the camera's view-projection matrix into screen space to select everything inside the box. Hold <kbd>Shift</kbd> while dragging to extend the current selection additively.
 
-### Primäre vs. sekundäre Objekte
-- **Primärobjekt (Cyan-Hervorhebung):** Der Hauptanker der Auswahl. Es bestimmt, was im Property-Inspector erscheint, und dient als 3D-Mittelpunkt-Pivot für Gizmo-Transformationen.
-- **Sekundärobjekte (Bernstein-Hervorhebung):** Weitere Mitglieder des Multi-Selektions-Clusters.
+### Primary vs. secondary objects
+- **Primary object (cyan highlight):** the main anchor of the selection. It determines what appears in the property inspector, and serves as the 3D center pivot for gizmo transforms.
+- **Secondary objects (amber highlight):** further members of the multi-selection cluster.
 
-### Pivot-relative Cluster-Transformationen
-Beim Rotieren oder Skalieren einer Mehrfachauswahl mit dem Gizmo werden Transformationen **relativ zum Weltraum-Pivotpunkt des Primärobjekts** durchgeführt — die räumliche Beziehung des Clusters bleibt dabei intakt, statt jedes Objekt um seine eigene lokale Achse zu drehen.
+### Pivot-relative cluster transforms
+When rotating or scaling a multi-selection with the gizmo, transforms are performed **relative to the primary object's world-space pivot point** — this keeps the cluster's spatial relationships intact, instead of rotating each object around its own local axis.
 
-### Batch-Operationen
-- **Batch-Duplizieren (<kbd>Strg+D</kbd>):** Klont alle ausgewählten Objekte, Materialeigenschaften und angehängten Behaviors tief, versetzt sie sauber in der Szene und fasst dies in einer einzigen Undo-Transaktion zusammen.
-- **Batch-Löschen (<kbd>Entf</kbd> / <kbd>Rücktaste</kbd>):** Verschiebt alle ausgewählten Objekte in einem reversiblen Schritt in den Soft-Delete-Papierkorb.
-- **Batch-Gruppierung (<kbd>Strg+G</kbd>):** Berechnet den 3D-Schwerpunkt aller ausgewählten Objekte, erstellt an diesem Schwerpunkt eine neue übergeordnete `Object3D`-Gruppe und ordnet die Kinder unter, während ihre exakten Weltmatrizen erhalten bleiben.
-- **Batch-Behaviors:** Das Hinzufügen eines Behaviors aus der Palette instanziiert und hängt automatisch frische, isolierte Behavior-Instanzen an alle ausgewählten Objekte in einer atomaren Operation.
-
----
-
-## 4. Immer-obenauf-Transform-Gizmo
-
-Das Maker-Transform-Gizmo bietet Standard-**Translation** (<kbd>W</kbd>), **Rotation** (<kbd>E</kbd>) und **Skalierung** (<kbd>R</kbd>) direkt im 3D-Viewport.
-
-- **Verdeckungssicheres Rendering:** Gerendert mit `depthTest: false` und `depthWrite: false`, sodass Transform-Handles, Rotationsringe und Skalierungsboxen auch dann vollständig sichtbar bleiben, wenn Objekte innerhalb dichter Geometrie oder hinter großen Meshes positioniert sind.
-- **Interaktive Hervorhebung:** Handles heben sich beim Hovern hervor und rasten auf aktive Ziehachsen ein.
-- **Dynamische Ausrichtung:** Bleibt an der Weltposition des primär ausgewählten Objekts verankert.
+### Batch operations
+- **Batch duplicate (<kbd>Ctrl+D</kbd>):** deep-clones all selected objects, material properties, and attached behaviors, offsets them cleanly in the scene, and wraps this in a single undo transaction.
+- **Batch delete (<kbd>Del</kbd> / <kbd>Backspace</kbd>):** moves all selected objects into the soft-delete trash bin in a reversible step.
+- **Batch grouping (<kbd>Ctrl+G</kbd>):** computes the 3D centroid of all selected objects, creates a new parent `Object3D` group at that centroid, and reparents the children under it while preserving their exact world matrices.
+- **Batch behaviors:** adding a behavior from the palette automatically instantiates and attaches fresh, isolated behavior instances to all selected objects in one atomic operation.
 
 ---
 
-## 5. 3D-Licht-Gizmos & Auswahl-Reichweitenvolumen
+## 4. Always-on-top transform gizmo
 
-Abstrakte Szenen-Emitter (`PointLight`, `DirectionalLight`, `SpotLight`, `AmbientLight`) besitzen dedizierte visuelle Marker im 3D-Viewport nach Industriestandard:
+The Maker transform gizmo provides standard **translation** (<kbd>W</kbd>), **rotation** (<kbd>E</kbd>), and **scaling** (<kbd>R</kbd>) directly in the 3D viewport.
 
-- **Pickbare visuelle Glyphen (Billboards):**
-  - 💡 **PointLight:** Leuchtender Oktaeder-Kern in der Farbe von `light.color` (oder gelb). Immer als Billboard zur Kamera ausgerichtet.
-  - ☀️ **DirectionalLight:** Sonnenscheibe mit Richtungspfeil, der den Lichtwinkel zeigt.
-  - 🔦 **SpotLight:** Mini-Emitter-Kegel entlang des Zielvektors des Spotlights.
-  - 🌐 **AmbientLight:** Wireframe-Kugel, die die Umgebungslicht-Beleuchtung des Himmels darstellt.
-- **Direktes 3D-Raycasting:** Klick auf eine Licht-Glyphe im 3D-Viewport wählt das Licht aus, hängt das Transform-Gizmo an und öffnet dessen Eigenschaften (`Color`, `Intensity`, `Distance`, `Decay`, `Angle`) im Property-Inspector.
-- **Dynamische Auswahl-Reichweitenvolumen:**
-  - Ist ein `PointLight` ausgewählt, zeichnet Maker eine Wireframe-Kugel, die dessen Abschwächungsreichweite (`distance`) zeigt.
-  - Ist ein `SpotLight` ausgewählt, rendert Maker einen Wireframe-Kegel, der dessen exakten Öffnungswinkel (`angle`) und Reichweite (`distance`) zeigt. Das Anpassen der Parameter im Inspector skaliert den visuellen Kegel in Echtzeit!
-- **Kein Export-Ballast:** Alle Licht-Hilfsobjekte leben in einem isolierten, editor-exklusiven Container und werden automatisch aus Szenen-Speicherungen und Runtime-Builds ausgeschlossen.
+- **Occlusion-proof rendering:** rendered with `depthTest: false` and `depthWrite: false`, so transform handles, rotation rings, and scale boxes stay fully visible even when objects are positioned inside dense geometry or behind large meshes.
+- **Interactive highlighting:** handles highlight on hover and snap to active drag axes.
+- **Dynamic alignment:** stays anchored to the world position of the primary selected object.
 
 ---
 
-## 6. Prefab-Pipeline & isolierte 3D-Thumbnail-Renders
+## 5. 3D light gizmos & selection range volumes
 
-Maker bietet eine vollständige, in sich geschlossene Pipeline zum Erstellen und Platzieren von Prefabs.
+Abstract scene emitters (`PointLight`, `DirectionalLight`, `SpotLight`, `AmbientLight`) have dedicated, industry-standard visual markers in the 3D viewport:
+
+- **Pickable visual glyphs (billboards):**
+  - 💡 **PointLight:** glowing octahedron core in `light.color` (or yellow). Always billboarded to face the camera.
+  - ☀️ **DirectionalLight:** sun disc with a direction arrow showing the light angle.
+  - 🔦 **SpotLight:** mini emitter cone along the spotlight's target vector.
+  - 🌐 **AmbientLight:** wireframe sphere representing the sky's ambient lighting.
+- **Direct 3D raycasting:** clicking a light glyph in the 3D viewport selects the light, attaches the transform gizmo, and opens its properties (`Color`, `Intensity`, `Distance`, `Decay`, `Angle`) in the property inspector.
+- **Dynamic selection range volumes:**
+  - When a `PointLight` is selected, Maker draws a wireframe sphere showing its falloff range (`distance`).
+  - When a `SpotLight` is selected, Maker renders a wireframe cone showing its exact cone angle (`angle`) and range (`distance`). Adjusting the parameters in the inspector scales the visual cone in real time!
+- **No export overhead:** all light helper objects live in an isolated, editor-only container and are automatically excluded from scene saves and runtime builds.
+
+---
+
+## 6. Prefab pipeline & isolated 3D thumbnail renders
+
+Maker provides a complete, self-contained pipeline for creating and placing prefabs.
 
 ```
-[Hierarchie-Auswahl] ---> [Prefab speichern] ---> 1. Objekt-Teilbaum isolieren
-                                                   2. 3/4-Kamerawinkel neu einrahmen
-                                                   3. Isoliertes Thumbnail rendern (.thumb.json)
-                                                   4. glTF-Szenengraph speichern (.gltf)
+[Hierarchy selection] ---> [Save prefab] ---> 1. Isolate object subtree
+                                              2. Reframe to 3/4 camera angle
+                                              3. Render isolated thumbnail (.thumb.json)
+                                              4. Save glTF scene graph (.gltf)
 ```
 
-1. **Prefabs erstellen:** Ein beliebiges Objekt oder eine gruppierte Hierarchie in der Szene auswählen, einen Prefab-Namen in der Prefab-Palette eingeben und auf **Auswahl speichern** klicken.
-2. **Automatisierte isolierte Thumbnail-Erzeugung:**
-   - Maker blendet vorübergehend das Transform-Gizmo, Hervorhebungs-Boxen und alle nicht zugehörigen Szenenobjekte aus, während die Szenenbeleuchtung (`AbstractLight`) erhalten bleibt.
-   - Berechnet rekursiv die Bounding-Sphere des Prefab-Teilbaums.
-   - Positioniert die Snapshot-Kamera automatisch in einer optimalen $3/4$-isometrischen Perspektive `(1, 0,75, 1)`, eng um das Objekt gerahmt.
-   - Erfasst ein Offscreen-Rendering in ein begleitendes Thumbnail (`prefabs/<name>.thumb.json`).
-   - Stellt Viewport-Kamera, Orbit-Controller-Zustand und Szenensichtbarkeit vollständig wieder her, ohne den Nutzer zu unterbrechen.
-3. **Prefab-Platzierung:** Klick auf ein beliebiges Prefab-Thumbnail oder einen Namen in der Prefab-Palette platziert eine frische Instanz direkt an der Viewport-Fokusmitte in der Szene.
+1. **Creating prefabs:** select any object or a grouped hierarchy in the scene, type a prefab name in the prefab palette, and click **Save Selection**.
+2. **Automated isolated thumbnail generation:**
+   - Maker temporarily hides the transform gizmo, highlight boxes, and all unrelated scene objects, while keeping scene lighting (`AbstractLight`) intact.
+   - Recursively computes the bounding sphere of the prefab subtree.
+   - Automatically positions the snapshot camera at an optimal $3/4$ isometric angle `(1, 0.75, 1)`, tightly framed around the object.
+   - Captures an offscreen render into an accompanying thumbnail (`prefabs/<name>.thumb.json`).
+   - Fully restores viewport camera, orbit-controller state, and scene visibility without interrupting the user.
+3. **Prefab placement:** clicking any prefab thumbnail or name in the prefab palette places a fresh instance directly at the viewport focus center in the scene.
 
 ---
 
-## 6. Kamera-Bookmarks & Viewport-Navigation
+## 7. Camera bookmarks & viewport navigation
 
-### 9 sofortige Sitzungs-Bookmarks (<kbd>1</kbd>–<kbd>9</kbd> & <kbd>Strg+1</kbd>–<kbd>9</kbd>)
-- **Ansicht abrufen:** Zifferntasten <kbd>1</kbd> bis <kbd>9</kbd> drücken (oder Toolbar-Buttons `📷1`–`📷9` klicken), um die Kamera sofort zu einem gespeicherten Blickpunkt zu animieren.
-- **Ansicht speichern:** <kbd>Strg+1</kbd> bis <kbd>Strg+9</kbd> drücken (oder **Rechtsklick** auf einen Bookmark-Button `📷1`–`📷9`), um aktuelle Kameraposition, Pitch, Yaw und Orbit-Ziel in diesem Slot zu speichern. Slots mit gespeicherten Ansichten werden mit einem aktiven Rahmen hervorgehoben.
+### 9 instant session bookmarks (<kbd>1</kbd>–<kbd>9</kbd> & <kbd>Ctrl+1</kbd>–<kbd>9</kbd>)
+- **Recall view:** press number keys <kbd>1</kbd> through <kbd>9</kbd> (or click the toolbar buttons `📷1`–`📷9`) to instantly animate the camera to a saved viewpoint.
+- **Save view:** press <kbd>Ctrl+1</kbd> through <kbd>Ctrl+9</kbd> (or **right-click** a bookmark button `📷1`–`📷9`) to save the current camera position, pitch, yaw, and orbit target into that slot. Slots with saved views are highlighted with an active border.
 
-### Navigation mit mehreren Maustasten (Orbit & Pan)
-- **Ansicht drehen (Orbit):** Rechtsklick + Ziehen, Mittelklick + Ziehen, <kbd>Alt</kbd> + Linksziehen, oder macOS <kbd>Strg</kbd> + Linksziehen.
-- **Ansicht verschieben (Pan):** <kbd>Shift</kbd> + Rechts-/Mittelziehen.
-- **Ansicht zoomen:** Mausrad oder <kbd>Strg</kbd> + Mausrad.
-- **Scroll-Zoom-Entkopplung:** Scrollen innerhalb von Hierarchie, Objekt-Palette oder Property-Inspector ist strikt isoliert (`stopPropagation()`), was unbeabsichtigtes Viewport-Zoomen beim Navigieren langer UI-Listen verhindert.
+### Multi-button mouse navigation (orbit & pan)
+- **Rotate view (orbit):** right-click + drag, middle-click + drag, <kbd>Alt</kbd> + left-drag, or macOS <kbd>Ctrl</kbd> + left-drag.
+- **Pan view:** <kbd>Shift</kbd> + right-/middle-drag.
+- **Zoom view:** mouse wheel or <kbd>Ctrl</kbd> + mouse wheel.
+- **Scroll-zoom decoupling:** scrolling inside the hierarchy, object palette, or property inspector is strictly isolated (`stopPropagation()`), preventing unintended viewport zooming while navigating long UI lists.
 
 ---
 
-## 7. ASCII-Level- & Dungeon-Map-Import
+## 8. ASCII level & dungeon map import
 
-Maker enthält einen eingebauten ASCII-Tilemap-Konverter (`MapImportPanel.ts`) für schnelles Retro-Level-Design und Dungeon-Blocking.
+Maker includes a built-in ASCII tilemap converter (`MapImportPanel.ts`) for quick retro level design and dungeon blocking, feeding `GridLevelBuilder` through Maker's own default legend (`AsciiMapLegend.ts`) — deliberately its own small palette rather than an import of the `MapGenerator` tool's internal palette, though it reuses the same characters/colors so a map painted in `MapGenerator` still looks recognizable once imported:
 
 ```
-ASCII-Quelle:             3D-Welt-Erzeugung:
-############              #  -> Modulare Wand-Prefabs (Höhe: 2m)
-#.@...T...D#              .  -> Bodenkacheln
-#..PP......#              D  -> Türdurchgangs-Prefabs / Portale
-############              T  -> Fackel / Punktlicht mit Umgebungsglühen
-                          P  -> Struktureller Säulen-Prefab
-                          @  -> Spieler-Start-Spawnpunkt
+ASCII source:              3D world generation:
+##########                 W / G -> Wall block (2m tall)
+#.P...+...E#               .     -> Floor tile (implicit, no marker)
+#..b.......#               +     -> Door marker
+##########                  P     -> Player-start marker
+                            E     -> Enemy marker
+                            b     -> Barrel marker
+                            l     -> Torch marker
+                            T     -> Lava marker
+                            ~     -> Slime marker
+                            I     -> Item marker
+                            O     -> Secret marker
 ```
 
-Euer Text-Layout in den ASCII-Import-Dialog einfügen, um sofort ein 3D-Level mit ausgerichteten modularen Wänden, Bodenkacheln, Säulen, Lichtern und Spawn-Markern zu erzeugen.
+Paste your text layout into the ASCII import dialog to instantly generate a 3D level with aligned wall blocks, floor tiles, and marker cubes for doors, enemies, items, and the player start — a fast, editable base to refine by hand afterward in Maker, not a finished level.
 
 ---
 
-## 8. Persistenz & glTF-2.0-`SW_*`-Erweiterungs-Engine
+## 9. Persistence & the glTF 2.0 `SW_*` extension engine
 
-Maker nutzt die native **File System Access API** des Browsers (`showDirectoryPicker`) für direkte lokale Arbeitsbereichs-Bindung, ohne Daten auf externe Server hochzuladen.
+Maker uses the browser's native **File System Access API** (`showDirectoryPicker`) for direct local workspace binding, without uploading data to external servers.
 
-- **Reibungslose Autosave:** Jede Bearbeitung (Transform-Änderung, Farbanpassung, Hierarchie-Umsortierung, Prefab-Erstellung) löst ein entprelltes (~500ms) Write-Through direkt nach `scene.gltf` aus.
-- **`SW_*`-glTF-Metadaten-Erweiterungen:** Nicht-standardmäßige Engine-Daten werden sauber im `extras`-/`extensions`-Vendor-Namespace von glTF 2.0 gespeichert:
-  - `SW_behaviors`: Serialisiertes Array angehängter Behaviors und ihrer konfigurierten Parameter.
-  - `SW_physics`: RigidBody-Typen, Collider-Abmessungen, Masse, Restitution und Reibung.
-  - `SW_material`: Eigene Shader-Eigenschaften, Roughness, Metallic, Emissive und Alpha-Test-Schwellenwerte.
-- **Portabilität:** Erzeugte `scene.gltf`-Dateien lassen sich direkt in Blender, Babylon.js, Three.js öffnen oder über `GltfLoader` direkt in die Small-World-Spiel-Runtime laden.
-
----
-
-## 9. Zerstörungsfreies Undo/Redo & Soft-Delete-Engine
-
-Alle Szenen-Mutationen werden auf einem atomaren `UndoStack` nachverfolgt:
-- **Undo / Redo:** <kbd>Strg+Z</kbd> zum Rückgängigmachen, <kbd>Strg+Shift+Z</kbd> (oder <kbd>Strg+Y</kbd>) zum Wiederholen.
-- **Soft-Delete-Architektur:** Das Löschen eines Objekts oder Hierarchie-Zweigs verschiebt ihn in einen szenenexternen `_trashBin`-Container, statt seine WebGL-/WebGPU-Puffer sofort freizugeben. Das garantiert eine sofortige, ruckelfreie Wiederherstellung bei Undo ohne GPU-Stottern.
+- **Frictionless autosave:** every edit (transform change, color adjustment, hierarchy reorder, prefab creation) triggers a debounced (~500ms) write-through directly to `scene.gltf`.
+- **`SW_*` glTF metadata extensions:** non-standard engine data is stored cleanly in glTF 2.0's `extensions` vendor namespace via a pluggable extension registry (see `docs/adr/0017-gltf-extension-plugin-registry.md`). Currently implemented:
+  - `SW_prefab_instance`: provenance-only record of which Maker prefab a node was instantiated from.
+  - `SW_stage_zone`: a 2.5D `StageZone`'s points and display name (see `docs/adr/0016-2-5d-stage-zones-as-a-gltf-extension.md`), giving it a scene-graph presence via `StageZoneMarker`.
+  - A node's material is written through native glTF `pbrMetallicRoughness` rather than a custom extension, since `StandardMaterial`'s fields map onto it directly. Behaviors and physics data are not currently round-tripped through the glTF file (`WorldWriter`'s scope is still Phase 0: hierarchy, transforms, one material per mesh, and position-only geometry).
+- **Portability:** the generated `scene.gltf` files can be opened directly in Blender, Babylon.js, Three.js, or loaded straight into the Small World game runtime via `GltfLoader`.
 
 ---
 
-## 10. Master-Tastaturkürzel-Kurzreferenz
+## 10. Non-destructive undo/redo & soft-delete engine
 
-| Kategorie | Shortcut | Aktion |
+All scene mutations are tracked on an atomic `UndoStack`:
+- **Undo / redo:** <kbd>Ctrl+Z</kbd> to undo, <kbd>Ctrl+Shift+Z</kbd> (or <kbd>Ctrl+Y</kbd>) to redo.
+- **Soft-delete architecture:** deleting an object or hierarchy branch moves it into a scene-external `_trashBin` container instead of immediately releasing its WebGL/WebGPU buffers. This guarantees instant, stutter-free restoration on undo without GPU hitching.
+
+---
+
+## 11. Master keyboard shortcut quick reference
+
+| Category | Shortcut | Action |
 |---|---|---|
-| **Werkzeuge & Modi** | <kbd>W</kbd> | Move-/Translations-Werkzeug |
-| | <kbd>E</kbd> | Rotations-Werkzeug |
-| | <kbd>R</kbd> | Skalierungs-Werkzeug |
-| | <kbd>X</kbd> | Snapping Ein/Aus umschalten |
-| | <kbd>[</kbd> | Raster-Snap-Schritt verringern (feiner: $0,1\text{m}$) |
-| | <kbd>]</kbd> | Raster-Snap-Schritt erhöhen (gröber: $2,0\text{m}$) |
-| **Transform & Nudge** | $\leftarrow$ $\rightarrow$ $\uparrow$ $\downarrow$ | Auswahl entlang der kamera-kardinalen XZ-Ebene verschieben |
-| | <kbd>Shift</kbd> + $\uparrow$ / $\downarrow$ oder <kbd>BildAuf</kbd> / <kbd>BildAb</kbd> | Auswahl entlang der Y-Achse (Höhe) verschieben |
-| | <kbd>Alt</kbd> + Pfeile | Auswahl um Winkel-Snap rotieren ($15^\circ$) |
-| | <kbd>Alt</kbd> + <kbd>Shift</kbd> + Pfeile | Auswahl um Skalierungs-Snap skalieren ($0,25$) |
-| | <kbd>Ende</kbd> | **Am Boden einrasten:** Auswahl bündig auf $Y = 0$-Boden ablegen |
-| **Auswahl & Graph** | <kbd>Linksklick</kbd> | Einzelobjekt auswählen |
-| | <kbd>Shift</kbd> / <kbd>Strg</kbd> / <kbd>Cmd</kbd> + Klick | Toggle-/additive Mehrfachauswahl |
-| | <kbd>Ziehen ins Leere</kbd> | 2D-Auswahlrechteck |
-| | <kbd>Strg+F</kbd> / <kbd>Cmd+F</kbd> | **Hierarchie-Filter fokussieren:** Live-Suche & Filterung von Szenenobjekten nach Name (<kbd>Enter</kbd> wählt aus, <kbd>Esc</kbd> löscht) |
-| | <kbd>F2</kbd> / Hierarchie-<kbd>Doppelklick</kbd> | **Objekt inline umbenennen:** Name in Hierarchie-Zeile bearbeiten (<kbd>Enter</kbd> übernimmt, <kbd>Esc</kbd> bricht ab) |
-| | Property-Panel <kbd>Namensfeld</kbd> / Titel-<kbd>Doppelklick</kbd> | **Direktes Umbenennen:** Objektname oben im Property-Inspector bearbeiten |
-| | <kbd>Strg+D</kbd> | Auswahl duplizieren (atomarer Batch) |
-| | <kbd>Strg+G</kbd> | Auswahl am Schwerpunkt gruppieren |
-| | <kbd>Entf</kbd> / <kbd>Rücktaste</kbd> | Auswahl löschen |
-| **Verlauf** | <kbd>Strg+Z</kbd> | Rückgängig |
-| | <kbd>Strg+Shift+Z</kbd> / <kbd>Strg+Y</kbd> | Wiederholen |
-| **Kamera-Bookmarks** | <kbd>1</kbd> – <kbd>9</kbd> | Kamera-Bookmark 1–9 abrufen |
-| | <kbd>Strg+1</kbd> – <kbd>Strg+9</kbd> / Rechtsklick-Button | Kamera-Bookmark 1–9 speichern |
-| **Viewport-Navigation** | <kbd>Rechtsklick-Ziehen</kbd> / <kbd>Mittelziehen</kbd> | Ansicht drehen (Orbit) |
-| | <kbd>Alt</kbd> + Linksziehen / macOS <kbd>Strg</kbd> + Linksziehen | Ansicht drehen (künstlerfreundlich) |
-| | <kbd>Shift</kbd> + Rechts-/Mittelziehen | Ansicht verschieben (Pan) |
-| | <kbd>Mausrad</kbd> | Rein-/Rauszoomen |
+| **Tools & modes** | <kbd>W</kbd> | Move/translation tool |
+| | <kbd>E</kbd> | Rotation tool |
+| | <kbd>R</kbd> | Scale tool |
+| | <kbd>X</kbd> | Toggle snapping on/off |
+| | <kbd>[</kbd> | Decrease grid snap step (finer: $0.1\text{m}$) |
+| | <kbd>]</kbd> | Increase grid snap step (coarser: $2.0\text{m}$) |
+| **Transform & nudge** | $\leftarrow$ $\rightarrow$ $\uparrow$ $\downarrow$ | Move selection along the camera-cardinal XZ plane |
+| | <kbd>Shift</kbd> + $\uparrow$ / $\downarrow$ or <kbd>PageUp</kbd> / <kbd>PageDown</kbd> | Move selection along the Y axis (height) |
+| | <kbd>Alt</kbd> + arrows | Rotate selection by angle snap ($15^\circ$) |
+| | <kbd>Alt</kbd> + <kbd>Shift</kbd> + arrows | Scale selection by scale snap ($0.25$) |
+| | <kbd>End</kbd> | **Snap to floor:** drop selection flush onto $Y = 0$ floor |
+| **Selection & graph** | <kbd>Left-click</kbd> | Select single object |
+| | <kbd>Shift</kbd> / <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + click | Toggle/additive multi-selection |
+| | <kbd>Drag on empty space</kbd> | 2D marquee selection |
+| | <kbd>Ctrl+F</kbd> / <kbd>Cmd+F</kbd> | **Focus hierarchy filter:** live search & filtering of scene objects by name (<kbd>Enter</kbd> selects, <kbd>Esc</kbd> clears) |
+| | <kbd>F2</kbd> / hierarchy <kbd>double-click</kbd> | **Rename object inline:** edit name in the hierarchy row (<kbd>Enter</kbd> applies, <kbd>Esc</kbd> cancels) |
+| | Property panel <kbd>name field</kbd> / title <kbd>double-click</kbd> | **Direct rename:** edit object name at the top of the property inspector |
+| | <kbd>Ctrl+D</kbd> | Duplicate selection (atomic batch) |
+| | <kbd>Ctrl+G</kbd> | Group selection at centroid |
+| | <kbd>Del</kbd> / <kbd>Backspace</kbd> | Delete selection |
+| **History** | <kbd>Ctrl+Z</kbd> | Undo |
+| | <kbd>Ctrl+Shift+Z</kbd> / <kbd>Ctrl+Y</kbd> | Redo |
+| **Camera bookmarks** | <kbd>1</kbd> – <kbd>9</kbd> | Recall camera bookmark 1–9 |
+| | <kbd>Ctrl+1</kbd> – <kbd>Ctrl+9</kbd> / right-click button | Save camera bookmark 1–9 |
+| **Viewport navigation** | <kbd>Right-drag</kbd> / <kbd>Middle-drag</kbd> | Rotate view (orbit) |
+| | <kbd>Alt</kbd> + left-drag / macOS <kbd>Ctrl</kbd> + left-drag | Rotate view (artist-friendly) |
+| | <kbd>Shift</kbd> + right-/middle-drag | Pan view |
+| | <kbd>Mouse wheel</kbd> | Zoom in/out |

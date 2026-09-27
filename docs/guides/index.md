@@ -1,46 +1,46 @@
-# Anleitungen
+# Guides
 
-Praxisnahe Tiefen-Anleitungen pro Subsystem und Werkzeug der Small World Engine. Für die dahinterliegenden Design-Entscheidungen siehe [Architekturentscheidungen (ADRs)](/adr/); für Vokabular siehe [`CONTEXT.md`](https://github.com/rottensteiner-stefan/small-world/blob/main/CONTEXT.md) im Repo-Root.
+Practical, in-depth guides for each subsystem and tool of the Small World engine. For the design decisions behind them, see [Architecture Decision Records (ADRs)](/adr/); for vocabulary, see [`CONTEXT.md`](https://github.com/rottensteiner-stefan/small-world/blob/main/CONTEXT.md) in the repo root.
 
-## Erste Schritte
+## Getting Started
 
-| Anleitung | Beschreibung |
+| Guide | Description |
 |---|---|
-| [Installation & Einrichtung](./getting-started.md) | Projekt aufsetzen, erste Szene starten. |
-| [Kommerzielle Indie-Roadmap](./commercial-indie-roadmap.md) | Strategischer Fahrplan von Prototyp bis Steam/PlayStation/Xbox-Release. |
+| [Installation & Setup](./getting-started.md) | Set up the project, launch your first scene. |
+| [Commercial Indie Roadmap](./commercial-indie-roadmap.md) | Strategic roadmap from prototype to a Steam/PlayStation/Xbox release. |
 
-## Kernkonzepte
+## Core Concepts
 
-| Anleitung | Beschreibung |
+| Guide | Description |
 |---|---|
-| [Architektur & Überblick](./architecture.md) | Gesamtarchitektur und Code-Showcases. |
-| [Materialien & Shader](./materials.md) | PBR-Material-System und Shader-Grundlagen. |
-| [Schatten](./shadows.md) | Shadow Mapping, CSM, PCSS. |
-| [Ein neues Material hinzufügen](./adding-materials.md) | Schritt-für-Schritt-Rezept für neue Materialien über alle Renderer hinweg. |
-| [Shader-Importer](./shader-importers.md) | WGSL/GLSL-Chunk-Zusammenbau. |
-| [Konfiguration & Einrichtung](./configuration.md) | `EngineOptions` und Engine-Setup. |
-| [Koordinatensystem & Kamerastrategien](./coordinate-system.md) | Rechtshändiges Koordinatensystem, Kamerastrategien. |
-| [2.5D-Szenen & Hintergründe](./2-5d-scenes.md) | Perspektiv-Abgleich, Bewegungszonen, Kamerastrategie-Abwägungen. |
-| [Gamification & Interaktionen](./interactions.md) | `InteractionManager`, Pointer-Events, Octree-Picking. |
-| [Physik & RigidBodies](./physics.md) | Kollisionserkennung, Solver, Constraints/Joints. |
-| [Audio-System](./audio.md) | 3D-Audio, Mixer, prozeduraler Synthesizer. |
-| [Zustandsautomaten (FSM)](./state-machines.md) | Zero-Allocation Finite State Machine Framework. |
-| [EventBus & Game-Loop](./eventbus.md) | Zentraler Event-Dispatch und Render-Loop. |
-| [Modulares Ökosystem & Schichtung](./extensions.md) | Abgrenzung Kern-Engine vs. Ökosystem-Pakete (siehe auch [Erweiterungen](/extensions/)). |
-| [Ein eigenes Spiel bauen](./custom-game.md) | End-to-End-Anleitung für ein neues Projekt auf Basis der Engine. |
+| [Architecture & Overview](./architecture.md) | Overall architecture and code showcases. |
+| [Materials & Shaders](./materials.md) | PBR material system and shader fundamentals. |
+| [Shadows](./shadows.md) | Shadow mapping, CSM, PCSS. |
+| [Adding a New Material](./adding-materials.md) | Step-by-step recipe for new materials across all renderers. |
+| [Shader Importers](./shader-importers.md) | WGSL/GLSL chunk assembly. |
+| [Configuration & Setup](./configuration.md) | `EngineOptions` and engine setup. |
+| [Coordinate System & Camera Strategies](./coordinate-system.md) | Right-handed coordinate system, camera strategies. |
+| [2.5D Scenes & Backgrounds](./2-5d-scenes.md) | Perspective matching, movement zones, camera strategy trade-offs. |
+| [Gamification & Interactions](./interactions.md) | `InteractionManager`, pointer events, octree picking. |
+| [Physics & Rigid Bodies](./physics.md) | Collision detection, solvers, constraints/joints. |
+| [Audio System](./audio.md) | 3D audio, mixer, procedural synthesizer. |
+| [State Machines (FSM)](./state-machines.md) | Zero-allocation finite state machine framework. |
+| [EventBus & Game Loop](./eventbus.md) | Central event dispatch and render loop. |
+| [Modular Ecosystem & Layering](./extensions.md) | Core engine vs. ecosystem package boundaries (see also [Extensions](/extensions/)). |
+| [Building Your Own Game](./custom-game.md) | End-to-end guide for a new project built on the engine. |
 
-## Werkzeuge & Editoren
+## Tools & Editors
 
-| Anleitung | Beschreibung |
+| Guide | Description |
 |---|---|
-| [Werkzeuge im Überblick](./toolchain.md) | Empfohlene externe Werkzeugkette. |
-| [Maker (3D-Welteneditor)](./maker.md) | Vollständige Profi-Anleitung & Referenz. |
-| [The Forge (Fenstermanager im Spiel)](./forge.md) | In-Game-Diagnose- und Tooling-Overlay. |
-| [Material Studio](./material-studio.md) | PBR-Map-Generator. |
-| [Pixler (Pixel-Art-Editor)](./pixler.md) | Retro-2D-Sprite-Editor. |
-| [Xtractor (Sprite-Extraktor)](./xtractor.md) | Bild-Zuschnitt & -Schnitte für Tile-/Sprite-Atlanten. |
-| [Map Generator (ASCII-Raster-Level)](./map-generator.md) | Visueller Grid-Editor für `GridLevelBuilder`-Layouts. |
+| [Tooling Overview](./toolchain.md) | Recommended external tool chain. |
+| [Maker (3D World Editor)](./maker.md) | Complete professional guide & reference. |
+| [The Forge (In-Game Window Manager)](./forge.md) | In-game diagnostics and tooling overlay. |
+| [Material Studio](./material-studio.md) | PBR map generator. |
+| [Pixler (Pixel Art Editor)](./pixler.md) | Retro 2D sprite editor. |
+| [Xtractor (Sprite Extractor)](./xtractor.md) | Image cropping & slicing for tile/sprite atlases. |
+| [Map Generator (ASCII Grid Levels)](./map-generator.md) | Visual grid editor for `GridLevelBuilder` layouts. |
 
-## Standalone-Referenzmaterial
+## Standalone Reference Material
 
-Eigenständige HTML-Erklärstücke, die aus einer der obigen Anleitungen oder einem `.agents/skills/`-Rezept heraus verlinkt werden (nicht Teil des VitePress-Seitenbaums): siehe `.agents/notes/reference/` im Repo.
+Standalone HTML explainer pieces linked to from one of the guides above or from a `.agents/skills/` recipe (not part of the VitePress page tree): see `.agents/notes/reference/` in the repo.

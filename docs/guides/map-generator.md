@@ -1,10 +1,10 @@
-# Map Generator (Raster-Level-Editor)
+# Map Generator (Grid Level Editor)
 
-**Map Generator** ist ein manueller, Kachel-für-Kachel-Rastermaler zum Bauen von ASCII-Level-Layouts, die [`GridLevelBuilder`](/guides/extensions) in echte 3D-Geometrie verwandeln kann. Trotz des Namens generiert er nichts prozedural — versteht ihn eher als tabellenkalkulationsartiges Malwerkzeug für Leveldaten, nicht als Zufalls-Dungeon-Generator.
+**Map Generator** is a manual, tile-by-tile grid painter for building ASCII level layouts that [`GridLevelBuilder`](/guides/extensions) can turn into real 3D geometry. Despite the name, it generates nothing procedurally — think of it more as a spreadsheet-like painting tool for level data, not a random dungeon generator.
 
-## Aktivieren
+## Enabling it
 
-`attachDevTools(app)` aus `@small-world/tools` aufrufen, dann öffnet sich Map Generator als eines der angedockten Forge-Fenster:
+Call `attachDevTools(app)` from `@small-world/tools`, and Map Generator opens as one of the docked Forge windows:
 
 ```typescript
 import { SmallWorld } from "@small-world/engine";
@@ -15,52 +15,52 @@ attachDevTools(app);
 app.start();
 ```
 
-**Strg+Alt+G** (oder **Cmd+Alt+G**) drücken, um das Forge-Overlay ein-/auszublenden.
+Press **Ctrl+Alt+G** (or **Cmd+Alt+G**) to show/hide the Forge overlay.
 
-::: tip Eigenständige Seite
-Map Generator ist außerdem unter `/tools/map-gen.html` als in sich geschlossene Seite verfügbar — dieselbe Klasse, nur direkt in die Seite eingebunden statt in ein Forge-Fenster. Sie lädt vorab einen kleinen Demo-Raum, statt aus `localStorage` zu lesen.
+::: tip Standalone page
+Map Generator is also available as a self-contained page at `/tools/map-gen.html` — the same class, just embedded directly in the page instead of a Forge window. It preloads a small demo room instead of reading from `localStorage`.
 :::
 
-## Eine Karte malen
+## Painting a map
 
-Das Raster startet bei 40×25 Zellen. Auf ein Farbfeld in der Palette klicken, um einen Kacheltyp auszuwählen, dann per Klick-und-Ziehen auf dem Canvas malen:
+The grid starts at 40×25 cells. Click a swatch in the palette to select a tile type, then click-and-drag on the canvas to paint:
 
-| Zeichen | Kachel | Zeichen | Kachel |
+| Character | Tile | Character | Tile |
 |---|---|---|---|
-| `W` | Wand | `I` | Item |
-| `G` | Wand 2 | `l` | Fackel |
-| `+` | Tür | `T` | Lava |
-| `O` | Geheimnis | `~` | Schleim |
-| `P` | Spieler | `.` | Leer |
-| `E` | Gegner | | |
-| `b` | Fass | | |
+| `W` | Wall | `I` | Item |
+| `G` | Wall 2 | `l` | Torch |
+| `+` | Door | `T` | Lava |
+| `O` | Secret | `~` | Slime |
+| `P` | Player | `.` | Empty |
+| `E` | Enemy | | |
+| `b` | Barrel | | |
 
-Weitere Steuerelemente:
+Further controls:
 
-- **Resize** — neue `W`/`H`-Werte setzen und auf Resize klicken; bestehender Inhalt bleibt erhalten (oben-links verankert), neuer Bereich wird mit Leer aufgefüllt.
-- **Bucket Fill (Empty)** — trotz des Namens kein Flood-Fill von einem Klickpunkt aus. Es ersetzt *jede* Leer-Zelle (`.`) im gesamten Raster durch die aktuell ausgewählte Kachel — nützlich, um vor dem Detaillieren einen Grundboden zu legen.
-- **Clear Map** — setzt jede Zelle auf Leer zurück (fragt zuerst nach Bestätigung).
-- **Export String / Import String** — führt die Karte per Textfeld als einfaches, zeilengetrenntes Zeichenraster hin und zurück, ein Zeichen pro Zelle.
+- **Resize** — set new `W`/`H` values and click Resize; existing content is preserved (anchored top-left), the new area is filled with Empty.
+- **Bucket Fill (Empty)** — despite the name, not a flood-fill from a click point. It replaces *every* Empty cell (`.`) across the entire grid with the currently selected tile — useful for laying down a base floor before detailing.
+- **Clear Map** — resets every cell to Empty (asks for confirmation first).
+- **Export String / Import String** — round-trips the map through a text field as a simple, newline-separated character grid, one character per cell.
 
-Es gibt keine Tastaturkürzel — Malen erfolgt komplett per Maus — und kein Undo/Redo.
+There are no keyboard shortcuts — painting is entirely mouse-driven — and no undo/redo.
 
-## In ein Spiel exportieren
+## Exporting into a game
 
-Auf **▶ In YAD spielen** klicken, um die aktuelle Karte in `localStorage` zu speichern (Schlüssel `yad_custom_map`) und die [YAD](/guides/custom-game)-Showcase in einem neuen Tab zu öffnen, die diesen Schlüssel beim Start liest und statt ihres gebündelten Standard-Levels verwendet. Das ist der einzige Code-Pfad, der diesen Schlüssel schreibt; Map Generator und YAD lesen ihn nur zurück.
+Click **▶ Play in YAD** to save the current map to `localStorage` (key `yad_custom_map`) and open the [YAD](/guides/custom-game) showcase in a new tab, which reads that key on startup and uses it instead of its bundled default level. This is the only code path that writes that key; Map Generator and YAD only ever read it back.
 
-::: warning Map Generators Palette und YADs Legende stimmen nicht vollständig überein
-YADs tatsächliche Level-Legende nutzt `1`/`2`/`3` für Leben-/Rüstungs-/Waffen-Items — sie liest `I` nie. Und obwohl YAD `lavaFloorChars: ["T"]` konfiguriert, hat seine Legende keinen `T`-Eintrag, sodass eine hier gemalte `T`-Kachel in YAD aktuell auf normalen Boden zurückfällt, statt als Lava zu rendern. Baut ihr Level speziell für YAD, behandelt die Palette des Editors als Ausgangspunkt, nicht als garantiertes 1:1-Mapping — schaut in YADs Legende in `apps/yad/App.ts`s `setupScene()` nach, was tatsächlich gerendert wird.
+::: warning Map Generator's palette and YAD's legend don't fully line up
+YAD's actual level legend uses `1`/`2`/`3` for health/armor/weapon items — it never reads `I`. And although YAD configures `lavaFloorChars: ["T"]`, its legend has no `T` entry, so a `T` tile painted here currently falls back to normal floor in YAD instead of rendering as lava. If you're building a level specifically for YAD, treat the editor's palette as a starting point, not a guaranteed 1:1 mapping — check YAD's legend in `apps/sample-apps/yad/App.ts`'s `setupScene()` to see what's actually rendered.
 :::
 
-## Den exportierten String selbst nutzen
+## Using the exported string yourself
 
-Das Export-Format ist bewusst generisch gehalten — es sind schlicht Zeilen von Zeichen, eines pro Rasterzelle — und wird von `GridLevelBuilder.build(scene, mapString, config)` konsumiert, den ihr mit eurem eigenen `legend: Record<char, GridLegendEntry>`-Mapping konfiguriert, das jedes Zeichen einer `"block"`-, `"floor"`-, `"sprite"`- oder `"custom"`-Kacheldefinition zuordnet. Map Generator weiß nichts über die spezifische Kachel-Semantik eures Spiels — dieses Mapping liegt vollständig bei euch, wenn ihr `GridLevelBuilder` selbst aufruft. Siehe YADs `YadLevelBuilder` für ein durchgearbeitetes Beispiel, wie man spielspezifische Bedeutung (KI-fähige Gegner, animierte Türen, wippende Item-Pickups) über den Basis-Grid-Builder legt.
+The export format is deliberately generic — it's simply lines of characters, one per grid cell — and is consumed by `GridLevelBuilder.build(scene, mapString, config)`, which you configure with your own `legend: Record<char, GridLegendEntry>` mapping that maps each character to a `"block"`, `"floor"`, `"sprite"`, or `"custom"` tile definition. Map Generator knows nothing about your game's specific tile semantics — that mapping is entirely up to you when you call `GridLevelBuilder` yourself. See YAD's `LevelBuilder` (`apps/sample-apps/yad/core/LevelBuilder.ts`) for a worked example of layering game-specific meaning (AI-capable enemies, animated doors, bobbing item pickups) on top of the base grid builder.
 
-## Einschränkungen
+## Limitations
 
-- **Keine prozedurale Generierung** — trotz des Klassennamens ein manueller Maler.
-- **"Bucket Fill" ist ein Ganz-Raster-Ersatz, kein Flood-Fill** von der angeklickten Zelle aus.
-- **Kein Undo/Redo**, keine Tastaturkürzel, keine Mehrfach-Zellen-Auswahl oder Linien-/Rechteck-Werkzeuge.
-- **Import-/Export-Asymmetrie**: Import trimmt Whitespace von *beiden* Enden jeder Zeile, während `GridLevelBuilder` nur nachgestellten Whitespace trimmt — vom Builder unterstützte "Einrückungs"-Tricks mit führenden Leerzeichen überleben einen Roundtrip über Import String nicht.
-- **Keine Größenlimits oder Validierung** bei den Resize-Eingaben — sehr große Breiten-/Höhenwerte können den Browser beim Bauen des Canvas hängen lassen.
-- Kartendaten sind in `localStorage` nicht versioniert — sobald ihr eine eigene Karte in YAD gespielt habt, bleibt sie unbegrenzt das aktive Level (überschreibt das gebündelte Level), bis sie manuell geleert wird.
+- **No procedural generation** — despite the class name, a manual painter.
+- **"Bucket Fill" is a whole-grid replace, not a flood-fill** from the clicked cell.
+- **No undo/redo**, no keyboard shortcuts, no multi-cell selection or line/rectangle tools.
+- **Import/export asymmetry**: import trims whitespace from *both* ends of each line, while `GridLevelBuilder` only trims trailing whitespace — leading-space "indentation" tricks supported by the builder don't survive a round trip through Import String.
+- **No size limits or validation** on the resize inputs — very large width/height values can hang the browser while building the canvas.
+- Map data is unversioned in `localStorage` — once you've played a custom map in YAD, it remains the active level indefinitely (overriding the bundled level) until manually cleared.

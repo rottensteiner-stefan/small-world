@@ -1,22 +1,24 @@
-# Erste Schritte
+# Getting Started
 
-Small World ist eine leichtgewichtige, hochperformante, modulare 3D-Game-Engine für das Web, gebaut mit TypeScript.
+Small World is a lightweight, high-performance, modular 3D game engine for the web, built with TypeScript.
 
 ## Installation
 
-Das Paket via NPM installieren:
+The engine is not yet published to the npm registry. Clone the repository and install dependencies locally, then import the engine package (`@small-world/engine`) from within the workspace:
 
 ```bash
-npm install small-world
+git clone https://github.com/rottensteiner-stefan/small-world.git
+cd small-world
+npm install
 ```
 
-## Grundlegende Einrichtung
+## Basic setup
 
-Die Engine nutzt einen strategiebasierten Lebenszyklus. Man leitet von `SmallWorld` ab (oder von `AbstractShowcase`, das ein paar Demo-/Debug-Annehmlichkeiten oben auf `SmallWorld` hinzufügt) und überschreibt die Lebenszyklus-Methoden `setupScene` und `update`.
+The engine uses a strategy-based lifecycle. You derive from `SmallWorld` (or from `AbstractShowcase`, which adds a few demo/debugging conveniences on top of `SmallWorld`) and override the `setupScene` and `update` lifecycle methods.
 
-### 1. Grundlegende Showcase-Implementierung
+### 1. Basic showcase implementation
 
-Eine Datei namens `app.ts` erstellen, um die Engine zu starten:
+Create a file called `app.ts` to bootstrap the engine:
 
 ```typescript
 import {
@@ -26,11 +28,11 @@ import {
   Object3D,
   RendererType,
   StandardMaterial,
-} from "small-world";
+} from "@small-world/engine";
 
 class MyFirstWorld extends AbstractShowcase {
   protected override async setupScene(): Promise<void> {
-    // 1. Einen grünen PBR-Würfel erstellen
+    // 1. Create a green PBR cube
     const cubeObj = new Object3D("RotatingCube");
     cubeObj.geometry = new Cube({ size: 1.5 }).getGeometryData();
     cubeObj.material = new StandardMaterial({
@@ -40,10 +42,10 @@ class MyFirstWorld extends AbstractShowcase {
     });
     cubeObj.position.set(0, 1.0, 0);
 
-    // 2. Zur Szene hinzufügen
+    // 2. Add it to the scene
     this.scene.add(cubeObj);
 
-    // 3. Die Kamera zurückbewegen, um die Szene zu sehen
+    // 3. Move the camera back to see the scene
     this.camera.position.set(0, 3.0, 6.0);
     this.camera.target.set(0, 1.0, 0);
   }
@@ -51,7 +53,7 @@ class MyFirstWorld extends AbstractShowcase {
   protected override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    // Das Würfel-Objekt rotieren
+    // Rotate the cube object
     const cube = this.scene.getObjectByName("RotatingCube");
     if (cube) {
       cube.rotation.y += 1.0 * deltaTime;
@@ -59,7 +61,7 @@ class MyFirstWorld extends AbstractShowcase {
   }
 }
 
-// Instanziieren und starten
+// Instantiate and start
 const app = new MyFirstWorld({
   rendererType: RendererType.BEST,
 });
@@ -69,11 +71,11 @@ app.start().then(() => {
 });
 ```
 
-### 2. SPA- & Framework-Integration (React / Vue / Angular)
+### 2. SPA & framework integration (React / Vue / Angular)
 
-Wird Small World in eine Single-Page-Application (SPA) eingebettet, aktualisiert der Browser sich bei Routenwechseln nicht automatisch. Um Speicherlecks oder mehrere gleichzeitig im Hintergrund laufende Render-Schleifen zu verhindern, muss die Engine beim Unmount der eigenen Komponente sauber zerstört werden.
+When Small World is embedded in a single-page application (SPA), the browser doesn't automatically refresh on route changes. To prevent memory leaks or multiple render loops running concurrently in the background, the engine must be cleanly destroyed when its host component unmounts.
 
-Einfach die Methode `destroy()` aufrufen. Das stoppt sofort die `requestAnimationFrame`-Schleife, entfernt alle globalen Window-Event-Listener und leert den WebGPU-/WebGL-Speicher.
+Simply call the `destroy()` method. This immediately stops the `requestAnimationFrame` loop, removes all global window event listeners, and frees WebGPU/WebGL memory.
 
 ```tsx
 import { useEffect, useRef } from "react";
@@ -93,7 +95,7 @@ export function GameComponent() {
     }
 
     return () => {
-      // Die Engine beim Unmount der React-Komponente vollständig aufräumen!
+      // Fully clean up the engine when the React component unmounts!
       if (app) {
         app.destroy();
       }
@@ -104,4 +106,4 @@ export function GameComponent() {
 }
 ```
 
-*Hinweis: Die Engine verfügt bereits von Haus aus über ein automatisches Sicherheitsnetz. Erkennt sie, dass ihr Canvas-Element von einem Framework gewaltsam aus dem DOM entfernt wurde, ohne dass `destroy()` explizit aufgerufen wurde, fängt sie das ab und zerstört sich selbst sicher!*
+*Note: The engine already has an automatic safety net built in. If it detects that its canvas element was forcibly removed from the DOM by a framework without `destroy()` being called explicitly, it catches that and safely destroys itself!*

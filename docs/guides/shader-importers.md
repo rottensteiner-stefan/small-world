@@ -1,59 +1,59 @@
-# Shader-Importer
+# Shader Importers
 
-Die Small World Engine enthält ein mächtiges `CustomShaderMaterial`-System, mit dem ihr externen Shader-Code ausführen könnt. Um das Kopieren und Einfügen von Code aus populären Shader-Plattformen zu erleichtern, stellt die Engine eingebaute **Shader-Importer** bereit.
+The Small World Engine includes a powerful `CustomShaderMaterial` system that lets you run external shader code. To make copy-pasting code from popular shader platforms easier, the engine ships built-in **shader importers**.
 
-Diese Importer übersetzen externe Shader-Syntax automatisch in die internen Formate und Layout-Strukturen der Engine.
+These importers automatically translate external shader syntax into the engine's internal formats and layout structures.
 
-## Eingebaute Importer
+## Built-In Importers
 
-Die Engine liefert drei eingebaute Importer mit:
+The engine ships with three built-in importers:
 
-1. **`ShadertoyImporter`**: Parst Shadertoy-Code (WebGL2/GLSL300), übersetzt `mainImage` und löst eingebaute Uniforms wie `iTime` und `iResolution` auf.
-2. **`GLSLSandboxImporter`**: Parst GLSLSandbox-Code, übersetzt veraltete `gl_FragColor`-Zuweisungen und mappt `time`-/`mouse`-Uniforms.
-3. **`ComputeToysImporter`**: Parst Compute.toys-Code (WGSL).
+1. **`ShadertoyImporter`**: Parses Shadertoy code (WebGL2/GLSL300), translates `mainImage`, and resolves built-in uniforms such as `iTime` and `iResolution`.
+2. **`GLSLSandboxImporter`**: Parses GLSLSandbox code, translates legacy `gl_FragColor` assignments, and maps `time`/`mouse` uniforms.
+3. **`ComputeToysImporter`**: Parses Compute.toys code (WGSL).
 
-### Die ComputeToysImporter-Heuristik
+### The ComputeToysImporter Heuristic
 
-Wichtig zu wissen: der `ComputeToysImporter` arbeitet mit einer **"Best-Effort"-Regex-Heuristik**.
+Important to know: `ComputeToysImporter` works with a **"best-effort" regex heuristic**.
 
-Compute.toys nutzt *Compute-Shader*, während `CustomShaderMaterial` von Small World in einer *Fragment-Shader*-Pipeline läuft. Um diese Lücke zu überbrücken, nutzt der eingebaute Importer reguläre Ausdrücke, um Signaturen wie `textureStore(screen, id, color)` zu finden und dynamisch in fragment-freundliche `return color;`-Anweisungen umzuwandeln.
+Compute.toys uses *compute shaders*, while Small World's `CustomShaderMaterial` runs in a *fragment shader* pipeline. To bridge this gap, the built-in importer uses regular expressions to find signatures like `textureStore(screen, id, color)` and dynamically rewrite them into fragment-friendly `return color;` statements.
 
-**Einschränkung:** Da dies eine Regex-basierte Übersetzung ist und kein vollständiger Abstract-Syntax-Tree(AST)-Parser, ist sie von Natur aus zerbrechlich. Nutzt ein WGSL-Shader komplexe verschachtelte Funktionsaufrufe, bricht `textureStore` über mehrere Zeilen um, oder stützt sich stark auf compute-spezifische Speicherfeatures, schlägt die Heuristik fehl und der Shader kompiliert nicht.
+**Limitation:** Since this is a regex-based translation rather than a full abstract syntax tree (AST) parser, it is inherently fragile. If a WGSL shader uses complex nested function calls, wraps `textureStore` across multiple lines, or relies heavily on compute-specific memory features, the heuristic fails and the shader does not compile.
 
-Einen vollständigen WGSL-AST-Transpiler zu bauen liegt außerhalb des Umfangs der Small-World-Kern-Engine. Die Architektur der Engine erlaubt es der Community aber, das einfach auszutauschen!
+Building a full WGSL AST transpiler is out of scope for the Small World core engine. However, the engine's architecture lets the community swap this out easily!
 
-## Einen eigenen Importer schreiben
+## Writing Your Own Importer
 
-Das Shader-Importer-System ist über das `ShaderImporter`-Interface vollständig entkoppelt. Der Engine ist es egal, ob ein Importer aus der Kernbibliothek oder aus eurem eigenen Projekt stammt.
+The shader importer system is fully decoupled via the `ShaderImporter` interface. The engine doesn't care whether an importer comes from the core library or from your own project.
 
-Ist der eingebaute `ComputeToysImporter` für eure Bedürfnisse zu eingeschränkt, könnt ihr problemlos euren eigenen, robusten WGSL-Parser bauen und stattdessen verwenden.
+If the built-in `ComputeToysImporter` is too limited for your needs, you can easily build your own, more robust WGSL parser and use that instead.
 
-### 1. Das Interface implementieren
+### 1. Implement the Interface
 
-Erstellt eine Klasse, die das `ShaderImporter`-Interface implementiert. Eure Klasse muss eine `parse(sourceCode: string)`-Methode bereitstellen, die ein `CustomShaderMaterialOptions`-Objekt zurückgibt.
+Create a class that implements the `ShaderImporter` interface. Your class must provide a `parse(sourceCode: string)` method that returns a `CustomShaderMaterialOptions` object.
 
 ```typescript
 import { 
   ShaderImporter, 
   CustomShaderMaterialOptions, 
   ShaderPropertyType 
-} from "small-world";
+} from "@small-world/engine";
 
 export class AdvancedWGSLParser implements ShaderImporter {
   public parse(sourceCode: string): CustomShaderMaterialOptions {
-    // 1. Eure fortgeschrittene Parsing-Logik schreiben (z.B. mit einem AST-Parser)
+    // 1. Write your advanced parsing logic (e.g. using an AST parser)
     const transpiledCode = myAdvancedAstParser(sourceCode);
     
-    // 2. Die von der Engine benötigten strukturierten Optionen zurückgeben
+    // 2. Return the structured options the engine needs
     return {
       sources: {
-        wgsl: transpiledCode, // Den transpilierten WGSL-Code bereitstellen
+        wgsl: transpiledCode, // Provide the transpiled WGSL code
       },
       layout: {
         uniforms: {
           time: { type: ShaderPropertyType.FLOAT },
           resolution: { type: ShaderPropertyType.VEC2 },
-          // Weitere Uniforms definieren, die euer transpilierter Shader braucht
+          // Define any further uniforms your transpiled shader needs
         },
         uniformLayout: ["time", "resolution"]
       },
@@ -66,21 +66,21 @@ export class AdvancedWGSLParser implements ShaderImporter {
 }
 ```
 
-### 2. In das Material injizieren
+### 2. Inject It Into the Material
 
-Da die Engine für die Importer auf Dependency Injection setzt, übergebt ihr beim Erstellen des `CustomShaderMaterial` einfach eine Instanz eures eigenen Importers direkt hinein.
+Since the engine relies on dependency injection for importers, you simply pass an instance of your own importer directly in when creating the `CustomShaderMaterial`.
 
 ```typescript
-import { CustomShaderMaterial } from "small-world";
+import { CustomShaderMaterial } from "@small-world/engine";
 import { AdvancedWGSLParser } from "./AdvancedWGSLParser";
 
-// Der rohe WGSL-Code von compute.toys oder einer anderen Quelle
+// The raw WGSL code from compute.toys or another source
 const RAW_WGSL_CODE = `...`;
 
-// Euren eigenen Parser injizieren!
+// Inject your own parser!
 const material = new CustomShaderMaterial(
   new AdvancedWGSLParser().parse(RAW_WGSL_CODE)
 );
 ```
 
-Durch diese Architektur kann die Community hochentwickelte Shader-Compiler als eigenständige Pakete entwickeln, teilen und nutzen, ohne dass Pull Requests oder Änderungen am Kern der Small World Engine nötig wären.
+This architecture lets the community develop, share, and use sophisticated shader compilers as standalone packages, without needing pull requests or changes to the Small World core engine.

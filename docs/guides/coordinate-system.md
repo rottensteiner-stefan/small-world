@@ -1,49 +1,49 @@
-# Koordinatensystem & Kameras
+# Coordinate System & Cameras
 
-Die Raumausrichtung der Engine und die Kamerastrategien zu verstehen ist entscheidend für räumliche Logik, Culling und Eingaben.
+Understanding the engine's spatial orientation and camera strategies is essential for spatial logic, culling, and input.
 
-## Rechtshändiges Koordinatensystem
+## Right-Handed Coordinate System
 
-Small World nutzt ein **rechtshändiges Koordinatensystem**:
+Small World uses a **right-handed coordinate system**:
 
-- **X-Achse (+X):** Rechts
-- **Y-Achse (+Y):** Oben
-- **Z-Achse (+Z):** Rückwärts (aus dem Bildschirm heraus zeigend)
-- **-Z-Achse (-Z):** Vorwärts / Front (in den Bildschirm hinein zeigend)
+- **X axis (+X):** Right
+- **Y axis (+Y):** Up
+- **Z axis (+Z):** Backward (pointing out of the screen)
+- **-Z axis (-Z):** Forward / front (pointing into the screen)
 
 ```
         +Y
-         ^   -Z (Vorwärts)
+         ^   -Z (Forward)
          |  /
          | /
          |/
-         +-------> +X (Rechts)
+         +-------> +X (Right)
         /
        /
-     +Z (Rückwärts)
+     +Z (Backward)
 ```
 
-## Kamerasteuerung & Blickformeln
+## Camera Control & Look Formulas
 
-Beim Schreiben eigener Blick-/Orbit-Mathematik oder relativer Bewegungssteuerungen (z. B. WASD) blickrelative Trigonometrie nutzen:
+When writing custom look/orbit math or relative movement controls (e.g. WASD), use look-relative trigonometry:
 
-- **Winkelausrichtung:** Theta ($\theta$) und Phi ($\phi$) sind relativ zum $-Z$-Vektor definiert.
-- **Richtungsvektor:**
+- **Angular orientation:** Theta ($\theta$) and Phi ($\phi$) are defined relative to the $-Z$ vector.
+- **Direction vector:**
   $$\text{dirX} = \sin(\theta) \cdot \cos(\phi)$$
   $$\text{dirY} = \sin(\phi)$$
   $$\text{dirZ} = -\cos(\theta) \cdot \cos(\phi)$$
 
-## Kamerastrategien
+## Camera Strategies
 
-Das Kamerasystem unterstützt mehrere Strategiemuster:
+The camera system supports several strategy patterns:
 
-1. **Fixed Camera:** Konstante Position und Ziel. Verwendet für isometrische Hintergründe.
-2. **Smooth Follow:** Interpoliert Position und Ziel linear zu einem Ziel-Object3D, dämpft die Fokussierung.
-3. **FPS Camera:** Volle maus-/tastaturrelative Blicksteuerung und WASD-Bewegung. Unterstützt Terrain-Höhen-Einrasten.
-4. **Isometric Camera:** Parallele orthografische Projektionen mit pixelgenauem Viewport-Einrasten.
+1. **Fixed Camera:** Constant position and target. Used for isometric backdrops.
+2. **Smooth Follow:** Linearly interpolates position and target toward a target Object3D, damping the focus.
+3. **FPS Camera:** Full mouse-/keyboard-relative look control and WASD movement. Supports terrain-height snapping.
+4. **Isometric Camera:** Parallel orthographic projections with pixel-precise viewport snapping.
 
 ```typescript
-// FPS-Strategie beim Setup einrasten
+// Lock in the FPS strategy during setup
 this.camera.setStrategy(CameraStrategyType.FPS);
 this.camera.addBehavior(
   new FPSController({
@@ -54,27 +54,27 @@ this.camera.addBehavior(
 );
 ```
 
-## Frustum-Culling
+## Frustum Culling
 
-Um die Performance zu maximieren, verwirft die Engine Geometrie außerhalb des Sichtfelds dynamisch mittels **Frustum-Culling**:
+To maximize performance, the engine dynamically discards geometry outside the field of view via **frustum culling**:
 
 ```typescript
-// Wird intern innerhalb des Renderer-Listen-Zusammenstellers aufgerufen
+// Called internally within the renderer's render-list builder
 if (frustum.intersectsVolume(object.bounds)) {
   renderList.opaque.add(object);
 }
 ```
 
-Alle Geometrien berechnen dynamisch eine achsenausgerichtete Bounding Box (AABB). Frustum-Culling lässt sich für statische Hintergrund-Overlays deaktivieren, indem `frustumCulled = false` an einem Objekt gesetzt wird (z. B. Skybox).
+All geometries dynamically compute an axis-aligned bounding box (AABB). Frustum culling can be disabled for static background overlays by setting `frustumCulled = false` on an object (e.g. a skybox).
 
-## 2.5D-Hintergründe & Textur-Ausrichtung
+## 2.5D Backgrounds & Texture Orientation
 
-Beim Erstellen von 2.5D-Mattepaintings, UI-Hintergründen oder Billboards:
+When creating 2.5D matte paintings, UI backgrounds, or billboards:
 
-1. **`Plane`-Geometrie verwenden:** Für flache Hintergründe immer `Plane({ width, height })` verwenden. `Plane` erzeugt Standard-UV-Koordinaten ($U \in [0, 1]$ von links nach rechts, $V \in [1, 0]$ von oben nach unten), ausgerichtet auf $+Z$.
-2. **WebGL-Textur-Vertikalspiegelung (`flipY`) & WebP-Format:** DOM/HTML-Bilder haben ihren Pixelursprung $(0,0)$ oben links, während WebGL-Texturkoordinaten $(0,0)$ unten links beginnen. Beim Laden von Texturen immer `{ flipY: true }` übergeben. **WebP (`.webp`)** gegenüber JPEG für 2D-Kunst bevorzugen, um dunkle Block-Artefakte zu vermeiden und Alphakanal-Transparenz für Vordergrund-Ebenen zu ermöglichen:
+1. **Use `Plane` geometry:** Always use `Plane({ width, height })` for flat backgrounds. `Plane` generates standard UV coordinates ($U \in [0, 1]$ left to right, $V \in [1, 0]$ top to bottom), facing $+Z$.
+2. **WebGL texture vertical flip (`flipY`) & WebP format:** DOM/HTML images have their pixel origin $(0,0)$ at the top left, while WebGL texture coordinates start at $(0,0)$ at the bottom left. Always pass `{ flipY: true }` when loading textures. Prefer **WebP (`.webp`)** over JPEG for 2D art, to avoid dark block artifacts and to enable alpha-channel transparency for foreground layers:
    ```typescript
    const bgTex = await Texture.fromUrl("/assets/path/image.webp", { flipY: true });
    ```
-3. **Keine Negativ-Skalierungs-Hacks:** Nie negative Skalierungsfaktoren (z. B. `scale.set(-1, -1, 1)`) auf 3D-Objekte anwenden, um Texturen zu spiegeln. Negative Skalierung kehrt die räumliche Parität um, dreht die Wickelreihenfolge um und spiegelt horizontale Koordinaten (vertauscht links und rechts).
-4. **16:9-Seitenverhältnis-Standard:** 2.5D-Hintergrundebenen und KI-generierte Mattepaintings auf ein 16:9-Verhältnis standardisieren (z. B. `Plane({ width: 16, height: 9 })`). Zentrierung bei $Y = 4.5$ richtet die untere Kante bündig mit dem Bühnenboden bei $Y = 0.0$ aus.
+3. **No negative-scale hacks:** Never apply negative scale factors (e.g. `scale.set(-1, -1, 1)`) to 3D objects to mirror textures. Negative scale reverses spatial parity, flips the winding order, and mirrors horizontal coordinates (swapping left and right).
+4. **16:9 aspect ratio standard:** Standardize 2.5D background planes and AI-generated matte paintings on a 16:9 ratio (e.g. `Plane({ width: 16, height: 9 })`). Centering at $Y = 4.5$ aligns the bottom edge flush with the stage floor at $Y = 0.0$.

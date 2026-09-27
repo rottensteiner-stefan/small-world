@@ -1,12 +1,12 @@
-# Physik, Kollisionserkennung & Constraints
+# Physics, Collision Detection & Constraints
 
-Die Small World Engine enthält eine maßgeschneiderte, hochoptimierte und deterministische 3D-Physik-Engine, die auf der **Semi-Implicit-Euler**-Integration und einem **Projected Gauss-Seidel (PGS)** Constraint-Solver basiert. Sie verwaltet Kollisionserkennung, dynamische Positionskorrektur, 3D-Trägheitsmomente, echte Coulomb-Reibung, Raycast-/Shape-Cast-Queries, Trigger-Zonen und ein modulares Joint-System — unter strikter Einhaltung der "Zero Allocation auf dem Hot Path"-Architektur.
+The Small World Engine includes a custom-built, highly optimized, and deterministic 3D physics engine based on **semi-implicit Euler** integration and a **Projected Gauss-Seidel (PGS)** constraint solver. It handles collision detection, dynamic position correction, 3D moments of inertia, real Coulomb friction, raycast/shape-cast queries, trigger zones, and a modular joint system — all under strict adherence to a "zero allocation on the hot path" architecture.
 
 ---
 
-## 1. Architektur & Simulationsschleife
+## 1. Architecture & Simulation Loop
 
-Das Physik-System ist vollständig vom Render-Loop entkoppelt. Es verwendet einen Akkumulator für feste Zeitschritte (**Fixed Timestep**), um simulationskritischen Netcode-Determinismus und mathematische Stabilität unabhängig von variierenden Bildschirm-Bildwiederholraten (z. B. 60 Hz, 144 Hz, ProMotion) zu garantieren.
+The physics system is fully decoupled from the render loop. It uses a fixed-timestep accumulator to guarantee simulation-critical netcode determinism and mathematical stability independent of varying display refresh rates (e.g. 60 Hz, 144 Hz, ProMotion).
 
 ```
                   ┌──────────────────────────────────────────────────────────┐
@@ -38,169 +38,167 @@ Das Physik-System ist vollständig vom Render-Loop entkoppelt. Es verwendet eine
                                   └───────────────────────────┘
 ```
 
-### Einbindung in die Spielschleife
+### Wiring into the game loop
 
-Physik-Stepping wird typischerweise zu Beginn der `update()`-Methode eurer `SmallWorld`-Anwendung aufgerufen:
+`SmallWorld` already owns a built-in `PhysicsSystem` instance on `this.physics`, created for you in the constructor. Pass `enablePhysics: true` (and, optionally, a `gravity` vector) in the engine config, and the base class steps it automatically every frame — you generally do not need to instantiate your own `PhysicsSystem`:
 
 ```typescript
-import { SmallWorld, Scene, PhysicsSystem } from "small-world";
+import { SmallWorld } from "@small-world/engine";
 
 export class MyGame extends SmallWorld {
-  private _physics = new PhysicsSystem(this.events);
+  public constructor() {
+    super({
+      enablePhysics: true,      // Step the built-in `this.physics` automatically every frame
+      gravity: [0, -9.81, 0],   // Initial gravity vector (default: -9.81 on Y)
+    });
+  }
 
   protected override init(): void {
-    // Globale Gravitation konfigurieren (Standard: -9.81 auf Y)
-    this._physics.gravity.set(0, -9.81, 0);
-    this._physics.fixedTimeStep = 1 / 60; // 60 Hz Physik-Tick
-    this._physics.solverIterations = 6;    // PGS-Iterationen für Stacking-Stabilität
+    this.physics.fixedTimeStep = 1 / 60; // 60 Hz physics tick
+    this.physics.solverIterations = 6;   // PGS iterations for stacking stability
   }
 
   protected override update(deltaTime: number): void {
-    // 1. Physik-Simulation mit Sub-Stepping vorantreiben
-    this._physics.step(this.scene, deltaTime);
-
-    // 2. Optionale visuelle Render-Interpolation zwischen den Ticks
-    this._physics.applyRenderInterpolation();
-
-    // 3. Spiellogik & Kamera-Updates
+    // Physics stepping and render interpolation are already handled by SmallWorld.
+    // Just add gameplay logic & camera updates here.
   }
 }
 ```
 
 ---
 
-## 2. Statische vs. Dynamische Körper (`RigidBody`)
+## 2. Static vs. Dynamic Bodies (`RigidBody`)
 
-Ein `Object3D` wird durch Zuweisen einer [`RigidBody`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/physix/RigidBody.ts)-Komponente physikalisch aktiv:
+An `Object3D` becomes physically active by assigning it a `RigidBody` (`packages/engine/src/physix/RigidBody.ts`) component:
 
 ```typescript
-import { Object3D, RigidBody, Vector3D } from "small-world";
+import { Object3D, RigidBody, Vector3D } from "@small-world/engine";
 
 const box = new Object3D("DynamicBox");
-const rb = new RigidBody(2.5); // Masse = 2.5 kg (Dynamisch)
+const rb = new RigidBody(2.5); // Mass = 2.5 kg (dynamic)
 
-// Material- & Stoßeigenschaften
-rb.restitution = 0.2;         // Elastizität / Bounciness (0.0 = Ton/Plastilin, 1.0 = Superball)
-rb.friction = 0.6;            // Coulomb-Reibungskoeffizient (0.0 = Glatteis, 1.0 = Hoher Grip)
-rb.linearDamping = 0.99;      // Atmosphärischer Luftwiderstand (1.0 = Kein Widerstand)
-rb.angularDamping = 0.98;     // Rotationswiderstand
+// Material & impact properties
+rb.restitution = 0.2;         // Elasticity / bounciness (0.0 = clay/putty, 1.0 = superball)
+rb.friction = 0.6;            // Coulomb friction coefficient (0.0 = ice, 1.0 = high grip)
+rb.linearDamping = 0.99;      // Atmospheric drag (1.0 = no drag)
+rb.angularDamping = 0.98;     // Rotational drag
 
 box.rigidBody = rb;
 scene.add(box);
 ```
 
-### Körpertypen im Überblick
+### Body types at a glance
 
-| Typ | Konstruktor / Masse | Verhalten |
+| Type | Constructor / Mass | Behavior |
 | :--- | :--- | :--- |
-| **Dynamisch** | `new RigidBody(mass > 0)` | Reagiert voll auf Schwerkraft, Kräfte, Drehmomente und Kollisionen. |
-| **Statisch (RigidBody)** | `new RigidBody(0)` | Unendlich schwer, unbeweglich. Reflektiert dynamische Körper mit 100% Gegenkraft. |
-| **Statisch (StaticCollider)** | `new StaticCollider(bounds)` | Ultra-leichtgewichtiges Hindernis außerhalb des Szenengraphen (Terrain, Architektur, Wände). |
+| **Dynamic** | `new RigidBody(mass > 0)` | Fully reacts to gravity, forces, torques, and collisions. |
+| **Static (RigidBody)** | `new RigidBody(0)` | Infinitely heavy, immovable. Reflects dynamic bodies with 100% counterforce. |
+| **Static (StaticCollider)** | `new StaticCollider(bounds)` | Ultra-lightweight obstacle outside the scene graph (terrain, architecture, walls). |
 
 ---
 
-## 3. Kollisionsdetektoren & Bounding-Volumina
+## 3. Collision Detectors & Bounding Volumes
 
-`PhysicsSystem` nutzt Bounding-Volumina zur präzisen Schnittstellen- und Impulsberechnung. Small World implementiert analytische Narrowphase-Solver für alle Kombinationen:
+`PhysicsSystem` uses bounding volumes for precise intersection and impulse calculations. Small World implements analytical narrowphase solvers for every combination:
 
 ```
                   ┌─────────────────┐       ┌─────────────────┐
                   │ BoundingSphere  │       │   BoundingBox   │
-                  │ (Radius, Mitte) │       │ (Axis-Aligned)  │
+                  │ (Radius, Center)│       │ (Axis-Aligned)  │
                   └────────┬────────┘       └────────┬────────┘
                            │                         │
-                           │   Analytischer Solver   │
-                           │   (15-Achsen SAT / GJK) │
+                           │    Analytical Solver    │
+                           │   (15-Axis SAT / GJK)   │
                            │                         │
                   ┌────────┴────────┐       ┌────────┴────────┐
                   │       OBB       │       │   ConvexHull    │
-                  │ (Oriented Box)  │       │ (Polyeder-Mesh) │
+                  │ (Oriented Box)  │       │ (Polyhedron Mesh)│
                   └─────────────────┘       └─────────────────┘
 ```
 
-### Unterstützte Detektoren
+### Supported detectors
 
 1. **`BoundingSphere`:**
-   - Schnellster aller Kollisionschecks.
-   - Vollständig rotationsinvariant; rollt perfekt auf Untergründen.
+   - The fastest of all collision checks.
+   - Fully rotation-invariant; rolls perfectly across surfaces.
    ```typescript
-   import { BoundingSphere } from "small-world";
+   import { BoundingSphere } from "@small-world/engine";
    sphereObj.bounds = new BoundingSphere(sphereObj.position, 0.5);
    ```
 
 2. **`BoundingBox` (AABB):**
-   - Achsenparalleler Quader (`min`, `max`, `center`).
-   - Ideal für statische Level-Geometrie, Plattformen und Böden.
+   - Axis-aligned box (`min`, `max`, `center`).
+   - Ideal for static level geometry, platforms, and floors.
    ```typescript
-   import { BoundingBox, Vector3D } from "small-world";
+   import { BoundingBox, Vector3D } from "@small-world/engine";
    floorObj.bounds = new BoundingBox(new Vector3D(-50, -1, -50), new Vector3D(50, 0, 50));
    ```
 
 3. **`OBB` (Oriented Bounding Box):**
-   - Rotierbare Box mit lokalen Ausrichtungsachsen und Halbachsen.
-   - Verwendet das **15-Achsen Separating Axis Theorem (SAT)** für exakte Kanten-Kanten- und Flächen-Kontakte bei beliebigen Winkeln.
+   - Rotatable box with local orientation axes and half-extents.
+   - Uses the **15-axis Separating Axis Theorem (SAT)** for exact edge-edge and face contacts at arbitrary angles.
    ```typescript
-   import { OBB } from "small-world";
-   // Wird bei obj.computeBounds() für rotierte Boxen automatisch generiert
+   import { OBB } from "@small-world/engine";
+   // Automatically generated by obj.computeBounds() for rotated boxes
    ```
 
 4. **`ConvexHull`:**
-   - Konvexe Polyederhülle aus Vertex-Listen.
-   - Ideal für prozedurale Trümmerstücke (z. B. aus `@small-world/physics-extras` Voronoi-Frakturierung).
+   - Convex polyhedral hull built from vertex lists.
+   - Ideal for procedural debris pieces (e.g. from `@small-world/physics-extras` Voronoi fracturing).
 
 ---
 
-## 4. Kollisions-Layer & Bitmasken-Filterung
+## 4. Collision Layers & Bitmask Filtering
 
-Kollisionen können hocheffizient über 32-Bit-Bitmasken auf [`Collidable`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/interfaces/Collidable.ts), [`Object3D`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/core/Object3D.ts) und [`StaticCollider`](file:///Users/srottensteiner/PhpstormProjects/small-world/packages/engine/src/physix/StaticCollider.ts) gesteuert werden:
+Collisions can be efficiently controlled via 32-bit bitmasks on `Collidable` (`packages/engine/src/interfaces/Collidable.ts`), `Object3D` (`packages/engine/src/core/Object3D.ts`), and `StaticCollider` (`packages/engine/src/physix/StaticCollider.ts`):
 
 $$ \text{canCollide}(A, B) = ((A.\text{layer} \ \& \ B.\text{mask}) \neq 0) \ \land \ ((B.\text{layer} \ \& \ A.\text{mask}) \neq 0) $$
 
-### Standard-Layer-Konvention
+### Standard layer convention
 
 ```typescript
 export const CollisionLayers = {
-  DEFAULT:    1 << 0, // 0x0001: Standard-Objekte / Welt
-  PLAYER:     1 << 1, // 0x0002: Spieler-Charakter
-  ENEMY:      1 << 2, // 0x0004: Gegner
-  PROJECTILE: 1 << 3, // 0x0008: Geschosse / Zauber
-  DEBRIS:     1 << 4, // 0x0010: Trümmer & Partikel
-  TRIGGER:    1 << 5, // 0x0020: Sensor-Zonen & Checkpoints
+  DEFAULT:    1 << 0, // 0x0001: Standard objects / world
+  PLAYER:     1 << 1, // 0x0002: Player character
+  ENEMY:      1 << 2, // 0x0004: Enemies
+  PROJECTILE: 1 << 3, // 0x0008: Projectiles / spells
+  DEBRIS:     1 << 4, // 0x0010: Debris & particles
+  TRIGGER:    1 << 5, // 0x0020: Sensor zones & checkpoints
 } as const;
 ```
 
-### Konfigurationsbeispiel
+### Configuration example
 
 ```typescript
-// Spieler kollidiert mit Welt, Gegnern und Trümmern — ignoriert eigene Geschosse
+// Player collides with world, enemies, and debris — ignores its own projectiles
 player.collisionLayer = CollisionLayers.PLAYER;
 player.collisionMask = CollisionLayers.DEFAULT | CollisionLayers.ENEMY | CollisionLayers.DEBRIS | CollisionLayers.TRIGGER;
 
-// Spieler-Projektil trifft nur Wände und Gegner
+// Player projectile only hits walls and enemies
 projectile.collisionLayer = CollisionLayers.PROJECTILE;
 projectile.collisionMask = CollisionLayers.DEFAULT | CollisionLayers.ENEMY;
 ```
 
 ---
 
-## 5. Trigger-System & Lifecycle-Events
+## 5. Trigger System & Lifecycle Events
 
-Trigger sind physische Sensor-Volumina (`isTrigger = true`), die Bewegungen registrieren, aber **keine physikalische Abstoßungskraft** auf Körper ausüben.
+Triggers are physical sensor volumes (`isTrigger = true`) that register overlaps but exert **no physical repulsion force** on bodies.
 
-Small World stellt zero-allocation Lifecycle-Events über den globalen `EventDispatcher` bereit:
+Small World provides zero-allocation lifecycle events via the global `EventDispatcher`:
 
-| Event-Name | Wann ausgelöst? | Payload-Eigenschaften |
+| Event Name | When Fired? | Payload Properties |
 | :--- | :--- | :--- |
-| `physics:trigger-enter` | Beim ersten Schnitt zweier Körper (Trigger) | `objectA`, `objectB`, `normal`, `depth` |
-| `physics:trigger-stay` | Solange Körper im Trigger verbleiben | `objectA`, `objectB`, `normal`, `depth` |
-| `physics:trigger-exit` | Im ersten Frame nach dem Verlassen | `objectA`, `objectB` |
-| `physics:collision-enter`| Beim ersten physischen Festkörperkontakt | `objectA`, `objectB`, `normal`, `depth`, `impulse` |
-| `physics:collision-stay` | Bei anhaltendem Kontakt / Rutschen | `objectA`, `objectB`, `normal`, `depth`, `impulse` |
-| `physics:collision-exit` | Nach Lösen des physischen Kontakts | `objectA`, `objectB` |
-| `physics:sleep` | Wenn Körper in Ruhezustand übergeht | `object` |
-| `physics:wakeup` | Wenn Körper durch Stoß/Kraft aufwacht | `object` |
+| `physics:trigger-enter` | On the first intersection of two bodies (trigger) | `objectA`, `objectB`, `normal`, `depth` |
+| `physics:trigger-stay` | For as long as bodies remain inside the trigger | `objectA`, `objectB`, `normal`, `depth` |
+| `physics:trigger-exit` | On the first frame after leaving | `objectA`, `objectB` |
+| `physics:collision-enter`| On the first physical solid-body contact | `objectA`, `objectB`, `normal`, `depth`, `impulse` |
+| `physics:collision-stay` | On sustained contact / sliding | `objectA`, `objectB`, `normal`, `depth`, `impulse` |
+| `physics:collision-exit` | After the physical contact resolves | `objectA`, `objectB` |
+| `physics:sleep` | When a body transitions to the resting state | `object` |
+| `physics:wakeup` | When a body wakes up from an impact/force | `object` |
 
-### Beispiel: Checkpoint & Damage-Zone
+### Example: checkpoint & damage zone
 
 ```typescript
 const lavaZone = new StaticCollider(
@@ -209,10 +207,10 @@ const lavaZone = new StaticCollider(
 lavaZone.isTrigger = true;
 scene.staticColliders.push(lavaZone);
 
-// Trigger-Event abonnieren
+// Subscribe to the trigger event
 events.addEventListener("physics:trigger-enter", (e) => {
   if (e.objectA === player || e.objectB === player) {
-    console.log("Spieler hat Lava-Zone betreten! Schaden anwenden.");
+    console.log("Player entered the lava zone! Applying damage.");
   }
 });
 ```
@@ -221,107 +219,107 @@ events.addEventListener("physics:trigger-enter", (e) => {
 
 ## 6. Physics Raycast & Query API
 
-Die Physics Query API ermöglicht schnelle Sichtlinien-Prüfungen, Treffer-Scans und räumliche Volumen-Sweeps mit integrierter Bitmasken-Filterung:
+The physics query API provides fast line-of-sight checks, hit scans, and spatial volume sweeps with built-in bitmask filtering:
 
-### 1. `physics.raycast` (Erster Treffer)
+### 1. `physics.raycast` (first hit)
 
-Führt einen Strahlentest durch und liefert den nächsten Trefferpunkt:
+Casts a ray and returns the nearest hit point:
 
 ```typescript
-import { Vector3D } from "small-world";
+import { Ray, Vector3D } from "@small-world/engine";
 
 const origin = player.position;
 const down = new Vector3D(0, -1, 0);
 
-// 2 Meter nach unten strahlen, um Untergrund zu detektieren
-const hit = physics.raycast(origin, down, 2.0, CollisionLayers.DEFAULT);
+// Cast 2 meters downward to detect the ground
+const hit = physics.raycast(new Ray(origin, down), 2.0, CollisionLayers.DEFAULT);
 
 if (hit) {
-  console.log(`Bodenkontakt bei Distanz: ${hit.distance.toFixed(2)} m`);
-  console.log(`Trefferpunkt: (${hit.point.x}, ${hit.point.y}, ${hit.point.z})`);
-  console.log(`Oberflächennormale: (${hit.normal.x}, ${hit.normal.y}, ${hit.normal.z})`);
+  console.log(`Ground contact at distance: ${hit.distance.toFixed(2)} m`);
+  console.log(`Hit point: (${hit.point.x}, ${hit.point.y}, ${hit.point.z})`);
+  console.log(`Surface normal: (${hit.normal.x}, ${hit.normal.y}, ${hit.normal.z})`);
 }
 ```
 
-### 2. `physics.raycastAll` (Alle Treffer, sortiert)
+### 2. `physics.raycastAll` (all hits, sorted)
 
-Gibt alle getroffenen Collider entlang des Strahls zurück, aufsteigend nach Distanz sortiert (ideal für durchschlagende Projektile oder Röntgen-Scans):
+Returns every collider hit along the ray, sorted ascending by distance (ideal for penetrating projectiles or X-ray scans):
 
 ```typescript
-const hits = physics.raycastAll(gunMuzzlePos, shootDirection, 100.0);
+const hits = physics.raycastAll(new Ray(gunMuzzlePos, shootDirection), 100.0);
 for (const hit of hits) {
   applyDamage(hit.object, hit.point);
 }
 ```
 
-### 3. `physics.sphereCast` (Volumen-Sweep)
+### 3. `physics.sphereCast` (volume sweep)
 
-Verschiebt eine Kugel mit gegebenem Radius entlang eines Vektors (ideal für dicke Geschosse, Charakter-Kollisionskapseln und Ausweich-Sensoren):
+Sweeps a sphere of a given radius along a vector (ideal for thick projectiles, character collision capsules, and evasion sensors):
 
 ```typescript
-// Prüfen, ob ein 0.5m breiter Charakter 3m nach vorne gehen kann
+// Check whether a 0.5m-wide character can move 3m forward
 const sweepHit = physics.sphereCast(player.position, 0.5, forwardDir, 3.0);
 if (!sweepHit) {
-  // Weg ist frei
+  // The path is clear
 }
 ```
 
 ---
 
-## 7. 3D-Trägheitstensor & Außermittige Stöße
+## 7. 3D Inertia Tensor & Off-Center Impacts
 
-Reale Körper rotieren abhängig von ihrer Massenverteilung unterschiedlich leicht um ihre Hauptträgheitsachsen ($I_{xx}, I_{yy}, I_{zz}$).
+Real bodies rotate with varying ease around their principal moments of inertia ($I_{xx}, I_{yy}, I_{zz}$), depending on their mass distribution.
 
 ```typescript
 const rb = new RigidBody(10.0); // 10 kg
 
-// Helfer zur exakten analytischen Trägheitsberechnung:
-rb.setInertiaForBox(1.0, 2.0, 0.5);      // Quader (Breite=1, Höhe=2, Tiefe=0.5)
-rb.setInertiaForSphere(1.0);             // Kugel (Radius=1)
-rb.setInertiaForCylinder(0.5, 2.0);      // Zylinder entlang Y (Radius=0.5, Höhe=2)
+// Helpers for exact analytical inertia calculation:
+rb.setInertiaForBox(1.0, 2.0, 0.5);      // Box (width=1, height=2, depth=0.5)
+rb.setInertiaForSphere(1.0);             // Sphere (radius=1)
+rb.setInertiaForCylinder(0.5, 2.0);      // Cylinder along Y (radius=0.5, height=2)
 ```
 
-### Außermittige Kräfte und Impulse
+### Off-center forces and impulses
 
-Wird ein Stoß an einem exzentrischen Punkt $\vec{p}$ mit Hebelarm $\vec{r} = \vec{p} - \vec{c}$ angewendet, berechnet Small World sowohl die lineare Beschleunigung als auch das resultierende Drehmoment $\vec{\tau} = \vec{r} \times \vec{J}$:
+When an impulse is applied at an eccentric point $\vec{p}$ with lever arm $\vec{r} = \vec{p} - \vec{c}$, Small World computes both the linear acceleration and the resulting torque $\vec{\tau} = \vec{r} \times \vec{J}$:
 
 ```typescript
-// Box an der oberen rechten Ecke nach vorne stoßen
+// Push a box forward at its upper-right corner
 const cornerPos = new Vector3D(1.0, 2.0, 0.0);
 const pushImpulse = new Vector3D(0, 0, -10.0);
 
-// Erzeugt Vorwärtsbewegung + sofortiges Rückwärtskippen (Tumbling)
+// Produces forward motion + immediate backward tumbling
 myBox.rigidBody.applyImpulseAtPoint(pushImpulse, cornerPos, myBox.position);
 ```
 
 ---
 
-## 8. Coulomb-Reibung & Stacking-Stabilität
+## 8. Coulomb Friction & Stacking Stability
 
-Small World implementiert den vollen **Coulomb-Reibungskegel**:
+Small World implements the full **Coulomb friction cone**:
 
-$$ \|\vec{J}_T\| \leq \mu \cdot J_N \quad \text{mit} \quad \mu = \sqrt{\mu_A \cdot \mu_B} $$
+$$ \|\vec{J}_T\| \leq \mu \cdot J_N \quad \text{with} \quad \mu = \sqrt{\mu_A \cdot \mu_B} $$
 
-- **Haftreibung (Static Friction):** Liegt der Tangentialimpuls innerhalb des Reibungskegels, wird die Gleitgeschwindigkeit an der Kontaktoberfläche exakt auf $0$ gebracht (z. B. ruhende Kisten auf Schrägen oder reines Abrollen von Kugeln).
-- **Gleitreibung (Dynamic Friction):** Übersteigt der Impuls die Grenze, wird die Reibungskraft auf $\mu \cdot J_N$ geklemmt, was zu kontrolliertem Rutschen führt.
+- **Static friction:** If the tangential impulse lies within the friction cone, the sliding velocity at the contact surface is driven exactly to $0$ (e.g. crates resting on a slope, or spheres rolling without slipping).
+- **Dynamic friction:** If the impulse exceeds the limit, the friction force is clamped to $\mu \cdot J_N$, resulting in controlled sliding.
 
-### Stacking & Multi-Iteration Solver
+### Stacking & multi-iteration solver
 
-Durch die Kombination aus **Symmetrischer Gauss-Seidel-Relaxation** (`solverIterations = 4..8`) und Positions-Projektion sinken aufeinandergestapelte Kisten und Schuttberge nicht mehr ein und neigen nicht zu Oszillationen.
+By combining **symmetric Gauss-Seidel relaxation** (`solverIterations = 4..8`) with position projection, stacked crates and rubble piles no longer sink and no longer tend to oscillate.
 
 ```typescript
-physics.solverIterations = 8; // Für extreme Stapel-Stabilität (z. B. 10+ Kisten)
+physics.solverIterations = 8; // For extreme stacking stability (e.g. 10+ crates)
 ```
 
 ---
 
-## 9. Constraints & Joint-System (Gelenke)
+## 9. Constraints & Joint System
 
-Gelenke koppeln zwei Körper (`bodyA` und `bodyB`) oder binden einen Körper an einen festen Weltanker (`bodyB = null`).
+Joints couple two bodies (`bodyA` and `bodyB`), or anchor a single body to a fixed world anchor (`bodyB = null`).
 
 ```
           ┌────────────────────────────────────────────────────────┐
-          │                    Joint (Basisklasse)                 │
+          │                    Joint (Base Class)                  │
           │ (bodyA, bodyB, anchorA, anchorB, breakForce, enabled)  │
           └───────────────────────────┬────────────────────────────┘
                                       │
@@ -330,50 +328,50 @@ Gelenke koppeln zwei Körper (`bodyA` und `bodyB`) oder binden einen Körper an 
         ▼                  ▼                    ▼                  ▼
 ┌───────────────┐  ┌───────────────┐    ┌───────────────┐  ┌───────────────┐
 │ DistanceJoint │  │  SpringJoint  │    │BallSocketJoint│  │  HingeJoint   │
-│ (Seil / Stab) │  │(Federdämpfer) │    │ (Kugelgelenk) │  │ (Scharnier)   │
+│ (Rope / Rod)  │  │(Spring-Damper)│    │ (Ball Joint)  │  │   (Hinge)     │
 └───────────────┘  └───────────────┘    └───────────────┘  └───────────────┘
 ```
 
-### 1. `DistanceJoint` (Feste oder begrenzte Distanz)
+### 1. `DistanceJoint` (fixed or bounded distance)
 
-Hält zwei Ankerpunkte auf exaktem Abstand (z. B. Pendel, Seile, starre Streben):
+Keeps two anchor points at an exact distance (e.g. pendulums, ropes, rigid struts):
 
 ```typescript
-import { DistanceJoint, Vector3D } from "small-world";
+import { DistanceJoint, Vector3D } from "@small-world/engine";
 
 const pendulum = new DistanceJoint({
   bodyA: bobMesh,
-  anchorA: new Vector3D(0, 0, 0),       // Zentrum des Bobs
-  anchorB: new Vector3D(0, 10, 0),      // Fester Deckenanker bei Y=10
-  distance: 10.0,                       // Exakter Seilabstand
-  breakForce: 5000.0,                   // Reißt bei extremen Kräften
+  anchorA: new Vector3D(0, 0, 0),       // Center of the bob
+  anchorB: new Vector3D(0, 10, 0),      // Fixed ceiling anchor at Y=10
+  distance: 10.0,                       // Exact rope length
+  breakForce: 5000.0,                   // Breaks under extreme forces
 });
 scene.joints.push(pendulum);
 ```
 
-### 2. `SpringJoint` (Hooke'sche Federung)
+### 2. `SpringJoint` (Hookean spring)
 
-Erzeugt gedämpfte elastische Schwingungen nach Hooke ($F = -k \cdot \Delta x - c \cdot v_{\text{rel}}$):
+Produces damped elastic oscillation following Hooke's law ($F = -k \cdot \Delta x - c \cdot v_{\text{rel}}$):
 
 ```typescript
-import { SpringJoint } from "small-world";
+import { SpringJoint } from "@small-world/engine";
 
 const suspension = new SpringJoint({
   bodyA: wheelMesh,
   bodyB: chassisMesh,
-  restLength: 1.5,                      // Ruhelänge
-  stiffness: 150.0,                     // Federkonstante k
-  damping: 8.0,                         // Dämpfungskonstante c
+  restLength: 1.5,                      // Rest length
+  stiffness: 150.0,                     // Spring constant k
+  damping: 8.0,                         // Damping constant c
 });
 scene.joints.push(suspension);
 ```
 
-### 3. `BallSocketJoint` (3-DOF Kugelgelenk)
+### 3. `BallSocketJoint` (3-DOF ball joint)
 
-Verriegelt zwei Ankerpunkte in 3D ($\vec{p}_A = \vec{p}_B$), lässt aber freie Rotation in allen Achsen zu (z. B. Ragdoll-Schultern, Anhängerkupplungen):
+Locks two anchor points together in 3D ($\vec{p}_A = \vec{p}_B$) while allowing free rotation on all axes (e.g. ragdoll shoulders, trailer hitches):
 
 ```typescript
-import { BallSocketJoint } from "small-world";
+import { BallSocketJoint } from "@small-world/engine";
 
 const shoulder = new BallSocketJoint({
   bodyA: upperArm,
@@ -384,24 +382,24 @@ const shoulder = new BallSocketJoint({
 scene.joints.push(shoulder);
 ```
 
-### 4. `HingeJoint` (1-DOF Drehgelenk / Scharnier)
+### 4. `HingeJoint` (1-DOF revolute joint / hinge)
 
-Schränkt die Rotation auf eine einzelne Achse ein. Unterstützt **Winkelbegrenzungen** (`minAngle`/`maxAngle`) und einen **aktiven Motor**:
+Constrains rotation to a single axis. Supports **angle limits** (`minAngle`/`maxAngle`) and an **active motor**:
 
 ```typescript
-import { HingeJoint, Vector3D } from "small-world";
+import { HingeJoint, Vector3D } from "@small-world/engine";
 
 const doorHinge = new HingeJoint({
   bodyA: doorMesh,
-  anchorA: new Vector3D(-0.8, 0, 0),    // Scharnierseite der Tür
-  anchorB: new Vector3D(0, 0, 0),       // Türrahmen
-  axisA: new Vector3D(0, 1, 0),         // Drehung nur um Y-Achse
+  anchorA: new Vector3D(-0.8, 0, 0),    // Hinge side of the door
+  anchorB: new Vector3D(0, 0, 0),       // Door frame
+  axisA: new Vector3D(0, 1, 0),         // Rotate only around the Y axis
   enableLimit: true,
-  minAngle: 0.0,                        // Tür geschlossen (0°)
-  maxAngle: Math.PI * 0.5,              // Maximal 90° öffnen
+  minAngle: 0.0,                        // Door closed (0°)
+  maxAngle: Math.PI * 0.5,              // Opens up to 90°
   enableMotor: true,
-  motorSpeed: 1.5,                      // Automatischer Schließmotor (1.5 rad/s)
-  maxMotorTorque: 50.0,                 // Maximale Motorkraft
+  motorSpeed: 1.5,                      // Automatic closing motor (1.5 rad/s)
+  maxMotorTorque: 50.0,                 // Maximum motor force
 });
 scene.joints.push(doorHinge);
 ```
@@ -410,45 +408,45 @@ scene.joints.push(doorHinge);
 
 ## 10. Continuous Collision Detection (CCD)
 
-Für sehr schnelle Objekte (Geschosse, Bälle), die in einem einzigen Frame dünne Wände überspringen würden (**Tunneling**), bietet Small World kontinuierliche Kollisionserkennung für Kugeln, Quader (`BoundingBox`), `OBB`s und Strahlen:
+For very fast-moving objects (projectiles, balls) that would otherwise skip through thin walls within a single frame (**tunneling**), Small World provides continuous collision detection for spheres, boxes (`BoundingBox`), `OBB`s, and rays:
 
 ```typescript
-// CCD-Schwelle: Ab wie viel Bewegungsdistanz (relativ zum Radius) CCD greift
-physics.ccdMotionThreshold = 0.5; // Bei Verschiebung > 50% der eigenen Größe
+// CCD threshold: how much movement distance (relative to radius) engages CCD
+physics.ccdMotionThreshold = 0.5; // Kicks in once displacement exceeds 50% of the body's own size
 ```
 
 ---
 
-## 11. Inaktivität, Sleeping & Performance-Limits
+## 11. Inactivity, Sleeping & Performance Limits
 
-Um CPU-Ressourcen zu schonen, versetzt Small World ruhende Körper automatisch in den `isSleeping`-Zustand. Schlafende Körper überspringen Kräfteintegration und Narrowphase-Kollisionstests vollständig ($\mathcal{O}(1)$ Kosten).
+To conserve CPU resources, Small World automatically puts resting bodies into the `isSleeping` state. Sleeping bodies skip force integration and narrowphase collision tests entirely ($\mathcal{O}(1)$ cost).
 
 ```typescript
 const rb = myObject.rigidBody;
 
-rb.allowSleep = true;                  // Automatisches Schlafen erlauben (Standard: true)
-rb.sleepLinearThreshold = 0.05;        // Geschwindigkeitsgrenze (m/s)
-rb.sleepAngularThreshold = 0.05;       // Rotationsgrenze (rad/s)
-rb.sleepTimeThreshold = 0.5;           // Erforderliche Ruhedauer (0.5s)
+rb.allowSleep = true;                  // Allow automatic sleeping (default: true)
+rb.sleepLinearThreshold = 0.05;        // Velocity threshold (m/s)
+rb.sleepAngularThreshold = 0.05;       // Rotation threshold (rad/s)
+rb.sleepTimeThreshold = 0.5;           // Required rest duration (0.5s)
 ```
 
-### Empfohlene Grenzwerte & Best Practices (Caps)
+### Recommended limits & best practices (caps)
 
-| Parameter | Empfohlener Bereich | Bemerkung |
+| Parameter | Recommended Range | Note |
 | :--- | :--- | :--- |
-| **Massenverhältnis** | $\leq 100 : 1$ | Vermeidet numerische Instabilität bei Kontakten zwischen extrem leichten und schweren Objekten. |
-| **Max Sub-Steps** | $4 - 10$ | Verhindert die "Spiral of Death" bei massiven Frame-Einbrüchen (`maxSubSteps = 10`). |
-| **Solver-Iterationen** | $4 - 8$ | 4 Iterationen für Action-Games; 8 Iterationen für komplexe Kistenstapel und Joint-Ketten. |
-| **Collider-Wahl** | Sphere $\to$ Box $\to$ OBB $\to$ Hull | Bevorzugt einfache Formen (Sphere/Box), wo immer möglich. |
+| **Mass ratio** | $\leq 100 : 1$ | Avoids numerical instability at contacts between extremely light and heavy objects. |
+| **Max sub-steps** | $4 - 10$ | Prevents the "spiral of death" during massive frame drops (`maxSubSteps = 10`). |
+| **Solver iterations** | $4 - 8$ | 4 iterations for action games; 8 iterations for complex crate stacks and joint chains. |
+| **Collider choice** | Sphere $\to$ Box $\to$ OBB $\to$ Hull | Prefer simple shapes (sphere/box) wherever possible. |
 
 ---
 
-## 12. Praxis-Rezepte
+## 12. Practical Recipes
 
-### Rezept: 3D-Charakter-Controller mit Raycast-Bodenhaftung
+### Recipe: 3D character controller with raycast ground grip
 
 ```typescript
-import { Object3D, RigidBody, BoundingSphere, Vector3D } from "small-world";
+import { Object3D, RigidBody, BoundingSphere, Ray, Vector3D } from "@small-world/engine";
 
 export class PlayerController {
   public entity: Object3D;
@@ -459,8 +457,8 @@ export class PlayerController {
     this.entity.bounds = new BoundingSphere(this.entity.position, 0.5);
     
     const rb = new RigidBody(75.0); // 75 kg
-    rb.angularDamping = 0.0;        // Rotation manuell über Blickrichtung steuern
-    rb.restitution = 0.0;           // Kein Gummiball-Effekt beim Landen
+    rb.angularDamping = 0.0;        // Rotation is controlled manually via look direction
+    rb.restitution = 0.0;           // No rubber-ball effect on landing
     rb.friction = 0.8;
     this.entity.rigidBody = rb;
   }
@@ -468,21 +466,20 @@ export class PlayerController {
   public update(physics: PhysicsSystem, inputMove: Vector3D, wantsJump: boolean): void {
     const rb = this.entity.rigidBody!;
     
-    // 1. Prüfen, ob der Spieler auf dem Boden steht
+    // 1. Check whether the player is grounded
     const groundHit = physics.raycast(
-      this.entity.position,
-      this._groundRayDir,
-      0.6, // Radius 0.5 + 0.1 Toleranz
+      new Ray(this.entity.position, this._groundRayDir),
+      0.6, // Radius 0.5 + 0.1 tolerance
       CollisionLayers.DEFAULT
     );
 
     const isGrounded = groundHit !== null;
 
-    // 2. Horizontale Bewegung steuern
+    // 2. Control horizontal movement
     rb.velocity.x = inputMove.x * 6.0;
     rb.velocity.z = inputMove.z * 6.0;
 
-    // 3. Sprung-Impuls ausführen
+    // 3. Execute the jump impulse
     if (isGrounded && wantsJump) {
       rb.applyImpulse(new Vector3D(0, 350.0, 0)); // 75kg * ~4.6 m/s
     }

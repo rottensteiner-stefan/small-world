@@ -1,89 +1,89 @@
 # Audio
 
-Die Small World Engine liefert ein leichtgewichtiges `AudioSystem`, das die Web Audio API umhüllt: Sample-Laden und -Wiedergabe (global oder 3D-räumlich), einen kleinen Mixer (Master-/SFX-/Musik-Busse plus ein Send-Effekt-Reverb), kamerasynchronisierte Listener-Positionierung, und eine Reihe prozedural synthetisierter Soundeffekte, für die keinerlei Audio-Assets nötig sind.
+The Small World Engine ships a lightweight `AudioSystem` that wraps the Web Audio API: sample loading and playback (global or 3D-spatial), a small mixer (master/SFX/music buses plus a send-effect reverb), camera-synced listener positioning, and a set of procedurally synthesized sound effects that need no audio assets at all.
 
-## Zugriff auf das Audio-System
+## Accessing the Audio System
 
-Wie das Render- und Physik-System ist `AudioSystem` instanzgebunden — jede `SmallWorld`-Anwendung bekommt ihr eigenes über `this.audio`, sodass mehrere Engine-Instanzen auf einer Seite (Editoren, Minimaps, Splitscreen) sich nie den Audio-Zustand teilen.
+Like the render and physics systems, `AudioSystem` is instance-bound - every `SmallWorld` application gets its own via `this.audio`, so multiple engine instances on one page (editors, minimaps, split-screen) never share audio state.
 
 ```typescript
-// Innerhalb einer SmallWorld-Unterklasse
+// Inside a SmallWorld subclass
 protected override async setupScene(): Promise<void> {
   await this.audio.load("./assets/explosion.wav", "explosion");
 }
 ```
 
-Da Browser den `AudioContext` bis zu einer Nutzergeste pausieren, rufe `this.audio.resume()` auf (oder spiele einfach einen Sound ab — jede Wiedergabemethode ruft es intern selbst auf) aus einem Click-/Keydown-Handler heraus, bevor Audio hörbar sein soll.
+Since browsers suspend the `AudioContext` until a user gesture, call `this.audio.resume()` (or simply play a sound - every playback method calls it internally) from a click/keydown handler before audio is expected to be audible.
 
-## Samples laden und abspielen
+## Loading and Playing Samples
 
-`load(url, name)` lädt und dekodiert eine Datei einmalig und cacht sie unter `name` für wiederholte Wiedergabe.
+`load(url, name)` loads and decodes a file once and caches it under `name` for repeated playback.
 
 ```typescript
 await this.audio.load("./assets/explosion.wav", "explosion");
 
-// Globale (nicht-räumliche) Wiedergabe
+// Global (non-spatial) playback
 this.audio.play("explosion", /* loop */ false, /* volume */ 0.8);
 ```
 
-Für Sounds, die mit der 3D-Position abgeschwächt und gepannt werden sollen, stattdessen `playSpatial` nutzen:
+For sounds that should be attenuated and panned based on 3D position, use `playSpatial` instead:
 
 ```typescript
 this.audio.playSpatial("explosion", enemy.position, false, 1.0, /* refDistance */ 2.0, /* maxDistance */ 20.0);
 ```
 
-`playSpatial` nutzt einen HRTF-`PannerNode` mit inversem Distanzabfall. Beide Methoden geben den zugrunde liegenden `AudioBufferSourceNode` zurück (und, bei räumlichen Sounds, den `PannerNode`), sodass die laufende Instanz selbst gestoppt oder anderweitig inspiziert werden kann — die Engine verfolgt aktive Stimmen nicht selbst nach.
+`playSpatial` uses an HRTF `PannerNode` with inverse distance falloff. Both methods return the underlying `AudioBufferSourceNode` (and, for spatial sounds, the `PannerNode`), so the running instance can be stopped or otherwise inspected itself - the engine does not track active voices on its own.
 
-## Der Mixer
+## The Mixer
 
-Jeder Sound spielt über einen von zwei Gain-Bussen, beide in einen Master-Bus geroutet:
+Every sound plays through one of two gain buses, both routed into a master bus:
 
-- `sfxGain` — Soundeffekte (`play`, `playSpatial`, und alle `SynthSFX`-Methoden außer `startDrone`).
-- `musicGain` — Hintergrundmusik/Ambience.
+- `sfxGain` - sound effects (`play`, `playSpatial`, and all `SynthSFX` methods except `startDrone`).
+- `musicGain` - background music/ambience.
 
-Ein einzelnes prozedurales Reverb (ein fester 2-Sekunden-Decay-Impulse, beim Start generiert) ist als Send-Effekt am SFX-Bus verdrahtet. Pegel anpassen mit:
+A single procedural reverb (a fixed 2-second decay impulse, generated at startup) is wired as a send effect on the SFX bus. Adjust levels with:
 
 ```typescript
 this.audio.setMasterVolume(0.9);
 this.audio.setSFXVolume(0.8);
 this.audio.setMusicVolume(0.5);
-this.audio.setReverbLevel(0.3); // 0 = trocken, höher = mehr Reverb-Send
+this.audio.setReverbLevel(0.3); // 0 = dry, higher = more reverb send
 ```
 
-::: tip Direkte API- & EventBus-Steuerung
-Diese vier Setter konfigurieren direkt die Web-Audio-GainNodes der Instanz. Für UI-Steuerelemente verdrahte sie direkt mit deiner Einstellungs-UI oder höre auf eigene Events am `this.events`-Bus deiner Engine-Instanz.
+::: tip Direct API & EventBus Control
+These four setters directly configure the instance's Web Audio gain nodes. For UI controls, wire them directly to your settings UI, or listen for your own events on your engine instance's `this.events` bus.
 :::
 
-## Listener-Position (3D-Audio)
+## Listener Position (3D Audio)
 
-Räumliches Audio muss wissen, wo sich die "Ohren" befinden. Den Web-Audio-Listener einmal pro Frame mit der Kamera synchronisieren:
+Spatial audio needs to know where the "ears" are. Synchronize the Web Audio listener with the camera once per frame:
 
 ```typescript
 protected override update(deltaTime: number): void {
   this.audio.updateListener(this.camera);
-  // ...deine übrige Spiellogik
+  // ...the rest of your game logic
 }
 ```
 
-Das geschieht nicht automatisch — die Engine nimmt nicht an, dass Audio immer der Hauptkamera folgen soll (z. B. sollte eine Zuschauerkamera oder eine Minimap-Kamera den Listener nicht zwangsläufig bewegen), also explizit von dort aufrufen, wo sich die "Ohren" tatsächlich befinden.
+This does not happen automatically - the engine does not assume audio should always follow the main camera (for example, a spectator camera or a minimap camera shouldn't necessarily move the listener), so call it explicitly from wherever the "ears" actually are.
 
-## Prozedurale Soundeffekte (keine Assets nötig)
+## Procedural Sound Effects (No Assets Needed)
 
-Für schnelles Prototyping, Retro-Feedback oder Ambience, die kein handgefertigtes Sample braucht, stellt `AudioSystem` auch eine Handvoll Web-Audio-synthetisierter Effekte bereit (implementiert in `SynthSFX`, einzeln importierbar, falls eigene gebaut werden sollen):
+For rapid prototyping, retro feedback, or ambience that doesn't need a hand-crafted sample, `AudioSystem` also provides a handful of Web-Audio-synthesized effects (implemented in `SynthSFX`, individually importable if you want to build your own):
 
 ```typescript
-this.audio.playTone(880, 0.15, 0.4, "square"); // Ein kurzer "Laser"-Blip
+this.audio.playTone(880, 0.15, 0.4, "square"); // A short "laser" blip
 this.audio.playFootstep();
 this.audio.playShoot();
 this.audio.playHurt();
-this.audio.startFire(torch.position, 0.4); // Loopendes Knistern an einer 3D-Position
-this.audio.startDrone(); // Ambienter Subbass + Rausch-Bett, zum Musik-Bus geroutet
+this.audio.startFire(torch.position, 0.4); // Looping crackle at a 3D position
+this.audio.startDrone(); // Ambient sub-bass + noise bed, routed to the music bus
 ```
 
-Das sind reine Oszillator-/Rausch-Graphen — kein Netzwerk-Request, kein Dekodier-Schritt, und sicher aufrufbar, bevor irgendein Asset geladen wurde.
+These are pure oscillator/noise graphs - no network request, no decoding step, and safe to call before any asset has been loaded.
 
-## Einschränkungen
+## Limitations
 
-- Keine eingebaute Stimmenbegrenzung oder Pooling: schnelles wiederholtes Abspielen desselben Sounds (z. B. eine sehr schnelle Waffe) erzeugt pro Aufruf einen neuen `AudioBufferSourceNode`, ohne Obergrenze.
-- Es existiert nur ein Reverb-Preset; es gibt keine API, um pro Raum eine andere Impulsantwort einzusetzen.
-- Keine Musik-Crossfade-/Ducking-Hilfsmittel — Schichten oder Übergänge zwischen Musikstücken liegen in eigener Verantwortung (die beiden `GainNode`s manuell überblenden, oder über ein eigenes Zwischen-Gain routen).
+- No built-in voice limiting or pooling: rapidly retriggering the same sound (e.g. a very fast weapon) creates a new `AudioBufferSourceNode` per call, with no cap.
+- Only one reverb preset exists; there is no API for swapping in a different impulse response per room.
+- No music crossfade/ducking helpers - layering or transitioning between music tracks is left to the caller (manually cross-fade the two `GainNode`s, or route through your own intermediate gain).

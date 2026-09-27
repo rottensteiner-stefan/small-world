@@ -1,32 +1,32 @@
-# Ein neues Material hinzufügen
+# Adding a New Material
 
-Diese Anleitung richtet sich an Engine-Mitwirkende: sie erklärt, wie ein neues Material zu Small World hinzugefügt wird, nicht, wie die eingebauten genutzt werden (siehe dafür [Materialien & Shader](/guides/materials)).
+This guide is aimed at engine contributors: it explains how to add a new material to Small World, not how to use the built-in ones (see [Materials & Shaders](/guides/materials) for that).
 
-## Zwei Wege, ein Material hinzuzufügen
+## Two Ways to Add a Material
 
-**`CustomShaderMaterial`** — rohen Shader-Quellcode schreiben und einer einzigen, fertigen Material-Klasse übergeben. Keine neue TypeScript-Klasse, keine Engine-Änderungen. Gut für einmalige Effekte, Shadertoy/ComputeToys-Importe oder Prototyping.
+**`CustomShaderMaterial`** - write raw shader source and hand it to a single, ready-made material class. No new TypeScript class, no engine changes. Good for one-off effects, Shadertoy/ComputeToys imports, or prototyping.
 
-**Eine neue `AbstractMaterial`-Unterklasse** — eine richtige TypeScript-Klasse mit typisierten Konstruktor-Optionen und öffentlichen Eigenschaften schreiben (`material.roughness = 0.4` usw.), unterlegt mit einem eigenen Shader. Gut für alles, was projektweit wiederverwendet, dokumentiert und aus der Engine exportiert werden soll.
+**A new `AbstractMaterial` subclass** - write a proper TypeScript class with typed constructor options and public properties (`material.roughness = 0.4`, etc.), backed by its own shader. Good for anything that should be reused project-wide, documented, and exported from the engine.
 
-Der Rest dieser Anleitung behandelt den zweiten Weg — er ist auch das, was `CustomShaderMaterial` intern tut, nur ohne eine eigene Klasse, die ihn umhüllt.
+The rest of this guide covers the second path - it's also what `CustomShaderMaterial` does internally, just without a dedicated class wrapping it.
 
-## Die zwei Methoden, die jedes Material implementiert
+## The Two Methods Every Material Implements
 
-`AbstractMaterial` (`packages/engine/src/core/materials/AbstractMaterial.ts`) verlangt genau zwei Methoden:
+`AbstractMaterial` (`packages/engine/src/core/materials/AbstractMaterial.ts`) requires exactly two methods:
 
 ```typescript
 public abstract getRenderManifest(): RenderManifest;
 public abstract getShaderDefinition(): ShaderDefinition;
 ```
 
-`getShaderDefinition()` wird einmal pro Shader-Variante aufgerufen und beschreibt den Shader selbst: seinen Quellcode für jeden Renderer-Dialekt, und sein `layout` (welche Uniforms und Texturen er erwartet). `getRenderManifest()` wird jeden Frame aufgerufen und liefert die *aktuellen Werte* für diese Uniforms/Texturen zurück — der Renderer liest ausschließlich dieses Manifest, er inspiziert nie direkt die Felder deines Materials.
+`getShaderDefinition()` is called once per shader variant and describes the shader itself: its source code for each renderer dialect, and its `layout` (which uniforms and textures it expects). `getRenderManifest()` is called every frame and returns the *current values* for those uniforms/textures - the renderer reads only this manifest; it never inspects your material's fields directly.
 
-Ein minimales echtes Beispiel, gekürzt aus `PhongMaterial.ts`:
+A minimal real example, abridged from `PhongMaterial.ts`:
 
 ```typescript
 public override getShaderDefinition(): ShaderDefinition {
   return {
-    id: this.type, // eine eindeutige String-ID, z. B. MaterialType.PHONG oder ein eigener String
+    id: this.type, // a unique string ID, e.g. MaterialType.PHONG or a custom string
     sources: {
       glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: fragGLSL },
       glsl100: { vs: "[BASE_VS]", fs: fragGLSL100 },
@@ -56,15 +56,15 @@ public override getRenderManifest(): RenderManifest {
 }
 ```
 
-`AbstractMaterial._createBaseManifest()`/`_syncBaseManifestState()` füllen bereits die Eigenschaften vor, die sich jedes Material teilt (Farbe, Culling, Blending, Nebel-Parameter, …) — ruf sie zuerst auf und überschreibe nur das, was dein Material tatsächlich hinzufügt.
+`AbstractMaterial._createBaseManifest()`/`_syncBaseManifestState()` already pre-fill the properties every material shares (color, culling, blending, fog parameters, ...) - call them first and override only what your material actually adds.
 
-Die Tokens `[BASE_VERTEX_HEADER]`, `[WGSL_PBR_MATH]` usw. sind gemeinsame Shader-Bausteine, registriert in `CoreShaderChunks.ts` und von `ShaderRegistry.instance.assemble()` expandiert. Nutze sie wieder, statt Beleuchtungs-/Nebel-/PBR-Mathematik von Hand neu herzuleiten.
+The tokens `[BASE_VERTEX_HEADER]`, `[WGSL_PBR_MATH]`, etc. are shared shader building blocks, registered in `CoreShaderChunks.ts` and expanded by `ShaderRegistry.instance.assemble()`. Reuse them instead of re-deriving lighting/fog/PBR math by hand.
 
-## Die drei Shader-Dialekte
+## The Three Shader Dialects
 
-Ein Material kann bis zu drei unabhängige Shader-Quellen liefern: `wgsl` (WebGPU), `glsl300` (WebGL2), `glsl100` (WebGL1). Jeder Renderer kompiliert ausschließlich seinen eigenen Dialekt — es gibt keinen Auto-Transpiler zwischen ihnen. Ein Material muss nur die Renderer unterstützen, die für es relevant sind; wird `glsl100` weggelassen, wirft dieses Material schlicht einen Fehler, wenn die App unter `WebGL1Renderer` läuft (das ist beabsichtigt, z. B. für reine WGSL-Shadertoy-Importe, siehe `CustomShaderMaterial`).
+A material can supply up to three independent shader sources: `wgsl` (WebGPU), `glsl300` (WebGL2), `glsl100` (WebGL1). Each renderer compiles only its own dialect - there is no auto-transpiler between them. A material only needs to support the renderers relevant to it; if `glsl100` is omitted, that material simply throws an error when the app runs under `WebGL1Renderer` (this is intentional, e.g. for pure WGSL Shadertoy imports - see `CustomShaderMaterial`).
 
-Da die drei Quellen von Hand und unabhängig gepflegt werden, *werden* sie auseinanderdriften — ein Uniform, das in der WGSL-Version vorhanden ist, in der GLSL300-Version aber fehlt (oder falsch geschrieben ist), ist eine häufige Fehlerquelle, und das zeigt sich nicht als Compile-Fehler, sondern nur darin, dass eine Textur/ein Uniform stillschweigend nicht gesetzt wird. Nach dem Ändern oder Hinzufügen der Shader eines Materials:
+Since the three sources are maintained by hand and independently, they *will* drift apart - a uniform present in the WGSL version but missing (or misspelled) in the GLSL300 version is a common source of bugs, and it doesn't show up as a compile error, only as a texture/uniform silently never being set. After changing or adding a material's shaders, run:
 
 ```bash
 npm run build:showcases && npm run preview
@@ -72,16 +72,16 @@ node .agents/scratches/sweep-renderer.mjs WEB_GL1
 node .agents/scratches/sweep-renderer.mjs WEB_GL2
 ```
 
-gegen einen Showcase ausführen, der das Material nutzt, für beide Renderer-Dialekte. Es lädt jeden Showcase headless und meldet echte GL-Compile-/Link-/`GL_INVALID_OPERATION`-Fehler — das projekteigene `npm run test:showcases` kann WebGL2 in dieser Sandbox nicht initialisieren und fällt stillschweigend auf WebGL1 zurück, erkennt einen reinen WebGL2-Shader-Bug also nicht.
+against a showcase that uses the material, for both renderer dialects. It loads each showcase headlessly and reports real GL compile/link/`GL_INVALID_OPERATION` errors - the project's own `npm run test:showcases` (`scripts/check-showcases.js`) now also forces all three renderer types (`WEB_GL1`/`WEB_GL2`/`WEB_GPU`) via Swiftshader flags and captures per-renderer console errors, so it's a valid alternative for WebGL1/WebGL2 shader bugs; for WebGPU, headless Chrome remains unreliable (see the `showcases-smoke-test` CI job, intentionally non-blocking).
 
-## Uniform- und Textur-Bindung ist automatisch
+## Uniform and Texture Binding Is Automatic
 
-Die WebGL1/WebGL2-Renderer ermitteln die Uniforms und Sampler-Textureinheiten eines kompilierten Shaders, indem sie direkt beim gelinkten GPU-Programm nachfragen (`gl.getActiveUniform`), statt eine handgepflegte Liste erwarteter Namen zu konsultieren. Das bedeutet: **sobald ein Uniform oder eine Textur im Shader-Quellcode deklariert und in `layout.uniforms`/`layout.textures` aufgeführt ist, "funktioniert es einfach"** — nichts in `WebGL1Renderer.ts`/`WebGL2Renderer.ts` muss angefasst werden, um das zu unterstützen, und es gibt keine interne Namensliste, deren Aktualisierung vergessen werden könnte.
+The WebGL1/WebGL2 renderers determine a compiled shader's uniforms and sampler texture units by querying the linked GPU program directly (`gl.getActiveUniform`), instead of consulting a hand-maintained list of expected names. This means: **as soon as a uniform or texture is declared in the shader source and listed in `layout.uniforms`/`layout.textures`, it "just works"** - nothing in `WebGL1Renderer.ts`/`WebGL2Renderer.ts` needs to be touched to support it, and there is no internal name list whose update could be forgotten.
 
-Das eine, das weiterhin per Konvention übereinstimmen muss: die Property-/Textur-Schlüssel, die in `getRenderManifest()` geschrieben werden (z. B. `texs["u_diffuseMap"]`), müssen exakt so geschrieben sein wie das entsprechende `uniform sampler2D u_diffuseMap;` im Shader-Quellcode. Eine Abweichung ist kein Compile-Fehler — das Uniform wird schlicht nie geschrieben, sodass der Sampler bei dem bleibt, was der GPU-Treiber standardmäßig einsetzt.
+The one thing that still has to match by convention: the property/texture keys written in `getRenderManifest()` (e.g. `texs["u_diffuseMap"]`) must be spelled exactly like the corresponding `uniform sampler2D u_diffuseMap;` in the shader source. A mismatch is not a compile error - the uniform simply never gets written, so the sampler is left at whatever the GPU driver defaults to.
 
-Hat ein Name in `layout.uniforms`/`layout.textures` kein passendes aktives Uniform im kompilierten Shader (Tippfehler, oder der Shader-Compiler hat es wegoptimiert, weil es tatsächlich ungenutzt ist), protokolliert `WebGL1Renderer` eine Konsolen-Warnung mit der Namensnennung der Abweichung — ein schneller Weg, einen Tippfehler zu finden, ohne die Render-Ausgabe durchsuchen zu müssen.
+If a name in `layout.uniforms`/`layout.textures` has no matching active uniform in the compiled shader (a typo, or the shader compiler optimized it away because it's actually unused), `WebGL1Renderer` logs a console warning naming the mismatch - a quick way to spot a typo without having to search through the render output.
 
-Cube- vs. 2D-Texturen werden ebenfalls automatisch erkannt, anhand des im Shader deklarierten Sampler-Typs (`samplerCube` vs. `sampler2D`), nicht anhand des Namens des Uniforms — ein neues Cube-Sampler-Uniform braucht also ebenfalls keinen namensbasierten Sonderfall.
+Cube vs. 2D textures are also detected automatically, based on the sampler type declared in the shader (`samplerCube` vs. `sampler2D`), not on the uniform's name - so a new cube-sampler uniform likewise needs no name-based special case.
 
-Shadow-Map- und IBL-Sampler (Irradiance/Prefilter/BRDF) sind die eine Ausnahme: sie sind szenenglobal statt pro Material, und werden über dedizierte Code-Pfade in `WebGL2Renderer` mit festen Textureinheiten gebunden, unabhängig davon, was ein neues Material deklariert. Dafür muss nichts getan werden — das ist nur relevant, wenn das Schatten-/IBL-System selbst verändert wird.
+Shadow-map and IBL samplers (irradiance/prefilter/BRDF) are the one exception: they are scene-global rather than per-material, and are bound via dedicated code paths in `WebGL2Renderer` with fixed texture units, regardless of what a new material declares. Nothing needs to be done for this - it's only relevant if the shadow/IBL system itself is changed.

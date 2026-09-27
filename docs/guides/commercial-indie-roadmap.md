@@ -1,47 +1,47 @@
-# Kommerzielle Indie-Spiele-Roadmap & Publisher-Strategie
+# Commercial Indie Game Roadmap & Publisher Strategy
 
-> **Small World Engine Guide:** Vom atmosphärischen Prototyp zum kommerziellen Release auf Steam, PlayStation & Xbox — speziell ausgelegt für Solo-Entwickler und kleine Indie-Teams.
+> **Small World Engine Guide:** From atmospheric prototype to commercial release on Steam, PlayStation & Xbox — specifically designed for solo developers and small indie teams.
 
 ---
 
-## 1. Das Sweet-Spot-Kalkül: Spielzeit & Bepreisung
+## 1. The sweet-spot calculus: playtime & pricing
 
-Für einen Solo-Entwickler mit Day-Job ist die Wahl der Spielzeit die wichtigste strategische Weichenstellung des gesamten Projekts.
+For a solo developer with a day job, choosing the playtime is the most important strategic decision of the entire project.
 
 ```
 +---------------------------------------------------------------------------------------+
-|  SPIELZEIT-SWEET-SPOT: 1.5 BIS 3.5 STUNDEN (MAXIMAL: 4 STUNDEN)                      |
+|  PLAYTIME SWEET SPOT: 1.5 TO 3.5 HOURS (MAXIMUM: 4 HOURS)                             |
 |                                                                                       |
-|  [ 10 Min. Vertical Slice ] -> [ 1.5 Std. Kernspielzeit ] -> [ 3.0 Std. Meisterwerk ] |
-|  - Gebaut mit Maker          - Handplatzierte Beleuchtung    - Keine künstliche Längen|
-|  - Pitch-Demo / Next Fest    - Hohe Wiederspielbarkeit       - 60 FPS auf Standard-PCs|
+|  [ 10 min. vertical slice ] -> [ 1.5 hr core playtime ] -> [ 3.0 hr masterpiece ]    |
+|  - Built with Maker           - Hand-placed lighting        - No artificial padding  |
+|  - Pitch demo / Next Fest     - High replayability          - 60 FPS on standard PCs |
 +---------------------------------------------------------------------------------------+
 ```
 
-### Warum 1,5 bis 3,5 Stunden der mathematische Optimum-Punkt sind:
-1. **Das „Steam 2-Stunden-Rückgabe-Paradoxon“:**  
-   Steam erlaubt bedingungslose Rückgaben bei unter 2 Stunden Spielzeit. Anfänger fürchten das oft. Die Realität moderner Indie-Erfolge: Wenn ein Spiel 2,5 bis 3 Stunden dauert, eine fesselnde Lichtstimmung besitzt und emotional berührt, refundiert fast niemand. Spieler loben stattdessen in den Reviews: *"Endlich ein Spiel, das meine Zeit respektiert und keinen künstlichen 40-Stunden-Grind erzwingt."*
-2. **Qualitätsdichte schlägt Streckung:**  
-   1 Stunde hochkarätige Atmosphäre, handplatzierte Lichtstimmung (im **Maker**-Editor) und fehlerfreie Rätsel/Mechaniken schlagen 15 Stunden generische Copy-Paste-Welten um Längen.
-3. **Aufwandskalkulation für Solo-Entwickler:**  
-   - 1 Stunde poliertes 3D-Gameplay = ca. 200–350 Netto-Arbeitsstunden (Level-Design, Sound, Pacing, QA).
-   - Ein 2,5-Stunden-Spiel ist mit 600–900 Arbeitsstunden in 12–18 Monaten nebenberuflich realistisch und gesund abschließbar.
+### Why 1.5 to 3.5 hours is the mathematical optimum:
+1. **The "Steam 2-hour refund paradox":**
+   Steam allows unconditional refunds under 2 hours of playtime. Beginners often fear this. The reality of modern indie hits: if a game lasts 2.5 to 3 hours, has a compelling mood/lighting, and is emotionally moving, almost nobody refunds it. Players instead praise it in reviews: *"Finally a game that respects my time and doesn't force an artificial 40-hour grind."*
+2. **Quality density beats padding:**
+   1 hour of high-caliber atmosphere, hand-placed lighting mood (in the **Maker** editor), and flawless puzzles/mechanics beats 15 hours of generic copy-paste worlds by a wide margin.
+3. **Effort calculation for solo developers:**
+   - 1 hour of polished 3D gameplay = roughly 200–350 net working hours (level design, sound, pacing, QA).
+   - A 2.5-hour game is realistically and sustainably achievable in 600–900 working hours over 12–18 months of part-time work.
 
-### Erfolgreiche Referenz-Titel im Vergleich:
-| Titel | Team-Größe | Spielzeit | Verkaufspreis | Rezeption & Verkäufe |
+### Successful reference titles compared:
+| Title | Team size | Playtime | Retail price | Reception & sales |
 |---|---|---|---|---|
-| ***A Short Hike*** | 1 Entwickler | 1,5 – 2,0 Std. | ~7,99 € | > 1 Mio. Verkäufe, 99% Positive Reviews, IGF Grand Prize |
-| ***Inside*** (Playdead) | Kleines Indie-Team | 3,0 – 3,5 Std. | ~19,99 € | Globales Meisterwerk, > 50 Awards |
-| ***Journey*** (thatgamecompany) | Kleines Team | 2,0 Std. | ~14,99 € | Eines der einflussreichsten Spiele der Dekade |
-| ***Chants of Sennaar*** | 2 Entwickler | 4,0 – 5,0 Std. | ~19,99 € | Überwältigender Indie-Hit 2023 |
-| ***Limbo*** | Kleines Team | 3,0 Std. | ~9,99 € | Millionenfach verkauft, Vorbild für modernes Pacing |
-| ***Stray*** | Kleines Kernteam | 4,5 – 5,0 Std. | ~27,99 € | Indie-GotY-Kandidat, Benchmark für Atmosphäre |
+| ***A Short Hike*** | 1 developer | 1.5 – 2.0 hrs | ~$7.99 | > 1M sales, 99% positive reviews, IGF Grand Prize |
+| ***Inside*** (Playdead) | Small indie team | 3.0 – 3.5 hrs | ~$19.99 | Global masterpiece, > 50 awards |
+| ***Journey*** (thatgamecompany) | Small team | 2.0 hrs | ~$14.99 | One of the most influential games of the decade |
+| ***Chants of Sennaar*** | 2 developers | 4.0 – 5.0 hrs | ~$19.99 | Overwhelming indie hit of 2023 |
+| ***Limbo*** | Small team | 3.0 hrs | ~$9.99 | Millions sold, benchmark for modern pacing |
+| ***Stray*** | Small core team | 4.5 – 5.0 hrs | ~$27.99 | Indie GotY contender, benchmark for atmosphere |
 
 ---
 
-## 2. Technischer Pfad: Von TypeScript/WebGPU zu Steam & Konsolen
+## 2. The technical path: from TypeScript/WebGPU to Steam & consoles
 
-Small World ist in **TypeScript** für **WebGPU / WebGL 2** gebaut. Wie gelangt dieser Code als native `.exe` auf Steam und auf die Konsolen?
+Small World is built in **TypeScript** for **WebGPU / WebGL 2**. How does this code get onto Steam and consoles as a native `.exe`?
 
 ```
                               [ Small World Game Code ]
@@ -51,41 +51,41 @@ Small World ist in **TypeScript** für **WebGPU / WebGL 2** gebaut. Wie gelangt 
                  ▼                                               ▼
          [ PC / Steam / Mac ]                          [ PS5 / Xbox / Switch ]
                  │                                               │
-           Tauri v2 / CEF                               WebAssembly / Native C++
-   (Rust Core + Steamworks SDK)                        (Publisher Porting Partner)
+           Tauri v2 / CEF                               WebAssembly / native C++
+   (Rust core + Steamworks SDK)                        (publisher porting partner)
                  │                                               │
                  ▼                                               ▼
-         Steam Store Launch                            Sony / Microsoft DevNet
+         Steam store launch                            Sony / Microsoft DevNet
 ```
 
-### A. Steam Release (PC, Mac, Linux & Steam Deck)
-Dieser Weg ist **sofort und ohne Drittanbieter** umsetzbar:
-1. **Wrapper-Framework: [Tauri v2](https://v2.tauri.app/):**
-   - Tauri nutzt einen extrem schlanken Rust-Core und die hardwarebeschleunigte Webview des Betriebssystems (oder integriertes Chromium via CEF).
-   - Die Binary-Größe liegt oft unter 15 MB (im Vergleich zu >150 MB bei Electron).
-   - Volle Unterstützung für WebGPU, WebGL 2, Gamepad-API und AudioContext.
-2. **Steamworks SDK Integration (`steamworks.rs`):**
-   - Rust-seitige Anbindung an Valves natives C++ SDK für Achievements (Errungenschaften), Steam Cloud Saves, Leaderboards und Steam Overlay.
-3. **Steam Deck Verifizierung:**
-   - Steam Deck läuft unter Proton / SteamOS (Arch Linux).
-   - Voraussetzungen für den grünen "Deck Verified"-Badge: Sauberes Gamepad-Mapping (Xbox/Deck-Layout), automatische On-Screen-Tastatur bei Textfeldern, lesbare UI-Schriftgrößen und stabile 60 FPS bei 1280×800.
+### A. Steam release (PC, Mac, Linux & Steam Deck)
+This path is achievable **immediately, without third parties**:
+1. **Wrapper framework: [Tauri v2](https://v2.tauri.app/):**
+   - Tauri uses an extremely lean Rust core and the OS's hardware-accelerated webview (or bundled Chromium via CEF).
+   - Binary size is often under 15 MB (compared to >150 MB for Electron).
+   - Full support for WebGPU, WebGL 2, the Gamepad API, and AudioContext.
+2. **Steamworks SDK integration (`steamworks.rs`):**
+   - Rust-side binding to Valve's native C++ SDK for achievements, Steam Cloud saves, leaderboards, and the Steam overlay.
+3. **Steam Deck verification:**
+   - Steam Deck runs on Proton / SteamOS (Arch Linux).
+   - Requirements for the green "Deck Verified" badge: clean gamepad mapping (Xbox/Deck layout), automatic on-screen keyboard for text fields, readable UI font sizes, and stable 60 FPS at 1280×800.
 
-### B. Konsolen-Release (PlayStation 5, Xbox Series X/S, Nintendo Switch)
-Konsolen führen keinen Browser als Spiel-App aus. Hier greifen drei bewährte Industrie-Strategien:
-1. **Strategie 1: Publisher-Porting-Partner (Der Standard-Weg für Indies):**
-   - Wenn du mit einem Publisher zusammenarbeitest (z.B. Raw Fury, Devolver, Team17, Thunderful), übernehmen deren spezialisierte In-House- oder Partner-Studios (wie *BlitWorks* oder *Abstraction Games*) die Konsolen-Portierung und Zertifizierung.
-2. **Strategie 2: WebAssembly & Embedded Runtime:**
-   - TypeScript/JS-Logik und Shader-Calls werden über C++-Embedding (z.B. V8-Embedded, QuickJS oder Wasmtime) nativ gegen die Grafik-APIs der Konsolen (DirectX 12 für Xbox, GNM/GNMX/AGC für PlayStation) gemappt.
-3. **Strategie 3: Xbox UWP Developer Mode:**
-   - Xbox Series X/S unterstützt über das Microsoft Partner Center UWP-Apps mit modernem Edge/Chromium-Webview-Container und direktem Controller-Passthrough.
+### B. Console release (PlayStation 5, Xbox Series X/S, Nintendo Switch)
+Consoles don't run a browser as a game app. Three proven industry strategies apply here:
+1. **Strategy 1: publisher porting partner (the standard path for indies):**
+   - If you work with a publisher (e.g. Raw Fury, Devolver, Team17, Thunderful), their specialized in-house or partner studios (like *BlitWorks* or *Abstraction Games*) handle console porting and certification.
+2. **Strategy 2: WebAssembly & embedded runtime:**
+   - TypeScript/JS logic and shader calls are mapped natively onto the consoles' graphics APIs (DirectX 12 for Xbox, GNM/GNMX/AGC for PlayStation) via C++ embedding (e.g. embedded V8, QuickJS, or Wasmtime).
+3. **Strategy 3: Xbox UWP developer mode:**
+   - Xbox Series X/S supports UWP apps via the Microsoft Partner Center, with a modern Edge/Chromium webview container and direct controller passthrough.
 
 ---
 
-## 3. Publisher-Strategie: Was Indie-Publisher wirklich suchen
+## 3. Publisher strategy: what indie publishers are really looking for
 
-Indie-Publisher erhalten wöchentlich 50 bis 100 Pitches. Sie suchen nicht nach dem nächsten 200-Millionen-Dollar-MMO, sondern nach **risikoarmen, unverwechselbaren Perlen**.
+Indie publishers receive 50 to 100 pitches a week. They're not looking for the next $200-million MMO, but for **low-risk, distinctive gems**.
 
-### Die Top-Publisher für atmosphärische Indie-Titel:
+### Top publishers for atmospheric indie titles:
 - **Annapurna Interactive** (*Stray*, *What Remains of Edith Finch*, *Outer Wilds*)
 - **Raw Fury** (*Sable*, *Call of the Sea*, *Norco*)
 - **Devolver Digital** (*Inscryption*, *Gris*, *Loop Hero*)
@@ -95,32 +95,32 @@ Indie-Publisher erhalten wöchentlich 50 bis 100 Pitches. Sie suchen nicht nach 
 - **Finji** (*Tunic*, *Chicory*)
 - **Thunderful Games** (*Planet of Lana*, *SteamWorld*)
 
-### Was im Pitch-Deck (max. 10–12 Slides) stehen muss:
-1. **Der 5-Sekunden-Hook ("Elevator Pitch"):**
-   - *Negativ:* "Ein schönes 3D-Erkundungsspiel mit Rätseln und Physik." (Gibt es 10.000 Mal).
-   - *Positiv (wie Stray):* "Du bist eine streunende Katze in einer von Robotern bewohnten Cyberpunk-Metropole und musst deinen Weg nach Hause finden."
-2. **Der „Vertical Slice“ (10–15 Minuten spielbare Perfektion):**
-   - Ein einziger, mit **Maker** atemberaubend ausgeleuchteter Raum/Level.
-   - Perfektes Sounddesign, eine funktionierende Kernmechanik, null Bugs, locked 60 FPS.
-   - Publisher investieren nicht in Konzepte auf Papier, sondern in **bewiesene Ausführungsqualität**.
-3. **Der asymmetrische Budget-Vorteil:**
-   - Ein Pitch, der **40.000 € bis 80.000 €** (für Audio-Buyouts, Lokalisierung, QA und etwas Lebenshaltung) anfragt, ist für Publisher ein No-Brainer-Mikro-Investment mit extrem schnellem ROI im Vergleich zu 2-Millionen-Euro-Großprojekten.
+### What must be in the pitch deck (max. 10–12 slides):
+1. **The 5-second hook ("elevator pitch"):**
+   - *Weak:* "A beautiful 3D exploration game with puzzles and physics." (There are 10,000 of these.)
+   - *Strong (like Stray):* "You are a stray cat in a robot-inhabited cyberpunk metropolis, trying to find your way home."
+2. **The "vertical slice" (10–15 minutes of playable perfection):**
+   - A single room/level lit to a stunning standard with **Maker**.
+   - Perfect sound design, one working core mechanic, zero bugs, locked 60 FPS.
+   - Publishers don't invest in concepts on paper — they invest in **proven execution quality**.
+3. **The asymmetric budget advantage:**
+   - A pitch requesting **€40,000 to €80,000** (for audio buyouts, localization, QA, and some living expenses) is a no-brainer micro-investment for a publisher with an extremely fast ROI, compared to €2-million major projects.
 
 ---
 
-## 4. Die großen blinden Flecken: Die 1000 Fragen vor dem Launch
+## 4. The big blind spots: the 1000 questions before launch
 
-Viele Erstlings-Projekte scheitern an bürokratischen oder technischen Hürden kurz vor der Ziellinie. Hier ist die Checkliste der kritischen Bereiche:
+Many first-time projects fail on bureaucratic or technical hurdles right before the finish line. Here's the checklist of critical areas:
 
-### A. Technische Zertifizierung & Plattform-Regeln (TRCs / XRRs)
-Plattform-Inhaber (Sony TRC, Microsoft XRR, Nintendo Lotcheck) verlangen strikte Verhaltensweisen:
-- **Controller-Trennung:** Zieht der Spieler das Gamepad ab oder geht der Akku leer, **muss** das Spiel sofort pausieren und einen Dialog einblenden.
-- **Savegame-Sicherheit:** Wird das Spiel während eines Schreibvorgangs hart beendet (Stromausfall), darf der vorherige Spielstand unter keinen Umständen korrumpiert sein (Atomic Savegame Swapping via `.tmp` $\rightarrow$ `.json`).
-- **Ladezeit:** Startzeit von Klick bis interaktivem Hauptmenü meist $\le 10$ Sekunden.
+### A. Technical certification & platform rules (TRCs / XRRs)
+Platform holders (Sony TRC, Microsoft XRR, Nintendo Lotcheck) demand strict behaviors:
+- **Controller disconnection:** if the player unplugs the gamepad or its battery dies, the game **must** pause immediately and show a dialog.
+- **Savegame safety:** if the game is hard-terminated during a write (power outage), the previous save must under no circumstances be corrupted (atomic savegame swapping via `.tmp` $\rightarrow$ `.json`).
+- **Load time:** time from click to interactive main menu is usually required to be $\le 10$ seconds.
 
-### B. Savegame-Architektur & Cloud Sync
-- Trenne den Spielstand strikt in ein **reines, serialisierbares State-JSON** (Position, Inventory, Quest-Flags).
-- Baue von Tag 1 an eine Schema-Versionierung ein:
+### B. Savegame architecture & cloud sync
+- Strictly separate the save state into a **pure, serializable state JSON** (position, inventory, quest flags).
+- Build in schema versioning from day 1:
   ```typescript
   interface SavegameV1 {
     version: 1;
@@ -128,57 +128,57 @@ Plattform-Inhaber (Sony TRC, Microsoft XRR, Nintendo Lotcheck) verlangen strikte
     inventory: string[];
   }
   ```
-- Schreibe automatische Migrations-Funktionen (`migrateSavegame(data)`), damit Spielstände nach Updates nicht unbrauchbar werden.
+- Write automatic migration functions (`migrateSavegame(data)`) so saves don't become unusable after updates.
 
-### C. Lokalisierung (i18n)
-- **Mindest-Standard für Steam:** **EFIGS + CJK** (Englisch, Französisch, Italienisch, Deutsch, Spanisch + vereinfachtes Chinesisch, Japanisch, Koreanisch).
-- Chinesisch und Japanisch machen auf Steam bis zu **30–45% aller Verkäufe** aus.
-- Niemals Text in Texturen oder Shader einbacken. Alle UI- und Dialogtexte müssen über String-Key-Tabellen (`i18n.t("ui.door_locked")`) referenziert werden.
+### C. Localization (i18n)
+- **Minimum standard for Steam:** **EFIGS + CJK** (English, French, Italian, German, Spanish + Simplified Chinese, Japanese, Korean).
+- Chinese and Japanese account for up to **30–45% of all sales** on Steam.
+- Never bake text into textures or shaders. All UI and dialogue text must be referenced via string-key tables (`i18n.t("ui.door_locked")`).
 
-### D. Audio & Musik-Rechte
-- Musik und Geräuschkulisse tragen **50% der emotionalen Atmosphäre**.
-- **100% geklärte Lizenzen:** Jeder Soundeffekt und jeder Musiktrack benötigt einen schriftlichen **Total-Buyout-Vertrag** (weltweit, unbegrenzt, kommerziell, frei von Verwertungsgesellschaften wie GEMA/BMI/ASCAP), um Urheberrechts-Strikes und DMCA-Takedowns zu verhindern.
+### D. Audio & music rights
+- Music and soundscape carry **50% of the emotional atmosphere**.
+- **100% cleared licenses:** every sound effect and every music track needs a written **total buyout contract** (worldwide, unlimited, commercial, free of collecting societies like GEMA/BMI/ASCAP) to prevent copyright strikes and DMCA takedowns.
 
-### E. Rechtliches, Steuern & Unternehmensform
-- **Haftungsbeschränkung:** Niemals als Privatperson mit Valve, Sony oder Publishern Verträge schließen. Vor Release: Gründung einer haftungsbeschränkten Gesellschaft (z.B. **UG haftungsbeschränkt** oder **GmbH** in Deutschland/Österreich).
-- **US-Quellensteuer (Withholding Tax):** Valve sitzt in den USA. Über das Steuerformular **W-8BEN-E** wird das Doppelbesteuerungsabkommen genutzt, um 30% automatischen US-Steuereinbehalt zu vermeiden.
-- **Altersfreigaben (IARC):** Über den kostenlosen, im Steam-Backend integrierten IARC-Fragebogen erhält das Spiel in 15 Minuten offizielle USK-, ESRB- und PEGI-Einstufungen.
+### E. Legal, tax & business structure
+- **Liability limitation:** never sign contracts with Valve, Sony, or publishers as a private individual. Before release: form a liability-limited company (e.g. **UG haftungsbeschränkt** or **GmbH** in Germany/Austria).
+- **US withholding tax:** Valve is based in the US. Form **W-8BEN-E** invokes the double-taxation treaty to avoid automatic 30% US tax withholding.
+- **Age ratings (IARC):** the free IARC questionnaire, built into the Steam backend, gets your game official USK, ESRB, and PEGI ratings in 15 minutes.
 
-### F. Das Steam-Wishlist-Gesetz & Marketing-Timing
-- **Die magische Schwelle:** Ein Spiel benötigt **7.000 bis 10.000 Steam-Wishlists** vor dem Release-Tag.
-- **Warum?** Erst ab dieser Schwelle stuft der Steam-Algorithmus das Spiel am Launch-Tag als relevant ein und platziert es auf der globalen Steam-Startseite unter *„Beliebt und bald verfügbar“* bzw. *„Neuerscheinungen“*.
-- **Steam Next Fest:** Das mächtigste Marketing-Tool für Indies. Eine 15-minütige spielbare Web-/Tauri-Demo während des Next Fests generiert oft 3.000 bis 8.000 Wishlists in nur einer Woche.
+### F. The Steam wishlist law & marketing timing
+- **The magic threshold:** a game needs **7,000 to 10,000 Steam wishlists** before release day.
+- **Why?** Only above this threshold does the Steam algorithm rank the game as relevant on launch day and place it on the global Steam front page under *"Popular Upcoming"* or *"New Releases"*.
+- **Steam Next Fest:** the most powerful marketing tool for indies. A 15-minute playable web/Tauri demo during Next Fest often generates 3,000 to 8,000 wishlists in a single week.
 
 ---
 
-## 5. Der 3-Phasen-Aktionsplan für Solo-Entwickler
+## 5. The 3-phase action plan for solo developers
 
 ```
 +---------------------------------------------------------------------------------------+
-| PHASE 1: VERTICAL SLICE (Monate 1–4)                                                  |
-| - Kernmechanik & einzigartiges Vibe etablieren.                                       |
-| - 1 Level komplett in Maker ausleuchten & mit Sound hinterlegen (10–15 Min. Spielzeit)|
-| - 60-Sekunden-Gameplay-Teaser für Social Media / Reddit aufnehmen.                    |
+| PHASE 1: VERTICAL SLICE (months 1–4)                                                  |
+| - Establish core mechanic & a unique vibe.                                            |
+| - Fully light 1 level in Maker & score it with sound (10–15 min. playtime)            |
+| - Record a 60-second gameplay teaser for social media / Reddit.                       |
 +---------------------------------------------------------------------------------------+
                                            │
                                            ▼
 +---------------------------------------------------------------------------------------+
-| PHASE 2: ANKÜNDIGUNG & PITCHING (Monate 5–8)                                          |
-| - Steam "Coming Soon"-Seite live schalten (Trailer + Screenshots).                    |
-| - 10-Slide Pitch-Deck an Publisher (Annapurna, Raw Fury, Devolver etc.) senden.       |
-| - Teilnahme am Steam Next Fest mit spielbarer Demo.                                   |
+| PHASE 2: ANNOUNCEMENT & PITCHING (months 5–8)                                         |
+| - Launch the Steam "Coming Soon" page (trailer + screenshots).                        |
+| - Send a 10-slide pitch deck to publishers (Annapurna, Raw Fury, Devolver, etc.).      |
+| - Participate in Steam Next Fest with a playable demo.                                 |
 +---------------------------------------------------------------------------------------+
                                            │
                                            ▼
 +---------------------------------------------------------------------------------------+
-| PHASE 3: PRODUKTION & LAUNCH (Monate 9–15)                                            |
-| - Vollendung der 2.5 bis 3.5 Stunden Spielzeit via Maker-Prefab-Baukasten.             |
-| - Lokalisierung (EFIGS + CJK) & Audio-Mastering.                                      |
-| - Verpackung via Tauri v2 (Steam) bzw. Übergabe an Publisher-Porting (Konsolen).      |
-| - Release-Tag: Launch mit >7.000 Wishlists.                                           |
+| PHASE 3: PRODUCTION & LAUNCH (months 9–15)                                            |
+| - Complete the 2.5 to 3.5-hour playtime via Maker's prefab kit.                        |
+| - Localization (EFIGS + CJK) & audio mastering.                                       |
+| - Packaging via Tauri v2 (Steam) or handoff to publisher porting (consoles).           |
+| - Release day: launch with >7,000 wishlists.                                          |
 +---------------------------------------------------------------------------------------+
 ```
 
 ---
 
-*Dieses Dokument ist Teil der Small World Developer Guides (`docs/guides/commercial-indie-roadmap.md`).*
+*This document is part of the Small World Developer Guides (`docs/guides/commercial-indie-roadmap.md`).*

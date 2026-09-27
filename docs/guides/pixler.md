@@ -1,10 +1,10 @@
-# Pixler (Pixel-Art-Editor)
+# Pixler (Pixel Art Editor)
 
-**Pixler** ist ein Pixel-Art-Editor im Retro-Stil, den ihr öffnen könnt, ohne euer Spiel zu verlassen — ein Sprite zeichnen, in die Zwischenablage kopieren und direkt in eure Asset-Pipeline einfügen.
+**Pixler** is a retro-style pixel art editor you can open without leaving your game — draw a sprite, copy it to the clipboard, and paste it straight into your asset pipeline.
 
-## Aktivieren
+## Enabling it
 
-`attachDevTools(app)` aus `@small-world/tools` aufrufen, dann öffnet sich Pixler als eines der angedockten Forge-Fenster:
+Call `attachDevTools(app)` from `@small-world/tools`, and Pixler opens as one of the docked Forge windows:
 
 ```typescript
 import { SmallWorld } from "@small-world/engine";
@@ -15,58 +15,58 @@ attachDevTools(app);
 app.start();
 ```
 
-**Strg+Alt+G** (oder **Cmd+Alt+G**) drücken, um das Forge-Overlay ein-/auszublenden.
+Press **Ctrl+Alt+G** (or **Cmd+Alt+G**) to show/hide the Forge overlay.
 
-::: tip Eigenständige Seite
-Pixler ist außerdem unter `/tools/pixler.html` als in sich geschlossene Seite verfügbar — dieselbe Klasse, nur direkt in die Seite eingebunden statt in ein Forge-Fenster. Der eine funktionale Unterschied: Die eigenständige Seite hat keinen Engine-Event-Bus, kann also keine über [Xtractor](/guides/xtractor)s "An Pixler senden"-Übergabe geschobenen Bilder empfangen, stellt aber `window.pixlerInstance` für Konsolenzugriff bereit.
+::: tip Standalone page
+Pixler is also available as a self-contained page at `/tools/pixler.html` — the same class, just embedded directly in the page instead of a Forge window. The one functional difference: the standalone page has no engine event bus, so it can't receive images pushed via [Xtractor](/guides/xtractor)'s "Send to Pixler" handoff, but it does expose `window.pixlerInstance` for console access.
 :::
 
-## Werkzeuge
+## Tools
 
-Vier Werkzeuge, umschaltbar über die Toolbar oder ein Tastaturkürzel:
+Four tools, switchable via the toolbar or a keyboard shortcut:
 
-| Werkzeug | Taste | Anmerkungen |
+| Tool | Key | Notes |
 |---|---|---|
-| Stift | `P` | Standardwerkzeug; Einzelpixel-Zeichnen. Rechtsklick radiert. |
-| Bucket Fill | `F` | Flood-Fill passend zur exakten Farbe unter dem Klick. |
-| Farbpipette | `I` | Sampelt die Farbe unter dem Cursor. `Alt`+Klick funktioniert als einmalige Auswahl, unabhängig vom aktiven Werkzeug. |
-| Linie | `L` | Bresenham-Linie zwischen aufeinanderfolgenden Klicks, sodass ihr Segmente verketten könnt. `Shift`+Klick zeichnet ebenfalls eine Linie, unabhängig vom aktiven Werkzeug. |
+| Pencil | `P` | Default tool; single-pixel drawing. Right-click erases. |
+| Bucket Fill | `F` | Flood-fills matching the exact color under the click. |
+| Color Picker | `I` | Samples the color under the cursor. `Alt`+click works as a one-off pick regardless of the active tool. |
+| Line | `L` | Bresenham line between consecutive clicks, so you can chain segments. `Shift`+click also draws a line, regardless of the active tool. |
 
-## Canvas, Palette und Raster
+## Canvas, palette, and grid
 
-- **Größe** — startet bei 32×32px bei 16-fachem Zoom; die `W`/`H`-Eingaben skalieren sie, während bestehende Pixeldaten erhalten bleiben.
-- **Zoom** — eine numerische Eingabe, kein Mausrad; es gibt kein Zoom-Kürzel.
-- **Palette** — ein Dropdown aus sechs eingebauten Paletten (Default, EGA, VGA, PICO-8, Game Boy, Grayscale). Zifferntasten `1`–`9` springen direkt zu einem Paletten-Slot.
-- **GridX/GridY** — ein sekundäres magentafarbenes Overlay-Raster, rein zur visuellen Referenz (z.B. um Kachelgrenzen zu markieren) — es beeinflusst den Export in keiner Weise, es gibt keinen gekachelten/Mehrfach-Frame-Export.
+- **Size** — starts at 32×32px at 16x zoom; the `W`/`H` inputs resize it while preserving existing pixel data.
+- **Zoom** — a numeric input, not the mouse wheel; there is no zoom shortcut.
+- **Palette** — a dropdown of six built-in palettes (Default, EGA, VGA, PICO-8, Game Boy, Grayscale). Number keys `1`–`9` jump directly to a palette slot.
+- **GridX/GridY** — a secondary magenta overlay grid, purely a visual reference (e.g. to mark tile boundaries) — it has no effect on export; there is no tiled/multi-frame export.
 
-## Symmetrie-Modus
+## Symmetry mode
 
-Zwei unabhängige Umschalter (X-Achse 🪞X und Y-Achse 🪞Y) spiegeln jeden Stift- und Linien-Strich beim Zeichnen — beide aktivieren für 4-Wege-Symmetrie. Wichtig zu wissen: **Bucket Fill respektiert den Symmetrie-Modus nicht** — nur direkte Stift-/Linien-Striche werden gespiegelt.
+Two independent toggles (X-axis 🪞X and Y-axis 🪞Y) mirror every pencil and line stroke as you draw — enable both for 4-way symmetry. Important: **Bucket Fill does not respect symmetry mode** — only direct pencil/line strokes are mirrored.
 
-## Bearbeiten
+## Editing
 
-- **Undo/Redo** — `Strg/Cmd+Z` und `Strg/Cmd+Shift+Z`, bis zu 50 Schritte.
-- **Pan** — `Shift` + Pfeiltasten/WASD verschiebt den Sprite-Inhalt, wobei er an den Kanten umbricht (das bewegt Pixeldaten, nicht das Viewport).
-- **Flip** — nur per Tastatur: `Strg/Cmd+Shift` + Hoch/Runter (oder W/S) spiegelt vertikal, `Strg/Cmd+Shift` + Links/Rechts (oder A/D) spiegelt horizontal. Es gibt keinen Toolbar-Button und **kein Rotieren** — nur die beiden Spiegelachsen existieren.
-- **Trim** — der ✂️-Button schneidet automatisch auf die Bounding-Box des Nicht-Hintergrund-Inhalts zu. "Hintergrund" bedeutet vollständig transparente Pixel, oder Pixel, die zur aktuell ausgewählten Farbe passen, falls diese Farbe nicht transparent ist (so könnt ihr auch einen einfarbigen Rand wegschneiden, nicht nur Transparenz).
-- **Clear** — löscht das Canvas (mit zuvor gespeichertem Undo-Schritt).
-- **A-Z-Vorlage** — lädt eine eingebaute Bitmap-Schriftart als Ausgangspunkt.
+- **Undo/Redo** — `Ctrl/Cmd+Z` and `Ctrl/Cmd+Shift+Z`, up to 50 steps.
+- **Pan** — `Shift` + arrow keys/WASD shifts the sprite content, wrapping at the edges (this moves pixel data, not the viewport).
+- **Flip** — keyboard-only: `Ctrl/Cmd+Shift` + Up/Down (or W/S) flips vertically, `Ctrl/Cmd+Shift` + Left/Right (or A/D) flips horizontally. There is no toolbar button and **no rotate** — only the two mirror axes exist.
+- **Trim** — the ✂️ button automatically crops to the bounding box of non-background content. "Background" means fully transparent pixels, or pixels matching the currently selected color if that color is not transparent (so you can also trim away a solid-color border, not just transparency).
+- **Clear** — clears the canvas (with a prior undo step saved).
+- **A-Z template** — loads a built-in bitmap font as a starting point.
 
-Vollständige Kürzel-Referenz: Pfeiltasten/WASD bewegen eine Cursor-Zelle für Zelle (zeichnet, während ein Strich aktiv ist), `Leertaste` zeichnet am Cursor, `X`/`Entf`/`Rücktaste` radieren am Cursor. Kürzel sind ausgesetzt, während ein Texteingabefeld fokussiert ist.
+Full shortcut reference: arrow keys/WASD move a cursor cell by cell (drawing while a stroke is active), `Space` draws at the cursor, `X`/`Delete`/`Backspace` erases at the cursor. Shortcuts are suspended while a text input field is focused.
 
-## Sprites rein- und rausbekommen
+## Getting sprites in and out
 
-- **Copy as Base64** — der 📋-Button kopiert eine PNG-Data-URL in die Zwischenablage.
-- **Copy as Image** — der 💾-Button schreibt einen echten PNG-Blob in die Zwischenablage, sodass ihr ihn in andere Apps einfügen könnt (oder direkt zurück in Pixler, oder ein anderes Werkzeug).
-- **Einfügen** — `Strg/Cmd+V`, während Pixler das oberste sichtbare Forge-Fenster ist, lädt, was auch immer sich auf eurer Zwischenablage befindet.
-- **Von Xtractor** — siehe [Xtractor](/guides/xtractor)s "An Pixler senden"-Button, der einen Ausschnitt direkt an die Pixler-Instanz schiebt, die auf dem gemeinsamen Event-Bus lauscht.
+- **Copy as Base64** — the 📋 button copies a PNG data URL to the clipboard.
+- **Copy as Image** — the 💾 button writes an actual PNG blob to the clipboard, so you can paste it into other apps (or back into Pixler, or another tool).
+- **Paste** — `Ctrl/Cmd+V`, while Pixler is the topmost visible Forge window, loads whatever is on your clipboard.
+- **From Xtractor** — see [Xtractor](/guides/xtractor)'s "Send to Pixler" button, which pushes a crop directly to the Pixler instance listening on the shared event bus.
 
-Es gibt kein Dateisystem-Speichern/Laden — Export erfolgt nur über die Zwischenablage — und keine Sprite-Sheet-/Animations-Frame-Unterstützung; das ist ein Editor für einzelne statische Bilder.
+There is no filesystem save/load — export only happens via the clipboard — and no sprite sheet/animation frame support; this is an editor for single static images.
 
-## Einschränkungen
+## Limitations
 
-- **Nur ein einzelnes Bild** — keine Frames, keine Animation, kein gekachelter Sprite-Sheet-Export (das GridX/GridY-Overlay ist nur visuelle Hilfe).
-- **Kein Rotieren**, nur horizontales/vertikales Spiegeln.
-- **Bucket Fill ignoriert den Symmetrie-Modus.**
-- **Sprite-Inhalt wird im angedockten Forge-Fenster nicht über Neuladen hinweg persistiert** — `getState()`/`setState()` existieren an der Klasse, aber der Forge-Fenstermanager ruft sie nie auf, sodass nur der Öffnen-/Geschlossen-Zustand des Fensters ein Neuladen überlebt, nicht das, was ihr gezeichnet habt.
-- Die eigenständige Seite kann keine Pushes von Xtractor empfangen (kein gemeinsamer Event-Bus) und hat kein eigenes Paste-Routing über das hinaus, was die Klasse selbst bietet.
+- **Single image only** — no frames, no animation, no tiled sprite sheet export (the GridX/GridY overlay is a visual aid only).
+- **No rotate**, only horizontal/vertical mirroring.
+- **Bucket Fill ignores symmetry mode.**
+- **Sprite content does not persist across reloads in the docked Forge window** — `getState()`/`setState()` exist on the class, but the Forge window manager never calls them, so only the window's open/closed state survives a reload, not what you drew.
+- The standalone page cannot receive pushes from Xtractor (no shared event bus) and has no paste routing of its own beyond what the class itself provides.

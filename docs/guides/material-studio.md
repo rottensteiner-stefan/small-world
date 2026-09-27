@@ -1,12 +1,12 @@
-# Material Studio (PBR-Map-Generator)
+# Material Studio (PBR Map Generator)
 
-::: tip Was dieses Werkzeug tatsächlich ist
-Der Name legt einen Material-*Editor* nahe — etwas, das euch erlaubt, ein `StandardMaterial`/`GlassMaterial` an einem ausgewählten Szenenobjekt anzupassen, so wie es [Maker](/guides/maker) tut. Das ist es nicht. **Material Studio ist ein PBR-Textur-Map-Generator**: ihr gebt ihm ein Diffuse-Bild, und er leitet daraus über 2D-Bildverarbeitungs-Heuristiken eine Height-, Normal-, Specular-, Roughness-, Ambient-Occlusion- und Edge-Map ab — und lässt euch das Ergebnis dann auf einem Beispiel-Mesh in einer isolierten Sandbox-Szene vorschauen. Er rührt eure tatsächlich laufende Spielszene nie an.
+::: tip What this tool actually is
+The name suggests a material *editor* — something that lets you tweak a `StandardMaterial`/`GlassMaterial` on a selected scene object, the way [Maker](/guides/maker) does. It isn't that. **Material Studio is a PBR texture map generator**: you give it a diffuse image, and it derives a height, normal, specular, roughness, ambient occlusion, and edge map from it via 2D image-processing heuristics — then lets you preview the result on a sample mesh in an isolated sandbox scene. It never touches your actual running game scene.
 :::
 
-## Aktivieren
+## Enabling it
 
-`attachDevTools(app)` aus `@small-world/tools` aufrufen, dann öffnet sich Material Studio als eines der angedockten Forge-Fenster:
+Call `attachDevTools(app)` from `@small-world/tools`, and Material Studio opens as one of the docked Forge windows:
 
 ```typescript
 import { SmallWorld } from "@small-world/engine";
@@ -17,49 +17,49 @@ attachDevTools(app);
 app.start();
 ```
 
-**Strg+Alt+G** (oder **Cmd+Alt+G**) drücken, um das Forge-Overlay ein-/auszublenden.
+Press **Ctrl+Alt+G** (or **Cmd+Alt+G**) to show/hide the Forge overlay.
 
-::: tip Eigenständige Seite
-Ein enger Verwandter lebt unter `/tools/pbr-gen.html` — er dupliziert dieselbe Bildverarbeitungs-Pipeline und UI inline (statt die `MaterialStudio`-Klasse zu importieren) und nutzt aus dem gemeinsamen Modul nur die 3D-Vorschau-Hälfte (`MaterialStudioApp`) wieder. Behandelt ihn als separat gepflegten Fork, nicht als dünnen Wrapper.
+::: tip Standalone page
+A close relative lives at `/tools/pbr-gen.html` — it duplicates the same image-processing pipeline and UI inline (instead of importing the `MaterialStudio` class) and only reuses the 3D preview half (`MaterialStudioApp`) from the shared module. Treat it as a separately maintained fork, not a thin wrapper.
 :::
 
-## Ein Quellbild laden
+## Loading a source image
 
-Ein Bild per Drag-and-Drop auf die Dropzone ziehen, darauf klicken, um einen Dateiauswahl-Dialog zu öffnen, oder direkt einfügen (`Strg/Cmd+V`, während Material Studio das oberste Forge-Fenster ist). PNG/JPG/WebP bis 8MB. Ist nichts geladen, wird standardmäßig eine gebündelte Stein-Textur verwendet — und fällt auf eine synthetische, prozedurale Rausch-Textur zurück, falls selbst das nicht geladen werden kann.
+Drag and drop an image onto the dropzone, click it to open a file picker dialog, or paste directly (`Ctrl/Cmd+V` while Material Studio is the topmost Forge window). PNG/JPG/WebP up to 8MB. If nothing is loaded, a bundled stone texture is used by default — falling back to a synthetic, procedural noise texture if even that fails to load.
 
-## Maps erzeugen
+## Generating maps
 
-Ein "Preset Profile"-Dropdown (Default, Stone, Metal, Wood) setzt einen Ausgangspunkt für sieben Gruppen von Reglern, von denen jede eine abgeleitete Map einstellt:
+A "Preset Profile" dropdown (Default, Stone, Metal, Wood) sets a starting point for seven groups of controls, each tuning one derived map:
 
-- **Height Map** — Blur-Radius, Kontrast, Invertieren.
-- **Normal Map** — Bump-Stärke, OpenGL-/DirectX-Format, Rotkanal invertieren.
-- **Specular Map** — sigmoidaler Kontrast und Mittelpunkt-Schwellenwert.
-- **Roughness Map** — Gamma-Exponent.
-- **Ambient Occlusion** — Weichschatten-Blur, Kerbenstärke, Intensität.
-- **Edge Map** — Kontrast-Schwellenwert und Dicke.
-- **3D-Vorschau** — Metallic-Basis und Roughness-Override, die nur die lokale Vorschau betreffen, keine exportierte Map.
+- **Height Map** — blur radius, contrast, invert.
+- **Normal Map** — bump strength, OpenGL/DirectX format, invert red channel.
+- **Specular Map** — sigmoidal contrast and midpoint threshold.
+- **Roughness Map** — gamma exponent.
+- **Ambient Occlusion** — soft-shadow blur, crevice strength, intensity.
+- **Edge Map** — contrast threshold and thickness.
+- **3D Preview** — metallic base and roughness override, which only affect the local preview, not any exported map.
 
-Jede Regler-Änderung verarbeitet das Bild sofort neu (mit einem kurzen Lade-Overlay). Bei höheren "Working Max Resolution"-Einstellungen (1024px oder Originalgröße) läuft diese Neuberechnung im Hauptthread und kann die UI für einen Moment merklich stocken lassen — der Kompromiss dafür, keine Worker-basierte Pipeline auszuliefern.
+Every control change reprocesses the image immediately (with a brief loading overlay). At higher "Working Max Resolution" settings (1024px or original size), this recomputation runs on the main thread and can noticeably stall the UI for a moment — the trade-off for not shipping a worker-based pipeline.
 
-::: warning Das sind schnelle Näherungen, keine gebackenen PBR-Maps
-Normal Maps entstehen aus einem Sobel-Gradienten über die Luminanz der Height Map, nicht aus einem echten High-to-Low-Poly-Bake. Ambient Occlusion ist eine Laplace-Kerben-plus-Blur-Heuristik, nicht raytraced oder SSAO. Specular/Roughness sind Gamma-/Sigmoid-Kurventransformationen derselben Höhendaten. Das ist ein echt nützlicher Schnellstart für ein plausibel aussehendes Material, kein physikalisch akkurater Map-Backer — erwartet kein Studio-Niveau-Ergebnis aus einem einzelnen Diffuse-Foto.
+::: warning These are fast approximations, not baked PBR maps
+Normal maps come from a Sobel gradient over the height map's luminance, not a real high-to-low-poly bake. Ambient occlusion is a Laplacian-crevice-plus-blur heuristic, not raytraced or SSAO. Specular/roughness are gamma/sigmoid curve transforms of the same height data. This is a genuinely useful quick start for a plausible-looking material, not a physically accurate map baker — don't expect studio-grade results from a single diffuse photo.
 :::
 
-## Vorschau und Export
+## Preview and export
 
-Zwischen Tabs wechseln, um eine einzelne Map, das volle Raster aller sieben, oder eine **"Small World Engine Preview"** anzusehen — eine live, automatisch rotierende Sphere/Cube/Torus/Plane, gerendert mit euren erzeugten Maps auf einem `StandardMaterial`, in Material Studios eigener isolierter Vorschau-Szene (sie hat nichts mit der tatsächlichen Szene oder den Objekten eures Spiels zu tun).
+Switch between tabs to view a single map, the full grid of all seven, or a **"Small World Engine Preview"** — a live, auto-rotating sphere/cube/torus/plane, rendered with your generated maps on a `StandardMaterial`, in Material Studio's own isolated preview scene (it has nothing to do with your game's actual scene or objects).
 
-Export ist reines PNG, kein Bündeln:
+Export is plain PNG, no bundling:
 
-- Klick auf das Canvas einer einzelnen Map, oder deren Download-Icon in der Rasteransicht, speichert diese eine Map als `<dateiname>_<maptyp>.png`.
-- **Download All Maps** löst alle sechs Downloads (Height/Normal/Specular/Roughness/AO/Edge) nacheinander aus — es gibt kein Zip-Bündeln.
+- Clicking a single map's canvas, or its download icon in the grid view, saves that one map as `<filename>_<maptype>.png`.
+- **Download All Maps** triggers all six downloads (Height/Normal/Specular/Roughness/AO/Edge) in sequence — there is no zip bundling.
 
-Es gibt keinen Material-JSON-Export und keine Möglichkeit, das Ergebnis zurück auf ein Objekt in eurer laufenden Szene anzuwenden — die erzeugten Texturen in euer tatsächliches Spiel zu übernehmen ist ein manueller Schritt (die heruntergeladenen PNGs so laden wie jedes andere Textur-Asset).
+There is no material JSON export and no way to apply the result back to an object in your running scene — bringing the generated textures into your actual game is a manual step (load the downloaded PNGs like any other texture asset).
 
-## Einschränkungen
+## Limitations
 
-- **Nur `StandardMaterial` wird unterstützt** — es gibt keinen Materialtyp-Selektor, und keine der anderen Material-Klassen der Engine (Glass, Terrain, Phong, eigene Shader usw.) ist irgendwo in diesem Werkzeug repräsentiert.
-- **Keine Szenen-Integration.** Ihr könnt kein lebendes Objekt/Material auswählen und bearbeiten — alles passiert in einer isolierten Vorschau-Sandbox.
-- **Keine Persistenz.** Das erneute Öffnen des Fensters startet immer mit dem Standardbild und Standard-Preset; nichts, was ihr konfiguriert habt, überlebt ein Neuladen.
-- **Nur PNG-Export**, kein Material-Konfigurations-JSON, kein Zip-Bündeln der sechs Maps.
-- Die erzeugten Maps sind approximative, bildverarbeitungsbasierte Heuristiken — siehe die Warnung oben.
+- **Only `StandardMaterial` is supported** — there is no material type selector, and none of the engine's other material classes (Glass, Terrain, Phong, custom shaders, etc.) are represented anywhere in this tool.
+- **No scene integration.** You cannot select and edit a live object/material — everything happens in an isolated preview sandbox.
+- **No persistence.** Reopening the window always starts with the default image and default preset; nothing you configure survives a reload.
+- **PNG export only**, no material configuration JSON, no zip bundling of the six maps.
+- The generated maps are approximate, image-processing-based heuristics — see the warning above.
