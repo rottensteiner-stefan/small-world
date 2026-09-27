@@ -120,10 +120,10 @@ class Showcase29 extends AbstractShowcase {
       this.camera.updateProjectionMatrix();
     }
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(10.8, 7.8, -5.3);
-    this.camera.theta = -Math.PI * 0.5 - 0.08; // Look along -X down the gallery corridor
-    this.camera.phi = -0.04; // Subtle downward glance capturing floor tiles and arch soffits
-    this.camera.target.set(-10, 7.5, -5.0);
+    this.camera.position.set(8.841, 1.226, -0.451);
+    this.camera.theta = -1.506;
+    this.camera.phi = 0.04;
+    this.camera.target.set(7.844, 1.267, -0.516);
     this.camera.addBehavior(
       new FlyController({
         input: this.input,
@@ -817,5 +817,6 @@ class Showcase29 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase29();
+(window as unknown as { swApp: Showcase29 }).swApp = app;
 attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase29] Failed to start:", err));

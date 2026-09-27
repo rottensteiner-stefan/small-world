@@ -63,8 +63,12 @@ vec3 linearToSRGB(vec3 linear, float invGamma) {
 }
 
 void main() {
-    // Flip Y: WebGL FBO is stored bottom-up, screen is top-down
-    vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
+    // No flip needed here: the HDR FBO was rendered with the same fullscreen-triangle vertex
+    // shader that produces this v_uv, so its clip-space-to-UV mapping already matches WebGL's
+    // render-target storage convention (v=1 at the top, same as gl_Position.y=+1). A flip here
+    // would undo that and invert the whole final image -- unlike WebGPU (see PostProcess.vert.wgsl),
+    // which flips once at the vertex stage because its texture-coordinate origin is top-left.
+    vec2 uv = v_uv;
     vec3 hdr = texture2D(u_hdrTexture, uv).rgb;
 
     // Bloom mixing
