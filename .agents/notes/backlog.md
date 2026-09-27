@@ -77,6 +77,9 @@ erzeugen.
   ursprünglich mitgenannten, aber nie als Roadmap-Punkt getrackten Dateien
   (`character-diorama/showcase.ts`, `prologue.ts`, `ViennaMapModal.ts`, `Pixler.ts`) bleiben
   unverändert über 1000 Zeilen, ausdrücklich als Scope-Fakt vermerkt, nicht als Regression.
+  → Update 2026-09-27: ✅ Review gegengeprüft (alle Fixes intakt, auch nach dem `packages/tools/`-
+  Umzug) — Report-Datei gelöscht, Index-Eintrag in `docs/research/index.md` entfernt. Einziger
+  offener Rest bleibt genau der oben genannte: die 4 nie getrackten Dateien über 1000 Zeilen.
 
 ---
 
@@ -119,6 +122,13 @@ erzeugen.
   Erledigt/Offen-Ticket, mit Stale-Hinweis versehen statt gelöscht), `oil-puddle-shader-technique.md`
   (Referenzformeln-Abschnitt dauerhaft gültig, Pfad-Hinweis ergänzt), `plan-0-level-descriptors-2026-09-18.md`
   (historische Q&A-Herleitung zu ADR 0020, mit Abgelöst-Vermerk verschoben statt gelöscht).
+  → **Update 2026-09-27:** `showcase-feature-audit.md` analog zu `aaa-engine-techniques.md`
+  zur **pflegbaren Wunschliste** umgebaut: ehemalige Lückenliste gegen den Live-Code verifiziert
+  (word-boundary-grep über `apps/` + `packages/engine/src/`) und als Wunschliste F1–F9
+  konsolidiert (AreaLight, FluidVolume, TaaElement, MotionTrailElement, OscillatorBehavior,
+  StateMachineBehavior, CameraStrategyType.FIXED, CCD, OBB — alle weiterhin 0 Treffer in `apps/`);
+  `HbaoElement` (#27/29/32) und `Line` (#6) inzwischen geschlossen; historische Feature-Matrix
+  bleibt als Referenz-Anhang erhalten. `docs/research/index.md`-Eintrag entsprechend aktualisiert.
 
 ---
 
