@@ -111,8 +111,10 @@ erzeugen.
   Maßnahmen umgesetzt, u. a. Lampen jetzt `wall_lamp.glb` statt Custom-Geometrie),
   `projekt-raum.md` (vollständig umgesetzt als `apps/showcases/37/`), `xdp-game-networking.md`
   (auf User-Wunsch entfernt, unabhängig vom Reference-Charakter). Bewusst NICHT gelöscht:
-  `aaa-engine-techniques.md` (4 echte offene Punkte, u. a. volumetrischer Nebel als nächstes
-  großes Vorhaben), `codebase-review-2026-09-18-thermo-nuclear.md` (2 offene Punkte: MakerApp-/
+  `aaa-engine-techniques.md` (am 2026-09-27 zur **pflegbaren Wunschliste** umgebaut: fester Bestand der
+  umgesetzten Punkte verifiziert — u. a. #14 HZB inzwischen gebaut via ADR 0008 — und offene Punkte
+  konsolidiert: volumetrischer Nebel Stufe B als nächstes großes Vorhaben, volles GTAO, LOD, Billboards,
+  volles TAA), `codebase-review-2026-09-18-thermo-nuclear.md` (2 offene Punkte: MakerApp-/
   MaterialStudio-Modularisierung, MAJ-10), `showcase-feature-audit.md` (veraltete Inventur statt
   Erledigt/Offen-Ticket, mit Stale-Hinweis versehen statt gelöscht), `oil-puddle-shader-technique.md`
   (Referenzformeln-Abschnitt dauerhaft gültig, Pfad-Hinweis ergänzt), `plan-0-level-descriptors-2026-09-18.md`
