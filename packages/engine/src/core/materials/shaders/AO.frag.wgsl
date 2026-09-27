@@ -40,8 +40,12 @@ fn computeHBAO(pixelCoord: vec2i, dims: vec2i) -> f32 {
     let viewPos = reconstructViewPos(uv, linearZ);
 
     let texelSize = vec2f(1.0) / vec2f(dims);
-    let dPosDx = reconstructViewPos(uv + vec2f(texelSize.x, 0.0), linearZ) - viewPos;
-    let dPosDy = reconstructViewPos(uv + vec2f(0.0, texelSize.y), linearZ) - viewPos;
+    let depthR = textureLoad(depthMap, clamp(centerCoord + vec2i(1, 0), vec2i(0, 0), maxCoord), 0);
+    let depthU = textureLoad(depthMap, clamp(centerCoord + vec2i(0, 1), vec2i(0, 0), maxCoord), 0);
+    let linearZR = select(linearizeDepth(depthR), linearZ, depthR >= 1.0);
+    let linearZU = select(linearizeDepth(depthU), linearZ, depthU >= 1.0);
+    let dPosDx = reconstructViewPos(uv + vec2f(texelSize.x, 0.0), linearZR) - viewPos;
+    let dPosDy = reconstructViewPos(uv + vec2f(0.0, texelSize.y), linearZU) - viewPos;
     let crossN = cross(dPosDx, dPosDy);
     let lenSq = dot(crossN, crossN);
     var normal = select(vec3f(0.0, 0.0, -1.0), normalize(crossN), lenSq > 0.000001);

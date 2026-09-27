@@ -8,6 +8,11 @@ void main() {
   rawNormal.xy *= u_extraParams.zw;
   vec3 N = normalize(v_tbn * rawNormal);
 
-  [LIGHT_CALC]
-  gl_FragColor = vec4(finalLight * u_color.rgb * texColor.rgb, u_color.a * texColor.a);
+  float finalAlpha = u_color.a * texColor.a;
+  if (finalAlpha < u_extraParams.y) {
+    discard;
+  }
+
+  gl_FragColor = vec4(finalLight * u_color.rgb * texColor.rgb, finalAlpha);
+  [FOG_CALC]
 }

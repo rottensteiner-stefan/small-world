@@ -35,7 +35,7 @@ struct AreaLight {
     vec3 normal;
     float _pad5;
     vec2 size;
-    vec2 _pad6;
+    vec2 params; // x: distance, y: decay
 };
 
 layout(std140) uniform GlobalUniforms {

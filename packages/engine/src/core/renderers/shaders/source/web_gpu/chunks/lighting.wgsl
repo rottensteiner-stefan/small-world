@@ -12,7 +12,7 @@ let diff_dir = max(dot(N, L_dir), 0.0);
 var shadow: f32 = 1.0;
     if (global.dirShadowInfo.z > 0.5) {
         let numCascades = u32(global.dirShadowInfo.w);
-        var cascadeIndex = 0u;
+        var cascadeIndex = max(numCascades, 1u) - 1u;
         let viewDist = length(global.viewPos.xyz - i.wp);
         for (var c: u32 = 0u; c < numCascades; c++) {
             if (viewDist < global.cascadeSplits[c]) {
@@ -103,7 +103,10 @@ for(var k=0u; k<spotCluster.y; k++) {
   let theta = dot(-L, S);
   if(theta > sLights[j].params.x) {
     let sEff = smoothstep(sLights[j].params.x, sLights[j].params.y, theta);
-    let atten = 1.0 / (1.0 + 0.1*d + 0.01*d*d); 
+    let maxDist = sLights[j].params.z;
+    let decay = sLights[j].params.w;
+    if (maxDist > 0.0 && d >= maxDist) { continue; }
+    let atten = select(1.0 / (d * d + 0.0001), pow(clamp(1.0 - d / maxDist, 0.0, 1.0), decay), maxDist > 0.0);
     let diff = max(dot(N, L), 0.0);
     var shadow: f32 = 1.0;
     // Pre-existing constraint, unrelated to clustering: only the first 4 spot lights (by scene
@@ -141,7 +144,10 @@ for(var j=0u; j<u32(global.numAreaLights); j++) {
     let dist = length(lightVec);
     let L = lightVec / (dist + 0.0001);
 
-    let atten = 1.0 / (1.0 + 0.1*dist + 0.01*dist*dist);
+    let maxDist = aLights[j].size.z;
+    let decay = aLights[j].size.w;
+    if (maxDist > 0.0 && dist >= maxDist) { continue; }
+    let atten = select(1.0 / (1.0 + 0.1*dist + 0.01*dist*dist), pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay), maxDist > 0.0);
     let diff = max(dot(N, L), 0.0);
 
     fL += diff * aLights[j].col.xyz * atten;

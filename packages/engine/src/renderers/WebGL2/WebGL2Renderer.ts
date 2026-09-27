@@ -1507,6 +1507,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         ubo.setVec3(offset + 64, mat[8]!, mat[9]!, mat[10]!);
         ubo.setFloat(offset + 80, al.width / 2.0);
         ubo.setFloat(offset + 84, al.height / 2.0);
+        ubo.setFloat(offset + 88, al.distance);
+        ubo.setFloat(offset + 92, al.decay);
       }
     }
 

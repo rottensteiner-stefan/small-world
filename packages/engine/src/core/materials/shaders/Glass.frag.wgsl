@@ -81,12 +81,16 @@
         let L = lightVec / dist;
         let H = normalize(V + L);
         
-        let theta = dot(-L, normalize(sLights[k].dir.xyz));
-        let epsilon = sLights[k].params.x - sLights[k].params.y;
-        let spotIntensity = clamp((theta - sLights[k].params.y) / epsilon, 0.0, 1.0);
-        
-        let attenuation = 1.0 / (dist * dist + 0.0001);
-        let radiance = sLights[k].col.xyz * attenuation * spotIntensity;
+        let spotDir = normalize(sLights[k].dir.xyz);
+        let cosOuter = sLights[k].params.x;
+        let cosInner = sLights[k].params.y;
+        let maxDist = sLights[k].params.z;
+        let decay = sLights[k].params.w;
+        let theta = dot(L, -spotDir);
+        let epsilon = max(cosInner - cosOuter, 0.0001);
+        let spotIntensity = clamp((theta - cosOuter) / epsilon, 0.0, 1.0);
+        let distanceAttenuation = select(1.0 / (dist * dist + 0.0001), pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay), maxDist > 0.0);
+        let radiance = sLights[k].col.xyz * distanceAttenuation * spotIntensity;
 
         let dotNL = max(dot(N, L), 0.0);
         let dotNH = max(dot(N, H), 0.0);

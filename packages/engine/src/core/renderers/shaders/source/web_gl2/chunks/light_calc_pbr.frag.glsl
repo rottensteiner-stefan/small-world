@@ -59,7 +59,7 @@ vec3 Lo = vec3(0.0);
 
 // -- Directional Light --
 {
-    vec3 L = normalize(-u_dirLightDir);
+    vec3 L = normalize(u_dirLightDir);
     vec3 H = normalize(V + L);
     float dotNL = max(dot(N, L), 0.0);
     float dotNH = max(dot(N, H), 0.0);
@@ -404,7 +404,10 @@ for(int i = 0; i < 4; i++) {
     vec3 L = lightVec / (dist + 0.0001);
     vec3 H = normalize(V + L);
 
-    float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
+    float maxDist = u_areaLights[i].params.x;
+    float decay = u_areaLights[i].params.y;
+    if (maxDist > 0.0 && dist >= maxDist) continue;
+    float attenuation = (maxDist > 0.0) ? pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay) : (1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist));
     vec3 radiance = u_areaLights[i].color * attenuation;
 
     float dotNL = max(dot(N, L), 0.0);

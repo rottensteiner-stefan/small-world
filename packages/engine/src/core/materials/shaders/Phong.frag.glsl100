@@ -14,5 +14,11 @@ void main() {
   vec3 albedo = texColor.rgb * u_color.rgb;
   vec3 finalColor = finalLight * albedo + specular * u_specColor.rgb * specMapValue;
   
-  gl_FragColor = vec4(finalColor, u_color.a * texColor.a);
+  float finalAlpha = u_color.a * texColor.a;
+  if (finalAlpha < u_extraParams.y) {
+    discard;
+  }
+
+  gl_FragColor = vec4(finalColor, finalAlpha);
+  [FOG_CALC]
 }

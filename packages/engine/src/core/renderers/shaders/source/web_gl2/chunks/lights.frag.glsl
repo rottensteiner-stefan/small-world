@@ -29,7 +29,7 @@ struct AreaLight {
     vec3 normal;
     float _pad5;
     vec2 size;
-    vec2 _pad6;
+    vec2 params; // x: distance, y: decay
 };
 
 // Note: This block must match the one in headers exactly if not using separate files

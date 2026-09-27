@@ -10,6 +10,10 @@ export interface AreaLightOptions extends LightOptions {
   width?: number;
   /** The height/length of the light area. Defaults to 5.0. */
   height?: number;
+  /** The maximum distance of the light. Defaults to 0.0 (infinite). */
+  distance?: number;
+  /** The decay factor of the light. Defaults to 2.0. */
+  decay?: number;
 }
 
 /** Maximum number of simultaneous AreaLights supported by shader forward pipelines. Raising this
@@ -32,15 +36,23 @@ export class AreaLight extends AbstractLight {
   /** The height/length of the light area. */
   public height: number;
 
+  /** The maximum distance of the light. */
+  public distance: number;
+
+  /** The decay factor of the light. */
+  public decay: number;
+
   /**
    * Creates a new AreaLight.
    * @param options The configuration options for the light.
    */
   constructor(options: AreaLightOptions = {}) {
-    const { width = 5.0, height = 5.0, name = "AreaLight" } = options;
+    const { width = 5.0, height = 5.0, distance = 0.0, decay = 2.0, name = "AreaLight" } = options;
     super({ ...options, name });
     this.width = width;
     this.height = height;
+    this.distance = distance;
+    this.decay = decay;
   }
 
   /** @inheritdoc */

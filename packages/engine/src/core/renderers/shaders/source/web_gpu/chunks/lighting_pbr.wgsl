@@ -29,7 +29,7 @@ var Lo = vec3f(0.0);
     var shadow: f32 = 1.0;
     if (global.dirShadowInfo.z > 0.5) {
         let numCascades = u32(global.dirShadowInfo.w);
-        var cascadeIndex = 0u;
+        var cascadeIndex = max(numCascades, 1u) - 1u;
         let viewDist = length(global.viewPos.xyz - i.wp);
         for (var c: u32 = 0u; c < numCascades; c++) {
             if (viewDist < global.cascadeSplits[c]) {
@@ -243,7 +243,10 @@ for(var j=0u; j<u32(global.numAreaLights); j++) {
     let L = lightVec / (dist + 0.0001);
     let H = normalize(V + L);
 
-    let atten = 1.0 / (1.0 + 0.1*dist + 0.01*dist*dist);
+    let maxDist = aLights[j].size.z;
+    let decay = aLights[j].size.w;
+    if (maxDist > 0.0 && dist >= maxDist) { continue; }
+    let atten = select(1.0 / (1.0 + 0.1*dist + 0.01*dist*dist), pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay), maxDist > 0.0);
     let radiance = aLights[j].col.xyz * atten;
 
     let dotNL = max(dot(N, L), 0.0);

@@ -41,5 +41,11 @@ void main() {
   // Gamma Correction
   finalColor = linearToSRGB(finalColor);
 
-  fragColor = vec4(finalColor, u_color.a * texColor.a);
+  float finalAlpha = u_color.a * texColor.a;
+  if (finalAlpha < u_extraParams.y) {
+    discard;
+  }
+
+  fragColor = vec4(finalColor, finalAlpha);
+  [FOG_CALC]
 }

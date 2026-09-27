@@ -85,5 +85,6 @@ fn opTwist(p: vec3f, k: f32) -> vec3f {
 }
 
 fn opRepeat(p: vec3f, c: vec3f) -> vec3f {
-    return (p + 0.5 * c) % c - 0.5 * c;
+    let q = p + 0.5 * c;
+    return q - c * floor(q / c) - 0.5 * c;
 }

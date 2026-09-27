@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.85.0] - 2026-09-27
+
+### "Nothing can dim the light which shines from within." - Maya Angelou
+
+- **Rendering & Shaders:**
+  - *WebGL2 Directional Light Negation Fix*: Corrected double negation in WebGL2 [`light_calc.frag.glsl`](packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl) and [`light_calc_pbr.frag.glsl`](packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl) from `-u_dirLightDir` to `u_dirLightDir`, restoring consistent sun/light direction and correct lighting facing angles across WebGL1, WebGL2, and WebGPU.
+  - *WebGPU HBAO Normal Reconstruction Accuracy*: Fixed [`AO.frag.wgsl`](packages/engine/src/core/materials/shaders/AO.frag.wgsl) to fetch real neighbor depths at `centerCoord + (1, 0)` and `centerCoord + (0, 1)` rather than passing center `linearZ` into `reconstructViewPos`, resolving the issue where reconstructed normals were statically forced to $(0, 0, -1)$.
+  - *WebGPU Glass & Frostglass Spotlight Attenuation*: Corrected spotlight cone formula and epsilon calculation in [`Glass.frag.wgsl`](packages/engine/src/core/materials/shaders/Glass.frag.wgsl) and [`Frostglass.frag.wgsl`](packages/engine/src/core/materials/shaders/Frostglass.frag.wgsl) to eliminate inverted inner/outer spotlight beams and integrate distance falloff.
+  - *WebGPU CSM Cascade Fallback*: Hardened cascade index selection in [`lighting.wgsl`](packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl) and [`lighting_pbr.wgsl`](packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl) to initialize `cascadeIndex = max(numCascades, 1u) - 1u`, ensuring far fragments beyond cascade splits seamlessly use the coarsest cascade instead of snapping to cascade 0.
+  - *Non-PBR & Area Light Attenuation*: Wired `distance` and `decay` attenuation into Non-PBR spot lights and AreaLights across [`light_calc.frag.glsl`](packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl), [`light_calc_pbr.frag.glsl`](packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl), [`lighting.wgsl`](packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl), and [`lighting_pbr.wgsl`](packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl); updated `AreaLight` struct layouts in UBO/SSBO and GLSL headers.
+  - *WGSL SDF Domain Repetition Modulo Parity*: Replaced symmetric `%` with floored modulo ($q - c \cdot \lfloor q / c \rfloor$) in [`sdf_math.wgsl`](packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/sdf_math.wgsl) to ensure correct negative domain repetitions matching GLSL.
+  - *GLSL Material Fog & Cutout Parity*: Injected `[FOG_CALC]` chunk and alpha-cutout discard checks across `Phong.frag.glsl`, `Lambert.frag.glsl`, `Basic.frag.glsl`, and their `glsl100` variants.
+- **Housekeeping & Docs:**
+  - *Thermo-Nuclear Quality Review*: Completed Chapter 2 of the Thermo-Nuclear Code Quality Review, resolving all 7 shader, lighting, and shadow parity issues ([`.agents/notes/thermo-nuclear-code-quality-review-2026-09-27.md`](.agents/notes/thermo-nuclear-code-quality-review-2026-09-27.md)).
+
 ## [0.84.1] - 2026-09-27
 
 ### "Measure what is measurable, and make measurable what is not so." - Galileo Galilei

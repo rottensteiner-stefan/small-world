@@ -3,7 +3,7 @@
       vec3 specular = vec3(0.0);
 
       // Directional Light
-      vec3 L_dir = normalize(-u_dirLightDir);
+      vec3 L_dir = normalize(u_dirLightDir);
       float diff_dir = max(dot(N, L_dir), 0.0);
       
       float dirShadow = 1.0;
@@ -187,7 +187,10 @@
         float theta = dot(-L_sp, S_dir);
         if(theta > u_spotLights[i].params.x) {
             float spotEffect = smoothstep(u_spotLights[i].params.x, u_spotLights[i].params.y, theta);
-            float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
+            float maxDist = u_spotLights[i].params.z;
+            float decay = u_spotLights[i].params.w;
+            if (maxDist > 0.0 && dist >= maxDist) continue;
+            float attenuation = (maxDist > 0.0) ? pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay) : (1.0 / (dist * dist + 0.0001));
             float diff_sp = max(dot(N, L_sp), 0.0);
             
             // Shadow Calculation
@@ -251,7 +254,10 @@
         float dist = length(lightVec);
         vec3 L_al = lightVec / (dist + 0.0001);
 
-        float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
+        float maxDist = u_areaLights[i].params.x;
+        float decay = u_areaLights[i].params.y;
+        if (maxDist > 0.0 && dist >= maxDist) continue;
+        float attenuation = (maxDist > 0.0) ? pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay) : (1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist));
         float diff_al = max(dot(N, L_al), 0.0);
 
         finalLight += diff_al * u_areaLights[i].color * attenuation;

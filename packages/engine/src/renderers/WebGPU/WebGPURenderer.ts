@@ -2085,7 +2085,7 @@ export class WebGPURenderer extends AbstractRenderer {
       alData.set([m[0]!, m[1]!, m[2]!, 0], off + 8);
       alData.set([m[4]!, m[5]!, m[6]!, 0], off + 12);
       alData.set([m[8]!, m[9]!, m[10]!, 0], off + 16);
-      alData.set([l.width / 2, l.height / 2, 0, 0], off + 20);
+      alData.set([l.width / 2, l.height / 2, l.distance, l.decay], off + 20);
     }
     this._device!.queue.writeBuffer(this._areaLightBuffer, 0, alData.subarray(0, alDataSize));
   }

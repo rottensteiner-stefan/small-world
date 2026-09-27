@@ -48,32 +48,26 @@
 
 ## 2. Verifikation der Shader-, Beleuchtungs- & Shadow-Claims
 
-### 2.1 [CHECK][SHADER-MATH-BUG] WebGL2: Directional-Light-Richtung doppelt negiert
-* **Dateien:** `DirectionalLight.applyTo` (`core/lights/DirectionalLight.ts#L353-L360`: `data.dDir = -direction`), WebGL2 `light_calc.frag.glsl:6` & `light_calc_pbr.frag.glsl:62` (`normalize(-u_dirLightDir)`), WebGL1 `light_calc.frag.glsl:6` (`normalize(u_dirLightDir)`), WebGPU `lighting.wgsl:10`/`lighting_pbr.wgsl:23` (`normalize(global.dirLightDir.xyz)`).
-* **Nachrechnung (alle drei Backends gegengeprüft):** WebGL1 und WebGPU nutzen `dDir` (zeigt zur Lichtquelle). WebGL2 negiert *nochmals*: $L$ zeigt von der Sonne weg. Nach oben gerichtete, von der Sonne getroffene Flächen werden dunkel; Unterseiten hell. **Bestätigt, P0 — der gravierendste Shader-Fehler des Reviews.**
+### 2.1 ✅ [SHADER-MATH-BUG] WebGL2: Directional-Light-Richtung doppelt negiert
+* **Status:** ✅ **Erledigt (v0.85.0)** — `-u_dirLightDir` zu `u_dirLightDir` in `light_calc.frag.glsl` und `light_calc_pbr.frag.glsl` korrigiert. 100% Parität zu WebGL1 und WebGPU wiederhergestellt.
 
-### 2.2 [CHECK][SHADER-MATH-BUG] WebGPU HBAO-Normalenrekonstruktion nagelt Normalen auf $(0,0,-1)$
-* **Datei:** `core/materials/shaders/AO.frag.wgsl#L42-L50`
-* **Nachrechnung:** Beide Nachbarpixel werden mit demselben `linearZ` des Zentrums-Pixels rekonstruiert (Z. 43–44 übergeben `linearZ`, nicht die Nachbar-Tiefe). Damit ist $dPosDx=(\Delta x\cdot z,0,0)$, $dPosDy=(0,\Delta y\cdot z,0)$; das Kreuzprodukt ergibt strikt $(0,0,\Delta x\Delta y z^2)$, und nach Vorzeichenkorrektur `if (normal.z > 0) normal = -normal` ist jede Normale $(0,0,-1)$. HBAO berechnet Horizon-Winkel gegen eine blickflache Ebene statt gegen echte Geometrie. `AO.frag.glsl` (WebGL2) ist von der gleichen Struktur betroffen — dort muss geprüft werden, ob die Nachbar-`linearZ`-Abfragen real sind (GLSL kann `texture()` mit gezielten UVs sampeln). **Bestätigt, P0.**
+### 2.2 ✅ [SHADER-MATH-BUG] WebGPU HBAO-Normalenrekonstruktion nagelt Normalen auf $(0,0,-1)$
+* **Status:** ✅ **Erledigt (v0.85.0)** — Echte Nachbartiefen-Samples bei `centerCoord + (1, 0)` und `centerCoord + (0, 1)` in `AO.frag.wgsl` implementiert; Normale rekonstruiert echte Geometriekrümmung.
 
-### 2.3 [CHECK][SHADER-MATH-BUG] WebGPU Glass/Frostglass: Spotlight-Konus invertiert
-* **Dateien:** `core/materials/shaders/Glass.frag.wgsl#L85-L86`, `Frostglass.frag.wgsl#L85-L86`
-* **Nachrechnung:** `params.x = cos(angle)`, `params.y = cos(angle·(1−penumbra))` (`WebGL2Renderer.ts:1486` bzw. `WebGPURenderer.ts:2064`). Da `angle > innerAngle`, ist `params.x < params.y` → `epsilon = params.x - params.y < 0`. Im Kegelinnern ($\theta > \cos_{\text{inner}}$, Zähler positiv) wird durch negatives `epsilon` dividiert → `clamp→0` (dunkel); außerhalb → 1 (hell). Kegel ist invertiert. **Bestätigt, P0.** Die GLSL-Variante ist korrekt (`smoothstep(params.x, params.y, θ)` mit aufsteigenden Kanten) — reine WGSL-Divergenz.
+### 2.3 ✅ [SHADER-MATH-BUG] WebGPU Glass/Frostglass: Spotlight-Konus invertiert
+* **Status:** ✅ **Erledigt (v0.85.0)** — `epsilon` und `spotIntensity` sowie Distanzdämpfung in `Glass.frag.wgsl` und `Frostglass.frag.wgsl` korrigiert und an `lighting_pbr.wgsl` angeglichen.
 
-### 2.4 [CHECK][SHADER-MATH-BUG] CSM Cascade-Selection-Fallback außerhalb tiefster Kaskade
-* **Dateien:** `web_gpu/chunks/lighting.wgsl#L15-L21`, `lighting_pbr.wgsl#L32-L38`
-* **Nachrechnung:** Im WGSL wird `var cascadeIndex = 0u` initialisiert; liegt `viewDist` jenseits der letzten Kaskade, greift keine Schleifen-`if`, `cascadeIndex` bleibt `0u` und `blendToNext` mischt Kaskade 0 in Kaskade 1. Die GLSL-Variante initialisiert korrekt `int cascadeIndex = numCascades - 1` (`light_calc.frag.glsl:13`). **Bestätigt als WGSL-vs-GLSL-Inkonsistenz, P1** (kein Crash, aber falsche/riesige Schattenkaskade im Fernbereich).
+### 2.4 ✅ [SHADER-MATH-BUG] CSM Cascade-Selection-Fallback außerhalb tiefster Kaskade
+* **Status:** ✅ **Erledigt (v0.85.0)** — Initialisierung auf `cascadeIndex = max(numCascades, 1u) - 1u` in `lighting.wgsl` und `lighting_pbr.wgsl` korrigiert.
 
-### 2.5 [CHECK][SHADER-MATH-BUG] Non-PBR-Spot & Area-Lights ignorieren `distance`/`decay`
-* **Dateien:** `web_gpu/chunks/lighting.wgsl#L106`, `web_gl2/chunks/light_calc.frag.glsl#L190`, und — im Erstbericht nicht erwähnt — die **Area-Lights** (`lighting.wgsl#L144`, `light_calc.frag.glsl#L254`) nutzen dieselbe feste Dämpfung $1/(1+0.1d+0.01d^2)$ ohne Distanz-Windowing.
-* **Bestätigt und erweitert:** Nicht nur Spot-, sondern auch Area-Lights ignorieren `distance`/`decay` der Konfiguration; Point-Lights und PBR-Spots implementieren beides korrekt. **P1.**
+### 2.5 ✅ [SHADER-MATH-BUG] Non-PBR-Spot & Area-Lights ignorieren `distance`/`decay`
+* **Status:** ✅ **Erledigt (v0.85.0)** — Distanz- und Decay-Dämpfung für Non-PBR-Spots und Area-Lights über GLSL/WGSL und UBO/SSBO-Packing vollständig implementiert.
 
-### 2.6 [CHECK][SHADER-MATH-BUG] WGSL `opRepeat` — Modulo-Vorzeichenparität
-* **Dateien:** `web_gpu/chunks/sdf_math.wgsl#L88` vs. `web_gl2/chunks/sdf_math.glsl#L88`
-* **Nachrechnung:** GLSL `mod(a,b)` ist floored (Ergebnis ≥ 0 bei b>0), WGSL `%` ist symmetrischer Rest (Vorzeichen des Dividenden). Für negative Koordinaten spiegelt die WGSL-Domain-Wiederholung das Gitter an der Nullachse — exakt der bekannte SDF-WGSL-Fallstrick. Fix: `q − c·floor(q/c) − 0.5·c`. **Bestätigt, P2** (nur WGSL-SDF-Demo kritisch, keine Produktions-Parität).
+### 2.6 ✅ [SHADER-MATH-BUG] WGSL `opRepeat` — Modulo-Vorzeichenparität
+* **Status:** ✅ **Erledigt (v0.85.0)** — Symmetrisches `%` durch `q - c * floor(q / c) - 0.5 * c` in `sdf_math.wgsl` ersetzt.
 
-### 2.7 [CHECK][PARITY-BUG] GLSL-Materialien ohne `[FOG_CALC]` & Alpha-Cutout
-* **Dateien:** `Phong.frag.glsl`, `Lambert.frag.glsl`, `Basic.frag.glsl` (WebGL2): kein `[FOG_CALC]`; `Phong.frag.glsl` zudem ohne `if (finalAlpha < extraParams.y) discard;`. WGSL-Gegenstücke (`Phong.frag.wgsl:18-22` u. a.) enthalten beides. `FOG_CALC` ist als `glsl300`-Chunk registriert (`CoreShaderChunks.ts:81`), wird aber in diesen Materialien nie injiziert. **Bestätigt, P2.**
+### 2.7 ✅ [PARITY-BUG] GLSL-Materialien ohne `[FOG_CALC]` & Alpha-Cutout
+* **Status:** ✅ **Erledigt (v0.85.0)** — `[FOG_CALC]` und `discard`-Alpha-Cutout in `Phong.frag.glsl`, `Lambert.frag.glsl`, `Basic.frag.glsl` sowie deren GLSL100-Versionen injiziert.
 
 ---
 
