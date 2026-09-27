@@ -124,11 +124,11 @@
 ### 4.5 [NEU][PARITY, P1] WebGL1-Shadowless-Pfad bleibt von 3.5 unberührt, aber WebGL1/WebGL2 unterscheiden sich in der Spot-`params`-Auswertung
 * **Befund nach Abgleich:** WebGL1 `light_calc` kennt weder CSM noch PCSS (kein `u_dirShadowMapRaw`), nutzt aber *dieselben* `params.x/params.y` für den Spot-Konus wie WebGL2. Da `params.x < params.y` gilt, ist die WebGL1/WebGL2-Spot-Softness-Formel `smoothstep(params.x, params.y, θ)` konsistent. **Kein Bug** — aber drei Backends berechnen den Konus auf drei verschiedene Weisen (GLSL `smoothstep`, WGSL PBR `(θ−params.y)/(params.x−params.y)`, WGSL Non-PBR `smoothstep`), mit der einen invertierten Ausnahme in Glass/Frostglass (2.3). Die Dreifach-Replikation der Beleuchtungslogik ist selbst das strukturelle Problem.
 
-### 4.6 [NEU][DOC, WIDERLEGT] HBAO-Teil der REFERENCES-Kritik hält nicht
-* **Befund:** Der Erstbericht behauptet, `REFERENCES.md` (HBAO-Abschnitt) verspräche, WebGPU HBAO binde Geometrienormalen ein. Der HBAO-Abschnitt (Z. 344 ff.) beschreibt ausschließlich die Screen-Space-Horizon-Methode mit `dot(directionToSample, normal)` und dem rekonstruierten Normalen-Term — keine Zusage, Geometrienormalen zu binden. Ein solches Versprechen existiert im referenzierten Abschnitt nicht; die Kritik ist insoweit **widerlegt**. Der Clearcoat-Teil der REFERENCES-Kritik ist dagegen **haltbar**: `REFERENCES.md:253 ff.` dokumentiert $F_{cc}=F_{Schlick}(N_{cc}\cdot V,\dots)$ und $D_{cc}=D_{GGX}(N_{cc}\cdot H,\dots)$ mit getrennter Klarlack-Normale $N_{cc}$; der WebGL2-Code erfüllt das (`light_calc_pbr.frag.glsl:38-44`), der WebGPU-Code *nicht* (`lighting_pbr.wgsl:75-80,143-148` verwendet `dotNH` der Basis-Normale und sampelt keine `clearcoatNormalMap`). **Doku-vs-Code-Gap nur im WebGPU-Zweig.**
+### 4.6 ✅ [NEU][DOC] Clearcoat-Pipeline-Dokumentation & HBAO-Klärung
+* **Status:** ✅ **Erledigt** — `REFERENCES.md` um Pipeline-Implementierungs-Notiz für Clearcoat (WebGL2 vs. WebGPU Normal Maps) ergänzt; HBAO-Claim bereinigt.
 
-### 4.7 [NEU][ADR] ADR 0008: Kern-Aussage überholt, aber mit Update-Notiz
-* **Befund:** Der ADR-Kerntext (Z. 55 ff.) beschreibt eine eigene szenengebundene Traversierung in `_dispatchHzbTest()`. Der Code (`WebGPURenderer.ts#L942-L994`) liest `scene.lastFrustumVisibleObjects`, ein Byproduct von `getVisibleObjectsSorted()`; eine eigene Traversierung existiert nicht mehr. Der ADR enthält eine **Update-Notiz** (Z. 66 ff.) zur Entfernung des alten `lastVisibleObjects`-Feldes, adressiert aber die konkrete Umschreibung von „eigener Traversierung“ auf „Byproduct-Nutzung“ nicht. **Hinweis:** `lastFrustumVisibleObjects` ist nur gültig, wenn pro Frame eine `getVisibleObjectsSorted`-Auflösung mit *Hauptkamera* gelaufen ist (sonst veraltet die Kandidatenliste). Der Code dokumentiert die Abhängigkeit aufrichtig (Z. 942-947), das ADR hinkt hinterher. **Bestätigt als Doku-Lücke, P3.**
+### 4.7 ✅ [NEU][ADR] ADR 0008: Update-Notiz zu `scene.lastFrustumVisibleObjects`
+* **Status:** ✅ **Erledigt** — `docs/adr/0008-hzb-occlusion-culling-webgpu-only.md` aktualisiert: dokumentiert nun explizit die Nutzung der szenengebundenen Byproduct-Liste `scene.lastFrustumVisibleObjects` zur Vermeidung redundanter Szenentraversierungen.
 
 ---
 
@@ -169,4 +169,4 @@ Die im Erstbericht skizzierte Judo-Roadmap bleibt richtig und wird bestätigt, m
 | **P2** | `[SHADER-MATH-BUG]` | WGSL SDF | `opRepeat`-Modulo-Ersatz via `floor` (2.6). | ✅ **v0.85.0** |
 | **P2** | `[MATH-BUG]` | `Matrix4.lookAt` | Dynamische Wahl der am wenigsten ausgerichteten Achse statt `z.x += ε` (1.3). | ✅ **v0.84.1** |
 | **P2** | `[PERF][NEU]` | `EulerIntegrator` | Interpolation in Scratch-Pose statt Live-Zustand; Matrix-Konsistenz (4.3). | ✅ **v0.84.1** |
-| **P3** | `[DOC]` | `REFERENCES.md` | Clearcoat-WeGPU-Diskrepanz dokumentieren/korrigieren; HBAO-Behauptung bereinigen (4.6). | 📋 **Kapitel 4** |
+| **P3** | `[DOC]` | `REFERENCES.md` | Clearcoat-WeGPU-Diskrepanz dokumentieren/korrigieren; HBAO-Behauptung bereinigen (4.6). | ✅ **Erledigt** |

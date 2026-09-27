@@ -261,6 +261,7 @@ This document serves to record external sources, algorithms, mathematical deriva
   - Clearcoat Fresnel: $F_{cc} = F_{\text{Schlick}}(N_{cc} \cdot V, F_0 = 0.04) \cdot \text{clearcoatFactor}$
   - Kelemen / Schlick-GGX visibility and GGX distribution: $D_{cc} = D_{\text{GGX}}(N_{cc} \cdot H, \alpha_{cc})$
   - Base layer attenuation: $(1 - F_{cc})$ energy conservation.
+- **Pipeline Implementation:** WebGL2 supports an independent clearcoat normal map ($N_{cc}$ via `light_calc_pbr.frag.glsl`), while WebGPU evaluates clearcoat using the base surface normal ($N_{cc} = N$).
 - **Usage:** Simulates a transparent, smooth dielectric coating over a rough or colored substrate (e.g. car paint, carbon fiber, lacquered furniture, wet stones).
 
 #### 5. `KHR_materials_sheen` — Charlie Microfiber Grazing-Angle Specular BRDF

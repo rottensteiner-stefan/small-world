@@ -66,10 +66,11 @@ Traversierung pro Frame, vermeidet aber genau diese Klasse Bug von vornherein.
 
 **Update:** `GadgetInspector` selbst ist inzwischen vollständig durch Maker ersetzt (ADR 0010), und
 `lastVisibleObjects` wurde als totes, nie korrekt konsumiertes Feld entfernt (`lastVisibleCount`/
-`lastIntersectedNodes` blieben als tatsächlich genutzte Introspektions-Felder). Die Kern-Entscheidung
-oben — szenengebundene Traversierung statt eines geteilten `static`-Felds — bleibt exakt der Grund,
-warum das alte Feld sich als nie sicher lesbar erwies und richtigerweise entfernt statt weiter
-gepflegt wurde.
+`lastIntersectedNodes` blieben als tatsächlich genutzte Introspektions-Felder). Um eine redundante
+Baumerkundung pro Frame zu vermeiden, nutzt `_dispatchHzbTest()` nun die szenengebundene, pro-Kamera gecachte
+Instanz-Property `scene.lastFrustumVisibleObjects`, die während `Scene.getVisibleObjectsSorted()` als Nebenprodukt
+der Frustum-Prüfung befüllt wird — damit entfällt der rekursive Zweitdurchlauf, ohne auf geteilte statische
+Felder zurückgreifen zu müssen.
 
 Occlusion Culling läuft nur für den Haupt-Canvas-Pass. `WebGPURenderer._buildHzbPyramid()`/
 `_dispatchHzbTest()` sind beide No-Ops, wann immer `_activeRenderTarget` gesetzt ist
