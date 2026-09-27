@@ -19,6 +19,7 @@ import {
   StandardMaterial,
   Vector3D,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 /** A simple procedural tree: a tapered trunk plus three overlapping foliage spheres. Built
  * fresh for every instance -- shared, mutable geometry/material would be wrong here since bake
@@ -83,7 +84,6 @@ class Showcase34 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       ...options,
     });
   }
@@ -200,4 +200,5 @@ class Showcase34 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase34();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase34] Failed to start:", err));

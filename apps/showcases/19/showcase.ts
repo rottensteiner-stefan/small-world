@@ -14,6 +14,7 @@ import {
   Vector3D,
   BoundingBox,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 class Showcase19 extends AbstractShowcase {
   constructor(options: EngineOptions = {}) {
@@ -21,7 +22,6 @@ class Showcase19 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       ...options,
     });
   }
@@ -143,4 +143,5 @@ class Showcase19 extends AbstractShowcase {
 }
 
 const app = new Showcase19();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase19] Failed to start:", err));

@@ -33,6 +33,7 @@ import {
   WireframeMaterial,
   ZoomController,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
 
 /**
@@ -225,5 +226,6 @@ export class Showcase6 extends AbstractShowcase {
   protected override update(): void {}
 }
 
-const app = new Showcase6({ enableInspector: true });
+const app = new Showcase6();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase6] Failed to start:", err));

@@ -11,6 +11,7 @@ Seit der npm-Workspaces-Restrukturierung lebt die Engine in einem einzigen Paket
 | `@small-world/gltf-extensions` | `packages/gltf-extensions/` | Datenebenen-gltF-Extensions (Draco, BasisU/KTX2) — siehe ADR 0017/0018 |
 | `@small-world/geometry-extras` | `packages/geometry-extras/` | Exotische & prozedurale Geometrien (Supershapes, Torus-Knoten, Lathe, Platonische Körper, parametrische Flächen, gefüllte Polygone, Voronoi-Zellen, Marching Cubes) außerhalb des Kern-Primitiven-Katalogs |
 | `@small-world/physics-extras` | `packages/physics-extras/` | Höherstufige Physik-Bausteine (z.B. Voronoi-Frakturen mit `ConvexHull`-Kollidern) |
+| `@small-world/tools` | `packages/tools/` | Entwicklungswerkzeuge (Maker, Material Studio, Pixler, Xtractor, Map Generator, Forge) — siehe [ADR 0024](/adr/0024-tools-ecosystem-package) |
 
 Jedes Extras-Paket extended zentrale öffentliche Verträge der Engine (`AbstractGeometry`, `GltfExtensionPlugin`, ...) und ist eigenständig testbar — dasselbe Erweiterungsprinzip, das ADR 0018 für die gltf-Datenebene und ADR 0021 für Geometrie/Physik festlegen.
 
@@ -22,17 +23,17 @@ Jedes Extras-Paket extended zentrale öffentliche Verträge der Engine (`Abstrac
    Wetter, atmosphärische Partikelsysteme (`WeatherEmitter`), Himmelssysteme und Flüssigkeitsoberflächen.
 3. **Ebene 3 — Behaviors & Simulation (`packages/engine/src/core/behaviors/`, `packages/engine/src/behaviors/`):**
    Controller, Sensoren, Animationsschleifen und ambientes Kreaturenleben (`RatGroomingBehavior`, `GroomingRat`).
-4. **Ebene 4 — Werkzeuge & ProcGen (`packages/engine/src/tools/`, `packages/engine/src/tools/procgen/`):**
-   Autoring-Werkzeuge (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`) und prozedurale Level-Generatoren (`GridLevelBuilder`).
+4. **Ebene 4 — ProcGen & Werkzeug-Erweiterungspunkt (`packages/engine/src/tools/procgen/`, `packages/engine/src/tools/forge/ForgeTool.ts`):**
+   Prozedurale Level-Generatoren (`GridLevelBuilder`) und die `ForgeTool`-Schnittstelle. Die konkreten Autoring-Werkzeuge selbst (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`) leben seit [ADR 0024](/adr/0024-tools-ecosystem-package) im eigenen Paket `@small-world/tools`, nicht mehr im Kern.
 
 ## Beispiel: Prozedurale Raster-Generierung (`GridLevelBuilder`)
 
-`GridLevelBuilder` liegt in `packages/engine/src/tools/procgen/` (exportiert über die `small-world`-Tooling-Oberfläche) und erlaubt es, 3D-Level aus ASCII-Rastern zu definieren.
+`GridLevelBuilder` liegt in `packages/engine/src/tools/procgen/` (exportiert über die `@small-world/engine`-Tooling-Oberfläche, ein echtes Laufzeit-Feature statt eines Entwicklungswerkzeugs) und erlaubt es, 3D-Level aus ASCII-Rastern zu definieren.
 
 ### Verwendung
 
 ```typescript
-import { GridLevelBuilder, GridLevelConfig, Object3D } from "small-world";
+import { GridLevelBuilder, GridLevelConfig, Object3D } from "@small-world/engine";
 
 const builder = new GridLevelBuilder();
 

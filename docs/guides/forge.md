@@ -22,33 +22,44 @@ Die Small World Engine liefert mehrere eingebaute Forge-Werkzeuge, um den Workfl
 Maker, Pixler, Xtractor und Map Generator sind auch als **eigenständige Webseiten** verfügbar (`/tools/maker.html`, `/tools/pixler.html`, `/tools/map-gen.html`, `/tools/xtractor.html`), die unabhängig laufen, ohne ein Spiel-Canvas oder Forge-Overlay zu benötigen — der empfohlene Weg für einen dedizierten Asset-Bearbeitungs-Workflow. Material Studio ist angedockt im Forge-Overlay einer laufenden Engine oder als Generator-Werkzeug verfügbar.
 :::
 
-::: warning Werkzeuge sind noch nicht Teil des veröffentlichten Pakets
-`Forge`, `ForgeTool` und jedes eingebaute Werkzeug liegen in `packages/engine/src/tools/`, werden aber nicht vom Root-Einstiegspunkt der Engine reexportiert, und `small-world/tools` ist (noch) kein auflösbarer Paket-Subpfad (keine `exports`-Map konfiguriert). Der Code unten spiegelt die beabsichtigte API wider und funktioniert, wenn gegen den eigenen Source-Tree der Engine gebaut wird; bis ein dedizierter `tools`-Build/-Export existiert, sind `enableInspector: true` oder die [eigenständigen Werkzeug-Seiten](#eingebaute-werkzeuge) (für Maker/Pixler/Xtractor/Map Generator) die unterstützten Wege für ein echtes Projekt.
+::: tip Eigenes Paket seit ADR 0024
+`Forge`, `ForgeTool` und jedes eingebaute Werkzeug leben seit [ADR 0024](/adr/0024-tools-ecosystem-package) in einem eigenen, auflösbaren Workspace-Paket `@small-world/tools` (`packages/tools/`) — nicht mehr in `@small-world/engine`. Nur `ForgeTool` (die Schnittstelle) bleibt im Kern.
 :::
 
 ## Die Forge in die eigene App integrieren
 
-::: tip Der schnelle Weg: `enableInspector`
-Nichts davon muss von Hand verdrahtet werden. `enableInspector: true` in der eigenen `SmallWorld`-Konfiguration erzeugt automatisch einen Forge-Hub mit allen fünf eingebauten Werkzeugen bereits angedockt — Gadget Inspector, Map Generator, Pixler, Xtractor und Material Studio — gebunden an **Strg+Alt+G** (Cmd+Alt+G auf macOS) zum Ein-/Ausblenden. Siehe die jeweilige Anleitung jedes Werkzeugs für dessen Funktion. Die manuelle Einrichtung unten ist für den Bau **eigener** Werkzeuge gedacht, oder falls eine andere Fenster-Teilmenge als die von `enableInspector` gewünscht ist.
+::: tip Der schnelle Weg: `attachDevTools`
+Nichts davon muss von Hand verdrahtet werden. `attachDevTools(app)` aus `@small-world/tools` erzeugt automatisch einen Forge-Hub mit allen vier eingebauten Fenster-Werkzeugen bereits angedockt — Map Generator, Pixler, Xtractor und Material Studio — gebunden an **Strg+Alt+G** (Cmd+Alt+G auf macOS) zum Ein-/Ausblenden. Es ersetzt das frühere `enableInspector: true` (entfernt in ADR 0024, da der Kern sonst konkrete Tool-Klassen kennen müsste). Siehe die jeweilige Anleitung jedes Werkzeugs für dessen Funktion. Die manuelle Einrichtung unten ist für den Bau **eigener** Werkzeuge gedacht, oder falls eine andere Fenster-Teilmenge gewünscht ist.
+
+```typescript
+import { SmallWorld } from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
+
+const app = new MyGame();
+attachDevTools(app);
+app.start();
+```
 :::
 
 Um eigene `ForgeTool`s (oder eine handverlesene Teilmenge der eingebauten) anzudocken, selbst eine `Forge` initialisieren und Fenster direkt darauf öffnen. Zu beachten: `Xtractor` *benötigt* einen `EventDispatcherImpl` als ersten Konstruktor-Parameter (genutzt für die Übergabe an Pixler), und `Pixler` akzeptiert optional einen (um diese Übergabe zu empfangen) — den eigenen `events`-Bus der `SmallWorld`-Instanz an beide übergeben, damit sie miteinander sprechen können:
 
 ```typescript
-import { SmallWorld } from "small-world";
-import { Forge, Pixler, Xtractor, MapGenerator } from "small-world/tools";
+import { SmallWorld } from "@small-world/engine";
+import { Forge, Pixler, Xtractor, MapGenerator } from "@small-world/tools";
 
 class MyGame extends SmallWorld {
+  public readonly myForge: Forge;
+
   constructor() {
     super();
 
     // 1. Das Forge-Overlay initialisieren und an die Taste '~' binden
-    this.forge = new Forge({ toggleKey: "~" });
+    this.myForge = new Forge({ toggleKey: "~" });
 
     // 2. Werkzeuge in schwebenden Fenstern öffnen, `this.events` gemeinsam nutzen, damit Xtractor Ausschnitte an Pixler übergeben kann
-    this.forge.openWindow("Pixler Editor", new Pixler(this.events), 50, 50);
-    this.forge.openWindow("Map Generator", new MapGenerator(), 400, 50);
-    this.forge.openWindow("Asset Extractor", new Xtractor(this.events), 50, 400);
+    this.myForge.openWindow("Pixler Editor", new Pixler(this.events), 50, 50);
+    this.myForge.openWindow("Map Generator", new MapGenerator(), 400, 50);
+    this.myForge.openWindow("Asset Extractor", new Xtractor(this.events), 50, 400);
   }
 }
 ```
@@ -60,7 +71,7 @@ Wird das Spiel gestartet und `~` gedrückt, erscheint ein halbtransparentes Over
 Es lässt sich ein eigenes `ForgeTool` bauen, um bestimmte Teile der eigenen Spiellogik zu bearbeiten (z. B. ein Dialog-Editor, ein Quest-Tracker).
 
 ```typescript
-import { ForgeTool, ForgeToolOptions } from "small-world/tools";
+import { ForgeTool, ForgeToolOptions } from "@small-world/engine";
 
 export class MyCustomTool extends ForgeTool {
   constructor(options: ForgeToolOptions = {}) {

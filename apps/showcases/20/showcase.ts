@@ -28,6 +28,7 @@ import {
   PostProcessingEffectType,
   BloomElement,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 class Showcase20 extends AbstractShowcase {
   protected async setupScene(): Promise<void> {
@@ -235,5 +236,6 @@ class Showcase20 extends AbstractShowcase {
   }
 }
 
-const app = new Showcase20({ enableInspector: true });
+const app = new Showcase20();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase20] Failed to start:", err));

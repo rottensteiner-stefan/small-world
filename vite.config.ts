@@ -173,8 +173,8 @@ export default defineConfig({
         copyRecursiveSync("apps/showcases", "dist/apps/showcases");
         copyRecursiveSync("apps/sample-apps", "dist/apps/sample-apps", true);
         copyRecursiveSync(
-          "packages/engine/src/tools/maker/docs",
-          "dist/packages/engine/src/tools/maker/docs",
+          "packages/tools/src/maker/docs",
+          "dist/packages/tools/src/maker/docs",
           true,
         );
       },

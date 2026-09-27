@@ -30,6 +30,7 @@ import {
   VignetteElement,
   WeatherEmitter,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 const STREET_HALF_WIDTH = 6;
 const STREET_LENGTH = 60;
@@ -56,7 +57,6 @@ class Showcase32 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       ...options,
     });
   }
@@ -410,4 +410,5 @@ class Showcase32 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase32();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase32] Failed to start:", err));

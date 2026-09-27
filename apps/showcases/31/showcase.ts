@@ -29,6 +29,7 @@ import {
   Vector3D,
   VignetteElement,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 const PLATFORM_HALF_WIDTH = 3.2;
 const PLATFORM_LENGTH = 34;
@@ -63,7 +64,6 @@ class Showcase31 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       ...options,
     });
   }
@@ -764,4 +764,5 @@ class Showcase31 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase31();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase31] Failed to start:", err));

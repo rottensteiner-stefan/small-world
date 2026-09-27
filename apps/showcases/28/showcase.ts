@@ -30,6 +30,7 @@ import {
   Vector2D,
   Keys,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 // ----------------------------------------------------------------------------
 // Real prism optics: Snell's law at both surfaces of the equilateral-triangle prism, with a
@@ -182,7 +183,6 @@ class Showcase28 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       ...options,
     });
   }
@@ -675,4 +675,5 @@ class Showcase28 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase28();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase28] Failed to start:", err));

@@ -72,7 +72,6 @@ export abstract class SmallWorld {
   private readonly _octreeVisualizer: OctreeVisualizer = new OctreeVisualizer();
   private readonly _collisionVisualizer: CollisionVisualizer = new CollisionVisualizer();
   private readonly _frustumCuller: FrustumCuller = new FrustumCuller();
-  public forge!: import("../tools/forge/Forge.js").Forge;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
   /** Whether debug visualization is enabled. */
@@ -98,7 +97,6 @@ export abstract class SmallWorld {
       rendererType: RendererType.DEFAULT,
       projectionType: ProjectionType.DEFAULT,
       fullscreen: true,
-      enableInspector: false,
       ...userConfig,
     };
 
@@ -320,38 +318,6 @@ export abstract class SmallWorld {
 
       await this.setupScene();
 
-      if (true === this.config.enableInspector) {
-        const { Forge } = await import("../tools/forge/Forge.js");
-        const { MapGenerator } = await import("../tools/MapGenerator.js");
-        const { Pixler } = await import("../tools/Pixler.js");
-        const { Xtractor } = await import("../tools/Xtractor.js");
-        const { MaterialStudio } = await import("../tools/MaterialStudio.js");
-
-        // Create a global Forge hub
-        this.forge = new Forge();
-
-        // Anchor hotkey logic in SmallWorld
-        window.addEventListener("keydown", this._onKeyDown);
-
-        const mapGen = new MapGenerator();
-        // Read custom map if it exists, to preserve states across reloads!
-        const savedMap = localStorage.getItem("yad_custom_map");
-        if (savedMap) {
-          mapGen.loadMapString(savedMap);
-        }
-        this.forge.openWindow("Map Generator", mapGen, 60, 60, "mapGenerator");
-
-        this.forge.openWindow("Pixler Editor", new Pixler(this.events), 50, 200, "pixlerEditor");
-        this.forge.openWindow(
-          "Asset Extractor",
-          new Xtractor(this.events),
-          400,
-          60,
-          "assetExtractor",
-        );
-        this.forge.openWindow("Material Studio", new MaterialStudio(), 750, 60, "materialStudio");
-      }
-
       this._isInitialized = true;
     }
 
@@ -388,7 +354,6 @@ export abstract class SmallWorld {
     this._isInitialized = false;
 
     window.removeEventListener("resize", this._onResize);
-    window.removeEventListener("keydown", this._onKeyDown);
     window.removeEventListener("pagehide", this._onPageHide);
 
     if (this.input && this.input.destroy) {
@@ -398,7 +363,6 @@ export abstract class SmallWorld {
       this.renderer.destroy();
     }
     this.audio.dispose();
-    this.forge?.destroy();
   }
 
   private _onPageHide = (): void => {
@@ -413,37 +377,6 @@ export abstract class SmallWorld {
     this.camera.updateProjectionMatrix();
     if (this.renderer) {
       this.renderer.setSize(this.canvas.width, this.canvas.height);
-    }
-  };
-
-  private _onKeyDown = (event: KeyboardEvent): void => {
-    if (
-      document.activeElement &&
-      ("INPUT" === document.activeElement.tagName || "TEXTAREA" === document.activeElement.tagName)
-    ) {
-      return;
-    }
-
-    if (true === event.repeat) return;
-
-    const altLeft = this.input.isPressed("AltLeft") || event.altKey;
-    const metaLeft = this.input.isPressed("MetaLeft") || event.metaKey;
-    const ctrlLeft = this.input.isPressed("ControlLeft") || event.ctrlKey;
-
-    if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
-      if ("KeyG" === event.code && this.forge) {
-        event.preventDefault();
-        this.forge.toggle();
-
-        if (this.forge.isVisible) {
-          this.input.preventPointerLock = true;
-          if (null !== document.pointerLockElement) {
-            document.exitPointerLock();
-          }
-        } else {
-          this.input.preventPointerLock = false;
-        }
-      }
     }
   };
 

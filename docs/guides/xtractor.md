@@ -4,16 +4,15 @@ Sprites aus einem Referenzblatt oder Screenshot herauszuziehen bedeutet normaler
 
 ## Aktivieren
 
-Wie die anderen eingebauten Entwickler-Werkzeuge wird Xtractor automatisch verdrahtet, sobald ihr `enableInspector: true` in eurer `SmallWorld`-Konfiguration setzt:
+Wie die anderen eingebauten Entwickler-Werkzeuge wird Xtractor automatisch verdrahtet, sobald ihr `attachDevTools(app)` aus `@small-world/tools` aufruft (siehe [The Forge](/guides/forge#die-forge-in-die-eigene-app-integrieren)):
 
 ```typescript
-import { SmallWorld } from "small-world";
+import { SmallWorld } from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
-class MyGame extends SmallWorld {
-  constructor() {
-    super({ enableInspector: true });
-  }
-}
+const app = new MyGame();
+attachDevTools(app);
+app.start();
 ```
 
 **Strg+Alt+G** (oder **Cmd+Alt+G**) drücken, um das Forge-Overlay zu öffnen, in dem Xtractor als "Asset Extractor"-Fenster erscheint.
@@ -22,8 +21,8 @@ class MyGame extends SmallWorld {
 Xtractor ist außerdem unter `/tools/xtractor.html` als in sich geschlossene Seite verfügbar. Beachtet, dass es sich um eine **separate, von Hand duplizierte Kopie** des HTML/CSS/JS des Werkzeugs handelt, nicht um einen dünnen Wrapper um dieselbe Klasse — Feature-Parität zwischen beiden wird von Hand gepflegt. Die eigenständige Seite hat keinen gemeinsamen Event-Bus, kann also Ausschnitte nicht an Pixler übergeben (siehe [Einschränkungen](#einschraenkungen) unten).
 :::
 
-::: warning Noch nicht Teil des veröffentlichten Pakets
-`Xtractor` lebt in `packages/engine/src/tools/` und wird noch nicht vom Root-Einstiegspunkt der Engine re-exportiert. `enableInspector: true` ist heute der unterstützte Weg, es zu nutzen.
+::: tip Eigenes Paket seit ADR 0024
+`Xtractor` lebt in `@small-world/tools` (`packages/tools/`), einem eigenen Workspace-Paket über `@small-world/engine` — siehe [ADR 0024](/adr/0024-tools-ecosystem-package).
 :::
 
 ## Ein Bild laden

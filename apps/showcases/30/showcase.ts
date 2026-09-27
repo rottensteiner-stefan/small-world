@@ -25,6 +25,7 @@ import {
   HbaoElement,
   VignetteElement,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 import { GltfLoader } from "../../../packages/engine/src/loaders/GltfLoader.js";
 
 /**
@@ -48,7 +49,6 @@ class Showcase30 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       ...options,
     });
   }
@@ -540,5 +540,6 @@ class Showcase30 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase30();
+attachDevTools(app);
 (window as unknown as { __app: Showcase30 }).__app = app;
 app.start().catch((err: unknown) => console.error("[Showcase30] Failed to start:", err));

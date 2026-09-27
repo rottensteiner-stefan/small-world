@@ -18,6 +18,7 @@ import {
   MathPool,
 } from "@small-world/engine";
 import { AbstractShowcase } from "@small-world/engine/core/index.js";
+import { attachDevTools } from "@small-world/tools";
 import { GltfLoader } from "@small-world/engine/loaders/GltfLoader.js";
 import { Bone } from "@small-world/engine/core/animation/index.js";
 import { ViennaMapModal } from "../../ui/ViennaMapModal.js";
@@ -1029,6 +1030,6 @@ class AndNowScene2 extends AbstractShowcase {
 
 const app = new AndNowScene2({
   rendererType: RendererType.BEST,
-  enableInspector: true,
 });
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[AndNowScene2] Failed to start:", err));

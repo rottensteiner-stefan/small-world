@@ -27,6 +27,7 @@ import {
   VignetteElement,
   Vector3D,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 /**
  * Showcase 29: "Sponza Atrium: Global Illumination & Volumetric Light Shafts"
@@ -55,7 +56,6 @@ class Showcase29 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       quality: {
         maxPixelRatio: 1.5,
       },
@@ -817,4 +817,5 @@ class Showcase29 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase29();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase29] Failed to start:", err));

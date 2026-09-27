@@ -35,6 +35,7 @@ import {
   VignetteElement,
   GrainElement,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 import {
   FogMode,
   PostProcessingEffectType,
@@ -343,7 +344,7 @@ class Showcase12 extends AbstractShowcase {
   private _oilMaterial?: OilPuddleMaterial;
 
   protected override async setupScene(): Promise<void> {
-    this.config.enableInspector = true; // Activate Forge
+    attachDevTools(this); // Activate Forge
     // THE MAGIC SWITCH: Enable Post-Processing
     this.renderer.postProcessing.enabled = true;
 

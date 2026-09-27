@@ -4,16 +4,15 @@
 
 ## Aktivieren
 
-`enableInspector: true` in eurer `SmallWorld`-Konfiguration setzen, dann öffnet sich Pixler als eines der angedockten Forge-Fenster:
+`attachDevTools(app)` aus `@small-world/tools` aufrufen, dann öffnet sich Pixler als eines der angedockten Forge-Fenster:
 
 ```typescript
-import { SmallWorld } from "small-world";
+import { SmallWorld } from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
-class MyGame extends SmallWorld {
-  constructor() {
-    super({ enableInspector: true });
-  }
-}
+const app = new MyGame();
+attachDevTools(app);
+app.start();
 ```
 
 **Strg+Alt+G** (oder **Cmd+Alt+G**) drücken, um das Forge-Overlay ein-/auszublenden.

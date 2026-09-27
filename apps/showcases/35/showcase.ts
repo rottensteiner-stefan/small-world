@@ -14,6 +14,7 @@ import {
   Sphere,
   StandardMaterial,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 const GRID_SIZE = 7;
 const SPHERE_RADIUS = 0.55;
@@ -33,7 +34,6 @@ class Showcase35 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       ...options,
     });
   }
@@ -102,4 +102,5 @@ class Showcase35 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase35();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase35] Failed to start:", err));

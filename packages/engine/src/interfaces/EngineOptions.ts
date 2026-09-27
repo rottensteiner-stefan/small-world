@@ -127,8 +127,6 @@ export interface EngineOptions {
    * Use this to supply a custom or third-party projection.
    */
   projectionInstance?: AbstractProjection;
-  /** Whether to enable the built-in Gadget Inspector overlay (defaults to false/true depending on setup). */
-  enableInspector?: boolean;
   /** Whether to step the built-in `PhysicsSystem` (`this.physics`) automatically every frame. Defaults to false. */
   enablePhysics?: boolean;
   /** Initial gravity vector for the built-in physics system, e.g. `[0, -9.81, 0]`. Defaults to the `PhysicsSystem` default. */

@@ -14,6 +14,7 @@ import {
   Sphere,
   StandardMaterial,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 const WALL_HALF_WIDTH = 5;
 const FIELD_Z = -10;
@@ -39,7 +40,6 @@ class Showcase33 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       enableOcclusionCulling: true,
       ...options,
     });
@@ -149,4 +149,5 @@ class Showcase33 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase33();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase33] Failed to start:", err));

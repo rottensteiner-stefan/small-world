@@ -3,7 +3,8 @@ export * from "./ibl-gen.js";
 export * from "./forge/ForgeTool.js";
 export * from "./procgen/index.js";
 
-// MaterialStudio, MapGenerator, Pixler, Xtractor, and Forge are intentionally NOT re-exported here:
-// SmallWorld.ts lazy-loads them via dynamic import() so they don't bloat every consumer's bundle.
-// Re-exporting them from this barrel would statically pull them back in, defeating that split --
-// import them directly from their own module path if you need them outside SmallWorld.
+// The concrete dev tools (Maker, MaterialStudio, MapGenerator, Pixler, Xtractor) and the Forge
+// window manager live in the separate `@small-world/tools` package (ADR 0024) -- the engine core
+// only ships the `ForgeTool` extension point above. Import them from `@small-world/tools` if you
+// need them; use `attachDevTools(app)` from that package to wire the standard dev-tool suite into
+// a running `SmallWorld` app (this used to be hardcoded here behind `config.enableInspector`).

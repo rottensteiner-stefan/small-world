@@ -35,7 +35,24 @@ erzeugen.
   das Apps selbst aufrufen — bewusster Breaking Change für jede App, die sich bisher allein auf
   `enableInspector: true` verlassen hat. Im Kern bleiben `ForgeTool` (Schnittstelle),
   `GridLevelBuilder` und `IBLShaders`/`ibl-gen` (echte Laufzeit-Features, keine Dev-Tools).
-  Noch nicht umgesetzt, nur das ADR.
+  → Update 2026-09-27: ✅ **Umgesetzt.** Neues Paket `packages/tools/` (`git mv`, Historie
+  erhalten): `maker/` (19 Dateien + `docs/`), `material-studio/`, `MaterialStudio.ts`,
+  `Pixler.ts`, `Xtractor.ts`, `MapGenerator.ts`, `common/` (TextureFilters/CanvasOperations),
+  `forge/{Forge,ForgeWindow,ForgeTheme}.ts` — ~25 Dateien von tiefen Relativimporten auf flaches
+  `@small-world/engine` umgestellt (Konvention wie `geometry-extras`). `SmallWorld.ts` verliert
+  `forge`-Property, den kompletten `enableInspector`-Block und `_onKeyDown` (war ausschließlich
+  Forge-Toggle) samt `destroy()`-Cleanup; `EngineOptions.enableInspector` entfernt.
+  `attachDevTools(app)` repliziert die alte Verdrahtung 1:1 (Forge + 4 Tool-Fenster, YAD-Map-
+  Restore, Alt+Ctrl/Meta+G-Toggle inkl. Pointer-Lock-Kopplung), gibt `{ forge, detach() }` zurück.
+  Breaking Change traf mehr Stellen als angenommen: 12 Showcases + 1 Sample-App nutzten
+  `enableInspector: true`, alle auf `attachDevTools(app)` migriert. `tweakpane` +
+  `@kitschpatrol/tweakpane-plugin-camerakit` von `engine/package.json` nach `tools/package.json`
+  verschoben (einziger Konsument `PropertyPanel.ts` ist mitgewandert). Vier `public/tools/*.html`-
+  Importpfade + 6 Guide-Docs (waren durch die alte Einschränkung überholt) aktualisiert. Verifiziert
+  (unabhängig nachgeprüft): `tsc --noEmit` sauber, volle Testsuite 190/190 Dateien 1092/1092 Tests
+  grün (unverändert zur Zahl vor der Migration), `npm run docs:build` sauber, `npm run build:lib`
+  sauber (931 kB Hauptbundle, Tool-Code nicht mehr enthalten), voller `vite build` erfolgreich mit
+  weiterhin sauber lazy-gesplitteten Tool-Chunks.
 
 ---
 

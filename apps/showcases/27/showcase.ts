@@ -24,6 +24,7 @@ import {
   BloomElement,
   HbaoElement,
 } from "../../../packages/engine/src/index.js";
+import { attachDevTools } from "../../../packages/tools/src/index.js";
 
 class Showcase27 extends AbstractShowcase {
   private _ringGroup!: Object3D;
@@ -38,7 +39,6 @@ class Showcase27 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
-      enableInspector: true,
       ...options,
     });
   }
@@ -386,4 +386,5 @@ class Showcase27 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase27();
+attachDevTools(app);
 app.start().catch((err: unknown) => console.error("[Showcase27] Failed to start:", err));
