@@ -20,6 +20,25 @@ erzeugen.
 
 ---
 
+## 2026-09-28 — Smartphone-Performance als Thema vorgemerkt
+
+- 💡 **Mobile/Smartphone-Performance & Quality-Tiers.** User hat mehrere Showcases (nicht nur
+  Showcase 29 „Sponza Atrium" — generell betroffen) von einem Xiaomi Redmi (Modell 23108RN04Y,
+  aktuelle Software) im selben WLAN aus aufgerufen (dazu die lokale `mkcert`-Root-CA per LAN auf
+  dem Handy als vertrauenswürdig installiert, damit die selbstsignierte Dev-Server-HTTPS-
+  Verbindung ohne Warnung läuft — siehe `https://<Mac-LAN-IP>:5173/...`). Ergebnis durchgängig:
+  läuft, aber **sehr zähflüssig**. Wahrscheinlichste Ursache ist nicht der Speicher, sondern die
+  GPU-Last: viele Showcases fahren HBAO + Bloom + Schatten-Kaskaden + ACES-Tonemapping gleichzeitig
+  auf voller Auflösung, ohne jede Qualitätsreduktion — das ist schon auf Desktop-Mittelklasse-GPUs
+  spürbar (Showcase 29 war nur das erste konkret genannte Beispiel). Die Engine hat aktuell **keine
+  Mobile-/Quality-Preset-Stufe** (kein dynamisches Downscaling, keine automatische
+  Post-Processing-Reduktion je nach Device/GPU-Klasse) — das betrifft also potenziell alle
+  Showcases mit aktivem Post-Processing gleichermaßen, nicht nur einen einzelnen. Naheliegender
+  Hebel, falls "Smartphone" als eigenes Ziel verfolgt wird: ein generischer Quality-Tier-
+  Mechanismus (z. B. automatische Pixel-Ratio-/Post-Processing-Reduktion unterhalb einer
+  bestimmten Device-Klasse), nicht ein Showcase-29-spezifischer Fix. Auf User-Wunsch fürs Erste
+  nur als Notiz vorgemerkt, keine Entscheidung getroffen.
+
 ## 2026-09-27 — Showcase 16 Spiegelungs-Fixes + offener Mond-Magnifikations-Bug (GL2)
 
 - ✅ **Cubemap-Hemisphären-Bug in `DynamicReflectionProbe` gefunden und gefixt** (Auslöser: User
