@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.90.0] - 2026-09-29
+
+### "Darkness cannot drive out darkness; only light can do that." - Martin Luther King Jr.
+
+- **Features:**
+  - *Kit-Decals in scene staging (The Whisper prologue)*: The previously-unused `flakturm/decals` asset pack is now staged across Koje 42 and the Kältekammer instead of further procedural dressing — wall stencil „Koje 42" next to the blast door + „Nur für Hausangehörige!" notice on the back wall, an „AZS – Sektor 0" morgue badge, structural `rebar_damage` spalling above the rubble, a 45° hazard warning zone in front of the pulled K-42 tray, and a luminescent `guide_stripe_glow` corridor leading toward the exit. All decals are static, fail-fast logged, and driven purely by existing CC0 kit assets.
+  - *Ground-truth lean architecture*: No new decal subsystem — decals remain transparent `Plane` + `StandardMaterial` (`diffuseMap = alphaMap`, `transparent` → depth-write auto-off, `cullMode = NONE`), a ~20-line helper in [`prologue.ts`](apps/sample-apps/the-whisper/scenes/prologue/prologue.ts).
+- **Architecture & Bugfixes:**
+  - *Mirror-safe wall decals*: The +X-facing wall rotation (`rotation.y = π/2`) mirrors the stencil, counteracted via `Texture.flipX()` (UV-repeat-based, no asset duplication); the 4:1 guide-stripe texture is laid along the corridor axis via a capped two-node rotation (`x = −π/2` + `z = π/2`) instead of an unsupported UV-rotation.
+  - *No code-path duplication*: `_placeSceneDecals` had two call sites in the decal increment (inside `_loadKaeltekammerProps` and the async boot chain), causing duplicate decal trees — consolidated to the single boot-chain call.
+- **Housekeeping & Docs:**
+  - *Verified in browser*: all six decals confirm correct world axes (normals toward the room, stripe long axis on Z, `y = 0.006` above the floor), textures loaded (512 px), zero console errors.
+  - *Test status*: 201 test files green; sole failure (`SDFShaderChunks` `isContextLost`) confirmed pre-existing WebGPU load flakiness — passes in isolation, unrelated to this change.
+
 ## [0.89.0] - 2026-09-29
 
 ### "We shape our tools and thereafter our tools shape us." - Marshall McLuhan

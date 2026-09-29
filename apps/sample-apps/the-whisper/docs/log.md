@@ -1868,3 +1868,23 @@ befüllen.
 - **QA:** 201 Testdateien / 1194 Tests grün, inkl. Schema-Validierung beider Level-Deskriptoren
   und Kit-Manifest-Referenzprüfung; `typecheck`, `lint` und `build:lib` fehlerfrei.
   Visuell im Dev-Server verifiziert (alle 17 Kit-Props im Objektbaum, Render-Frame nicht schwarz).
+
+## 140. Kit-Decals in der Szene — Beschilderung & Materialschäden aus den vorhandenen Assets (2026-09-29)
+- **Auftrag:** Weiter im Asset-First-Programm — die bislang ungenutzten Flakturm-Decal-Assets
+  endlich in der Szene einsetzen statt auf weitere prozedurale Deko zu setzen.
+- **Umgesetzt (statisch, alle aus `flakturm/decals/`):**
+  - KOJE 42: „Koje 42"-Wand-Stencil am Türbereich (linke Backsteinwand, flipX gegen die
+    Planen-Spiegelung der +Y-Drehung) + „Nur für Hausangehörige!"-Schild an der Rückwand
+    unterhalb der Konduit-Bande.
+  - KÄLTEKAMMER: „AZS – Sektor 0"-Badge über dem Fächerschrank, Beton-/Bewehrungs-Schaden an
+    der Rückwand über dem Schutt, 45°-Warnzone auf dem Boden vor der herausgezogenen K-42-Lade,
+    und ein leuchtender Guidance-Streifen entlang des Mittelgangs Richtung Ausgang (Textur ist
+    quer, daher lange Streifenachse per gekapselter Rotation auf Z gelegt).
+- **Technische Erkenntnis:** Die Engine hat kein Decal-System — Decals = transparente Ebenen
+  (Plane + StandardMaterial mit `diffuseMap = alphaMap`, `transparent=true` →
+  depthWrite automatisch aus, `cullMode=NONE`). Für die +X-Wand muss die Textur via
+  `Texture.flipX()` gegengespielt werden (Y-Achsen-Drehung spiegelt den Stencil).
+- **QA:** Alle 6 Decals im Dev-Server verifiziert (Material geladen 512px, korrekte
+  Welt-Achsen: Schild-Normalen zum Raum, Streifen lang auf Z, y=0.006 über dem Boden), keine
+  Console-Fehler. 201 Testdateien grün; der einzige Rote (`SDFShaderChunks` isContextLost) ist
+  bekannte WebGPU-Last-Flakiness (isoliert grün), nicht Decal-bedingt.
