@@ -125,6 +125,28 @@
         "metalness.png",
         "ao.png"
       ]
+    },
+    {
+      "id": "flakturm/stone_ashlar",
+      "name": "Behauener Kalkstein — Quadermauerwerk (Außenfundament)",
+      "category": "walls",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "ao.png"
+      ]
+    },
+    {
+      "id": "flakturm/travertine",
+      "name": "Wiener Travertin & Kalksteinplatte (Wand & Pfeiler)",
+      "category": "walls",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "ao.png"
+      ]
     }
   ],
   "decals": [

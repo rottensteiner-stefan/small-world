@@ -56,13 +56,28 @@ export interface KitManifestItem {
   meta: string;
 }
 
+export interface KitTextureItem {
+  id: string;
+  name: string;
+  category: string;
+  maps: string[];
+}
+
+export interface KitDecalItem {
+  id: string;
+  name: string;
+  file: string;
+}
+
 /** The `kit.json` manifest (ADR 0011). */
 export interface KitManifest {
   id: string;
   name: string;
   version: string;
   description: string;
-  items: KitManifestItem[];
+  items?: KitManifestItem[];
+  textures?: KitTextureItem[];
+  decals?: KitDecalItem[];
   author: string;
   license: string;
 }

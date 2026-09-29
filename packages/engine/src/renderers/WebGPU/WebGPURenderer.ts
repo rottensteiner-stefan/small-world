@@ -1965,6 +1965,23 @@ export class WebGPURenderer extends AbstractRenderer {
     );
     // Fix: lights.dDir is already negated to point TO the light in applyTo.
     gData.set([lights.dDir.x, lights.dDir.y, lights.dDir.z, 0], 28);
+    // ── Forward-Pass / Post-Pass tonemapping contract ──────────────────────────────────────────
+    // When PostProcessing is enabled the WebGPU pipeline is split into two passes:
+    //   1. Forward pass  – renders the scene into an HDR render-target (linear, NOT tonemapped).
+    //                      gamma=1.0 disables the Reinhard guard in lighting_pbr.wgsl so that
+    //                      no tonemapping happens here. exposure=1.0 because the PostPass applies
+    //                      scene exposure itself via ToneMappingElement.
+    //   2. PostProcess pass – composites bloom/AO/etc., applies exposure, tonemap, and gamma.
+    //                         PostProcessPass.ts defaults to Reinhard when no ToneMappingElement
+    //                         is configured (see the u_toneMappingMode injection there).
+    //
+    // ⚠️  If you add tonemapping or gamma correction to the forward pass and PostProcessing is
+    //     enabled, you will double-tonemap: once here and once in the PostProcess pass.
+    //     This produces a visibly darker/flat scene (the symptom that triggered this comment).
+    //
+    // When PostProcessing is DISABLED, gamma and exposure come from _quality (default 2.2 / 1.0),
+    // the forward shader's gamma guard fires, and Reinhard + linearToSRGB run directly in the
+    // forward pass as a lightweight single-pass pipeline — no HDR buffer, no PostPass.
     const gamma = this.postProcessing.enabled ? 1.0 : (this._quality.gamma ?? 2.2);
     const exposure = this.postProcessing.enabled ? 1.0 : (this._quality.exposure ?? 1.0);
     gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, gamma], 32);

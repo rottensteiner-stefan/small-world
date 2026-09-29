@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>Asset Kit Inspector — Small World</title>
+    <style>
+      :root {
+        --bg-dark: #07090e;
+        --bg-panel: rgba(14, 18, 28, 0.94);
+        --bg-panel-solid: #0e121c;
+        --bg-card: rgba(22, 29, 45, 0.7);
+        --bg-card-hover: rgba(32, 43, 68, 0.9);
+        --bg-card-active: rgba(255, 184, 77, 0.12);
+        --border-color: rgba(148, 163, 184, 0.14);
+        --border-active: rgba(255, 184, 77, 0.5);
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --accent: #ffb84d;
+        --accent-glow: rgba(255, 184, 77, 0.25);
+        --cyan: #00e5ff;
+        --cyan-glow: rgba(0, 229, 255, 0.2);
+        --font-mono: "JetBrains Mono", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Rajdhani", sans-serif;
+        background-color: var(--bg-dark);
+        color: var(--text-main);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.2);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent);
+      }
+
+      /* Top Navigation Bar */
+      header.kit-header {
+        height: 52px;
+        background: var(--bg-panel-solid);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.25rem;
+        z-index: 40;
+        gap: 1rem;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-shrink: 0;
+      }
+
+      .back-link {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: color 0.15s ease;
+      }
+      .back-link:hover {
+        color: var(--accent);
+      }
+
+      .tool-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .badge-tool {
+        background: var(--accent-glow);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-family: var(--font-mono);
+        font-weight: 700;
+      }
+
+      /* Kit Filter Tabs */
+      .kit-tabs {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(0, 0, 0, 0.35);
+        padding: 3px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+      }
+
+      .tab-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        padding: 0.35rem 0.75rem;
+        border-radius: 4px;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .tab-btn:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .tab-btn.active {
+        color: #000;
+        background: var(--accent);
+        font-weight: 700;
+      }
+
+      /* Viewport Toolbar */
+      .viewport-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .btn-icon-toggle {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+        padding: 0.4rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-family: "Rajdhani", sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.15s ease;
+      }
+      .btn-icon-toggle:hover {
+        background: var(--bg-card-hover);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+      .btn-icon-toggle.active {
+        background: var(--cyan-glow);
+        border-color: var(--cyan);
+        color: var(--cyan);
+      }
+
+      .select-preset {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        padding: 0.35rem 0.6rem;
+        border-radius: 6px;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+      }
+      .select-preset:focus {
+        border-color: var(--accent);
+      }
+
+      /* Main App Layout */
+      .kit-layout {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 320px 1fr 340px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* Left Sidebar: Catalog */
+      aside.kit-catalog-panel {
+        background: var(--bg-panel-solid);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .catalog-search-row {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .search-box {
+        display: flex;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.35rem 0.65rem;
+        gap: 0.5rem;
+      }
+      .search-box:focus-within {
+        border-color: var(--accent);
+        box-shadow: 0 0 10px var(--accent-glow);
+      }
+      .search-box input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.9rem;
+        outline: none;
+        width: 100%;
+      }
+      .search-box input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .type-filter-row {
+        display: flex;
+        gap: 0.3rem;
+      }
+      .pill-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .pill-btn:hover {
+        color: #fff;
+      }
+      .pill-btn.active {
+        background: rgba(255, 184, 77, 0.15);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .catalog-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .asset-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.6rem;
+        display: flex;
+        gap: 0.75rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .asset-card:hover {
+        background: var(--bg-card-hover);
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-1px);
+      }
+      .asset-card.active {
+        background: var(--bg-card-active);
+        border-color: var(--accent);
+        box-shadow: 0 0 16px rgba(255, 184, 77, 0.18);
+      }
+      .asset-card.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--accent);
+      }
+
+      .asset-thumb {
+        width: 58px;
+        height: 58px;
+        border-radius: 4px;
+        object-fit: cover;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        flex-shrink: 0;
+      }
+
+      .asset-meta-summary {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .asset-title {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0.25rem;
+      }
+
+      .asset-badges {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+
+      .asset-tag {
+        font-size: 0.65rem;
+        font-family: var(--font-mono);
+        padding: 0.1rem 0.35rem;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.07);
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      .asset-tag.kit {
+        color: var(--accent);
+        background: rgba(255, 184, 77, 0.12);
+      }
+      .asset-tag.tris {
+        color: #6ee7b7;
+        background: rgba(16, 185, 129, 0.12);
+      }
+      .asset-tag.maps {
+        color: #93c5fd;
+        background: rgba(59, 130, 246, 0.12);
+      }
+
+      /* Center Viewport */
+      main.kit-viewport-panel {
+        position: relative;
+        background: radial-gradient(circle at center, #111726 0%, #06080d 100%);
+        overflow: hidden;
+      }
+
+      canvas#InspectorCanvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        outline: none;
+      }
+
+      .viewport-overlay-hud {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .hud-asset-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+      }
+      .hud-asset-subtitle {
+        font-size: 0.8rem;
+        color: var(--accent);
+        font-family: var(--font-mono);
+      }
+
+      .viewport-bottom-legend {
+        position: absolute;
+        bottom: 0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(10, 14, 22, 0.85);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(8px);
+        padding: 0.3rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+        pointer-events: none;
+        z-index: 10;
+        white-space: nowrap;
+      }
+      .viewport-bottom-legend span {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      .loading-scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(6, 8, 13, 0.75);
+        backdrop-filter: blur(4px);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+        gap: 0.8rem;
+      }
+      .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid rgba(255, 184, 77, 0.2);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .loading-text {
+        font-size: 0.9rem;
+        font-family: var(--font-mono);
+        color: var(--accent);
+      }
+
+      /* Right Sidebar: Inspector */
+      aside.kit-metadata-panel {
+        background: var(--bg-panel-solid);
+        border-left: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 1.25rem;
+        gap: 1.2rem;
+      }
+
+      .preview-hero-container {
+        width: 100%;
+        height: 180px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        background: rgba(0, 0, 0, 0.4);
+        position: relative;
+      }
+      .preview-hero-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .meta-header-box h2 {
+        font-size: 1.25rem;
+        color: #fff;
+        line-height: 1.3;
+        margin-bottom: 0.2rem;
+      }
+      .meta-kit-id {
+        font-size: 0.75rem;
+        color: var(--accent);
+        font-family: var(--font-mono);
+        word-break: break-all;
+      }
+
+      .meta-badges-row {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+      }
+      .pill-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #e2e8f0;
+        border: 1px solid var(--border-color);
+      }
+
+      .meta-desc {
+        font-size: 0.85rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+        background: rgba(0, 0, 0, 0.2);
+        padding: 0.75rem;
+        border-radius: 6px;
+        border-left: 3px solid var(--accent);
+      }
+
+      .specs-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+      }
+      .spec-cell {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        padding: 0.5rem 0.65rem;
+        border-radius: 4px;
+      }
+      .spec-label {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-bottom: 0.15rem;
+      }
+      .spec-val {
+        font-size: 0.85rem;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        color: #fff;
+      }
+
+      .sockets-box {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .section-heading {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .socket-row {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.78rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .socket-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.35rem;
+      }
+
+      .code-snippet-box {
+        background: #05070a;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.65rem;
+        position: relative;
+      }
+      .snippet-pre {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: #93c5fd;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 120px;
+        overflow-y: auto;
+      }
+
+      .btn-copy-snippet {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--border-color);
+        color: #fff;
+        padding: 0.2rem 0.45rem;
+        border-radius: 3px;
+        font-size: 0.68rem;
+        cursor: pointer;
+      }
+      .btn-copy-snippet:hover {
+        background: var(--accent);
+        color: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Header -->
+    <header class="kit-header">
+      <div class="header-left">
+        <a href="../index.html" class="back-link">← Tools</a>
+        <div class="tool-title">
+          <span>Kit Inspector</span>
+          <span class="badge-tool">T-09</span>
+        </div>
+
+        <nav class="kit-tabs" id="kitTabs">
+          <button class="tab-btn active" data-kit="all">Alle Kits</button>
+          <button class="tab-btn" data-kit="bunker">Bunker</button>
+          <button class="tab-btn" data-kit="flakturm">Flakturm</button>
+          <button class="tab-btn" data-kit="industrial">Industrial</button>
+        </nav>
+      </div>
+
+      <div class="viewport-toolbar">
+        <select class="select-preset" id="selectPreset" title="Beleuchtungs-Preset">
+          <option value="studio">☀️ Studio Neutral</option>
+          <option value="bunker">🏮 Bunker Kerosin</option>
+          <option value="cold">❄️ Flakturm Kalt</option>
+        </select>
+        <button class="btn-icon-toggle active" id="btnTurntable" title="Turntable Rotation (R)">
+          🔄 Rotate
+        </button>
+        <button class="btn-icon-toggle" id="btnWireframe" title="Drahtgitter-Modus (W)">
+          🕸️ Wire
+        </button>
+        <button class="btn-icon-toggle active" id="btnSockets" title="Sockets Gizmos (S)">
+          💡 Sockets
+        </button>
+        <button class="btn-icon-toggle active" id="btnGrid" title="Bodenraster (G)">
+          📐 Grid
+        </button>
+        <button class="btn-icon-toggle" id="btnFocus" title="Fokus zentrieren (F)">
+          🎯 Focus
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="kit-layout">
+      <!-- Left: Catalog & Search -->
+      <aside class="kit-catalog-panel">
+        <div class="catalog-search-row">
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="searchInput" placeholder="Assets filtern (z. B. desk, lamp, concrete)..." />
+          </div>
+          <div class="type-filter-row">
+            <button class="pill-btn active" data-type="all">Alle (<span id="countAll">0</span>)</button>
+            <button class="pill-btn" data-type="prop">Props (<span id="countProps">0</span>)</button>
+            <button class="pill-btn" data-type="texture">PBR (<span id="countTextures">0</span>)</button>
+            <button class="pill-btn" data-type="decal">Decals (<span id="countDecals">0</span>)</button>
+          </div>
+        </div>
+
+        <div class="catalog-list" id="catalogList">
+          <!-- Dynamically populated cards -->
+        </div>
+      </aside>
+
+      <!-- Center: 3D Viewport -->
+      <main class="kit-viewport-panel">
+        <div class="viewport-overlay-hud">
+          <h1 class="hud-asset-title" id="hudTitle">Asset wählen</h1>
+          <div class="hud-asset-subtitle" id="hudSubtitle">Small World Kit Registry</div>
+        </div>
+
+        <canvas id="InspectorCanvas"></canvas>
+
+        <div class="viewport-bottom-legend">
+          <span>[L-Drag]</span> Orbit &nbsp;•&nbsp; <span>[R-Drag / Wheel]</span> Pan/Zoom &nbsp;•&nbsp; <span>[F]</span> Focus &nbsp;•&nbsp; <span>[R]</span> Turntable &nbsp;•&nbsp; <span>[W]</span> Wireframe
+        </div>
+
+        <div class="loading-scrim" id="loadingScrim">
+          <div class="loading-spinner"></div>
+          <div class="loading-text" id="loadingText">Lade Asset...</div>
+        </div>
+      </main>
+
+      <!-- Right: Inspector & Metadata -->
+      <aside class="kit-metadata-panel" id="metaPanel">
+        <div class="preview-hero-container">
+          <img id="metaHeroImg" class="preview-hero-img" src="" alt="Vorschau" />
+        </div>
+
+        <div class="meta-header-box">
+          <h2 id="metaTitle">—</h2>
+          <div class="meta-kit-id" id="metaId">—</div>
+        </div>
+
+        <div class="meta-badges-row">
+          <span class="pill-badge" id="metaCategoryBadge">Category</span>
+          <span class="pill-badge" id="metaKitBadge">Kit</span>
+          <span class="pill-badge" id="metaLicenseBadge">CC0-1.0</span>
+          <span class="pill-badge" id="metaVersionBadge">v1.0.0</span>
+        </div>
+
+        <div class="meta-desc" id="metaDesc">
+          Wähle ein Asset aus dem linken Katalog, um seine 3D-Geometrie, Sockets, PBR-Texturen und Metadaten zu inspizieren.
+        </div>
+
+        <!-- Specs Grid for Props -->
+        <div id="propSpecsSection">
+          <div class="section-heading">Spezifikationen</div>
+          <div class="specs-grid" style="margin-top: 0.4rem;">
+            <div class="spec-cell">
+              <div class="spec-label">Dreiecke (Tris)</div>
+              <div class="spec-val" id="specTris">—</div>
+            </div>
+            <div class="spec-cell">
+              <div class="spec-label">Materialien</div>
+              <div class="spec-val" id="specMats">—</div>
+            </div>
+            <div class="spec-cell">
+              <div class="spec-label">Maße (B × H × T)</div>
+              <div class="spec-val" id="specDims">—</div>
+            </div>
+            <div class="spec-cell">
+              <div class="spec-label">Rec. Scale</div>
+              <div class="spec-val" id="specScale">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sockets Section -->
+        <div id="socketsSection" style="display: none;">
+          <div class="section-heading">
+            <span>Anbau-Sockets</span>
+            <span id="socketCountBadge" style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent);">0</span>
+          </div>
+          <div class="sockets-box" id="socketsList" style="margin-top: 0.4rem;"></div>
+        </div>
+
+        <!-- Textures Section -->
+        <div id="texturesSection" style="display: none;">
+          <div class="section-heading">Texturkanäle</div>
+          <div class="sockets-box" id="texturesList" style="margin-top: 0.4rem;"></div>
+        </div>
+
+        <!-- Code Snippet -->
+        <div>
+          <div class="section-heading">Deklarativer Level-Deskriptor</div>
+          <div class="code-snippet-box" style="margin-top: 0.4rem;">
+            <button class="btn-copy-snippet" id="btnCopySnippet">Copy JSON</button>
+            <pre class="snippet-pre" id="snippetPre">// Wähle ein Prop</pre>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module">
+      import { KitInspectorApp } from "/packages/tools/src/kit-inspector/KitInspectorApp.ts";
+      import { RendererType } from "/packages/engine/src/enums/index.ts";
+
+      // Catalog Data State
+      let allAssets = [];
+      let activeKitFilter = "all";
+      let activeTypeFilter = "all";
+      let searchQuery = "";
+      let selectedAssetId = null;
+
+      const scrim = document.getElementById("loadingScrim");
+      const loadingText = document.getElementById("loadingText");
+      const hudTitle = document.getElementById("hudTitle");
+      const hudSubtitle = document.getElementById("hudSubtitle");
+
+      // Initialize App
+      const app = new KitInspectorApp({
+        canvasId: "InspectorCanvas",
+        rendererType: RendererType.BEST,
+        onLoadingStateChange: (isLoading, msg) => {
+          if (scrim && loadingText) {
+            scrim.style.display = isLoading ? "flex" : "none";
+            loadingText.textContent = msg || "Lade Asset...";
+          }
+        },
+        onAssetLoaded: (info) => {
+          updateInspectorMetadata(info);
+          hudTitle.textContent = info.name;
+          hudSubtitle.textContent = `${info.id} • ${info.category.toUpperCase()}`;
+        },
+        onError: (err) => {
+          console.error("[KitInspector] Error:", err);
+          alert(`Fehler beim Laden des Assets: ${err.message}`);
+        },
+      });
+
+      window.kitInspectorApp = app;
+      await app.start();
+
+      // UI Controls Binding
+      const btnTurntable = document.getElementById("btnTurntable");
+      const btnWireframe = document.getElementById("btnWireframe");
+      const btnSockets = document.getElementById("btnSockets");
+      const btnGrid = document.getElementById("btnGrid");
+      const btnFocus = document.getElementById("btnFocus");
+      const selectPreset = document.getElementById("selectPreset");
+
+      btnTurntable.addEventListener("click", () => {
+        const active = !app.isTurntable();
+        app.setTurntable(active);
+        btnTurntable.classList.toggle("active", active);
+      });
+
+      btnWireframe.addEventListener("click", () => {
+        const active = !app.isWireframe();
+        app.setWireframe(active);
+        btnWireframe.classList.toggle("active", active);
+      });
+
+      btnSockets.addEventListener("click", () => {
+        const active = !app.areSocketsVisible();
+        app.setSocketsVisible(active);
+        btnSockets.classList.toggle("active", active);
+      });
+
+      btnGrid.addEventListener("click", () => {
+        const active = !app.isGridVisible();
+        app.setGridVisible(active);
+        btnGrid.classList.toggle("active", active);
+      });
+
+      btnFocus.addEventListener("click", () => {
+        app.focusCamera();
+      });
+
+      selectPreset.addEventListener("change", (e) => {
+        app.setLightingPreset(e.target.value);
+      });
+
+      // Load Manifests
+      async function loadAllKits() {
+        const kitsToLoad = ["bunker", "flakturm", "industrial"];
+        const assets = [];
+
+        for (const kitId of kitsToLoad) {
+          try {
+            const manifest = await app.kitRegistry.getKitManifest(kitId);
+            
+            // 1. Items / Props
+            if (manifest.items) {
+              for (const item of manifest.items) {
+                assets.push({
+                  type: "prop",
+                  id: item.id,
+                  kitId,
+                  name: item.name,
+                  category: item.category,
+                  preview: `${app.kitRegistry.basePath}${kitId}/${item.preview}`,
+                  raw: item,
+                });
+              }
+            }
+
+            // 2. Textures
+            if (manifest.textures) {
+              for (const tex of manifest.textures) {
+                const albedoMap = tex.maps.find(m => m.includes("albedo") || m.includes("diffuse")) || tex.maps[0];
+                const texSlug = tex.id.includes("/") ? tex.id.split("/").pop() : tex.id;
+                assets.push({
+                  type: "texture",
+                  id: tex.id,
+                  kitId,
+                  name: tex.name,
+                  category: tex.category || "surfaces",
+                  preview: albedoMap ? `${app.kitRegistry.basePath}${kitId}/textures/${texSlug}/${albedoMap}` : "",
+                  raw: tex,
+                });
+              }
+            }
+
+            // 3. Decals
+            if (manifest.decals) {
+              for (const decal of manifest.decals) {
+                assets.push({
+                  type: "decal",
+                  id: decal.id,
+                  kitId,
+                  name: decal.name,
+                  category: "decals",
+                  preview: `${app.kitRegistry.basePath}${kitId}/decals/${decal.file}`,
+                  raw: decal,
+                });
+              }
+            }
+          } catch (err) {
+            console.warn(`[KitInspector] Could not load kit '${kitId}':`, err);
+          }
+        }
+
+        allAssets = assets;
+        updateCounts();
+        renderCatalog();
+
+        // Auto-select first asset
+        if (allAssets.length > 0) {
+          selectAsset(allAssets[0]);
+        }
+      }
+
+      function updateCounts() {
+        const props = allAssets.filter(a => a.type === "prop").length;
+        const textures = allAssets.filter(a => a.type === "texture").length;
+        const decals = allAssets.filter(a => a.type === "decal").length;
+
+        document.getElementById("countAll").textContent = allAssets.length;
+        document.getElementById("countProps").textContent = props;
+        document.getElementById("countTextures").textContent = textures;
+        document.getElementById("countDecals").textContent = decals;
+      }
+
+      function renderCatalog() {
+        const list = document.getElementById("catalogList");
+        list.innerHTML = "";
+
+        const filtered = allAssets.filter(asset => {
+          if (activeKitFilter !== "all" && asset.kitId !== activeKitFilter) return false;
+          if (activeTypeFilter !== "all" && asset.type !== activeTypeFilter) return false;
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            const matchName = asset.name.toLowerCase().includes(q);
+            const matchId = asset.id.toLowerCase().includes(q);
+            const matchCat = asset.category.toLowerCase().includes(q);
+            if (!matchName && !matchId && !matchCat) return false;
+          }
+          return true;
+        });
+
+        for (const asset of filtered) {
+          const card = document.createElement("div");
+          card.className = `asset-card ${asset.id === selectedAssetId ? "active" : ""}`;
+          card.dataset.id = asset.id;
+
+          const img = document.createElement("img");
+          img.className = "asset-thumb";
+          img.src = asset.preview || "/favicon.webp";
+          img.alt = asset.name;
+          img.loading = "lazy";
+
+          const metaDiv = document.createElement("div");
+          metaDiv.className = "asset-meta-summary";
+
+          const title = document.createElement("div");
+          title.className = "asset-title";
+          title.textContent = asset.name;
+
+          const badges = document.createElement("div");
+          badges.className = "asset-badges";
+
+          const kitTag = document.createElement("span");
+          kitTag.className = "asset-tag kit";
+          kitTag.textContent = asset.kitId;
+          badges.appendChild(kitTag);
+
+          const catTag = document.createElement("span");
+          catTag.className = "asset-tag";
+          catTag.textContent = asset.category;
+          badges.appendChild(catTag);
+
+          if (asset.type === "texture") {
+            const mapsTag = document.createElement("span");
+            mapsTag.className = "asset-tag maps";
+            mapsTag.textContent = `${asset.raw.maps.length} Maps`;
+            badges.appendChild(mapsTag);
+          } else if (asset.type === "decal") {
+            const decTag = document.createElement("span");
+            decTag.className = "asset-tag tris";
+            decTag.textContent = "PNG";
+            badges.appendChild(decTag);
+          }
+
+          metaDiv.appendChild(title);
+          metaDiv.appendChild(badges);
+
+          card.appendChild(img);
+          card.appendChild(metaDiv);
+
+          card.addEventListener("click", () => selectAsset(asset));
+          list.appendChild(card);
+        }
+      }
+
+      async function selectAsset(asset) {
+        selectedAssetId = asset.id;
+
+        // Highlight card
+        document.querySelectorAll(".asset-card").forEach(c => {
+          c.classList.toggle("active", c.dataset.id === asset.id);
+        });
+
+        if (asset.type === "prop") {
+          await app.inspectProp(asset.id);
+        } else if (asset.type === "texture") {
+          await app.inspectPbrTexture(asset.kitId, asset.raw);
+        } else if (asset.type === "decal") {
+          await app.inspectDecal(asset.kitId, asset.raw);
+        }
+      }
+
+      function updateInspectorMetadata(info) {
+        document.getElementById("metaHeroImg").src = info.previewUrl || "";
+        document.getElementById("metaTitle").textContent = info.name;
+        document.getElementById("metaId").textContent = info.id;
+
+        document.getElementById("metaCategoryBadge").textContent = info.category.toUpperCase();
+        document.getElementById("metaKitBadge").textContent = info.kitId.toUpperCase();
+        document.getElementById("metaLicenseBadge").textContent = info.license;
+        document.getElementById("metaVersionBadge").textContent = `v${info.version}`;
+
+        document.getElementById("metaDesc").textContent = info.description;
+
+        const propSpecs = document.getElementById("propSpecsSection");
+        const socketsSec = document.getElementById("socketsSection");
+        const texturesSec = document.getElementById("texturesSection");
+
+        if (info.type === "prop") {
+          propSpecs.style.display = "block";
+          document.getElementById("specTris").textContent = info.triangles ? info.triangles.toLocaleString("de-DE") : "—";
+          document.getElementById("specMats").textContent = info.materialsCount ?? "1";
+          
+          if (info.dimensions) {
+            const d = info.dimensions;
+            document.getElementById("specDims").textContent = `${d.width.toFixed(2)} × ${d.height.toFixed(2)} × ${d.depth.toFixed(2)} m`;
+          } else {
+            document.getElementById("specDims").textContent = "—";
+          }
+          document.getElementById("specScale").textContent = info.recommendedScale ? `${info.recommendedScale}×` : "1.0×";
+
+          // Sockets
+          if (info.sockets && info.sockets.length > 0) {
+            socketsSec.style.display = "block";
+            document.getElementById("socketCountBadge").textContent = info.sockets.length;
+            const sockList = document.getElementById("socketsList");
+            sockList.innerHTML = "";
+
+            for (const s of info.sockets) {
+              const row = document.createElement("div");
+              row.className = "socket-row";
+              const col = s.recommendedLight?.color || "#ffd273";
+              row.innerHTML = `
+                <div>
+                  <span class="socket-swatch" style="background: ${col}"></span>
+                  <strong>${s.name}</strong>
+                  <span style="opacity: 0.6; font-size: 0.7rem; margin-left: 0.3rem;">[${s.position.map(n => n.toFixed(2)).join(", ")}]</span>
+                </div>
+                <span style="color: var(--accent); font-family: var(--font-mono); font-size: 0.72rem;">${s.recommendedLight?.type || "Socket"}</span>
+              `;
+              sockList.appendChild(row);
+            }
+          } else {
+            socketsSec.style.display = "none";
+          }
+
+          texturesSec.style.display = "none";
+
+          // Snippet
+          const slug = info.id.split("/")[1] || "prop";
+          const pascalId = slug.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("");
+          const snippet = JSON.stringify({
+            id: pascalId,
+            kitProp: info.id,
+            position: [0, 0, 0],
+            scale: info.recommendedScale ?? 1.0,
+          }, null, 2);
+          document.getElementById("snippetPre").textContent = snippet;
+        } else if (info.type === "texture") {
+          propSpecs.style.display = "none";
+          socketsSec.style.display = "none";
+          texturesSec.style.display = "block";
+
+          const texList = document.getElementById("texturesList");
+          texList.innerHTML = "";
+          if (info.textureMaps) {
+            for (const mapPath of info.textureMaps) {
+              const fileName = mapPath.split("/").pop();
+              const row = document.createElement("div");
+              row.className = "socket-row";
+              row.innerHTML = `
+                <span>📄 ${fileName}</span>
+                <a href="${mapPath}" target="_blank" style="color: var(--cyan); text-decoration: none; font-size: 0.7rem;">Öffnen ↗</a>
+              `;
+              texList.appendChild(row);
+            }
+          }
+
+          document.getElementById("snippetPre").textContent = `// Textursatz '${info.id}'\n// Maps: ${info.textureMaps?.length || 0} Kanäle`;
+        } else {
+          // Decal
+          propSpecs.style.display = "none";
+          socketsSec.style.display = "none";
+          texturesSec.style.display = "none";
+          document.getElementById("snippetPre").textContent = `// Decal '${info.id}'\n// File: ${info.decalFile}`;
+        }
+      }
+
+      // Copy Snippet Button
+      document.getElementById("btnCopySnippet").addEventListener("click", () => {
+        const text = document.getElementById("snippetPre").textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.getElementById("btnCopySnippet");
+          btn.textContent = "Kopiert! ✓";
+          setTimeout(() => btn.textContent = "Copy JSON", 1500);
+        });
+      });
+
+      // Filter Tabs
+      document.querySelectorAll("#kitTabs .tab-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          document.querySelectorAll("#kitTabs .tab-btn").forEach(b => b.classList.remove("active"));
+          e.target.classList.add("active");
+          activeKitFilter = e.target.dataset.kit;
+          renderCatalog();
+        });
+      });
+
+      // Type Pills
+      document.querySelectorAll(".type-filter-row .pill-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          document.querySelectorAll(".type-filter-row .pill-btn").forEach(b => b.classList.remove("active"));
+          e.target.classList.add("active");
+          activeTypeFilter = e.target.dataset.type;
+          renderCatalog();
+        });
+      });
+
+      // Search Filter
+      document.getElementById("searchInput").addEventListener("input", (e) => {
+        searchQuery = e.target.value.trim();
+        renderCatalog();
+      });
+
+      // Keyboard navigation
+      window.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+          e.preventDefault();
+          document.getElementById("searchInput").focus();
+        }
+      });
+
+      await loadAllKits();
+    </script>
+  </body>
+</html>

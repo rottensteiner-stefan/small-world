@@ -804,3 +804,18 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
     nachgezogen. Verifiziert: `tsc --noEmit` sauber, `eslint` sauber, volle Testsuite 744/744 grün.
   - Keine echten Konsolidierungs-Kandidaten gefunden (0004/0007 schon sauber verlinkt, 0013/0016
     geprüft und als oberflächliche statt echte Überschneidung verworfen).
+
+- ✅ **Asset Kit Inspector (T-09) implementiert (2026-09-28):** Neues vollwertiges Entwickler- und
+  Inspektionswerkzeug unter `public/tools/kit-inspector.html` und `@small-world/tools/kit-inspector`:
+  - Interaktives Durchsuchen aller modularen Kits (`bunker`, `flakturm`, `industrial`), Props, PBR-
+    Texturen und Decals über `KitRegistry` und `public/assets/kits/index.json`.
+  - 3D-Viewport mit Orbit-Steuerung (L-Drag Rotate, R-Drag/Wheel Pan & Zoom, `[F]` Focus/Reset,
+    `[R]` Turntable Auto-Rotate, `[W]` Wireframe-Toggle, `[S]` Sockets-Gizmos, `[G]` Grid-Boden).
+  - Drei Licht-Presets: Studio Neutral, Bunker Kerosin (Amber), Flakturm Kalt (Cyan/Frost).
+  - PBR-Textursätze werden live auf einer PBR-Vorschaukugel mit allen Kanälen gerendert; Decals als
+    transparente Quads.
+  - Sockets-Visualisierung aus `meta.json` inkl. aktiver dynamischer PointLights am Modell.
+  - Metadaten-Inspektor mit Tris-Anzahl, Maßen ($B \times H \times T$), Rec-Scale und 1-Klick
+    Level-JSON-Export (`koje42.level.json`-kompatibel).
+  - In `vite.config.ts`, `public/index.html` (als T-09 Tool) und `packages/tools` registriert; 4 neue
+    Unit-Tests in `KitInspector.test.ts` (100% grün, 200 Testdateien, 1.184 Tests bestanden).

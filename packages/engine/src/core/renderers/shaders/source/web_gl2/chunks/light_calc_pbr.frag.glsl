@@ -105,49 +105,14 @@ vec3 Lo = vec3(0.0);
             vec2 atlasUV = (projCoords.xy + vec2(col, row)) / cols;
             float currentDepth = projCoords.z;
 
-            // PCSS (see non-PBR light_calc.frag.glsl for full rationale).
-            const int pcssTaps = 8;
-            vec2 searchOffsets[pcssTaps];
-            searchOffsets[0] = vec2(-1.0, -1.0);
-            searchOffsets[1] = vec2(0.0, -1.0);
-            searchOffsets[2] = vec2(1.0, -1.0);
-            searchOffsets[3] = vec2(-1.0, 0.0);
-            searchOffsets[4] = vec2(1.0, 0.0);
-            searchOffsets[5] = vec2(-1.0, 1.0);
-            searchOffsets[6] = vec2(0.0, 1.0);
-            searchOffsets[7] = vec2(1.0, 1.0);
-
-            float searchRadiusTexels = 2.0;
-            float avgBlockerDepth = 0.0;
-            float blockerCount = 0.0;
-            for (int s = 0; s < pcssTaps; s++) {
-                vec2 sampleUV = clamp(
-                    atlasUV + searchOffsets[s] * texelSize * searchRadiusTexels,
-                    cellMin, cellMax
-                );
-                float blockerDepth = texture(u_dirShadowMapRaw, sampleUV).r;
-                if (blockerDepth < currentDepth - bias) {
-                    avgBlockerDepth += blockerDepth;
-                    blockerCount += 1.0;
+            shadowA = 0.0;
+            for(int x = -1; x <= 1; ++x) {
+                for(int y = -1; y <= 1; ++y) {
+                    vec2 tapUV = clamp(atlasUV + vec2(x, y) * texelSize, cellMin, cellMax);
+                    shadowA += texture(u_dirShadowMap, vec3(tapUV, currentDepth - bias));
                 }
             }
-
-            if (blockerCount < 1.0) {
-                shadowA = 1.0;
-            } else {
-                avgBlockerDepth /= blockerCount;
-                float occluderDepthDelta = currentDepth - avgBlockerDepth;
-                float pcfRadius = clamp(1.0 + occluderDepthDelta / max(bias, 0.0001), 1.0, 4.0);
-
-                shadowA = 0.0;
-                for(int x = -1; x <= 1; ++x) {
-                    for(int y = -1; y <= 1; ++y) {
-                        vec2 tapUV = clamp(atlasUV + vec2(x, y) * texelSize * pcfRadius, cellMin, cellMax);
-                        shadowA += texture(u_dirShadowMap, vec3(tapUV, currentDepth - bias));
-                    }
-                }
-                shadowA /= 9.0;
-            }
+            shadowA /= 9.0;
         }
 
         float shadowB = shadowA;
@@ -551,9 +516,17 @@ color += emissive;
 // Exposure
 color *= u_exposure;
 
-// Simple HDR Tone Mapping
-color = color / (color + vec3(1.0));
-// Gamma Correction
+// ── Forward-Pass / Post-Pass tonemapping contract ──────────────────────────────────────────────
+// u_gamma == 1.0  →  PostProcessing is ENABLED. The renderer writes gamma=1.0 specifically
+//                    as a signal that the PostProcess pass will handle tonemapping, gamma,
+//                    and exposure (see WebGL2Renderer.ts).
+// u_gamma != 1.0  →  PostProcessing is DISABLED. The forward pass IS the final pass.
+//                    Reinhard + linearToSRGB run here as a lightweight single-pass pipeline.
+if (u_gamma != 1.0) {
+    color = color / (color + vec3(1.0)); // Reinhard
+}
+
+// Gamma Correction (when u_gamma == 1.0, 1.0 / 1.0 = 1.0, preserving linear HDR values for PostProcessPassGL)
 color = linearToSRGB(color);
 
 fragColor = vec4(color, u_color.a * texColor.a);

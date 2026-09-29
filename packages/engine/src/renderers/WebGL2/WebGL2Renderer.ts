@@ -67,11 +67,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _scratchFloat4: Float32Array = new Float32Array(4);
 
   /** Fixed unit for reading the directional shadow map's raw (non-comparison) depth, used by
-   * PCSS's blocker-search step. Shares texture unit 14 -- reserved above like every other
+   * PCSS's blocker-search step. Dedicated texture unit 13 -- reserved like every other
    * shadow unit -- with a dedicated WebGLSampler (`_rawDepthSampler`) that overrides
    * TEXTURE_COMPARE_MODE back to NONE, since that mode is otherwise baked onto the depth
    * texture object itself (see WebGL2DepthFrameBuffer). */
-  private static readonly _RAW_DEPTH_UNIT = 14;
+  private static readonly _RAW_DEPTH_UNIT = 13;
   private _rawDepthSampler!: WebGLSampler;
 
   private _opaqueTexture?: WebGLTexture;
@@ -357,8 +357,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this._activeCubeFace = activeCubeFace ?? 0;
   }
 
+  /** @inheritdoc */
+  public override get isOffscreenRenderTarget(): boolean {
+    return this._activeRenderTarget !== null;
+  }
+
   public bindMainRenderTarget(): boolean {
     let isOffscreen = false;
+    this._ensurePostProcessFbo();
 
     if (this._activeRenderTarget) {
       isOffscreen = true;
@@ -399,6 +405,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     } else if (this.postProcessing.enabled && this._hdrFbo) {
       this._hdrFbo.bind();
+      this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
       this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
@@ -412,6 +419,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   }
 
   public copyToOpaqueTexture(): void {
+    const isHdr = this.postProcessing.enabled && this._hdrFbo;
+    const internalFormat = isHdr ? this._hdrFbo!.internalFormat : this.gl.RGBA8;
+
     if (!this._opaqueTexture) {
       const tex = this.gl.createTexture();
       this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
@@ -430,7 +440,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.gl.copyTexImage2D(
       this.gl.TEXTURE_2D,
       0,
-      this.gl.RGBA,
+      internalFormat,
       0,
       0,
       this.gl.canvas.width,
@@ -493,6 +503,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._opaqueDepthHeight = h;
     }
 
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._hdrFbo.framebuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._opaqueDepthFbo!);
     gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
     this._hdrFbo.bind();
@@ -605,6 +616,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
 
       fbo.bind();
+      this.gl.depthMask(true);
       this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
 
       // Update Global UBO with light's camera
@@ -618,7 +630,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.enable(this.gl.CULL_FACE);
       this.gl.cullFace(this.gl.FRONT);
       this.gl.enable(this.gl.DEPTH_TEST);
-      this.gl.depthMask(true);
       this.gl.disable(this.gl.BLEND);
 
       const cache = this._programCache.getProgram(MaterialType.DEPTH);
@@ -650,12 +661,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
 
       fbo.bind(); // This sets viewport to full atlas, we'll overwrite it per cascade
+      this.gl.depthMask(true);
       this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
 
       this.gl.enable(this.gl.CULL_FACE);
       this.gl.cullFace(this.gl.FRONT);
       this.gl.enable(this.gl.DEPTH_TEST);
-      this.gl.depthMask(true);
       this.gl.disable(this.gl.BLEND);
 
       const cache = this._programCache.getProgram(MaterialType.DEPTH);
@@ -757,7 +768,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    * Binds dummy depth textures to shadow samplers to satisfy WebGL2 sampler2DShadow validation rules.
    */
   private _bindDummyShadowMaps(cache: WebGL2ProgramCacheEntry): void {
-    const dummyUnit = 13;
+    const dummyUnit = 12;
     const maxUnits = this.context.deviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
     if (dummyUnit >= maxUnits) {
       console.warn(`[WebGL2Renderer] dummyUnit ${dummyUnit} >= maxUnits ${maxUnits}`);
@@ -941,7 +952,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             }
           }
         } else {
-          if (mapLoc) this.gl.uniform1i(mapLoc, 13);
+          if (mapLoc) this.gl.uniform1i(mapLoc, 12);
           if (infoLoc) {
             this._scratchFloat4[0] = 0.0;
             this._scratchFloat4[1] = 0.0;
@@ -954,7 +965,26 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     // DirectionalLight Shadows
-    if (lights && lights.dLight && lights.dLight.castShadow && lights.dLight.numCascades > 0) {
+    //
+    // Deliberately skipped while rendering into an offscreen target (a DynamicReflectionProbe
+    // face or a PlanarReflectionNode): cascade selection below picks a split by this DRAW's
+    // `u_viewPos` (see `depth` in light_calc_pbr.frag.glsl/light_calc.frag.glsl), which is the
+    // *current* camera position -- correct for the main camera, but the cascades themselves are
+    // fit once per frame to the MAIN camera only (`Scene.updateLights()`). A probe sits far
+    // closer to nearby geometry than the main camera, so this reused, main-camera-relative depth
+    // picks a much coarser cascade than the geometry actually needs, and that cascade's fixed
+    // texel-space PCSS search radius then covers a disproportionately large world-space area --
+    // producing an oversized, near-black shadow blob for small dynamic casters (e.g. an orbiting
+    // moon) inside the reflection. A reflection probe/planar reflection was never meant to carry
+    // precise directional shadowing anyway, so it's simplest and safest to just turn it off here
+    // rather than thread a second, probe-agnostic depth reference through the cascade uniforms.
+    if (
+      !this.isOffscreenRenderTarget &&
+      lights &&
+      lights.dLight &&
+      lights.dLight.castShadow &&
+      lights.dLight.numCascades > 0
+    ) {
       const light = lights.dLight;
       const mapLoc = cache.uniforms.get("u_dirShadowMap");
       const mapRawLoc = cache.uniforms.get("u_dirShadowMapRaw");
@@ -1011,7 +1041,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     } else {
       const mapLoc = cache.uniforms.get("u_dirShadowMap");
-      if (mapLoc) this.gl.uniform1i(mapLoc, 13);
+      if (mapLoc) this.gl.uniform1i(mapLoc, 12);
       const mapRawLoc = cache.uniforms.get("u_dirShadowMapRaw");
       if (mapRawLoc) this.gl.uniform1i(mapRawLoc, WebGL2Renderer._RAW_DEPTH_UNIT);
       const infoLoc = cache.uniforms.get("u_dirShadowInfo");
@@ -1465,8 +1495,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     ubo.setInt(128, Math.min(lights.pLights.length, 16));
     ubo.setInt(132, Math.min(lights.sLights.length, 16));
     ubo.setInt(136, lights.aLights.length);
-    ubo.setFloat(140, this._quality.gamma ?? 2.2);
-    ubo.setFloat(144, this._quality.exposure ?? 1.0);
+    const gamma = this.postProcessing.enabled ? 1.0 : (this._quality.gamma ?? 2.2);
+    const exposure = this.postProcessing.enabled ? 1.0 : (this._quality.exposure ?? 1.0);
+    ubo.setFloat(140, gamma);
+    ubo.setFloat(144, exposure);
 
     for (let i = 0; i < 16; i++) {
       const offset = 160 + i * 32;
@@ -1533,32 +1565,34 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     ubo.update();
   }
 
-  /** @inheritdoc */
-  public override setSize(width: number, height: number): void {
-    super.setSize(width, height);
-
-    if (this.postProcessing.enabled) {
-      if (!this._hdrFbo) {
-        // RGBA16F rendering requires EXT_color_buffer_float; without it, WebGL2FrameBuffer's
-        // checkFramebufferStatus() throws. Fall back to an UNSIGNED_BYTE target, matching the
-        // WebGL1Renderer's OES_texture_half_float / EXT_color_buffer_half_float fallback.
-        const supportsFloatColorBuffer = this.gl.getExtension("EXT_color_buffer_float") !== null;
-        this._hdrFbo = new WebGL2FrameBuffer(this.gl, {
-          width: this.gl.canvas.width,
-          height: this.gl.canvas.height,
-          internalFormat: supportsFloatColorBuffer ? this.gl.RGBA16F : this.gl.RGBA8,
-          format: this.gl.RGBA,
-          type: supportsFloatColorBuffer ? this.gl.HALF_FLOAT : this.gl.UNSIGNED_BYTE,
-        });
-        this._postPassGL ??= new PostProcessPassGL(this.gl, true);
-        this._bloomPassGL ??= new BloomPassGL(this.gl, true);
-        this._hbaoPassGL ??= new AOPassGL(this.gl);
-        this._taaPassGL ??= new HistoryBlendPassGL(this.gl);
-        this._motionTrailPassGL ??= new HistoryBlendPassGL(this.gl);
-      } else {
-        this._hdrFbo.resize(this.gl.canvas.width, this.gl.canvas.height);
-      }
-    } else if (this._hdrFbo) {
+  /**
+   * Lazily creates or tears down the HDR post-processing framebuffer and passes to match
+   * the current `postProcessing.enabled` state and canvas dimensions.
+   */
+  private _ensurePostProcessFbo(): void {
+    if (
+      this.postProcessing.enabled &&
+      !this._hdrFbo &&
+      this.gl.canvas.width > 0 &&
+      this.gl.canvas.height > 0
+    ) {
+      // RGBA16F rendering requires EXT_color_buffer_float; without it, WebGL2FrameBuffer's
+      // checkFramebufferStatus() throws. Fall back to an UNSIGNED_BYTE target, matching the
+      // WebGL1Renderer's OES_texture_half_float / EXT_color_buffer_half_float fallback.
+      const supportsFloatColorBuffer = this.gl.getExtension("EXT_color_buffer_float") !== null;
+      this._hdrFbo = new WebGL2FrameBuffer(this.gl, {
+        width: this.gl.canvas.width,
+        height: this.gl.canvas.height,
+        internalFormat: supportsFloatColorBuffer ? this.gl.RGBA16F : this.gl.RGBA8,
+        format: this.gl.RGBA,
+        type: supportsFloatColorBuffer ? this.gl.HALF_FLOAT : this.gl.UNSIGNED_BYTE,
+      });
+      this._postPassGL ??= new PostProcessPassGL(this.gl, true);
+      this._bloomPassGL ??= new BloomPassGL(this.gl, true);
+      this._hbaoPassGL ??= new AOPassGL(this.gl);
+      this._taaPassGL ??= new HistoryBlendPassGL(this.gl);
+      this._motionTrailPassGL ??= new HistoryBlendPassGL(this.gl);
+    } else if (!this.postProcessing.enabled && this._hdrFbo) {
       this._postPassGL?.destroy?.(this.gl);
       this._bloomPassGL?.destroy();
       this._hbaoPassGL?.destroy();
@@ -1571,6 +1605,21 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._hbaoPassGL = undefined;
       this._taaPassGL = undefined;
       this._motionTrailPassGL = undefined;
+    }
+  }
+
+  /** @inheritdoc */
+  public override setSize(width: number, height: number): void {
+    super.setSize(width, height);
+
+    if (this.postProcessing.enabled) {
+      if (this._hdrFbo) {
+        this._hdrFbo.resize(this.gl.canvas.width, this.gl.canvas.height);
+      } else {
+        this._ensurePostProcessFbo();
+      }
+    } else if (this._hdrFbo) {
+      this._ensurePostProcessFbo();
     }
 
     // Clustered light culling grid depends on canvas resolution -- see

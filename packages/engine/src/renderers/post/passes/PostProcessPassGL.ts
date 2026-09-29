@@ -152,7 +152,7 @@ export class PostProcessPassGL {
     );
     frag = frag.replace(
       "uniform int u_toneMappingMode;",
-      `#define u_toneMappingMode ${tmEnabled ? tm.mode : 0}`,
+      `#define u_toneMappingMode ${tmEnabled ? tm.mode : 1}`,
     );
     frag = frag.replace(
       "uniform int u_vignetteEnabled;",

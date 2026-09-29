@@ -1,5 +1,6 @@
 [BASE_FRAGMENT_HEADER]
 [LIGHT_DEFS]
+[FOG_DEFS]
 void main() {
   vec4 texColor = texture(u_diffuseMap, v_uv);
 #ifdef USE_SPECULAR_MAP

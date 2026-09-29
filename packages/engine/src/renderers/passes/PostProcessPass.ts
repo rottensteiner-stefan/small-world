@@ -16,6 +16,21 @@ import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
  * Full-screen post-processing pass (Uber-Shader).
  * Reads the HDR render texture and writes tone-mapped, gamma-corrected output
  * directly to the swap-chain (canvas). No intermediate ping-pong copies.
+ *
+ * ── Forward-Pass / Post-Pass tonemapping contract ────────────────────────────────────────────
+ * The WebGPU forward pass deliberately sets global.gamma = 1.0 and global.exposure = 1.0 when
+ * PostProcessing is enabled. This disables the Reinhard guard inside lighting_pbr.wgsl so that
+ * the forward pass writes raw linear-HDR values into the render target — tonemapping and exposure
+ * are owned exclusively by this PostProcess pass.
+ *
+ * Consequence: if no ToneMappingElement is configured, this pass MUST still apply a tonemapper.
+ * Without one the output is raw HDR × exposure = no tone curve = visibly dark / flat scene.
+ * The u_toneMappingMode injection in _buildPipeline() defaults to Reinhard (1) to ensure this.
+ *
+ * ⚠️  Never add Reinhard or ACES to a WebGPU forward-pass shader without checking whether
+ *     PostProcessing is active. If it is, the forward pass must NOT tonemap (double-tonemapping
+ *     produces a systematically darker scene). See WebGPURenderer.ts for where gamma/exposure
+ *     are set to 1.0 and the full explanation of the two-pass pipeline.
  */
 export class PostProcessPass implements RenderPass {
   public name = "PostProcessPass";
@@ -165,7 +180,11 @@ export class PostProcessPass implements RenderPass {
     // here at all -- they're written every frame into DynUniforms instead (see execute()).
     assembledFrag = assembledFrag.replace(
       "const u_toneMappingMode: u32 = 0u;",
-      `const u_toneMappingMode: u32 = ${tmEnabled ? tm.mode : 0}u;`,
+      // Default to Reinhard (1) when no ToneMappingElement is configured — matches GL2 which
+      // always applies Reinhard unconditionally in the forward pass. Without this fallback,
+      // WebGPU PostProcess path with no tonemapper outputs raw HDR * exposure with no tone
+      // curve, producing a visibly darker/flat result compared to GL2.
+      `const u_toneMappingMode: u32 = ${tmEnabled ? tm!.mode : 1}u;`,
     );
     assembledFrag = assembledFrag.replace(
       "const u_vignetteEnabled: u32 = 0u;",

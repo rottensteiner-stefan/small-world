@@ -7,10 +7,12 @@
   let albedo = sRGBToLinear(texCol.rgb) * sRGBToLinear(obj.color.rgb);
   var color = fL * albedo;
 
-  // Exposure
+  // ── Forward-Pass / Post-Pass tonemapping contract ─────────────────────────────────────────────
+  // global.exposure == 1.0 when PostProcessing is enabled. Do NOT add Reinhard here — the
+  // PostProcess pass handles tonemapping. See WebGPURenderer.ts "Forward-Pass / Post-Pass" block.
   color *= global.exposure;
 
-  // Gamma correction
+  // Gamma correction — always runs. Feeds the HDR render-target when PostProcessing is enabled.
   color = linearToSRGB(color);
 
   [WGSL_FOG_CALC]

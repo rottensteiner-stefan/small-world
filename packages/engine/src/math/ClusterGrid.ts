@@ -19,20 +19,15 @@ export const CLUSTER_TEX_WIDTH = 1024;
  * Fixed WebGL2 texture units for the clustered light culling grid/index textures -- plain
  * exported constants rather than renderer instance/class state, since the numbers are
  * shared by every `WebGL2Renderer` instance (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md).
- * Texture units 8-13 are reserved by the shadow system, and unit 14 is ALSO already taken --
- * by `WebGL2Renderer._RAW_DEPTH_UNIT`, the PCSS blocker-search's raw-depth read of the
- * directional shadow map. (An earlier version of this fix put the cluster textures at 14-15
- * without checking that, silently aliasing the cluster grid onto the shadow map's raw-depth
- * texture whenever a directional light cast PCSS shadows AND clustered point/spot lights were
- * both active in the same frame -- see git history.) Units 15-16 are next, free of collisions,
- * but push the full reserved range (8-16, 9 units) past the WebGL2 spec's guaranteed minimum
- * `MAX_TEXTURE_IMAGE_UNITS` of 16 (units 0-15) -- `WebGLClusterCullPass` therefore guards its own
- * bind calls against the device's real limit the same way the shadow system already does,
- * degrading gracefully (skips the upload, logs a warning) rather than corrupting on hardware
- * that only ever guarantees the spec minimum.
+ * Texture units 8-11 are reserved for spot shadows, unit 12 for directional shadows (and dummy fallback),
+ * unit 13 for `WebGL2Renderer._RAW_DEPTH_UNIT` (PCSS raw depth blocker-search), and units 14-15
+ * for the cluster grid and cluster indices textures.
+ * This keeps the entire reserved global texture unit range strictly at 8-15 (8 units total),
+ * perfectly fitting within the WebGL2 specification's guaranteed minimum `MAX_TEXTURE_IMAGE_UNITS`
+ * of 16 (units 0-15), leaving units 0-7 available for material textures without unit overflow.
  */
-export const CLUSTER_GRID_UNIT = 15;
-export const CLUSTER_INDEX_UNIT = 16;
+export const CLUSTER_GRID_UNIT = 14;
+export const CLUSTER_INDEX_UNIT = 15;
 
 /** Dimensions of the clustered light grid, in cells per axis. */
 export interface ClusterGridDims {
@@ -143,18 +138,38 @@ export function lightClusterCoverage(
   let cellMinY = 0;
   let cellMaxY = dims.y - 1;
 
-  if (clipW > 0.0001 && viewDist > radius) {
-    const ndcRadiusX = (radius / viewDist) * projScaleX;
-    const centerPxX = (ndcX * 0.5 + 0.5) * screenWidth;
-    const radiusPxX = ndcRadiusX * 0.5 * screenWidth;
-    cellMinX = clampInt(Math.floor((centerPxX - radiusPxX) / tileSize[0]), 0, dims.x - 1);
-    cellMaxX = clampInt(Math.floor((centerPxX + radiusPxX) / tileSize[0]), 0, dims.x - 1);
+  if (clipW > 0.0001 && viewDist > radius && projScaleX > 0 && projScaleY > 0) {
+    const tanX = ndcX / projScaleX;
+    const tanY = ndcY / projScaleY;
+    const vz = viewDist / Math.sqrt(1 + tanX * tanX + tanY * tanY);
 
-    const ndcRadiusY = (radius / viewDist) * projScaleY;
-    const centerPxY = (ndcY * 0.5 + 0.5) * screenHeight;
-    const radiusPxY = ndcRadiusY * 0.5 * screenHeight;
-    cellMinY = clampInt(Math.floor((centerPxY - radiusPxY) / tileSize[1]), 0, dims.y - 1);
-    cellMaxY = clampInt(Math.floor((centerPxY + radiusPxY) / tileSize[1]), 0, dims.y - 1);
+    if (vz > radius) {
+      const vx = tanX * vz;
+      const vy = tanY * vz;
+      const denom = vz * vz - radius * radius;
+
+      const radX = radius * Math.sqrt(Math.max(vx * vx + vz * vz - radius * radius, 0));
+      const mXMin = (vx * vz - radX) / denom;
+      const mXMax = (vx * vz + radX) / denom;
+      const ndcXMin = mXMin * projScaleX;
+      const ndcXMax = mXMax * projScaleX;
+
+      const radY = radius * Math.sqrt(Math.max(vy * vy + vz * vz - radius * radius, 0));
+      const mYMin = (vy * vz - radY) / denom;
+      const mYMax = (vy * vz + radY) / denom;
+      const ndcYMin = mYMin * projScaleY;
+      const ndcYMax = mYMax * projScaleY;
+
+      const pxX0 = (ndcXMin * 0.5 + 0.5) * screenWidth;
+      const pxX1 = (ndcXMax * 0.5 + 0.5) * screenWidth;
+      const pxY0 = (ndcYMin * 0.5 + 0.5) * screenHeight;
+      const pxY1 = (ndcYMax * 0.5 + 0.5) * screenHeight;
+
+      cellMinX = clampInt(Math.floor(pxX0 / tileSize[0]), 0, dims.x - 1);
+      cellMaxX = clampInt(Math.floor(pxX1 / tileSize[0]), 0, dims.x - 1);
+      cellMinY = clampInt(Math.floor(pxY0 / tileSize[1]), 0, dims.y - 1);
+      cellMaxY = clampInt(Math.floor(pxY1 / tileSize[1]), 0, dims.y - 1);
+    }
   }
 
   const dMin = Math.max(viewDist - radius, near);

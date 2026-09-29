@@ -13,21 +13,6 @@
 // computed directly via the same `global.vp` projection and `length(viewPos - lightPos)` metric
 // the fragment shader uses for its own cluster lookup -- no separate view matrix needed, and no
 // world/view-space mismatch to get wrong. `projScale` over-estimates screen radius slightly
-// rather than under-estimating (a light can be assigned to a few extra cells, never dropped).
-fn lightCellRangeX(ndcX: f32, ndcRadius: f32) -> vec2f {
-    let centerPx = (ndcX * 0.5 + 0.5) * global.resolution.x;
-    let radiusPx = ndcRadius * 0.5 * global.resolution.x;
-    return vec2f(centerPx - radiusPx, centerPx + radiusPx) / global.tileSizePx.x;
-}
-
-fn lightCellRangeY(ndcY: f32, ndcRadius: f32) -> vec2f {
-    // In WebGPU framebuffer coordinates, origin (0,0) is top-left, Y increases downward.
-    // NDC Y-up (+1.0 = top) maps to framebuffer Y 0.0:
-    let centerPx = (1.0 - (ndcY * 0.5 + 0.5)) * global.resolution.y;
-    let radiusPx = ndcRadius * 0.5 * global.resolution.y;
-    return vec2f(centerPx - radiusPx, centerPx + radiusPx) / global.tileSizePx.y;
-}
-
 fn zSliceRange(viewDist: f32, radius: f32) -> vec2f {
     let near = global.cameraNearFar.x;
     let far = global.cameraNearFar.y;
@@ -41,19 +26,48 @@ fn zSliceRange(viewDist: f32, radius: f32) -> vec2f {
 }
 
 // Returns (cellMinX, cellMaxX, cellMinY, cellMaxY, zMinSlice, zMaxSlice) for a light's bounding
-// sphere, fully covering the grid on an axis if the light center is behind the camera or the
-// camera sits inside the sphere (clip.w <= 0 makes the NDC projection meaningless).
+// sphere, fully covering the grid on an axis if the light intersects or lies behind the camera plane
+// (clip.w <= radius makes the perspective NDC projection singular/unbounded).
 fn lightCoverage(worldPos: vec3f, radius: f32, dims: vec3u) -> array<vec2f, 3> {
     let viewDist = max(length(worldPos - global.viewPos.xyz), 0.0001);
     let clip = global.vp * vec4f(worldPos, 1.0);
 
     var rangeX = vec2f(0.0, f32(dims.x) - 1.0);
     var rangeY = vec2f(0.0, f32(dims.y) - 1.0);
-    if (clip.w > 0.0001 && viewDist > radius) {
-        let ndc = clip.xy / clip.w;
-        let ndcRadius = worldRadiusToNdcRadius(radius, viewDist);
-        rangeX = clamp(floor(lightCellRangeX(ndc.x, ndcRadius.x)), vec2f(0.0), vec2f(f32(dims.x) - 1.0));
-        rangeY = clamp(floor(lightCellRangeY(ndc.y, ndcRadius.y)), vec2f(0.0), vec2f(f32(dims.y) - 1.0));
+
+    // If the sphere is strictly in front of the camera plane (vz > radius),
+    // compute exact analytical screen-space tangent bounds:
+    if (clip.w > 0.0001 && viewDist > radius && global.projScale.x > 0.0 && global.projScale.y > 0.0) {
+        let tanX = (clip.x / clip.w) / global.projScale.x;
+        let tanY = (clip.y / clip.w) / global.projScale.y;
+        let vz = viewDist / sqrt(1.0 + tanX * tanX + tanY * tanY);
+
+        if (vz > radius) {
+            let vx = tanX * vz;
+            let vy = tanY * vz;
+            let denom = vz * vz - radius * radius;
+
+            let radX = radius * sqrt(max(vx * vx + vz * vz - radius * radius, 0.0));
+            let mXMin = (vx * vz - radX) / denom;
+            let mXMax = (vx * vz + radX) / denom;
+            let ndcXMin = mXMin * global.projScale.x;
+            let ndcXMax = mXMax * global.projScale.x;
+
+            let radY = radius * sqrt(max(vy * vy + vz * vz - radius * radius, 0.0));
+            let mYMin = (vy * vz - radY) / denom;
+            let mYMax = (vy * vz + radY) / denom;
+            let ndcYMin = mYMin * global.projScale.y;
+            let ndcYMax = mYMax * global.projScale.y;
+
+            let pxX0 = (ndcXMin * 0.5 + 0.5) * global.resolution.x;
+            let pxX1 = (ndcXMax * 0.5 + 0.5) * global.resolution.x;
+            // In WebGPU framebuffer coordinates, origin (0,0) is top-left, Y increases downward.
+            let pxY0 = (0.5 - ndcYMax * 0.5) * global.resolution.y;
+            let pxY1 = (0.5 - ndcYMin * 0.5) * global.resolution.y;
+
+            rangeX = clamp(vec2f(floor(pxX0 / global.tileSizePx.x), floor(pxX1 / global.tileSizePx.x)), vec2f(0.0), vec2f(f32(dims.x) - 1.0));
+            rangeY = clamp(vec2f(floor(pxY0 / global.tileSizePx.y), floor(pxY1 / global.tileSizePx.y)), vec2f(0.0), vec2f(f32(dims.y) - 1.0));
+        }
     }
 
     let rangeZ = zSliceRange(viewDist, radius);

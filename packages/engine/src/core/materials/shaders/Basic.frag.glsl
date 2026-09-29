@@ -6,5 +6,4 @@ void main() {
     discard;
   }
   fragColor = vec4(u_color.rgb * texColor.rgb, finalAlpha);
-  [FOG_CALC]
 }

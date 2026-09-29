@@ -135,6 +135,20 @@ export class WebGL2FrameBuffer {
   }
 
   /**
+   * Gets the underlying WebGLFramebuffer object.
+   */
+  public get framebuffer(): WebGLFramebuffer {
+    return this._framebuffer;
+  }
+
+  /**
+   * Gets the internal format of the color attachment.
+   */
+  public get internalFormat(): number {
+    return this._internalFormat;
+  }
+
+  /**
    * Gets the WebGL texture associated with this framebuffer.
    */
   public get texture(): WebGLTexture {

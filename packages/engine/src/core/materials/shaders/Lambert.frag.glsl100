@@ -1,5 +1,6 @@
 [BASE_FS_HEADER]
 [LIGHT_DEFS]
+[FOG_DEFS]
 
 void main() {
   vec4 texColor = texture2D(u_diffuseMap, v_uv);
