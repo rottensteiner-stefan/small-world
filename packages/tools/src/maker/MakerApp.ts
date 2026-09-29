@@ -31,6 +31,11 @@ import {
   Vector2D,
   Vector3D,
   MathPool,
+  Plane,
+  StandardMaterial,
+  Texture,
+  KitRegistry,
+  CullMode,
 } from "@small-world/engine";
 
 import { OrbitCameraController, OrbitCameraView } from "./OrbitCameraController.js";
@@ -49,12 +54,14 @@ import { MapImportPanel } from "./MapImportPanel.js";
 import { MakerPrefabPipeline } from "./MakerPrefabPipeline.js";
 import { MakerImportAndZoneTools } from "./MakerImportAndZoneTools.js";
 import { MakerToolbarBuilder } from "./MakerToolbarBuilder.js";
+import { ContentDrawer } from "./ContentDrawer.js";
 
 export interface MakerAppOptions extends EngineOptions {
   hierarchyContainer: HTMLElement;
   propertyContainer: HTMLElement;
   paletteContainer: HTMLElement;
   statusContainer: HTMLElement;
+  contentDrawerContainer?: HTMLElement;
 }
 
 interface ObjectTransformSnapshot {
@@ -158,6 +165,15 @@ export class MakerApp extends SmallWorld {
   public get cameraBookmarks(): ReadonlyMap<number, OrbitCameraView> {
     return this._toolbars.cameraBookmarks;
   }
+  public get contentDrawer(): ContentDrawer {
+    return this._contentDrawer;
+  }
+  public get kitRegistry(): KitRegistry {
+    return this._kitRegistry;
+  }
+
+  private readonly _kitRegistry = new KitRegistry();
+  private _contentDrawer!: ContentDrawer;
 
   private get _selected(): Object3D | undefined {
     return this._primary;
@@ -310,6 +326,126 @@ export class MakerApp extends SmallWorld {
     this._toolbars.setupGizmoToolbar();
     if (this._toolbars.zoneDrawButton)
       this._importTools.setZoneDrawButton(this._toolbars.zoneDrawButton);
+
+    const drawerContainer =
+      this._makerOptions.contentDrawerContainer ?? this.canvas.parentElement ?? document.body;
+
+    this._contentDrawer = new ContentDrawer({
+      container: drawerContainer,
+      canvas: this.canvas,
+      kitRegistry: this._kitRegistry,
+      callbacks: {
+        loadKitProp: async (kitPropId, worldPos): Promise<Object3D | undefined> => {
+          try {
+            const instance = await this._kitRegistry.loadProp(kitPropId);
+            if (worldPos) {
+              instance.root.position.copyFrom(worldPos);
+            }
+            this.addObject(instance.root);
+            this.selectObject(instance.root);
+            return instance.root;
+          } catch (err) {
+            console.error(`[Maker] Failed to load kit prop '${kitPropId}':`, err);
+            return undefined;
+          }
+        },
+        createPrimitive: (factory, worldPos): Object3D => {
+          const obj = factory();
+          if (worldPos) {
+            obj.position.copyFrom(worldPos);
+          }
+          this.addObject(obj);
+          this.selectObject(obj);
+          return obj;
+        },
+        applyTexture: async (kitId, textureItem, targetObject): Promise<void> => {
+          const target = targetObject ?? this._selected;
+          if (!target) return;
+          try {
+            const tex = textureItem as { id: string; maps: string[] };
+            const slug = tex.id.includes("/") ? tex.id.split("/").pop()! : tex.id;
+            const base = `${this._kitRegistry.basePath}${kitId}/textures/${slug}`;
+            const findMap = (kw: string): string | undefined =>
+              tex.maps.find((m) => m.toLowerCase().includes(kw));
+            const albedo = findMap("albedo") ?? findMap("diffuse");
+            const normal = findMap("normal");
+            const roughness = findMap("roughness");
+            const ao = findMap("ao");
+            const mat = new StandardMaterial({ color: Color.WHITE, metallic: 0, roughness: 0.8 });
+            if (albedo) mat.diffuseMap = await Texture.fromUrl(`${base}/${albedo}`);
+            if (normal) mat.normalMap = await Texture.fromUrl(`${base}/${normal}`);
+            if (roughness) mat.roughnessMap = await Texture.fromUrl(`${base}/${roughness}`);
+            if (ao) mat.aoMap = await Texture.fromUrl(`${base}/${ao}`);
+            this.setMaterialOnObject(target, mat);
+          } catch (err) {
+            console.error("[Maker] Failed to apply texture:", err);
+          }
+        },
+        createDecal: async (kitId, decalItem, worldPos): Promise<void> => {
+          try {
+            const decal = decalItem as { file: string; name: string };
+            const fileUrl = `${this._kitRegistry.basePath}${kitId}/decals/${decal.file}`;
+            const tex = await Texture.fromUrl(fileUrl, { flipY: true });
+            const quad = new Object3D(decal.name ?? "Decal");
+            quad.geometry = new Plane({ width: 1, height: 1 }).getGeometryData();
+            const mat = new StandardMaterial({
+              color: Color.WHITE,
+              diffuseMap: tex,
+              roughness: 0.8,
+            });
+            mat.transparent = true;
+            mat.cullMode = CullMode.NONE;
+            quad.material = mat;
+            if (worldPos) quad.position.copyFrom(worldPos);
+            this.addObject(quad);
+            this.selectObject(quad);
+          } catch (err) {
+            console.error("[Maker] Failed to create decal:", err);
+          }
+        },
+        instantiatePrefab: async (name, worldPos): Promise<void> => {
+          this._prefabPipeline.instantiatePrefab(name);
+          if (worldPos && this._selected) {
+            this._selected.position.copyFrom(worldPos);
+          }
+        },
+        getRaycastHit: (
+          screenX,
+          screenY,
+        ): { position: Vector3D; targetObject?: Object3D; normal?: Vector3D } => {
+          const rect = this.canvas.getBoundingClientRect();
+          const ndcX = (screenX / rect.width) * 2 - 1;
+          const ndcY = -(screenY / rect.height) * 2 + 1;
+          const ndc = new Vector2D(ndcX, ndcY);
+          this._raycaster.setFromCamera(ndc, this.camera);
+
+          // 1. Raycast scene objects first
+          const pickable: Object3D[] = [];
+          this._collectPickable(this.scene.root, pickable);
+          const hits = this._raycaster.intersectObjects(pickable, true);
+          if (hits.length > 0 && hits[0]) {
+            const hit = hits[0];
+            const hitPos = this._raycaster.ray.at(hit.distance);
+            return {
+              position: hitPos,
+              targetObject: hit.object,
+            };
+          }
+
+          // 2. Fallback to Y=0 ground plane
+          const ray = this._raycaster.ray;
+          if (Math.abs(ray.direction.y) > 1e-4) {
+            const t = -ray.origin.y / ray.direction.y;
+            if (t > 0 && t < 1000) {
+              return {
+                position: ray.at(t),
+              };
+            }
+          }
+          return { position: new Vector3D(0, 0, 0) };
+        },
+      },
+    });
 
     const signal = this._abortController.signal;
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault(), { signal });

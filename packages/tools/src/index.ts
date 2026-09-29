@@ -6,5 +6,6 @@ export * from "./Pixler.js";
 export * from "./Xtractor.js";
 export * from "./MapGenerator.js";
 export * from "./maker/MakerApp.js";
+export * from "./maker/ContentDrawer.js";
 export * from "./kit-inspector/KitInspectorApp.js";
 export * from "./attachDevTools.js";

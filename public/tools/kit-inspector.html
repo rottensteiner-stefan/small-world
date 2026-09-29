@@ -273,6 +273,10 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
+      .pill-btn *,
+      .tab-btn * {
+        pointer-events: none;
+      }
       .pill-btn:hover {
         color: #fff;
       }
@@ -928,17 +932,31 @@
       }
 
       function updateCounts() {
-        const props = allAssets.filter(a => a.type === "prop").length;
-        const textures = allAssets.filter(a => a.type === "texture").length;
-        const decals = allAssets.filter(a => a.type === "decal").length;
+        const kitAssets = allAssets.filter(a => {
+          if (activeKitFilter !== "all" && a.kitId !== activeKitFilter) return false;
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            const matchName = a.name.toLowerCase().includes(q);
+            const matchId = a.id.toLowerCase().includes(q);
+            const matchCat = a.category.toLowerCase().includes(q);
+            if (!matchName && !matchId && !matchCat) return false;
+          }
+          return true;
+        });
 
-        document.getElementById("countAll").textContent = allAssets.length;
+        const props = kitAssets.filter(a => a.type === "prop").length;
+        const textures = kitAssets.filter(a => a.type === "texture").length;
+        const decals = kitAssets.filter(a => a.type === "decal").length;
+
+        document.getElementById("countAll").textContent = kitAssets.length;
         document.getElementById("countProps").textContent = props;
         document.getElementById("countTextures").textContent = textures;
         document.getElementById("countDecals").textContent = decals;
       }
 
       function renderCatalog() {
+        updateCounts();
+
         const list = document.getElementById("catalogList");
         list.innerHTML = "";
 
@@ -954,6 +972,14 @@
           }
           return true;
         });
+
+        if (filtered.length === 0) {
+          const empty = document.createElement("div");
+          empty.style.cssText = "padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;";
+          empty.textContent = "Keine passenden Assets gefunden.";
+          list.appendChild(empty);
+          return;
+        }
 
         for (const asset of filtered) {
           const card = document.createElement("div");
@@ -1134,20 +1160,20 @@
 
       // Filter Tabs
       document.querySelectorAll("#kitTabs .tab-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => {
+        btn.addEventListener("click", () => {
           document.querySelectorAll("#kitTabs .tab-btn").forEach(b => b.classList.remove("active"));
-          e.target.classList.add("active");
-          activeKitFilter = e.target.dataset.kit;
+          btn.classList.add("active");
+          activeKitFilter = btn.dataset.kit || "all";
           renderCatalog();
         });
       });
 
       // Type Pills
       document.querySelectorAll(".type-filter-row .pill-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => {
+        btn.addEventListener("click", () => {
           document.querySelectorAll(".type-filter-row .pill-btn").forEach(b => b.classList.remove("active"));
-          e.target.classList.add("active");
-          activeTypeFilter = e.target.dataset.type;
+          btn.classList.add("active");
+          activeTypeFilter = btn.dataset.type || "all";
           renderCatalog();
         });
       });

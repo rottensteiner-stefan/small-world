@@ -98,7 +98,8 @@ export class KitRegistry {
     const kitId = parts[0] ?? "";
     const manifest = await this.getKitManifest(kitId);
 
-    const item = manifest.items.find(
+    const items = manifest.items ?? [];
+    const item = items.find(
       (it: KitManifestItem) => it.id === kitPropId || it.id.endsWith(kitPropId),
     );
     if (!item) {
@@ -134,7 +135,8 @@ export class KitRegistry {
     const kitId = parts[0] ?? "";
     const manifest = await this.getKitManifest(kitId);
 
-    const item = manifest.items.find(
+    const propItems = manifest.items ?? [];
+    const item = propItems.find(
       (it: KitManifestItem) => it.id === kitPropId || it.id.endsWith(kitPropId),
     );
     if (!item) {

@@ -2,7 +2,7 @@ import {
   SmallWorld,
   Object3D,
   Sphere,
-  Ground,
+  Plane,
   Grid,
   DirectionalLight,
   AmbientLight,
@@ -18,6 +18,7 @@ import {
   PerspectiveProjection,
   BoundingType,
   BoundingBox,
+  CullMode,
   EngineOptions,
 } from "@small-world/engine";
 import type { KitSocket } from "@small-world/engine";
@@ -463,13 +464,22 @@ export class KitInspectorApp extends SmallWorld {
     this._clearAsset();
 
     try {
-      const quadGeo = new Ground({ width: 1.6, depth: 1.6 }).getGeometryData();
-      const decalQuad = new Object3D("DecalQuad");
-      decalQuad.geometry = quadGeo;
-
       // file is a bare filename; actual files live under the decals/ subfolder
       const fileUrl = `${this._kitRegistry.basePath}${kitId}/decals/${decalItem.file}`;
-      const decalTex = await Texture.fromUrl(fileUrl);
+      const decalTex = await Texture.fromUrl(fileUrl, { flipY: true });
+
+      // Dynamically determine aspect ratio from the decoded image to avoid distortion
+      let aspect = 1.0;
+      if (decalTex.image && "width" in decalTex.image && "height" in decalTex.image) {
+        aspect = decalTex.image.width / Math.max(1, decalTex.image.height);
+      }
+
+      const planeWidth = aspect >= 1.0 ? 1.6 : 1.6 * aspect;
+      const planeHeight = aspect >= 1.0 ? 1.6 / aspect : 1.6;
+
+      const quadGeo = new Plane({ width: planeWidth, height: planeHeight }).getGeometryData();
+      const decalQuad = new Object3D("DecalQuad");
+      decalQuad.geometry = quadGeo;
 
       const mat = new StandardMaterial({
         color: Color.WHITE,
@@ -477,14 +487,17 @@ export class KitInspectorApp extends SmallWorld {
         roughness: 0.6,
         metallic: 0.1,
       });
+      mat.transparent = true;
+      mat.cullMode = CullMode.NONE;
 
       decalQuad.material = mat;
-      decalQuad.rotation.x = Math.PI / 4; // Tilted toward camera
-      decalQuad.position.set(0, 0.8, 0);
+      decalQuad.position.set(0, 0.85, 0);
       this._assetRoot.add(decalQuad);
 
-      this._orbitTarget.set(0, 0.8, 0);
-      this._orbitDistance = 2.2;
+      this._orbitTarget.set(0, 0.85, 0);
+      this._orbitDistance = 2.4;
+      this._orbitYaw = 0;
+      this._orbitPitch = 0.05;
       this._updateCameraTransform();
 
       const manifest = await this._kitRegistry.getKitManifest(kitId);

@@ -20,6 +20,21 @@ erzeugen.
 
 ---
 
+## 2026-09-29 — Content Drawer im Maker & PBR-Pipeline als Werkzeug-Rüstung
+
+- ✅ **UE5-Style Content Drawer & Asset Browser für den Maker eingebaut.** Dockbarer Bottom-Drawer
+  (`Ctrl/Cmd+Space`), Ordnerbaum + Live-Asset-Raster, Sofortsuche, Typ-Filter, nativer HTML5-Drag &
+  Drop direkt auf den 3D-Viewport mit Raycast-Platzierung, Doppelklick-/Pin-UX. Abgedeckt sind Kit-
+  Props, PBR-Materials, Decals, Primitives, Lights und Prefabs. Ref: `packages/tools/src/maker/ContentDrawer.ts`
+  (Commit in 0.88.0).
+- ✅ **`pbr.sh` zum vollwertigen CLI ausgebaut** (`--json`/`--config`, Param-Overrides, `--maps`,
+  `--resize`, `--quality`, `--help`); obsolete `generate-petra-textures.js` und
+  `extract-webgpu-error.js` entfernt. `stone.conf` nachgeschärft; Flakturm: neues `travertine`-PBR-Set,
+  `brick_aged` mit besserem AO regeneriert.
+- 💡 **Naheliegender nächster Schritt aus der Asset-Pipeline-Runde:** Content-Drawer-Prefabs an die
+  bestehende Prefab-Persistenz (glTF) koppeln und den Drawer bei Bedarf später um Kit-Import/
+  Weiterbearbeitung (Kit-Customizer) erweitern — noch nicht entschieden, nur vorgemerkt.
+
 ## 2026-09-28 — Smartphone-Performance als Thema vorgemerkt
 
 - 💡 **Mobile/Smartphone-Performance & Quality-Tiers.** User hat mehrere Showcases (nicht nur

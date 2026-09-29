@@ -118,7 +118,7 @@ describe("KitRegistry", () => {
 
     const manifest = await registry.getKitManifest("bunker");
     expect(manifest.id).toBe("bunker");
-    expect(manifest.items.length).toBe(2);
+    expect(manifest.items?.length).toBe(2);
 
     const meta = await registry.getPropMeta("bunker/kerosene_lantern");
     expect(meta.id).toBe("bunker/kerosene_lantern");

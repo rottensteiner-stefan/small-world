@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.88.0] - 2026-09-29
+
+### "Give me six hours to chop down a tree and I will spend the first four sharpening the axe." - Abraham Lincoln
+
+- **Features:**
+  - *Unreal-Engine-5-Style Content Drawer & Asset Browser for Maker*: Dockable, resizable bottom drawer ([`ContentDrawer.ts`](packages/tools/src/maker/ContentDrawer.ts)) with Ctrl/Cmd+Space toggle, two-pane layout (folder tree + live asset grid), instant search, type filter pills (Props, PBR Materials, Decals, Primitives, Lights, Prefabs), native HTML5 drag & drop directly onto the 3D viewport with ground-plane/scene raycasting, double-click placement and Pin/Snap-Drop UX — wired into Maker via new `contentDrawer`/`kitRegistry` accessors and full placement/raycast callbacks in [`MakerApp.ts`](packages/tools/src/maker/MakerApp.ts).
+  - *Kit Inspector Decal Preview Rework*: Decal quad now derives its aspect ratio dynamically from the decoded image to eliminate distortion, uses `flipY` sampling, a transparent double-sided `CullMode.NONE` material and a properly framed camera; filter pills respect the selected Kit and live search, with an explicit empty-state message.
+- **Architecture & Bugfixes:**
+  - *KitRegistry Manifest Hardening*: `manifest.items` is now accessed null-safely in both `getPropMeta`/`loadProp` paths ([`KitRegistry.ts`](packages/engine/src/loaders/kit/KitRegistry.ts)), preventing crashes on kits whose manifest lacks an items array.
+- **Housekeeping & Docs:**
+  - *PBR Pipeline Script Rework*: [`pbr.sh`](scripts/pbr.sh) grown into a full CLI — `--json`/`--config` input, profile-override flags and `--set KEY=VALUE`, explicit `--maps` selection, `--resize`, `--out-format`/`--quality`, `--force`/`--keep-temp`, and a `--help` usage page. `stone.conf` retuned (stronger AO detail, higher normal strength). Removed the obsolete `extract-webgpu-error.js` and `generate-petra-textures.js` scripts.
+  - *Flakturm Texture Production*: New `travertine` PBR material set (albedo/ao/normal/roughness) via the reworked pipeline; `brick_aged` textures regenerated with improved AO.
+  - *Test Coverage*: [`ContentDrawer.test.ts`](packages/tools/tests/maker/ContentDrawer.test.ts) covers drawer DOM/toggle/shortcut, double-click instantiation, drag & drop placement with raycast, texture drop-on-mesh, and prefab refresh.
+
 ## [0.87.0] - 2026-09-27
 
 ### "The universe is under no obligation to make sense to you." - Neil deGrasse Tyson

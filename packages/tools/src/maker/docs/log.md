@@ -472,6 +472,23 @@ Massive Verdichtung und Ergonomie-Optimierung des Property Inspectors nach Vorbi
 - **Schema-gesteuert via `row`-Attribut:** Beliebige Properties im `static inspector` können mit `row: "..."` automatisch horizontal nebeneinander gerendert werden.
 - **Status:** 112 Test-Dateien, 637 Tests, Build & Lint 100% grün.
 
+---
+
+## 2026-09-29 — Content Drawer (UE5-Style Asset Browser) + Flakturm-Texturproduktion
+
+Erster Baustein eines industrietauglichen Asset-Workflows im Maker, angelehnt an Unreal Engines Content-Browser-Konzept:
+- **Neuer `ContentDrawer` (`packages/tools/src/maker/ContentDrawer.ts`):**
+  - Andockbare, per Resizer höhenverstellbare Bottom-Drawer-Leiste mit `Ctrl/Cmd+Space`-Kurzbefehl und Pin-Modus.
+  - Zwei-Spalten-Navigation: hierarchischer Ordnerbaum (Kits, Materials, Decals, Primitives, Lights, Prefabs) + Live-Asset-Raster.
+  - Sofortsuche, Typ-Filter-Pills (Props, PBR Materials, Decals, Primitives, Lights, Prefabs).
+  - **Nativer HTML5-Drag & Drop direkt auf den 3D-Viewport** mit Ground-Plane-/Scene-Raycasting, Doppelklick-Platzierung und Auto-Close nach Drop (ausser gepinnt).
+  - Textur-Drop trifft das angeklickte Objekt (Material-Zuweisung), Asset-Platzierung erfolgt am Raycast-Hitpunkt.
+- **MakerApp-Integration:** Eigene `KitRegistry`-Instanz, `contentDrawer`/`kitRegistry`-Accessors und Callback-Bridge (Prop-Load, Primitive/Objekt-Erzeugung, Textur-Applikation, Decal-Erzeugung, Prefab-Instanziierung, Raycast).
+- **Kit-Inspector-Decal-Preview:** Seitenverhältnis-getreue Ebene (Aspect aus dekodiertem Bild statt Verzerrung), `flipY`, transparentes beidseitiges Material (`CullMode.NONE`), Kamera-Framing. Kit-/Such-Filter wirken nun konsistent auf Zählungen und leere Zustände.
+- **KitRegistry-Härtung:** `manifest.items` null-safe in `getPropMeta`/`loadProp`.
+- **Flakturm:** Neues `travertine`-PBR-Set (albedo/ao/normal/roughness) über den reworkten `pbr.sh`; `brick_aged` mit nachgeschärftem AO regeneriert.
+- **Status:** 201 Test-Dateien, 1191 Tests, Build & Lint 100% grün.
+
 
 
 
