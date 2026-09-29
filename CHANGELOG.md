@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.89.0] - 2026-09-29
+
+### "We shape our tools and thereafter our tools shape us." - Marshall McLuhan
+
+- **Features:**
+  - *Asset-First-Refactor Koje 42 & Kältekammer*: Complete removal of the procedural greybox furniture fallback in [`prologue.ts`](apps/sample-apps/the-whisper/scenes/prologue/prologue.ts) (−197 lines net) — the Koje is now staged exclusively through the declarative [`koje42.level.json`](apps/sample-apps/the-whisper/scenes/prologue/koje42.level.json) with real Kit glTF props (desk, stool, lantern, grinder, shelf, towels, bunk bed, boots, rug, ceiling lamp, vent breach, mess tin). New [`kaeltekammer.level.json`](apps/sample-apps/the-whisper/scenes/prologue/kaeltekammer.level.json) wires the Kältekammer's wall-rubble pile and a cold bulkhead ceiling lamp as Kit props; morgue floor/back-wall now use the dedicated `concrete_damp_efflorescence` kit material.
+  - *Declarative Level Loading Unblocked (bugfix with feature impact)*: `.level.json` descriptors are now loaded via Vite `new URL("./…", import.meta.url)`, fixing a silent runtime 404 that had left the Koje furniture missing in dev **and** build since the descriptor migration. The staged scene now actually renders all 17 Kit props.
+  - *Failure Transparency*: Missing Kit props now log a tagged `console.error` (Fail Fast region/name) instead of silently falling back to greybox.
+- **Architecture & Bugfixes:**
+  - *Blast-Door Asset QS finding + adaptation*: Measured `flakturm/bunker_blast_door` renders as a ~0.92×1.0×0.94m block at recommendedScale (meta says 1.8×2.2×0.25m); the scene uses it as the Koje's static heavy armored door (front face flush to the inner wall, excess depth in the un-modeled corridor) and the cutscene's door beat is now told as hallway-beam choreography plus a subtle creak-nudge instead of an en-masse swing.
+- **Housekeeping & Docs:**
+  - *Bin-aware cleanup*: Removed the now-dead `createFluorescentLamp`/`createDebrisCluster` scene usages (builder methods remain, covered by their tests), terminal screen-flicker moved from a dead material reference to a real `ScreenGlow` point-light, and `applyKitTextures` no longer targets removed procedural meshes.
+  - *Test Coverage*: 201 test files / 1194 tests green; `LevelValidation` now validates both `koje42` and `kaeltekammer` descriptors (JSON, schema strict, manifest/meta references).
+
 ## [0.88.0] - 2026-09-29
 
 ### "Give me six hours to chop down a tree and I will spend the first four sharpening the axe." - Abraham Lincoln

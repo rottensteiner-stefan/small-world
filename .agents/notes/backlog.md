@@ -20,6 +20,24 @@ erzeugen.
 
 ---
 
+## 2026-09-29 — Asset-First-Refactor Koje 42/Kältekammer
+
+- ✅ **Prozeduralen Greybox-Fallback in der Whisper-Pro-Log-Szene entfernt** (−197 Zeilen in
+  `prologue.ts`). Koje 42 wird ausschließlich über `koje42.level.json` + echte Kit-glTF-Props
+  bestückt; neue deklarative `kaeltekammer.level.json` (Schutt + kalte Deckenleuchte).
+- ✅ **Runtime-Bug behoben:** Level-Deskriptoren liefen über den Absolutpfad `/scenes/prologue/…`
+  in Dev+Build ins Leere (stille 404 → Koje stand ohne Kit-Möbel). Fix: Vite-`new URL("./…",
+  import.meta.url)`; die Level-Dateien bleiben damit korrekt unter `apps/…/scenes/prologue/`
+  (LevelValidation-Test erzwingt diesen Ort). Fail-Fast statt stummem Greybox.
+- 📋 **(Asset-QS) `flakturm/bunker_blast_door` dimensional inkonsistent:** rendert bei
+  recommendedScale als ~0.92×1.0×0.94m-Block, Meta.json behauptet 1.8×2.2×0.25m (Tripo3D-Quirk,
+  per Bounding-Volume + Vertex-Normalen gemessen). In der Szene als statische Panzertür verarbeitet
+  (Vorderfläche bündig, Überlauf-Tiefe in den nicht-modellierten Flur). Für eine **animierbare**
+  Tür später: Asset neu skalieren/re-exportieren oder ein schlankes Einzeltürblatt sourcen.
+- 💡 **Nächste Asset-Pipeline-Ideen aus dieser Runde (unbewertet):** Kit-Prop für Leichen-
+  Schubladen-Wandschrank (ersetzt das prozedurale 3×3-Rack in K-42), ggf. Decken-Prop für die
+  Kältekammer-Kaltleuchte konsolidieren (aktuell Kit-`ceiling_lamp` mit kaltem Light-Override).
+
 ## 2026-09-29 — Content Drawer im Maker & PBR-Pipeline als Werkzeug-Rüstung
 
 - ✅ **UE5-Style Content Drawer & Asset Browser für den Maker eingebaut.** Dockbarer Bottom-Drawer

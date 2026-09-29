@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../../../public/schemas/level.schema.json",
+  "id": "kaeltekammer_sektor0",
+  "name": "Kältekammer Sektor 0",
+  "version": "1.0.0",
+  "description": "Kit-Props für die Leichenhallen-Szene (Relativ zur K-42-Morgue-Gruppe bei Welt -9m Z).",
+  "props": [
+    {
+      "id": "ColdCeilingLamp",
+      "kitProp": "flakturm/ceiling_lamp",
+      "position": [0, 2.95, 0],
+      "scale": 0.5,
+      "lightOverrides": {
+        "BulbLight": {
+          "color": "#aee0ff",
+          "intensity": 3.0,
+          "distance": 12.0
+        }
+      },
+      "materialOverrides": {
+        "roughness": 0.5,
+        "metallic": 0.6
+      }
+    },
+    {
+      "id": "DebrisRubblePile",
+      "kitProp": "flakturm/debris_rubble_pile",
+      "position": [2.7, 0, -2.0],
+      "rotation": [0, 0.3, 0],
+      "scale": 0.8,
+      "materialOverrides": {
+        "roughness": 0.85,
+        "metallic": 0.35
+      }
+    }
+  ]
+}

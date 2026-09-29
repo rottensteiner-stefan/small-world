@@ -1833,3 +1833,38 @@ befüllen.
   - Version Bump auf `0.82.0`.
 
 
+
+## 139. Asset-First-Refactor Koje 42 & Kältekammer: Kit-Props statt Greybox (2026-09-29)
+- **Anlass:** Mit inzwischen 3 vollen Asset-Kits ist es Zeit, Assets konsequent in der Szene
+  einzusetzen statt prozeduralen Fallback zu pflegen. User-Auftrag: „Koje 42 endlich damit
+  stücken, das Programmatische entfernen/reduzieren."
+- **Deklarative Level-Bestückung repariert (P0-Bug):** `koje42.level.json` wurde zwar geladen,
+  aber der absolute URL-Pfad `/scenes/prologue/koje42.level.json` 404'te still in Dev **und**
+  Build — d.h. seit dem Umstieg auf Level-Deskriptoren (Eintrag 137) stand die Koje faktisch
+  **ohne** die Kit-Möbel da (nur Architektur + imperativ geladene Props). Fix: Laden über
+  Vite-`new URL("./…", import.meta.url)` — funktioniert jetzt zuverlässig in Dev und Build.
+  Ebenso neues `kaeltekammer.level.json` (Wandschutt + kalte Deckenleuchte), an die
+  Morgue-Gruppe gebunden.
+- **Prozeduralen Fallback entfernt (−197 Zeilen netto in `prologue.ts`):** Schreibtisch,
+  Hocker, Laterne, Kaffeemühle, Regal, Handtücher, Stockbett, Stiefel, Teppich, Terminal,
+  Lüftungsgitter, Deckenleuchte — alle früheren Cube-Prozedur-Platzhalter gelöscht. Die
+  Bestückung kommt ausschließlich über die echten glTF-Kit-Props (`koje42.level.json`). Auch
+  die prozedurale Leuchtstoff-Duplikat-Deckenleuchte und die Remove-Bookkeeping-Logik
+  (`this.scene.remove(...)`) entfielen.
+- **Kältekammer K-42:** `FlakturmKit.createDebrisCluster` und die prozedurale Kalt-
+  Leuchtstoffröhre durch Kit-Props (`debris_rubble_pile`, `ceiling_lamp` kalt) ersetzt.
+  Laugeflächen-Wechsel auf das morgue-taugliche `concrete_damp_efflorescence`-Kit-Material.
+- **Blast-Door-Asset-Erkenntnis (QS-pflichtig):** `flakturm/bunker_blast_door` rendert bei
+  `recommendedScale` als fast-würfelförmiger Block (~0.92×1.0×0.94m, gemessen via
+  Bounding-Volume + Vertex-Normalen) statt der Meta-Angabe 1.8×2.2×0.25m — die Dokumentation
+  des Assets ist unzuverlässig (Tripo3D-Quirk). Nachtrag in `backlog.md` als Asset-QS-Punkt.
+- **Entscheidung Tür:** Die Blast-Door wird als **statische** geschlossene Panzertür montiert
+  (Vorderfläche bündig zur Innenwand, Überlauf-Tiefe verschwindet im nicht-modellierten Flur);
+  das „Tür öffnet sich" der Timeline wird als **Lichtstrahl-Choreografie** erzählt
+  (Flur-Spot-Licht wird breiter/heller + subtiler Vorwärts-Creak), statt eine en-masse-
+  Drehbewegung des würfelförmigen Blocks zu erzwingen.
+- **Fail-Fast statt stummem Greybox:** Fehlende Kit-Props melden sich jetzt mit
+  `console.error` (markiert den genauen Level/Bereich), nicht mehr unsichtbar.
+- **QA:** 201 Testdateien / 1194 Tests grün, inkl. Schema-Validierung beider Level-Deskriptoren
+  und Kit-Manifest-Referenzprüfung; `typecheck`, `lint` und `build:lib` fehlerfrei.
+  Visuell im Dev-Server verifiziert (alle 17 Kit-Props im Objektbaum, Render-Frame nicht schwarz).

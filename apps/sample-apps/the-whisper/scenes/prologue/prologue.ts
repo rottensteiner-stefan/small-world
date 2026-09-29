@@ -39,15 +39,10 @@ export class PrologueScene extends AbstractShowcase {
   // 3D Objects & Lights (Koje 42)
   private _bunkerDoor: Object3D | null = null;
   private _doorSpot: SpotLight | null = null;
-  private _screenMaterial: StandardMaterial | null = null;
+  private _screenGlow: PointLight | null = null;
   private _dustParticles: Object3D[] = [];
   private _ventGrate: Object3D | null = null;
-  private _coffeeGrinderMesh: Object3D | null = null;
-  private _terminalMesh: Object3D | null = null;
-  private _bunkBedMesh: Object3D | null = null;
   private _morgueTrayMesh: Object3D | null = null;
-  private _metalDeskMesh: Object3D | null = null;
-  private _wallShelfMesh: Object3D | null = null;
   private _lanternFlameLight: PointLight | null = null;
 
   // 3D Objects & Lights (Kältekammer K-42)
@@ -168,18 +163,8 @@ export class PrologueScene extends AbstractShowcase {
     this._doorSpot.lookAt(new Vector3D(0.5, 0.8, 0.5));
     this.scene.add(this._doorSpot);
 
-    // Deckenleuchte Koje 42 — caged industrial fluorescent fixture (FlakturmKit)
-    const ceilingLamp = FlakturmKit.createFluorescentLamp({
-      name: "BunkerCeilingLamp",
-      length: 1.5,
-      caged: true,
-      intensity: 1.5,
-      lightDistance: 8.0,
-      color: new Color(0.85, 0.9, 1.0),
-    });
-    ceilingLamp.position.set(0, 3.05, 0);
-    ceilingLamp.rotation.y = Math.PI / 2;
-    this.scene.add(ceilingLamp);
+    // Deckenleuchte Koje 42 kommt als Kit-Prop (`flakturm/ceiling_lamp`) aus dem
+    // Level-Deskriptor — kein prozeduraler Platzhalter mehr.
 
     // 4. Build 3D Geometries
     this._buildBunkerRoom();
@@ -192,9 +177,10 @@ export class PrologueScene extends AbstractShowcase {
     this._mapModal = new ViennaMapModal("flakturm_arenberg");
     this._hotspotManager = new HotspotManager();
 
-    // 6. Load High-Fidelity glTF Prop Kits via Level Descriptor, then apply PBR textures
+    // 6. Load Kit Props via Level Descriptors, then apply PBR textures to the architecture
     void (async (): Promise<void> => {
       await this._loadLevelProps();
+      await this._loadKaeltekammerProps();
       await this._applyKitTextures();
     })();
 
@@ -254,43 +240,22 @@ export class PrologueScene extends AbstractShowcase {
   }
 
   private async _loadLevelProps(): Promise<void> {
+    // Koje 42: Alle Möbel & Requisiten kommen ausschließlich aus dem deklarativen
+    // Level-Deskriptor (echte Kit-gltF-Props). Kein prozeduraler Fallback mehr — fehlt
+    // ein Asset, ist das laut (Fail Fast), nicht stumm-grau.
     try {
       const level = await this._kitRegistry.loadLevel(
-        "/scenes/prologue/koje42.level.json",
+        new URL("./koje42.level.json", import.meta.url).href,
         this.scene,
       );
-
-      const deskInst = level.props.get("MetalDesk");
-      if (deskInst) {
-        if (this._metalDeskMesh) this.scene.remove(this._metalDeskMesh);
-        this._metalDeskMesh = deskInst.root;
-      }
 
       const lanternInst = level.props.get("KeroseneLantern");
       if (lanternInst) {
         this._lanternFlameLight = lanternInst.lights.get("FlameGlow") as PointLight;
       }
 
-      const grinderInst = level.props.get("CoffeeGrinder");
-      if (grinderInst) {
-        if (this._coffeeGrinderMesh) this.scene.remove(this._coffeeGrinderMesh);
-        this._coffeeGrinderMesh = grinderInst.root;
-      }
-
-      const shelfInst = level.props.get("WallShelfSupplies");
-      if (shelfInst) {
-        if (this._wallShelfMesh) this.scene.remove(this._wallShelfMesh);
-      }
-
-      const bunkInst = level.props.get("BunkBed");
-      if (bunkInst) {
-        if (this._bunkBedMesh) this.scene.remove(this._bunkBedMesh);
-        this._bunkBedMesh = bunkInst.root;
-      }
-
       const ventInst = level.props.get("VentWallBreach");
       if (ventInst) {
-        if (this._ventGrate) this.scene.remove(this._ventGrate);
         this._ventGrate = ventInst.root;
       }
 
@@ -299,24 +264,63 @@ export class PrologueScene extends AbstractShowcase {
         this._doorSpot = doorBeam;
       }
 
-      // Amts-Terminal 2100 with procedural bolt set
+      // Register Hotspots directly from declarative level descriptor
+      this._levelHotspots = level.hotspots;
+      this._setupLevelHotspots(this._levelHotspots);
+    } catch (e) {
+      console.error("[Prologue] KOJE 42: Level-Deskriptor `koje42.level.json` nicht ladbar:", e);
+    }
+
+    // Amts-Terminal 2100 — Kit-Prop mit prozeduralem Nietenkranz (dekoratives Detail).
+    try {
       const termInst = await this._kitRegistry.loadProp("bunker/terminal_2100", {
         position: [0, 0.95, 0.8],
         rotation: [-Math.PI / 6, 0, 0],
         scale: 0.42,
         materialOverrides: { roughness: 0.78, metallic: 0.3 },
       });
+
       const [halfWidth, halfHeight, halfDepth] = this._measureLocalHalfExtents(termInst.root);
       termInst.root.add(BunkerKit.createTerminalBoltSet({ halfWidth, halfHeight, halfDepth }));
-      if (this._terminalMesh) this.scene.remove(this._terminalMesh);
-      this._terminalMesh = termInst.root;
-      this.scene.add(termInst.root);
 
-      // Register Hotspots directly from declarative level descriptor
-      this._levelHotspots = level.hotspots;
-      this._setupLevelHotspots(this._levelHotspots);
+      // Bernsteinfarbenes Terminal-Glow-Licht — ersetzt den toten Material-Flicker des alten
+      // Prozedur-Terminals und erhält das flackernde Leuchten der Eröffnungs-Narrative.
+      const screenGlow = new PointLight({
+        name: "ScreenGlow",
+        color: new Color(1.0, 0.65, 0.15),
+        intensity: 1.2,
+        distance: 3.0,
+      });
+      screenGlow.position.set(0, 0, halfDepth + 0.06);
+      termInst.root.add(screenGlow);
+      this._screenGlow = screenGlow;
+
+      this.scene.add(termInst.root);
     } catch (e) {
-      console.warn("[Prologue] Level load error:", e);
+      console.error("[Prologue] KOJE 42: Amts-Terminal 2100 nicht ladbar:", e);
+    }
+
+    // 🚪 Heavy Blast Door — echtes Kit-Prop. Das Tripo3D-Modell rendert als massiver
+    // Tür-Festungsblock (Breite ≈ Höhe ≈ Tiefe), daher wird die überzählige Tiefe bewusst
+    // in den nicht-modellierten Flur verlegt: Die Vorderfläche bleibt bündig zur
+    // Innenwand, der Innenraum sieht eine geschlossene Panzertür. Das "Öffnen" der
+    // Timeline wird als Lichtstrahl-Choreografie erzählt (siehe `update`), nicht als
+    // Drehbewegung.
+    try {
+      const doorScale = 1.9; // Kit rendert bei dieser Skala ~1.74m breit × ~1.9m hoch
+      const halfDepth = 0.472 * doorScale;
+      const halfHeight = 0.499 * doorScale;
+
+      const doorInst = await this._kitRegistry.loadProp("flakturm/bunker_blast_door", {
+        position: [-3.26, halfHeight, 0],
+        scale: doorScale,
+        materialOverrides: { roughness: 0.55, metallic: 0.75 },
+      });
+      doorInst.root.position.x = -2.36 - halfDepth;
+      this.scene.add(doorInst.root);
+      this._bunkerDoor = doorInst.root;
+    } catch (e) {
+      console.error("[Prologue] KOJE 42: Blast-Door-Kit-Prop nicht ladbar:", e);
     }
 
     // Kältekammer Leichenschublade K-42 ID plate decal
@@ -364,11 +368,11 @@ export class PrologueScene extends AbstractShowcase {
     };
 
     try {
-      const [concreteBoard, brickAged, concreteWeathered, steelCorroded, steelPainted] =
+      const [concreteBoard, brickAged, concreteDampEfflorescence, steelCorroded, steelPainted] =
         await Promise.all([
           loadSet("concrete_board", false),
           loadSet("brick_aged", false),
-          loadSet("concrete_weathered", false),
+          loadSet("concrete_damp_efflorescence", false),
           loadSet("steel_corroded", true),
           loadSet("steel_painted", true),
         ]);
@@ -412,13 +416,12 @@ export class PrologueScene extends AbstractShowcase {
       // Brick infill around the blast-door frame.
       applyPbr(matOf("LeftWallBack"), brickAged, 1.5, 2.2);
       applyPbr(matOf("LeftWallFront"), brickAged, 1.5, 0.8);
-      // Blast door + ventilation hatch — shared `rustSteelMat` instance.
-      applyPbr(matOf("DoorLeaf", this._bunkerDoor), steelCorroded, 1, 2);
-      // Painted bed frame.
-      applyPbr(matOf("BedPost_0", this._bunkBedMesh), steelPainted, 1, 1.7);
+      applyPbr(matOf("DoorLintel"), brickAged, 1.5, 0.6);
 
-      // Kältekammer: weathered concrete floor/back wall (shared `frostTileMat` instance).
-      applyPbr(matOf("MorgueFloor", this._morgueGroup), concreteWeathered, 7, 4);
+      // Kältekammer: damp morgue-vault concrete floor/back wall (`concrete_damp_efflorescence`,
+      // shared `frostTileMat` instance).
+      applyPbr(matOf("MorgueFloor", this._morgueGroup), concreteDampEfflorescence, 7, 4);
+      applyPbr(matOf("MorgueBackWall", this._morgueGroup), concreteDampEfflorescence, 7, 2.5);
       // Closed drawer rack — painted steel cabinetry (shared `coldSteelMat` instance).
       applyPbr(matOf("Drawer_K40", this._morgueGroup), steelPainted, 1, 1);
       // Pulled-out tray — light and dark steel parts (both internal to BunkerKit, not shared
@@ -433,12 +436,6 @@ export class PrologueScene extends AbstractShowcase {
 
   private _buildBunkerRoom(): void {
     const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
-    const cylGeo = new Cylinder({
-      radiusTop: 0.5,
-      radiusBottom: 0.5,
-      height: 1.0,
-      radialSegments: 16,
-    }).getGeometryData();
 
     // Materials
     const concreteWallMat = new StandardMaterial({
@@ -460,32 +457,6 @@ export class PrologueScene extends AbstractShowcase {
       color: new Color(0.12, 0.13, 0.16),
       roughness: 0.85,
       metallic: 0.2,
-    });
-
-    const rustSteelMat = new StandardMaterial({
-      color: new Color(0.25, 0.15, 0.1),
-      roughness: 0.75,
-      metallic: 0.6,
-    });
-
-    // Bed frame — painted institutional steel, distinct material instance from the rusted
-    // blast door/vent so each can take a different kit texture (`steel_painted` vs. `steel_corroded`).
-    const paintedSteelMat = new StandardMaterial({
-      color: new Color(0.22, 0.24, 0.22),
-      roughness: 0.6,
-      metallic: 0.4,
-    });
-
-    const woodMat = new StandardMaterial({
-      color: new Color(0.2, 0.15, 0.12),
-      roughness: 0.88,
-      metallic: 0.05,
-    });
-
-    const brassMat = new StandardMaterial({
-      color: new Color(0.5, 0.4, 0.2),
-      roughness: 0.35,
-      metallic: 0.85,
     });
 
     // Back Wall
@@ -520,7 +491,8 @@ export class PrologueScene extends AbstractShowcase {
     rightWall.position.set(2.5, 1.6, 0.2);
     this.scene.add(rightWall);
 
-    // Left Wall with Doorframe
+    // Left Wall with Doorframe. The opening is sized to the Flakturm heavy blast door kit
+    // prop (1.44m wide at the chosen scale), so the brick infill flanks a ~1.5m wide gap.
     const leftWallTop = new Object3D("LeftWallTop");
     leftWallTop.geometry = cubeGeo;
     leftWallTop.material = concreteWallMat;
@@ -531,198 +503,29 @@ export class PrologueScene extends AbstractShowcase {
     const leftWallBack = new Object3D("LeftWallBack");
     leftWallBack.geometry = cubeGeo;
     leftWallBack.material = brickWallMat;
-    leftWallBack.scale.set(0.3, 2.2, 1.5);
-    leftWallBack.position.set(-2.5, 1.1, -0.8);
+    leftWallBack.scale.set(0.3, 2.2, 0.75);
+    leftWallBack.position.set(-2.5, 1.1, -1.125);
     this.scene.add(leftWallBack);
 
     const leftWallFront = new Object3D("LeftWallFront");
     leftWallFront.geometry = cubeGeo;
     leftWallFront.material = brickWallMat;
-    leftWallFront.scale.set(0.3, 2.2, 0.8);
-    leftWallFront.position.set(-2.5, 1.1, 1.5);
+    leftWallFront.scale.set(0.3, 2.2, 1.15);
+    leftWallFront.position.set(-2.5, 1.1, 1.325);
     this.scene.add(leftWallFront);
 
-    // 🚪 Heavy Blast Door
-    const doorHinge = new Object3D("DoorHinge");
-    doorHinge.position.set(-2.4, 0, -0.05);
+    // Lintel / transom above the (shorter) armored door: brick infill closing the gap between
+    // the door head and the concrete wall-top section, keeping the Koje sealed to the ceiling.
+    const doorLintel = new Object3D("DoorLintel");
+    doorLintel.geometry = cubeGeo;
+    doorLintel.material = brickWallMat;
+    doorLintel.scale.set(0.3, 0.44, 1.5);
+    doorLintel.position.set(-2.5, 1.98, 0);
+    this.scene.add(doorLintel);
 
-    const doorMesh = new Object3D("DoorLeaf");
-    doorMesh.geometry = cubeGeo;
-    doorMesh.material = rustSteelMat;
-    doorMesh.scale.set(0.12, 2.1, 1.15);
-    doorMesh.position.set(0, 1.05, 0.575);
-    doorHinge.add(doorMesh);
-
-    for (let r = 0; r < 4; r++) {
-      const rib = new Object3D(`DoorRib_${r}`);
-      rib.geometry = cubeGeo;
-      rib.material = rustSteelMat;
-      rib.scale.set(0.16, 0.08, 1.0);
-      rib.position.set(0, 0.35 + r * 0.5, 0.575);
-      doorHinge.add(rib);
-    }
-    this.scene.add(doorHinge);
-    this._bunkerDoor = doorHinge;
-
-    // 🛏️ Bunk Bed
-    const bedGroup = new Object3D("BunkBed");
-    bedGroup.position.set(1.5, 0, -0.6);
-
-    const postOffsets: [number, number, number][] = [
-      [-0.5, 0.85, -0.6],
-      [0.5, 0.85, -0.6],
-      [-0.5, 0.85, 0.6],
-      [0.5, 0.85, 0.6],
-    ];
-    postOffsets.forEach(([px, py, pz], idx) => {
-      const post = new Object3D(`BedPost_${idx}`);
-      post.geometry = cubeGeo;
-      post.material = paintedSteelMat;
-      post.scale.set(0.06, 1.7, 0.06);
-      post.position.set(px, py, pz);
-      bedGroup.add(post);
-    });
-
-    const bottomBed = new Object3D("BottomMattress");
-    bottomBed.geometry = cubeGeo;
-    bottomBed.material = new StandardMaterial({
-      color: new Color(0.22, 0.24, 0.28),
-      roughness: 0.95,
-    });
-    bottomBed.scale.set(1.0, 0.15, 1.25);
-    bottomBed.position.set(0, 0.35, 0);
-    bedGroup.add(bottomBed);
-
-    const topBed = new Object3D("TopMattress");
-    topBed.geometry = cubeGeo;
-    topBed.material = new StandardMaterial({ color: new Color(0.18, 0.2, 0.22), roughness: 0.95 });
-    topBed.scale.set(1.0, 0.15, 1.25);
-    topBed.position.set(0, 1.25, 0);
-    bedGroup.add(topBed);
-    this.scene.add(bedGroup);
-    this._bunkBedMesh = bedGroup;
-
-    // 🪑 Procedural Metal Desk Fallback
-    const desk = new Object3D("MetalDesk");
-    desk.position.set(-0.6, 0, -1.0);
-
-    const deskTop = new Object3D("DeskTop");
-    deskTop.geometry = cubeGeo;
-    deskTop.material = rustSteelMat;
-    deskTop.scale.set(1.2, 0.05, 0.7);
-    deskTop.position.set(0, 0.75, 0);
-    desk.add(deskTop);
-
-    const legOffsets: [number, number][] = [
-      [-0.55, -0.3],
-      [0.55, -0.3],
-      [-0.55, 0.3],
-      [0.55, 0.3],
-    ];
-    legOffsets.forEach(([lx, lz], idx) => {
-      const leg = new Object3D(`DeskLeg_${idx}`);
-      leg.geometry = cubeGeo;
-      leg.material = rustSteelMat;
-      leg.scale.set(0.05, 0.75, 0.05);
-      leg.position.set(lx, 0.375, lz);
-      desk.add(leg);
-    });
-    this.scene.add(desk);
-    this._metalDeskMesh = desk;
-
-    // ☕ Wooden Shelf & Coffee Grinder
-    const shelf = new Object3D("Shelf");
-    shelf.geometry = cubeGeo;
-    shelf.material = woodMat;
-    shelf.scale.set(1.2, 0.06, 0.4);
-    shelf.position.set(-0.6, 1.45, -1.35);
-    this.scene.add(shelf);
-    this._wallShelfMesh = shelf;
-
-    const grinder = new Object3D("CoffeeGrinder");
-    grinder.position.set(-0.35, 0.78, -1.0);
-
-    const grinderBox = new Object3D("GrinderBox");
-    grinderBox.geometry = cubeGeo;
-    grinderBox.material = woodMat;
-    grinderBox.scale.set(0.22, 0.18, 0.22);
-    grinder.add(grinderBox);
-
-    const grinderHopper = new Object3D("GrinderHopper");
-    grinderHopper.geometry = cylGeo;
-    grinderHopper.material = brassMat;
-    grinderHopper.scale.set(0.18, 0.1, 0.18);
-    grinderHopper.position.set(0, 0.13, 0);
-    grinder.add(grinderHopper);
-
-    const grinderCrank = new Object3D("GrinderCrank");
-    grinderCrank.geometry = cubeGeo;
-    grinderCrank.material = brassMat;
-    grinderCrank.scale.set(0.16, 0.02, 0.03);
-    grinderCrank.position.set(0.06, 0.2, 0);
-    grinder.add(grinderCrank);
-    this.scene.add(grinder);
-    this._coffeeGrinderMesh = grinder;
-
-    // 📟 The AZS Handheld Terminal
-    const terminal = new Object3D("HandheldTerminal");
-    terminal.position.set(0, 1.0, 0.8);
-    terminal.rotation.x = -Math.PI / 6;
-
-    const terminalBody = new Object3D("TerminalBody");
-    terminalBody.geometry = cubeGeo;
-    terminalBody.material = new StandardMaterial({
-      color: new Color(0.2, 0.2, 0.22),
-      roughness: 0.6,
-      metallic: 0.3,
-    });
-    terminalBody.scale.set(0.38, 0.52, 0.1);
-    terminal.add(terminalBody);
-
-    this._screenMaterial = new StandardMaterial({
-      color: new Color(0.9, 0.55, 0.1),
-      roughness: 0.3,
-      metallic: 0.1,
-    });
-    const terminalScreen = new Object3D("TerminalScreen");
-    terminalScreen.geometry = cubeGeo;
-    terminalScreen.material = this._screenMaterial;
-    terminalScreen.scale.set(0.3, 0.26, 0.02);
-    terminalScreen.position.set(0, 0.08, 0.05);
-    terminal.add(terminalScreen);
-
-    const screenGlow = new PointLight({
-      name: "ScreenGlow",
-      color: new Color(1.0, 0.65, 0.15),
-      intensity: 1.5,
-      distance: 3.0,
-    });
-    screenGlow.position.set(0, 0.08, 0.15);
-    terminal.add(screenGlow);
-    this.scene.add(terminal);
-    this._terminalMesh = terminal;
-
-    // 🕳️ Ventilation Grate on East Wall opposite door (leads to Sektor 0 / Kältekammer)
-    const ventGroup = new Object3D("VentilationGrate");
-    ventGroup.position.set(2.38, 0.35, 0.8);
-    ventGroup.rotation.y = -Math.PI / 2;
-
-    const ventFrame = new Object3D("VentFrame");
-    ventFrame.geometry = cubeGeo;
-    ventFrame.material = rustSteelMat;
-    ventFrame.scale.set(0.7, 0.7, 0.05);
-    ventGroup.add(ventFrame);
-
-    for (let s = 0; s < 5; s++) {
-      const slat = new Object3D(`VentSlat_${s}`);
-      slat.geometry = cubeGeo;
-      slat.material = rustSteelMat;
-      slat.scale.set(0.58, 0.04, 0.02);
-      slat.position.set(0, -0.2 + s * 0.1, 0.03);
-      ventGroup.add(slat);
-    }
-    this.scene.add(ventGroup);
-    this._ventGrate = ventGroup;
+    // 🏗️ Armored door, bed, desk, shelf, grinder, terminal and vent grate are NOT built here —
+    // they are loaded as real glTF Kit Props from the declarative level descriptor (Koje 42)
+    // + the single animated blast door (see `_loadLevelProps`).
 
     // Surface-mounted electrical conduit along the back wall (FlakturmKit)
     const conduitRun = FlakturmKit.createConduitRun([
@@ -855,19 +658,6 @@ export class PrologueScene extends AbstractShowcase {
     morgueGroup.add(trayK42);
     this._morgueTrayMesh = trayK42;
 
-    // Cold Blue Morgue Ceiling Lamp — caged industrial fluorescent fixture (FlakturmKit)
-    const coldLamp = FlakturmKit.createFluorescentLamp({
-      name: "MorgueColdLamp",
-      length: 1.8,
-      caged: true,
-      intensity: 3.0,
-      lightDistance: 12.0,
-      color: new Color(0.4, 0.75, 1.0),
-      emissiveColor: new Color(0.55, 0.85, 1.0),
-    });
-    coldLamp.position.set(0, 2.95, 0);
-    morgueGroup.add(coldLamp);
-
     // 🟢 Colorkey Emerald Spotlight (Focused on Neck Mark)
     this._cyanideSpotLight = new SpotLight({
       name: "CyanideColorkeySpot",
@@ -898,13 +688,27 @@ export class PrologueScene extends AbstractShowcase {
       this._frostParticles.push(p);
     }
 
-    // Collapsed rubble in the far corner — ruined-bunker set dressing (FlakturmKit)
-    const debris = FlakturmKit.createDebrisCluster(7, 0.6);
-    debris.position.set(2.7, 0, -2.0);
-    morgueGroup.add(debris);
+    // 🏮 Deckenleuchte & Schutthaufen (Kit-Props) kommen über `kaeltekammer.level.json` —
+    // kein prozeduraler Ersatz mehr (`_loadKaeltekammerProps`).
 
     this.scene.add(morgueGroup);
     this._morgueGroup = morgueGroup;
+  }
+
+  /**
+   * Kältekammer K-42: Lädt die letzten verbliebenen Flakturm-Kit-Props (kalte
+   * Deckenleuchte, Wandschutt) deklarativ in die Morgue-Gruppe (lokale Koordinaten).
+   */
+  private async _loadKaeltekammerProps(): Promise<void> {
+    if (!this._morgueGroup) return;
+    try {
+      await this._kitRegistry.loadLevel(
+        new URL("./kaeltekammer.level.json", import.meta.url).href,
+        this._morgueGroup,
+      );
+    } catch (e) {
+      console.error("[Prologue] KAELTEKAMMER: Kit-Props nicht ladbar:", e);
+    }
   }
 
   private _buildPlayerCharacter(): void {
@@ -1254,14 +1058,22 @@ export class PrologueScene extends AbstractShowcase {
     this.camera.target.lerp(this._targetCameraLook, Math.min(1.0, deltaTime * 2.5));
     this.camera.updateViewMatrix();
 
-    // 5. Door Animation
+    // 5. Door Animation — the armoured blast door is a static Kit asset, so the cutscene's
+    //    "door opens / slams shut" beats are told as hallway-beam choreography: the corridor
+    //    spotlight spills wider and brighter as the door "opens", plus a subtle forward
+    //    creak-nudge of the door block.
     this._doorOpenAngle = MathUtils.lerp(
       this._doorOpenAngle,
       this._targetDoorAngle,
       Math.min(1.0, deltaTime * 3.0),
     );
+    const openness = MathUtils.clamp(-this._doorOpenAngle / (Math.PI / 4.5), 0, 1);
+    if (this._doorSpot) {
+      this._doorSpot.intensity = 18.0 + openness * 10.0;
+      this._doorSpot.angle = (Math.PI / 4.5) * (1 + openness * 0.35);
+    }
     if (this._bunkerDoor) {
-      this._bunkerDoor.rotation.y = this._doorOpenAngle;
+      this._bunkerDoor.position.x = -3.26 + openness * 0.04;
     }
 
     // 6. Dust & Frost Particles
@@ -1298,11 +1110,11 @@ export class PrologueScene extends AbstractShowcase {
       this._ventGrate.position.y = 0.35 + Math.sin(this._currentTime * 20.0) * 0.001;
     }
 
-    // 8. Subtle Screen Flicker
-    if (this._screenMaterial) {
+    // 8. Subtle Terminal Screen Flicker
+    if (this._screenGlow) {
       const flicker =
         0.95 + Math.sin(this._currentTime * 45.0) * 0.05 + (Math.random() - 0.5) * 0.04;
-      this._screenMaterial.color.set(0.9 * flicker, 0.55 * flicker, 0.1 * flicker);
+      this._screenGlow.intensity = Math.max(0.4, 1.2 * flicker);
     }
 
     // 9. Timeline Progress Bar
@@ -1431,6 +1243,9 @@ export class PrologueScene extends AbstractShowcase {
 const app = new PrologueScene({
   rendererType: RendererType.BEST,
 });
+
+// Debug-Hook für DevTools/QA: erlaubt Szenen-Inspektion (Objekthaum, AABBs) von außen.
+(window as unknown as { __prologue?: PrologueScene }).__prologue = app;
 
 app.start().catch((err: unknown) => {
   console.error("[Prologue] Failed to start 3D scene:", err);
