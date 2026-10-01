@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.91.0] - 2026-10-01
+
+### "Order is not pressure which is put on things from without, but salvation which comes from within." - Josiah Royce
+
+- **Features:**
+  - *Unified Tool I/O Architecture*: Symmetrical `IAssetSource` (input) and `IAssetSink` (output) contract across `packages/tools`, establishing standardized ZIP archives, local directory access, drag-and-drop, and native file pickers for Small World tools.
+  - *Kit Inspector Custom Kit Import & Export*: Direct drag-and-drop support for Kit ZIP archives and folder hierarchies with dual-registry architecture (`_presetRegistry` and `_kitRegistry`), strict/tolerant manifest validation (`KitManifestValidator`), live prop loading via `sw-asset://`, and 1-click full ZIP export.
+  - *Material Studio & PBR Map Generator Modernization*: Complete removal of blocking browser `alert()` popups in favor of `ToastManager` notifications, added `ToolDropOverlay`, high-efficiency keyboard shortcuts, and full 7-map canvas + `pbr-profile.json` ZIP pack export generation.
+  - *Xtractor Sprite Slicing & ZIP Export*: Seamless sprite image dropping, unified tool shortcut bindings, and instant 1-click sprite sheet slice export as structured ZIP archives.
+- **Architecture & Bugfixes:**
+  - *Engine Virtual Fetch Seam*: Extended `AssetManager` with `customFetch` hook and URI scheme detection (`sw-asset://`), allowing `KitRegistry` and engine loaders to resolve virtual, memory-backed, and unpacked archive assets transparently without engine coupling.
+  - *Security & Resource Protection*: Comprehensive `SecurityValidator` with Zip-Slip path sanitization, directory traversal defense, MIME type whitelisting, and pre-flight worker size checks against OOM memory cloning failures.
+  - *Lazy File Size Evaluation*: Folder source size validation shifted to lazy asset access (`read`), ensuring kits with unreferenced heavy working files (e.g. 50+ MB source FBXs) open seamlessly without failing the initial folder mount.
+- **Housekeeping & Docs:**
+  - *IO Unit Test Suite*: Added comprehensive unit tests in `packages/tools/tests/io/` covering security validation, ZIP extraction/compression roundtrips, manifest validator paths, and UI components (all 208 test suites, 1232 tests passing green).
+
 ## [0.90.0] - 2026-09-29
 
 ### "Darkness cannot drive out darkness; only light can do that." - Martin Luther King Jr.
