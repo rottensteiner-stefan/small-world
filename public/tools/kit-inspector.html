@@ -665,6 +665,12 @@
         <button class="btn-icon-toggle" id="btnFocus" title="Fokus zentrieren (F)">
           🎯 Focus
         </button>
+        <button class="btn-icon-toggle" id="btnImportKit" title="Kit aus Ordner importieren (Cmd+O)">
+          📦 Import
+        </button>
+        <button class="btn-icon-toggle" id="btnExportKit" title="Aktives Kit als ZIP exportieren (Cmd+Shift+E)">
+          💾 Export
+        </button>
       </div>
     </header>
 
@@ -784,6 +790,13 @@
     <script type="module">
       import { KitInspectorApp } from "/packages/tools/src/kit-inspector/KitInspectorApp.ts";
       import { RendererType } from "/packages/engine/src/enums/index.ts";
+      import {
+        DirectoryAssetSource,
+        ToastManager,
+        ToolDropOverlay,
+        ValidationReportModal,
+        bindToolShortcuts,
+      } from "/packages/tools/src/common/io/index.ts";
 
       // Catalog Data State
       let allAssets = [];
@@ -791,6 +804,17 @@
       let activeTypeFilter = "all";
       let searchQuery = "";
       let selectedAssetId = null;
+
+      const CUSTOM_KIT_TAB_ID = "__custom__";
+      const ioToasts = new ToastManager();
+
+      function matchesKitFilter(asset) {
+        if (activeKitFilter === "all") return true;
+        if (activeKitFilter === CUSTOM_KIT_TAB_ID) {
+          return app.hasCustomKit && asset.kitId === app.customKitId;
+        }
+        return asset.kitId === activeKitFilter;
+      }
 
       const scrim = document.getElementById("loadingScrim");
       const loadingText = document.getElementById("loadingText");
@@ -814,7 +838,7 @@
         },
         onError: (err) => {
           console.error("[KitInspector] Error:", err);
-          alert(`Fehler beim Laden des Assets: ${err.message}`);
+          ioToasts.error(`Fehler beim Laden des Assets: ${err.message}`);
         },
       });
 
@@ -857,9 +881,131 @@
         app.focusCamera();
       });
 
+      // Unified I/O: import / export entry points (button, drop, shortcuts)
+      document.getElementById("btnImportKit").addEventListener("click", pickKitFolder);
+      document.getElementById("btnExportKit").addEventListener("click", exportKit);
+
+      new ToolDropOverlay({
+        label: "Kit-Ordner oder ZIP hier ablegen",
+        onSource: (source) => importKit(source),
+        onError: (err) => ioToasts.error(`Drop fehlgeschlagen: ${err.message}`),
+      });
+
+      bindToolShortcuts({
+        open: pickKitFolder,
+        exportAll: exportKit,
+      });
+
       selectPreset.addEventListener("change", (e) => {
         app.setLightingPreset(e.target.value);
       });
+
+      // Pushes items, textures and decals of a manifest into the catalog.
+      function pushManifestAssets(kitId, manifest, assets, isCustom, basePath) {
+        if (manifest.items) {
+          for (const item of manifest.items) {
+            assets.push({
+              type: "prop",
+              id: item.id,
+              kitId,
+              name: item.name,
+              category: item.category,
+              preview: `${basePath}${kitId}/${item.preview}`,
+              raw: item,
+              custom: isCustom,
+            });
+          }
+        }
+
+        if (manifest.textures) {
+          for (const tex of manifest.textures) {
+            const albedoMap = tex.maps.find(m => m.includes("albedo") || m.includes("diffuse")) || tex.maps[0];
+            const texSlug = tex.id.includes("/") ? tex.id.split("/").pop() : tex.id;
+            assets.push({
+              type: "texture",
+              id: tex.id,
+              kitId,
+              name: tex.name,
+              category: tex.category || "surfaces",
+              preview: albedoMap ? `${basePath}${kitId}/textures/${texSlug}/${albedoMap}` : "",
+              raw: tex,
+              custom: isCustom,
+            });
+          }
+        }
+
+        if (manifest.decals) {
+          for (const decal of manifest.decals) {
+            assets.push({
+              type: "decal",
+              id: decal.id,
+              kitId,
+              name: decal.name,
+              category: "decals",
+              preview: `${basePath}${kitId}/decals/${decal.file}`,
+              raw: decal,
+              custom: isCustom,
+            });
+          }
+        }
+      }
+
+      // --- Unified I/O: Kit Import / Export (AP-3a) ---
+
+      async function importKit(source) {
+        try {
+          const result = await app.mountCustomKit(source);
+          if (!result.ok) {
+            if (result.report.issues.length > 0) {
+              await ValidationReportModal.show(result.report, `Kit '${result.name}' nicht gültig`);
+            }
+            source.dispose?.();
+            ioToasts.error(`Kit '${result.name}' hat kein gültiges manifest (kit.json).`);
+            return;
+          }
+          if (result.report.issues.length > 0) {
+            await ValidationReportModal.show(result.report, `Kit '${result.name}' importiert — Befundliste`);
+          }
+          syncCustomTab();
+          await loadAllKits();
+          ioToasts.success(`Kit '${result.name}' importiert.`);
+        } catch (err) {
+          ioToasts.error(`Import fehlgeschlagen: ${err.message}`);
+        }
+      }
+
+      async function pickKitFolder() {
+        const source = await DirectoryAssetSource.pick();
+        if (source) await importKit(source);
+      }
+
+      async function exportKit() {
+        const ok = await app.exportActiveKit();
+        if (ok) ioToasts.success("Kit als ZIP exportiert.");
+        else ioToasts.info("Kein importiertes Kit aktiv — zuerst einen Ordner importieren.");
+      }
+
+      function syncCustomTab() {
+        const tabs = document.getElementById("kitTabs");
+        const existing = tabs.querySelector(`[data-kit="${CUSTOM_KIT_TAB_ID}"]`);
+        if (app.hasCustomKit) {
+          if (!existing) {
+            const btn = document.createElement("button");
+            btn.className = "tab-btn";
+            btn.dataset.kit = CUSTOM_KIT_TAB_ID;
+            btn.textContent = `★ ${app.customKitName || app.customKitId}`;
+            btn.addEventListener("click", () => {
+              document.querySelectorAll("#kitTabs .tab-btn").forEach(b => b.classList.remove("active"));
+              btn.classList.add("active");
+              activeKitFilter = CUSTOM_KIT_TAB_ID;
+              renderCatalog();
+            });
+            tabs.appendChild(btn);
+          }
+        } else if (existing) {
+          existing.remove();
+        }
+      }
 
       // Load Manifests
       async function loadAllKits() {
@@ -868,56 +1014,22 @@
 
         for (const kitId of kitsToLoad) {
           try {
-            const manifest = await app.kitRegistry.getKitManifest(kitId);
+            const manifest = await app.presetRegistry.getKitManifest(kitId);
             
-            // 1. Items / Props
-            if (manifest.items) {
-              for (const item of manifest.items) {
-                assets.push({
-                  type: "prop",
-                  id: item.id,
-                  kitId,
-                  name: item.name,
-                  category: item.category,
-                  preview: `${app.kitRegistry.basePath}${kitId}/${item.preview}`,
-                  raw: item,
-                });
-              }
-            }
-
-            // 2. Textures
-            if (manifest.textures) {
-              for (const tex of manifest.textures) {
-                const albedoMap = tex.maps.find(m => m.includes("albedo") || m.includes("diffuse")) || tex.maps[0];
-                const texSlug = tex.id.includes("/") ? tex.id.split("/").pop() : tex.id;
-                assets.push({
-                  type: "texture",
-                  id: tex.id,
-                  kitId,
-                  name: tex.name,
-                  category: tex.category || "surfaces",
-                  preview: albedoMap ? `${app.kitRegistry.basePath}${kitId}/textures/${texSlug}/${albedoMap}` : "",
-                  raw: tex,
-                });
-              }
-            }
-
-            // 3. Decals
-            if (manifest.decals) {
-              for (const decal of manifest.decals) {
-                assets.push({
-                  type: "decal",
-                  id: decal.id,
-                  kitId,
-                  name: decal.name,
-                  category: "decals",
-                  preview: `${app.kitRegistry.basePath}${kitId}/decals/${decal.file}`,
-                  raw: decal,
-                });
-              }
-            }
+            pushManifestAssets(kitId, manifest, assets, false, app.presetRegistry.basePath);
           } catch (err) {
             console.warn(`[KitInspector] Could not load kit '${kitId}':`, err);
+          }
+        }
+
+        // Custom kit (imported via unified I/O)
+        if (app.hasCustomKit && app.customKitId) {
+          const kitId = app.customKitId;
+          try {
+            const manifest = await app.kitRegistry.getKitManifest(kitId);
+            pushManifestAssets(kitId, manifest, assets, true, app.kitRegistry.basePath);
+          } catch (err) {
+            console.warn(`[KitInspector] Could not load custom kit '${kitId}':`, err);
           }
         }
 
@@ -933,7 +1045,7 @@
 
       function updateCounts() {
         const kitAssets = allAssets.filter(a => {
-          if (activeKitFilter !== "all" && a.kitId !== activeKitFilter) return false;
+          if (!matchesKitFilter(a)) return false;
           if (searchQuery) {
             const q = searchQuery.toLowerCase();
             const matchName = a.name.toLowerCase().includes(q);
@@ -961,7 +1073,7 @@
         list.innerHTML = "";
 
         const filtered = allAssets.filter(asset => {
-          if (activeKitFilter !== "all" && asset.kitId !== activeKitFilter) return false;
+          if (!matchesKitFilter(asset)) return false;
           if (activeTypeFilter !== "all" && asset.type !== activeTypeFilter) return false;
           if (searchQuery) {
             const q = searchQuery.toLowerCase();
@@ -988,9 +1100,15 @@
 
           const img = document.createElement("img");
           img.className = "asset-thumb";
-          img.src = asset.preview || "/favicon.webp";
           img.alt = asset.name;
           img.loading = "lazy";
+          if (asset.custom) {
+            app.resolveAssetUrl(asset.preview || "").then((url) => {
+              img.src = url;
+            });
+          } else {
+            img.src = asset.preview || "/favicon.webp";
+          }
 
           const metaDiv = document.createElement("div");
           metaDiv.className = "asset-meta-summary";
@@ -1053,7 +1171,14 @@
       }
 
       function updateInspectorMetadata(info) {
-        document.getElementById("metaHeroImg").src = info.previewUrl || "";
+        const hero = document.getElementById("metaHeroImg");
+        if (app.hasCustomKit && info.kitId === app.customKitId && info.previewUrl) {
+          app.resolveAssetUrl(info.previewUrl).then((url) => {
+            hero.src = url;
+          });
+        } else {
+          hero.src = info.previewUrl || "";
+        }
         document.getElementById("metaTitle").textContent = info.name;
         document.getElementById("metaId").textContent = info.id;
 
@@ -1130,10 +1255,20 @@
               const fileName = mapPath.split("/").pop();
               const row = document.createElement("div");
               row.className = "socket-row";
-              row.innerHTML = `
-                <span>📄 ${fileName}</span>
-                <a href="${mapPath}" target="_blank" style="color: var(--cyan); text-decoration: none; font-size: 0.7rem;">Öffnen ↗</a>
-              `;
+              const nameSpan = document.createElement("span");
+              nameSpan.textContent = `📄 ${fileName}`;
+              row.appendChild(nameSpan);
+              const link = document.createElement("a");
+              link.href = mapPath;
+              link.target = "_blank";
+              link.style.cssText = "color: var(--cyan); text-decoration: none; font-size: 0.7rem;";
+              link.textContent = "Öffnen ↗";
+              if (app.hasCustomKit) {
+                app.resolveAssetUrl(mapPath).then((url) => {
+                  link.href = url;
+                });
+              }
+              row.appendChild(link);
               texList.appendChild(row);
             }
           }

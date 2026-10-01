@@ -9,3 +9,4 @@ export * from "./maker/MakerApp.js";
 export * from "./maker/ContentDrawer.js";
 export * from "./kit-inspector/KitInspectorApp.js";
 export * from "./attachDevTools.js";
+export * from "./common/io/index.js";

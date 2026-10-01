@@ -319,7 +319,17 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
 
     <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
 
-    <script>
+    <script type="module">
+    import {
+      ToastManager,
+      ToolDropOverlay,
+      bindToolShortcuts,
+      ZipAssetSink,
+      downloadBlob,
+    } from "/packages/tools/src/common/io/index.ts";
+
+    const toastManager = new ToastManager();
+
     // Elements
     const canvas = document.getElementById('image-canvas');
     const ctx = canvas.getContext('2d');
@@ -347,6 +357,7 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
     
     // State
     let currentImage = null;
+    let currentFileName = "extracted";
     let isDragging = false;
     let isMoving = false;
     let startX = 0, startY = 0;
@@ -357,6 +368,54 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
     let panStartX = 0, panStartY = 0;
     
     let currentTool = 'rect'; // 'rect' | 'circle' | 'pan'
+
+    // Setup window-level drop overlay
+    new ToolDropOverlay({
+      label: "Bild oder ZIP hier ablegen",
+      onSource: async (source) => {
+        try {
+          const files = await source.list();
+          const imgFile = files.find((f) => /\.(png|jpg|jpeg|webp)$/i.test(f));
+          if (!imgFile) {
+            toastManager.show("Keine kompatible Bilddatei im Import gefunden (PNG, JPG, WebP).", "warning");
+            return;
+          }
+          const bytes = await source.read(imgFile);
+          const mime = imgFile.endsWith(".png") ? "image/png" : "image/jpeg";
+          const blob = new Blob([bytes], { type: mime });
+          currentFileName = imgFile.split("/").pop().split(".")[0] || "extracted";
+          loadFile(new File([blob], imgFile.split("/").pop() || "imported.png", { type: mime }));
+          toastManager.show(`Bild '${imgFile}' erfolgreich geladen!`, "success");
+        } catch (err) {
+          toastManager.show(`Fehler beim Import: ${err.message}`, "error");
+        }
+      },
+      onError: (err) => {
+        toastManager.show(err.message, "error");
+      },
+    });
+
+    // Setup keyboard shortcuts
+    bindToolShortcuts({
+      open: () => fileInput.click(),
+      save: () => {
+        if (currentRect) {
+          const link = document.createElement("a");
+          link.download = `${currentFileName}_crop_${Math.round(currentRect.w)}x${Math.round(currentRect.h)}.png`;
+          link.href = cropPreviewCanvas.toDataURL();
+          link.click();
+          toastManager.show("Auswahl als PNG exportiert!", "success");
+        } else if (currentImage) {
+          const link = document.createElement("a");
+          link.download = `${currentFileName}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+          toastManager.show("Bild als PNG exportiert!", "success");
+        } else {
+          toastManager.show("Kein Bild oder Bereich vorhanden zum Speichern.", "warning");
+        }
+      },
+    });
     
     // Tools
     const btnToolRect = document.getElementById('btn-tool-rect');
@@ -450,10 +509,11 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
 
     function loadFile(file) {
         if (file.type === 'application/pdf') {
-            alert('PDF Konvertierung bauen wir in Phase 2 ein (via PDF.js). Bitte ein Bild nutzen.');
+            toastManager.show('PDF-Konvertierung wird in Phase 2 unterstützt. Bitte ein Bildformat (PNG/JPG/WebP) wählen.', 'warning');
             return;
         }
         
+        currentFileName = file.name.split('.')[0] || 'extracted';
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
@@ -463,6 +523,7 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
                 canvas.height = img.height;
                 ctx.drawImage(img, 0, 0);
                 clearSelection();
+                toastManager.show(`Bild '${file.name}' geladen (${img.width}x${img.height}px).`, 'info');
             };
             img.src = e.target.result;
         };
@@ -742,6 +803,7 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
                     gallery.style.flexWrap = 'wrap';
                     gallery.style.marginTop = '10px';
                     
+                    const sliceCanvases = [];
                     for(let i=0; i<numSlices; i++) {
                         const sliceCanvas = document.createElement('canvas');
                         sliceCanvas.width = sliceWidth;
@@ -757,20 +819,56 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
                             0, 0, sliceWidth, currentRect.h
                         );
                         
-                        // Click to download
+                        // Click to download single
                         sliceCanvas.style.cursor = 'pointer';
                         sliceCanvas.addEventListener('click', () => {
                             const link = document.createElement('a');
-                            link.download = `doom_num_${i}.png`;
+                            link.download = `${currentFileName}_sprite_${i}.png`;
                             link.href = sliceCanvas.toDataURL();
                             link.click();
+                            toastManager.show(`Sprite ${i} heruntergeladen!`, 'success');
                         });
                         
                         gallery.appendChild(sliceCanvas);
+                        sliceCanvases.push(sliceCanvas);
                     }
                     
+                    const zipBtn = document.createElement('button');
+                    zipBtn.className = 'btn';
+                    zipBtn.style.marginTop = '10px';
+                    zipBtn.style.fontSize = '0.8rem';
+                    zipBtn.style.padding = '0.4rem 0.8rem';
+                    zipBtn.innerText = '📦 Alle 10 Sprites als ZIP herunterladen';
+                    zipBtn.addEventListener('click', async () => {
+                        try {
+                            toastManager.show('Erstelle Sprites-ZIP...', 'info');
+                            const sink = new ZipAssetSink();
+                            for (let i = 0; i < sliceCanvases.length; i++) {
+                                const b = await new Promise(res => sliceCanvases[i].toBlob(res, 'image/png'));
+                                if (b) {
+                                    const buf = new Uint8Array(await b.arrayBuffer());
+                                    await sink.write(`sprite_${i}.png`, buf);
+                                }
+                            }
+                            const manifest = {
+                                originalImage: currentFileName,
+                                count: sliceCanvases.length,
+                                spriteWidth: sliceWidth,
+                                spriteHeight: currentRect.h,
+                                exportedAt: new Date().toISOString(),
+                            };
+                            await sink.write('manifest.json', new TextEncoder().encode(JSON.stringify(manifest, null, 2)));
+                            const zipBytes = await sink.build();
+                            downloadBlob(new Blob([zipBytes], { type: 'application/zip' }), `${currentFileName}_sprites.zip`);
+                            toastManager.show(`ZIP '${currentFileName}_sprites.zip' erfolgreich exportiert!`, 'success');
+                        } catch (err) {
+                            toastManager.show(`Fehler beim ZIP-Export: ${err.message}`, 'error');
+                        }
+                    });
+                    
                     chatHistory.lastChild.appendChild(gallery);
-                    addMessage("Klicke auf ein beliebiges Segment, um es direkt als PNG auf deinen Rechner herunterzuladen!", 'ai');
+                    chatHistory.lastChild.appendChild(zipBtn);
+                    addMessage("Klicke auf ein beliebiges Segment für Einzel-Download oder nutze den ZIP-Export!", 'ai');
                 } else {
                     addMessage(`Verstanden! Ich habe den Ausschnitt (${Math.round(currentRect.w)}x${Math.round(currentRect.h)}px) entgegengenommen. Was genau soll ich damit tun? (Tipp: Sag mir z.B. "Schneide es in 10 Teile").`, 'ai');
                 }

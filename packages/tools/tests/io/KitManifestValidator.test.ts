@@ -1,0 +1,102 @@
+import { describe, it, expect } from "vitest";
+import {
+  validateKitManifest,
+  validateKitManifestStructure,
+} from "../../src/common/io/KitManifestValidator.js";
+import { ZipAssetSink } from "../../src/common/io/sinks/ZipAssetSink.js";
+import { ZipAssetSource } from "../../src/common/io/sources/ZipAssetSource.js";
+
+describe("KitManifestValidator", () => {
+  it("should validate a complete kit archive with kit.json manifest and assets", async () => {
+    const sink = new ZipAssetSink();
+
+    const manifest = {
+      id: "dungeon",
+      name: "Dungeon Kit",
+      version: "1.0.0",
+      description: "Modular dungeon props",
+      author: "Antigravity Team",
+      license: "CC0",
+      items: [
+        {
+          id: "dungeon/wall_01",
+          name: "Stone Wall",
+          category: "walls",
+          path: "models/wall.glb",
+          preview: "previews/wall.png",
+          meta: "meta/wall.json",
+        },
+      ],
+    };
+
+    await sink.write("kit.json", new TextEncoder().encode(JSON.stringify(manifest)));
+    await sink.write("models/wall.glb", new Uint8Array([0, 1, 2]));
+    await sink.write("previews/wall.png", new Uint8Array([0, 1, 2]));
+    await sink.write("meta/wall.json", new TextEncoder().encode("{}"));
+
+    const zipBuffer = await sink.build();
+    const source = await ZipAssetSource.fromBytes(zipBuffer);
+
+    const { report, manifest: parsed, dir } = await validateKitManifest(source);
+    expect(report.valid).toBe(true);
+    expect(report.issues.filter((i) => i.severity === "error")).toHaveLength(0);
+    expect(parsed?.["id"]).toBe("dungeon");
+    expect(dir).toBe("");
+  });
+
+  it("should report error if kit.json is missing", async () => {
+    const sink = new ZipAssetSink();
+    await sink.write("readme.txt", new TextEncoder().encode("No manifest here"));
+
+    const zipBuffer = await sink.build();
+    const source = await ZipAssetSource.fromBytes(zipBuffer);
+
+    const { report } = await validateKitManifest(source);
+    expect(report.valid).toBe(false);
+    expect(report.issues.some((i) => i.message.includes("kit.json"))).toBe(true);
+  });
+
+  it("should warn if referenced asset file is missing in the archive", async () => {
+    const sink = new ZipAssetSink();
+
+    const manifest = {
+      id: "dungeon",
+      name: "Dungeon Kit",
+      version: "1.0.0",
+      description: "Modular dungeon props",
+      author: "Antigravity Team",
+      license: "CC0",
+      items: [
+        {
+          id: "dungeon/ghost",
+          name: "Missing Item",
+          category: "props",
+          path: "models/ghost.glb",
+          preview: "previews/ghost.png",
+          meta: "meta/ghost.json",
+        },
+      ],
+    };
+
+    await sink.write("kit.json", new TextEncoder().encode(JSON.stringify(manifest)));
+
+    const zipBuffer = await sink.build();
+    const source = await ZipAssetSource.fromBytes(zipBuffer);
+
+    const { report } = await validateKitManifest(source);
+    expect(report.valid).toBe(true); // Structure is valid, files produce warnings
+    expect(
+      report.issues.some((i) => i.severity === "warning" && i.message.includes("ghost.glb")),
+    ).toBe(true);
+  });
+
+  it("should reject structurally invalid manifest", () => {
+    const report = validateKitManifestStructure({
+      id: "INVALID ID WITH SPACES",
+      name: "Bad Kit",
+    });
+    expect(report.valid).toBe(false);
+    expect(report.issues.some((i) => i.path === "id")).toBe(true);
+    expect(report.issues.some((i) => i.path === "version")).toBe(true);
+  });
+});

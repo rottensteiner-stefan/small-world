@@ -1287,10 +1287,52 @@
 
     <script type="module">
       import { MaterialStudioApp } from "/packages/tools/src/MaterialStudio.ts";
+      import {
+        ToastManager,
+        ToolDropOverlay,
+        bindToolShortcuts,
+        ZipAssetSink,
+        downloadBlob,
+        DropAssetSource,
+      } from "/packages/tools/src/common/io/index.ts";
+
       const previewApp = new MaterialStudioApp("SmallWorldPreview");
       previewApp.start().catch((err) => console.error("Failed to start preview:", err));
-    </script>
-    <script>
+
+      const ioToast = new ToastManager();
+
+      // Setup window-level drop overlay for images or ZIPs
+      new ToolDropOverlay({
+        label: "PBR-Texturbild oder ZIP hier ablegen",
+        onSource: async (source) => {
+          try {
+            const files = await source.list();
+            const imgFile = files.find((f) => /\.(png|jpg|jpeg|webp)$/i.test(f));
+            if (!imgFile) {
+              ioToast.show("Keine kompatible Bilddatei im Import gefunden (PNG, JPG, WebP).", "warning");
+              return;
+            }
+            const bytes = await source.read(imgFile);
+            const mime = imgFile.endsWith(".png") ? "image/png" : "image/jpeg";
+            const blob = new Blob([bytes], { type: mime });
+            handleFile(new File([blob], imgFile.split("/").pop() || "imported.png", { type: mime }));
+            ioToast.show(`Bild '${imgFile}' erfolgreich geladen!`, "success");
+          } catch (err) {
+            ioToast.show(`Fehler beim Import: ${err.message}`, "error");
+          }
+        },
+        onError: (err) => {
+          ioToast.show(err.message, "error");
+        },
+      });
+
+      // Bind shortcuts
+      bindToolShortcuts({
+        open: () => document.getElementById("file-input")?.click(),
+        save: () => document.getElementById("btn-download-active")?.click(),
+        exportAll: () => exportAllMapsZip(),
+      });
+
       // ----------------------------------------------------
       // Presets Configuration (Derived from pbr.profiles)
       // ----------------------------------------------------
@@ -1451,7 +1493,7 @@
 
       function handleFile(file) {
         if (!file.type.match("image.*")) {
-          alert("Please upload an image file (PNG, JPG, WebP).");
+          ioToast.show("Please upload an image file (PNG, JPG, WebP).", "warning");
           return;
         }
         originalFileName = file.name.split(".")[0];
@@ -1461,6 +1503,7 @@
           document.getElementById("loading-text").innerText = "Loading uploaded image...";
           document.getElementById("loading-overlay").classList.add("active");
           originalImage.src = e.target.result;
+          ioToast.show(`Texture '${file.name}' loaded.`, "info");
         };
         reader.readAsDataURL(file);
       }
@@ -1696,8 +1739,9 @@
       // Global action downloads
       document.getElementById("btn-download-active").addEventListener("click", () => {
         if (activeTab === "grid" || activeTab === "preview3d") {
-          alert(
+          ioToast.show(
             'Please select a specific texture map tab to download it, or click "Download All Maps".',
+            "warning",
           );
           return;
         }
@@ -1705,11 +1749,59 @@
       });
 
       document.getElementById("btn-download-all").addEventListener("click", () => {
-        const mapsToDownload = ["height", "normal", "specular", "roughness", "ao", "edge"];
-        mapsToDownload.forEach((mapType) => {
-          downloadMap(mapType);
-        });
+        exportAllMapsZip();
       });
+
+      async function exportAllMapsZip() {
+        try {
+          ioToast.show("Exportiere PBR-Map-Pack als ZIP...", "info");
+          const sink = new ZipAssetSink();
+          const maps = ["original", "height", "normal", "specular", "roughness", "ao", "edge"];
+          for (const mapType of maps) {
+            const canvas = canvases[mapType];
+            const name = mapType === "original" ? "albedo" : mapType;
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+            if (blob) {
+              const buffer = new Uint8Array(await blob.arrayBuffer());
+              await sink.write(`${originalFileName}_${name}.png`, buffer);
+            }
+          }
+
+          // Export current settings as JSON profile
+          const profileData = {
+            name: originalFileName,
+            exportedAt: new Date().toISOString(),
+            settings: {
+              heightBlur: parseInt(document.getElementById("height-blur-slider").value, 10),
+              heightContrast: parseFloat(document.getElementById("height-contrast-slider").value),
+              heightInvert: document.getElementById("height-invert").checked,
+              normalStrength: parseFloat(document.getElementById("normal-strength-slider").value),
+              normalFormat: document.getElementById("normal-format").value,
+              normalInvertR: document.getElementById("normal-invert-r").checked,
+              specContrast: parseInt(document.getElementById("spec-contrast-slider").value, 10),
+              specThresh: parseInt(document.getElementById("spec-thresh-slider").value, 10),
+              specInvert: document.getElementById("spec-invert").checked,
+              roughGamma: parseFloat(document.getElementById("rough-gamma-slider").value),
+              roughInvert: document.getElementById("rough-invert").checked,
+              aoSoft: parseInt(document.getElementById("ao-soft-slider").value, 10),
+              aoFine: parseFloat(document.getElementById("ao-fine-slider").value),
+              aoLevel: parseInt(document.getElementById("ao-level-slider").value, 10),
+              edgeThresh: parseInt(document.getElementById("edge-thresh-slider").value, 10),
+              edgeThick: parseInt(document.getElementById("edge-thick-slider").value, 10),
+              edgeInvert: document.getElementById("edge-invert").checked,
+            },
+          };
+          const jsonBytes = new TextEncoder().encode(JSON.stringify(profileData, null, 2));
+          await sink.write("pbr-profile.json", jsonBytes);
+
+          const zipBytes = await sink.build();
+          const zipBlob = new Blob([zipBytes], { type: "application/zip" });
+          downloadBlob(zipBlob, `${originalFileName}_pbr_pack.zip`);
+          ioToast.show(`ZIP-Export '${originalFileName}_pbr_pack.zip' erfolgreich!`, "success");
+        } catch (err) {
+          ioToast.show(`Export-Fehler: ${err.message}`, "error");
+        }
+      }
 
       function downloadMap(mapType) {
         const canvas = canvases[mapType];

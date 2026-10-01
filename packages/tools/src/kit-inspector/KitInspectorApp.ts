@@ -21,7 +21,24 @@ import {
   CullMode,
   EngineOptions,
 } from "@small-world/engine";
-import type { KitSocket } from "@small-world/engine";
+import type { KitManifest, KitSocket } from "@small-world/engine";
+import {
+  type IAssetSource,
+  type ValidationReport,
+  SecurityValidator,
+  ZipAssetSink,
+  downloadBlob,
+  validateKitManifest,
+} from "../common/io/index.js";
+
+export interface KitMountResult {
+  ok: boolean;
+  report: ValidationReport;
+  /** Kit id used to address the mounted source (`manifest.id`). */
+  kitId: string;
+  /** Display name from the validated manifest. */
+  name: string;
+}
 
 export type LightingPreset = "studio" | "bunker" | "cold";
 
@@ -59,11 +76,21 @@ export interface InspectedAssetInfo {
  * socket inspection, as well as PBR material previewing on standard test primitives.
  */
 export class KitInspectorApp extends SmallWorld {
-  private readonly _kitRegistry: KitRegistry;
+  private _kitRegistry: KitRegistry;
+  private readonly _presetRegistry: KitRegistry;
   private readonly _onAssetLoaded: ((info: InspectedAssetInfo) => void) | undefined;
   private readonly _onLoadingStateChange:
     ((loading: boolean, message?: string) => void) | undefined;
   private readonly _onError: ((err: Error) => void) | undefined;
+
+  // Custom kit import state (unified I/O — AP-3a)
+  private readonly _presetBasePath: string;
+  private _customSource: IAssetSource | null = null;
+  private _customKitId: string | null = null;
+  private _customKitName: string | null = null;
+  private _customManifest: KitManifest | null = null;
+  private _customPhysicalDir: string | null = null;
+  private _objectUrls: string[] = [];
 
   // Scene roots
   private _gridMesh!: Object3D;
@@ -104,7 +131,9 @@ export class KitInspectorApp extends SmallWorld {
       fullscreen: false,
     });
 
-    this._kitRegistry = new KitRegistry({ basePath: options.basePath ?? "/assets/kits/" });
+    this._presetBasePath = options.basePath ?? "/assets/kits/";
+    this._presetRegistry = new KitRegistry({ basePath: this._presetBasePath });
+    this._kitRegistry = this._presetRegistry;
     this._onAssetLoaded = options.onAssetLoaded;
     this._onLoadingStateChange = options.onLoadingStateChange;
     this._onError = options.onError;
@@ -149,8 +178,165 @@ export class KitInspectorApp extends SmallWorld {
     return this._kitRegistry;
   }
 
+  /** Registry for the repository preset kits — unaffected by a mounted custom kit. */
+  public get presetRegistry(): KitRegistry {
+    return this._presetRegistry;
+  }
+
+  /**
+   * Routes a prop id to the registry that can serve it: the custom registry only when a custom
+   * kit is mounted and the id belongs to it, otherwise the preset registry.
+   */
+  private _registryFor(kitPropId: string): KitRegistry {
+    if (this._customKitId && kitPropId.startsWith(`${this._customKitId}/`)) {
+      return this._kitRegistry;
+    }
+    return this._presetRegistry;
+  }
+
+  private _registryForKit(kitId: string): KitRegistry {
+    if (this._customKitId && kitId === this._customKitId) {
+      return this._kitRegistry;
+    }
+    return this._presetRegistry;
+  }
+
   public get currentAssetInfo(): InspectedAssetInfo | null {
     return this._currentAssetInfo;
+  }
+
+  // --- Custom Kit Import / Export (unified tool I/O) ---
+
+  public get hasCustomKit(): boolean {
+    return this._customSource !== null;
+  }
+
+  public get customKitId(): string | null {
+    return this._customKitId;
+  }
+
+  public get customKitName(): string | null {
+    return this._customKitName;
+  }
+
+  public get customManifest(): KitManifest | null {
+    return this._customManifest;
+  }
+
+  /**
+   * Validates and mounts an external kit source (drop / folder picker / ZIP) as the active kit.
+   * Strict on `kit.json` structure, tolerant on referenced files (both reported).
+   */
+  public async mountCustomKit(source: IAssetSource): Promise<KitMountResult> {
+    const fail = (report: ValidationReport): KitMountResult => ({
+      ok: false,
+      report,
+      kitId: "",
+      name: source.name,
+    });
+    const { report, manifest, dir } = await validateKitManifest(source);
+    if (!report.valid || !manifest) return fail(report);
+
+    const name = typeof manifest["name"] === "string" ? manifest["name"] : source.name;
+    const kitId = typeof manifest["id"] === "string" ? manifest["id"] : "custom";
+    if (!kitId) return fail(report);
+
+    const mountPrefix = `sw-asset://${source.id}/`;
+    this._disposeCustom();
+    this._customSource = source;
+    this._customKitId = kitId;
+    this._customKitName = name;
+    this._customManifest = manifest as unknown as KitManifest;
+    this._customPhysicalDir = dir;
+    this._kitRegistry = new KitRegistry({
+      basePath: mountPrefix,
+      customFetch: this._buildCustomFetch(),
+    });
+    return { ok: true, report, kitId, name };
+  }
+
+  /** Restores the repository preset kits and releases the custom source. */
+  public clearCustomKit(): void {
+    if (!this.hasCustomKit) return;
+    this._disposeCustom();
+    this._kitRegistry = this._presetRegistry;
+  }
+
+  /**
+   * Resolves asset URLs for display outside the engine (catalog thumbnails, metadata hero image):
+   * virtual `sw-asset://...` URLs become object URLs from the mounted source; everything else is
+   * returned unchanged.
+   */
+  public async resolveAssetUrl(url: string): Promise<string> {
+    const source = this._customSource;
+    if (!source || !url.startsWith(`sw-asset://${source.id}/`)) return url;
+    const rel = this._toPhysicalPath(url);
+    const data = await source.read(rel);
+    const objUrl = URL.createObjectURL(new Blob([data.slice()]));
+    this._objectUrls.push(objUrl);
+    return objUrl;
+  }
+
+  /**
+   * Round-trips the currently mounted custom kit back to a validated ZIP download.
+   * Copies every file verbatim so an exported kit re-imports identically.
+   * Returns `false` (no-op) when no custom kit is mounted.
+   */
+  public async exportActiveKit(filename?: string): Promise<boolean> {
+    const source = this._customSource;
+    const kitId = this._customKitId;
+    if (!source || !kitId) return false;
+    const sink = new ZipAssetSink({ id: `export-${kitId}` });
+    for (const path of await source.list()) {
+      if (!path || path.endsWith("/")) continue;
+      sink.write(path, await source.read(path));
+    }
+    const blob = await sink.finalize();
+    downloadBlob(blob, filename ?? `${kitId}.zip`);
+    sink.dispose();
+    return true;
+  }
+
+  private _buildCustomFetch(): (url: string, init?: RequestInit) => Promise<Response> {
+    const source = this._customSource;
+    const prefix = source ? `sw-asset://${source.id}/` : "";
+    return async (url: string, init?: RequestInit): Promise<Response> => {
+      if (!source || !url.startsWith(prefix)) return fetch(url, init);
+      const rel = this._toPhysicalPath(url);
+      const data = await source.read(rel);
+      return new Response(data.slice(), {
+        status: 200,
+        statusText: "OK",
+        headers: {
+          "Content-Type": SecurityValidator.getMimeType(rel),
+          "Content-Length": String(data.byteLength),
+        },
+      });
+    };
+  }
+
+  /** Maps a virtual `sw-asset://<id>/<kitId>/…` URL to the physical path inside the source. */
+  private _toPhysicalPath(url: string): string {
+    const prefix = this._customSource ? `sw-asset://${this._customSource.id}/` : "";
+    let rel = url.startsWith(prefix) ? url.substring(prefix.length) : url;
+    if (this._customKitId && rel.startsWith(`${this._customKitId}/`)) {
+      rel = rel.substring(this._customKitId.length + 1);
+    }
+    rel = rel.replace(/^\/+/, "");
+    return this._customPhysicalDir ? `${this._customPhysicalDir}/${rel}` : rel;
+  }
+
+  private _disposeCustom(): void {
+    for (const objUrl of this._objectUrls) {
+      URL.revokeObjectURL(objUrl);
+    }
+    this._objectUrls = [];
+    this._customSource?.dispose?.();
+    this._customSource = null;
+    this._customKitId = null;
+    this._customKitName = null;
+    this._customManifest = null;
+    this._customPhysicalDir = null;
   }
 
   protected override async setupScene(): Promise<void> {
@@ -296,9 +482,10 @@ export class KitInspectorApp extends SmallWorld {
     try {
       const parts = kitPropId.split("/");
       const kitId = parts[0] ?? "";
-      const manifest = await this._kitRegistry.getKitManifest(kitId);
-      const meta = await this._kitRegistry.getPropMeta(kitPropId);
-      const propInst = await this._kitRegistry.loadProp(kitPropId);
+      const reg = this._registryFor(kitPropId);
+      const manifest = await reg.getKitManifest(kitId);
+      const meta = await reg.getPropMeta(kitPropId);
+      const propInst = await reg.loadProp(kitPropId);
 
       this._assetRoot.add(propInst.root);
 
@@ -328,7 +515,7 @@ export class KitInspectorApp extends SmallWorld {
       }
 
       const itemDef = (manifest.items ?? []).find((it) => it.id === kitPropId);
-      const previewPath = itemDef ? `${this._kitRegistry.basePath}${kitId}/${itemDef.preview}` : "";
+      const previewPath = itemDef ? `${reg.basePath}${kitId}/${itemDef.preview}` : "";
 
       const info: InspectedAssetInfo = {
         type: "prop",
@@ -384,7 +571,8 @@ export class KitInspectorApp extends SmallWorld {
       // maps[] are bare filenames; actual files live under textures/<slug>/
       // e.g. id "flakturm/concrete_board" → slug "concrete_board"
       const slug = texItem.id.includes("/") ? texItem.id.split("/").pop()! : texItem.id;
-      const base = `${this._kitRegistry.basePath}${kitId}/textures/${slug}`;
+      const reg = this._registryForKit(kitId);
+      const base = `${reg.basePath}${kitId}/textures/${slug}`;
       const mat = new StandardMaterial({
         color: Color.WHITE,
         roughness: 0.5,
@@ -403,20 +591,21 @@ export class KitInspectorApp extends SmallWorld {
       const aoUrl = findMapUrl("ao");
       const metalnessUrl = findMapUrl("metalness") ?? findMapUrl("metallic");
 
+      const textureOptions = { assetManager: reg.assetManager };
       if (albedoUrl) {
-        mat.diffuseMap = await Texture.fromUrl(albedoUrl);
+        mat.diffuseMap = await Texture.fromUrl(albedoUrl, textureOptions);
       }
       if (normalUrl) {
-        mat.normalMap = await Texture.fromUrl(normalUrl);
+        mat.normalMap = await Texture.fromUrl(normalUrl, textureOptions);
       }
       if (roughnessUrl) {
-        mat.roughnessMap = await Texture.fromUrl(roughnessUrl);
+        mat.roughnessMap = await Texture.fromUrl(roughnessUrl, textureOptions);
       }
       if (aoUrl) {
-        mat.aoMap = await Texture.fromUrl(aoUrl);
+        mat.aoMap = await Texture.fromUrl(aoUrl, textureOptions);
       }
       if (metalnessUrl) {
-        mat.metallicMap = await Texture.fromUrl(metalnessUrl);
+        mat.metallicMap = await Texture.fromUrl(metalnessUrl, textureOptions);
         mat.metallic = 1.0;
       }
 
@@ -428,7 +617,7 @@ export class KitInspectorApp extends SmallWorld {
       this._orbitDistance = 2.4;
       this._updateCameraTransform();
 
-      const manifest = await this._kitRegistry.getKitManifest(kitId);
+      const manifest = await reg.getKitManifest(kitId);
       const info: InspectedAssetInfo = {
         type: "texture",
         id: texItem.id,
@@ -465,8 +654,12 @@ export class KitInspectorApp extends SmallWorld {
 
     try {
       // file is a bare filename; actual files live under the decals/ subfolder
-      const fileUrl = `${this._kitRegistry.basePath}${kitId}/decals/${decalItem.file}`;
-      const decalTex = await Texture.fromUrl(fileUrl, { flipY: true });
+      const reg = this._registryForKit(kitId);
+      const fileUrl = `${reg.basePath}${kitId}/decals/${decalItem.file}`;
+      const decalTex = await Texture.fromUrl(fileUrl, {
+        assetManager: reg.assetManager,
+        flipY: true,
+      });
 
       // Dynamically determine aspect ratio from the decoded image to avoid distortion
       let aspect = 1.0;
@@ -500,7 +693,7 @@ export class KitInspectorApp extends SmallWorld {
       this._orbitPitch = 0.05;
       this._updateCameraTransform();
 
-      const manifest = await this._kitRegistry.getKitManifest(kitId);
+      const manifest = await reg.getKitManifest(kitId);
       const info: InspectedAssetInfo = {
         type: "decal",
         id: decalItem.id,

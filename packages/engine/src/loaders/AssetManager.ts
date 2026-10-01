@@ -29,6 +29,12 @@ export class AssetManager {
   private _headers: Record<string, string> = {};
 
   /**
+   * Optional custom fetch implementation (e.g. for virtual tool I/O schemes like sw-asset:// or ZIP sources).
+   * When undefined, global fetch is used.
+   */
+  public customFetch?: ((url: string, init?: RequestInit) => Promise<Response>) | undefined;
+
+  /**
    * Sets a base URL that will be prepended to all relative asset paths.
    * @param url The base URL (e.g. "https://cdn.example.com/assets/").
    */
@@ -97,7 +103,8 @@ export class AssetManager {
       url.startsWith("https://") ||
       url.startsWith("//") ||
       url.startsWith("blob:") ||
-      url.startsWith("data:");
+      url.startsWith("data:") ||
+      /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url);
     if (isAbsolute) return url;
 
     const base =
@@ -136,7 +143,8 @@ export class AssetManager {
     // this cleanup in its own `.catch()`, which leaked an entry (and thus hung `onLoaded()`) if
     // any copy forgot it; the invariant now lives in exactly one place.
     try {
-      const response: Response = await fetch(finalUrl, {
+      const fetchFn = this.customFetch ?? fetch;
+      const response: Response = await fetchFn(finalUrl, {
         headers: this._headers,
       });
 
@@ -247,13 +255,30 @@ export class AssetManager {
         // Fall back to a plain HTMLImageElement (e.g. when createImageBitmap is unavailable).
         console.error(e);
         return new Promise<HTMLImageElement>((resolve, reject) => {
-          const img: HTMLImageElement = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = this.resolveUrl(url);
-          img.onload = (): void => resolve(img);
-          img.onerror = (): void => {
-            reject(`[AssetManager] Fallback failed: ${url}`);
-          };
+          this._fetchWithProgress(url, `${cacheKey}_fallback`, onProgress)
+            .then((blob) => {
+              const objectUrl = URL.createObjectURL(blob);
+              const img: HTMLImageElement = new Image();
+              img.crossOrigin = "anonymous";
+              img.src = objectUrl;
+              img.onload = (): void => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(img);
+              };
+              img.onerror = (): void => {
+                URL.revokeObjectURL(objectUrl);
+                reject(`[AssetManager] Fallback failed: ${url}`);
+              };
+            })
+            .catch(() => {
+              const img: HTMLImageElement = new Image();
+              img.crossOrigin = "anonymous";
+              img.src = this.resolveUrl(url);
+              img.onload = (): void => resolve(img);
+              img.onerror = (): void => {
+                reject(`[AssetManager] Fallback failed: ${url}`);
+              };
+            });
         });
       }
     });
@@ -301,7 +326,8 @@ export class AssetManager {
       try {
         const finalUrl = this.resolveUrl(url);
 
-        const response = await fetch(finalUrl, { headers: this._headers });
+        const fetchFn = this.customFetch ?? fetch;
+        const response = await fetchFn(finalUrl, { headers: this._headers });
         if (!response.ok) {
           throw new Error(`[AssetManager] Stream error: ${response.status} at ${finalUrl}`);
         }

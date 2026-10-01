@@ -28,6 +28,8 @@ export interface KitRegistryOptions {
   assetManager?: AssetManager;
   /** Injected GltfLoader instance. */
   gltfLoader?: GltfLoader;
+  /** Injected custom fetch function (e.g. for virtual tool I/O schemes like sw-asset:// or ZIP sources). */
+  customFetch?: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
 /**
@@ -50,6 +52,9 @@ export class KitRegistry {
       this._basePath += "/";
     }
     this._assetManager = options.assetManager ?? new AssetManager();
+    if (options.customFetch) {
+      this._assetManager.customFetch = options.customFetch;
+    }
     this._gltfLoader = options.gltfLoader ?? new GltfLoader({ assetManager: this._assetManager });
   }
 
