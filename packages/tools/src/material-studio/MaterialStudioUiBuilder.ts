@@ -6,7 +6,7 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
       <!-- Loading Screen -->
       <div id="loading-overlay" class="loading-overlay active">
         <div class="spinner"></div>
-        <div id="loading-text" style="font-weight: 600; font-size: 0.95rem">
+        <div id="loading-text" class="loading-text">
           Processing rock texture...
         </div>
       </div>
@@ -48,8 +48,8 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
             </svg>
             Preset Profile
           </div>
-          <div class="control-row" style="margin-bottom: 1.5rem">
-            <select id="profile-select">
+          <div class="control-row">
+            <select class="tool-select" id="profile-select">
               <option value="default" selected>Default (Balanced)</option>
               <option value="stone">Stone (High Normal, Rough)</option>
               <option value="metal">Metal (Smooth, Shiny Spec)</option>
@@ -75,7 +75,7 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
 
           <!-- 1. Height Map Settings -->
-          <div class="collapsible-header active" data-target="height-settings">
+          <div class="tool-btn collapsible-header active" data-target="height-settings">
             <span>Height Map Settings</span>
             <svg
               width="12"
@@ -90,18 +90,19 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
           <div id="height-settings" class="collapsible-content open">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Blur Radius
-                <span id="height-blur-val" class="value-display">0</span>
+                <span id="height-blur-val" class="tool-value">0</span>
               </label>
-              <input type="range" id="height-blur-slider" min="0" max="10" step="1" value="0" />
+              <input class="tool-slider" type="range" id="height-blur-slider" min="0" max="10" step="1" value="0" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Contrast
-                <span id="height-contrast-val" class="value-display">1.0</span>
+                <span id="height-contrast-val" class="tool-value">1.0</span>
               </label>
               <input
+                class="tool-slider"
                 type="range"
                 id="height-contrast-slider"
                 min="0.5"
@@ -111,16 +112,13 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
               />
             </div>
             <div class="control-row switch-row">
-              <label for="height-invert">Invert Map</label>
-              <div class="switch">
-                <input type="checkbox" id="height-invert" />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="height-invert">Invert Map</label>
+              <label class="tool-switch"><input type="checkbox" id="height-invert" /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 2. Normal Map Settings -->
-          <div class="collapsible-header" data-target="normal-settings">
+          <div class="tool-btn collapsible-header" data-target="normal-settings">
             <span>Normal Map Settings</span>
             <svg
               width="12"
@@ -135,11 +133,12 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
           <div id="normal-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Bump Strength
-                <span id="normal-strength-val" class="value-display">100%</span>
+                <span id="normal-strength-val" class="tool-value">100%</span>
               </label>
               <input
+                class="tool-slider"
                 type="range"
                 id="normal-strength-slider"
                 min="10"
@@ -149,23 +148,20 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
               />
             </div>
             <div class="control-row">
-              <label> Format </label>
-              <select id="normal-format">
+              <label class="field-label"> Format </label>
+              <select class="tool-select" id="normal-format">
                 <option value="opengl">OpenGL (+Y / Green Up)</option>
                 <option value="directx">DirectX (-Y / Green Down)</option>
               </select>
             </div>
             <div class="control-row switch-row">
-              <label for="normal-invert-r">Invert Red (X-axis)</label>
-              <div class="switch">
-                <input type="checkbox" id="normal-invert-r" />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="normal-invert-r">Invert Red (X-axis)</label>
+              <label class="tool-switch"><input type="checkbox" id="normal-invert-r" /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 3. Specular Map Settings -->
-          <div class="collapsible-header" data-target="specular-settings">
+          <div class="tool-btn collapsible-header" data-target="specular-settings">
             <span>Specular Map Settings</span>
             <svg
               width="12"
@@ -180,30 +176,27 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
           <div id="specular-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Sigmoidal Contrast
-                <span id="spec-contrast-val" class="value-display">10</span>
+                <span id="spec-contrast-val" class="tool-value">10</span>
               </label>
-              <input type="range" id="spec-contrast-slider" min="0" max="30" step="1" value="10" />
+              <input class="tool-slider" type="range" id="spec-contrast-slider" min="0" max="30" step="1" value="10" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Midpoint Threshold
-                <span id="spec-thresh-val" class="value-display">50%</span>
+                <span id="spec-thresh-val" class="tool-value">50%</span>
               </label>
-              <input type="range" id="spec-thresh-slider" min="10" max="90" step="5" value="50" />
+              <input class="tool-slider" type="range" id="spec-thresh-slider" min="10" max="90" step="5" value="50" />
             </div>
             <div class="control-row switch-row">
-              <label for="spec-invert">Invert Specular</label>
-              <div class="switch">
-                <input type="checkbox" id="spec-invert" />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="spec-invert">Invert Specular</label>
+              <label class="tool-switch"><input type="checkbox" id="spec-invert" /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 4. Roughness Map Settings -->
-          <div class="collapsible-header" data-target="roughness-settings">
+          <div class="tool-btn collapsible-header" data-target="roughness-settings">
             <span>Roughness Map Settings</span>
             <svg
               width="12"
@@ -218,11 +211,12 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
           <div id="roughness-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Gamma Exponent
-                <span id="rough-gamma-val" class="value-display">1.20</span>
+                <span id="rough-gamma-val" class="tool-value">1.20</span>
               </label>
               <input
+                class="tool-slider"
                 type="range"
                 id="rough-gamma-slider"
                 min="0.20"
@@ -232,16 +226,13 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
               />
             </div>
             <div class="control-row switch-row">
-              <label for="rough-invert">Invert Roughness</label>
-              <div class="switch">
-                <input type="checkbox" id="rough-invert" />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="rough-invert">Invert Roughness</label>
+              <label class="tool-switch"><input type="checkbox" id="rough-invert" /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 5. Ambient Occlusion Settings -->
-          <div class="collapsible-header" data-target="ao-settings">
+          <div class="tool-btn collapsible-header" data-target="ao-settings">
             <span>Ambient Occlusion Settings</span>
             <svg
               width="12"
@@ -256,30 +247,30 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
           <div id="ao-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Soft Shadow Blur
-                <span id="ao-soft-val" class="value-display">15px</span>
+                <span id="ao-soft-val" class="tool-value">15px</span>
               </label>
-              <input type="range" id="ao-soft-slider" min="3" max="40" step="1" value="15" />
+              <input class="tool-slider" type="range" id="ao-soft-slider" min="3" max="40" step="1" value="15" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Crevice Strength (Fine)
-                <span id="ao-fine-val" class="value-display">1.0</span>
+                <span id="ao-fine-val" class="tool-value">1.0</span>
               </label>
-              <input type="range" id="ao-fine-slider" min="0.0" max="3.0" step="0.1" value="1.0" />
+              <input class="tool-slider" type="range" id="ao-fine-slider" min="0.0" max="3.0" step="0.1" value="1.0" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 AO Intensity Level
-                <span id="ao-level-val" class="value-display">30%</span>
+                <span id="ao-level-val" class="tool-value">30%</span>
               </label>
-              <input type="range" id="ao-level-slider" min="0" max="80" step="5" value="30" />
+              <input class="tool-slider" type="range" id="ao-level-slider" min="0" max="80" step="5" value="30" />
             </div>
           </div>
 
           <!-- 6. Edge Map Settings -->
-          <div class="collapsible-header" data-target="edge-settings">
+          <div class="tool-btn collapsible-header" data-target="edge-settings">
             <span>Edge Map Settings</span>
             <svg
               width="12"
@@ -294,30 +285,27 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
           <div id="edge-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Contrast Threshold
-                <span id="edge-thresh-val" class="value-display">90%</span>
+                <span id="edge-thresh-val" class="tool-value">90%</span>
               </label>
-              <input type="range" id="edge-thresh-slider" min="50" max="98" step="1" value="90" />
+              <input class="tool-slider" type="range" id="edge-thresh-slider" min="50" max="98" step="1" value="90" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Edge Thickness
-                <span id="edge-thick-val" class="value-display">1</span>
+                <span id="edge-thick-val" class="tool-value">1</span>
               </label>
-              <input type="range" id="edge-thick-slider" min="1" max="5" step="1" value="1" />
+              <input class="tool-slider" type="range" id="edge-thick-slider" min="1" max="5" step="1" value="1" />
             </div>
             <div class="control-row switch-row">
-              <label for="edge-invert">Invert Colors (Dark line)</label>
-              <div class="switch">
-                <input type="checkbox" id="edge-invert" checked />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="edge-invert">Invert Colors (Dark line)</label>
+              <label class="tool-switch"><input type="checkbox" id="edge-invert" checked /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 7. 3D Preview Settings -->
-          <div class="collapsible-header" data-target="preview-3d-settings">
+          <div class="tool-btn collapsible-header" data-target="preview-3d-settings">
             <span>3D Preview Settings</span>
             <svg
               width="12"
@@ -332,18 +320,19 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
           <div id="preview-3d-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Metallic Base
-                <span id="metallic-val" class="value-display">0%</span>
+                <span id="metallic-val" class="tool-value">0%</span>
               </label>
-              <input type="range" id="metallic-slider" min="0" max="100" step="5" value="0" />
+              <input class="tool-slider" type="range" id="metallic-slider" min="0" max="100" step="5" value="0" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Roughness Override
-                <span id="roughness-override-val" class="value-display">60%</span>
+                <span id="roughness-override-val" class="tool-value">60%</span>
               </label>
               <input
+                class="tool-slider"
                 type="range"
                 id="roughness-override-slider"
                 min="0"
@@ -355,7 +344,7 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           </div>
 
           <!-- Global Export Size -->
-          <div class="section-title" style="margin-top: 1.5rem">
+          <div class="section-title">
             <svg
               width="14"
               height="14"
@@ -371,8 +360,8 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
             Export Properties
           </div>
           <div class="control-row">
-            <label>Working Max Resolution</label>
-            <select id="export-size">
+            <label class="field-label">Working Max Resolution</label>
+            <select class="tool-select" id="export-size">
               <option value="256">256 x 256 (Ultra Fast)</option>
               <option value="512" selected>512 x 512 (Recommended)</option>
               <option value="1024">1024 x 1024 (HD Detail)</option>
@@ -383,7 +372,7 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
 
         <!-- Action buttons -->
         <div class="sidebar-actions">
-          <button id="btn-download-all" class="btn btn-primary">
+          <button id="btn-download-all" class="tool-btn primary">
             <svg
               width="16"
               height="16"
@@ -401,8 +390,8 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
 
       <!-- Main Viewport -->
       <div class="viewport">
-        <div class="tabs-bar">
-          <button class="tab active" data-tab="grid">
+        <div class="tool-tabs tabs-bar">
+          <button class="tool-tab active" data-tab="grid">
             <svg
               width="14"
               height="14"
@@ -418,14 +407,14 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
             </svg>
             All Maps Grid
           </button>
-          <button class="tab" data-tab="original">Original (Diffuse)</button>
-          <button class="tab" data-tab="height">Height Map</button>
-          <button class="tab" data-tab="normal">Normal Map</button>
-          <button class="tab" data-tab="specular">Specular Map</button>
-          <button class="tab" data-tab="roughness">Roughness Map</button>
-          <button class="tab" data-tab="ao">Ambient Occlusion</button>
-          <button class="tab" data-tab="edge">Edge Map</button>
-          <button class="tab" data-tab="preview3d" style="color: #60a5fa; font-weight: 600">
+          <button class="tool-tab" data-tab="original">Original (Diffuse)</button>
+          <button class="tool-tab" data-tab="height">Height Map</button>
+          <button class="tool-tab" data-tab="normal">Normal Map</button>
+          <button class="tool-tab" data-tab="specular">Specular Map</button>
+          <button class="tool-tab" data-tab="roughness">Roughness Map</button>
+          <button class="tool-tab" data-tab="ao">Ambient Occlusion</button>
+          <button class="tool-tab" data-tab="edge">Edge Map</button>
+          <button class="tool-tab tab-engine" data-tab="preview3d">
             <svg
               width="14"
               height="14"
@@ -591,86 +580,20 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
           <div
             id="single-view-container"
             class="checkerboard tab-content-hidden"
-            style="width: auto; height: auto"
           >
             <canvas id="canvas-main-preview"></canvas>
           </div>
 
           <!-- 3D Preview Container -->
-          <div
-            id="preview3d-container"
-            class="tab-content-hidden"
-              style="
-              width: 100%;
-              height: 100%;
-              display: flex;
-              flex-direction: column;
-              gap: 1.25rem;
-              align-items: center;
-              justify-content: flex-start;
-              padding-top: 1rem;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                gap: 0.5rem;
-                background: var(--bg-panel);
-                padding: 0.4rem;
-                border-radius: 8px;
-                border: 1px solid var(--border);
-              "
-            >
-              <button
-                class="btn btn-secondary geom-btn active"
-                data-geom="sphere"
-                style="padding: 0.4rem 0.8rem; font-size: 0.75rem"
-              >
-                Sphere
-              </button>
-              <button
-                class="btn btn-secondary geom-btn"
-                data-geom="cube"
-                style="padding: 0.4rem 0.8rem; font-size: 0.75rem"
-              >
-                Cube
-              </button>
-              <button
-                class="btn btn-secondary geom-btn"
-                data-geom="torus"
-                style="padding: 0.4rem 0.8rem; font-size: 0.75rem"
-              >
-                Torus
-              </button>
-              <button
-                class="btn btn-secondary geom-btn"
-                data-geom="plane"
-                style="padding: 0.4rem 0.8rem; font-size: 0.75rem"
-              >
-                Plane
-              </button>
+          <div id="preview3d-container" class="preview3d tab-content-hidden">
+            <div class="tool-tabs">
+              <button class="tool-tab geom-btn active" data-geom="sphere">Sphere</button>
+              <button class="tool-tab geom-btn" data-geom="cube">Cube</button>
+              <button class="tool-tab geom-btn" data-geom="torus">Torus</button>
+              <button class="tool-tab geom-btn" data-geom="plane">Plane</button>
             </div>
-            <div
-              style="
-                flex: 1;
-                width: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              "
-            >
-              <canvas
-                id="SmallWorldPreview"
-                width="512"
-                height="384"
-                style="
-                  max-width: 100%;
-                  max-height: 60vh;
-                  border-radius: 12px;
-                  background: #000;
-                  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-                "
-              ></canvas>
+            <div class="preview3d-stage">
+              <canvas id="SmallWorldPreview" width="512" height="384"></canvas>
             </div>
           </div>
         </div>

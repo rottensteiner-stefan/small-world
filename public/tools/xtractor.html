@@ -5,273 +5,264 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/webp" href="/favicon.webp" />
     <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/tool-theme.css" />
     <title>Xtractor - AI Image Workbench</title>
     <style>
-body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    
-    h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; }
-    h1 span { color: #00e5ff; }
-    
-    .main-container {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
+      body {
+        margin: 0;
+        font-family: var(--tool-font-ui);
+        background: var(--tool-bg);
+        color: var(--tool-text);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
 
-    /* Left Side: Workbench */
-    .workbench {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #0f172a;
-      position: relative;
-      min-width: 0;
-    }
-    .toolbar {
-      padding: 0.5rem 1rem;
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 15px;
-    }
-    .toolbar-group {
-      display: flex;
-      gap: 5px;
-      background: #0f172a;
-      padding: 4px;
-      border-radius: 6px;
-      border: 1px solid #334155;
-    }
-    .btn {
-      background: #38bdf8;
-      color: #0f172a;
-      border: none;
-      padding: 0.5rem 1rem;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn:hover { background: #7dd3fc; }
-    .btn.secondary { background: #475569; color: #e2e8f0; }
-    .btn.secondary:hover { background: #64748b; }
-    
-    .tool-btn {
-      background: transparent;
-      color: #94a3b8;
-    }
-    .tool-btn:hover { background: rgba(56, 189, 248, 0.2); color: #fff; }
-    .tool-btn.active { background: #38bdf8; color: #0f172a; }
-    
-    .canvas-container {
-      flex: 1;
-      overflow: auto;
-      padding: 2rem;
-      position: relative;
-      background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 50% / 20px 20px;
-    }
-    #canvas-stage {
-      position: relative; 
-      display: inline-block; 
-      transform-origin: 0 0;
-      transition: transform 0.1s ease-out;
-    }
-    #image-canvas {
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-      cursor: crosshair;
-      max-width: 100%;
-    }
-    #drop-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.9);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 1.5rem;
-      color: #38bdf8;
-      border: 4px dashed #38bdf8;
-      z-index: 10;
-      display: none;
-    }
-    /* Splitter */
-    .splitter {
-      width: 8px;
-      background: #1e293b;
-      cursor: col-resize;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-left: 1px solid #334155;
-      border-right: 1px solid #334155;
-      transition: background 0.2s;
-      flex-shrink: 0;
-      z-index: 50;
-    }
-    .splitter:hover, .splitter.active {
-      background: #38bdf8;
-    }
-    .splitter::after {
-      content: '||';
-      color: #94a3b8;
-      font-size: 10px;
-      letter-spacing: -1px;
-    }
-    .splitter:hover::after, .splitter.active::after {
-      color: #0f172a;
-    }
+      .main-container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
 
-    /* Right Side: Chat & Results */
-    .sidebar {
-      width: 400px;
-      min-width: 250px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      background: #121214;
-    }
-    .chat-history {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .message {
-      padding: 1rem;
-      border-radius: 8px;
-      max-width: 85%;
-    }
-    .msg-ai {
-      background: #1e293b;
-      align-self: flex-start;
-      border: 1px solid #334155;
-    }
-    .msg-user {
-      background: #0284c7;
-      color: white;
-      align-self: flex-end;
-    }
-    
-    .chat-input-area {
-      padding: 1rem;
-      background: #1e293b;
-      border-top: 1px solid #334155;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .context-pill {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #0f172a;
-      padding: 0.5rem;
-      border-radius: 4px;
-      border: 1px solid #38bdf8;
-      display: none;
-    }
-    .context-pill canvas {
-      height: 40px;
-      border: 1px solid #475569;
-    }
-    .context-pill-text {
-      font-size: 0.8rem;
-      color: #94a3b8;
-    }
-    .chat-input-row {
-      display: flex;
-      gap: 10px;
-    }
-    input[type="text"] {
-      flex: 1;
-      padding: 0.75rem;
-      border-radius: 4px;
-      border: 1px solid #475569;
-      background: #0f172a;
-      color: white;
-      outline: none;
-    }
-    input[type="text"]:focus { border-color: #38bdf8; }
+      /* Left side: workbench */
+      .workbench {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--tool-bg);
+        position: relative;
+        min-width: 0;
+      }
+      .toolbar {
+        padding: 0.4rem 0.75rem;
+        background: var(--tool-panel-solid);
+        border-bottom: 1px solid var(--tool-border);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .toolbar-group {
+        gap: 0.25rem;
+      }
+      .toolbar-group .tool-input {
+        width: 150px;
+      }
+      .toolbar-group .tool-btn {
+        padding: 0.25rem 0.6rem;
+      }
+      .toolbar-end {
+        margin-left: auto;
+      }
+      .zoom-label {
+        min-width: 3.2rem;
+        text-align: center;
+        font-family: var(--tool-font-mono);
+        font-size: 0.75rem;
+        color: var(--tool-text-muted);
+      }
+      .hidden {
+        display: none;
+      }
 
-    /* Selection Box & Props */
-    #selection-box {
-      position: absolute;
-      border: 2px dashed #00e5ff;
-      background: rgba(0, 229, 255, 0.2);
-      pointer-events: none; /* Let canvas handle events */
-      display: none;
-      z-index: 5;
-    }
-    #selection-props {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: #1e293b;
-      padding: 10px 15px;
-      border-radius: 6px;
-      border: 1px solid #334155;
-      display: flex;
-      gap: 15px;
-      z-index: 20;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    }
-    .prop-group {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      color: #94a3b8;
-      font-size: 0.9rem;
-      font-weight: bold;
-    }
-    .prop-input {
-      width: 50px;
-      background: #0f172a;
-      color: white;
-      border: 1px solid #475569;
-      padding: 4px;
-      border-radius: 4px;
-      outline: none;
-    }
-    .prop-input:focus { border-color: #38bdf8; }
+      .canvas-container {
+        flex: 1;
+        overflow: auto;
+        padding: 1.25rem;
+        position: relative;
+        background: repeating-conic-gradient(var(--tool-card) 0% 25%, var(--tool-panel-solid) 0% 50%) 50% / 20px 20px;
+      }
+      #canvas-stage {
+        position: relative;
+        display: inline-block;
+        transform-origin: 0 0;
+        transition: transform 0.1s ease-out;
+      }
+      #image-canvas {
+        box-shadow: var(--tool-shadow-float);
+        cursor: crosshair;
+        max-width: 100%;
+      }
+      /* Drop overlay (own, window-level overlay stays ToolDropOverlay): only looks, behaviour unchanged */
+      #drop-overlay {
+        position: absolute;
+        inset: 0;
+        background: color-mix(in srgb, var(--tool-bg) 90%, transparent);
+        justify-content: center;
+        align-items: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--tool-accent);
+        border: 2px dashed var(--tool-accent);
+        border-radius: var(--tool-radius-lg);
+        z-index: 10;
+        display: none;
+      }
+      /* Splitter */
+      .splitter {
+        width: 8px;
+        background: var(--tool-panel-solid);
+        cursor: col-resize;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-left: 1px solid var(--tool-border);
+        border-right: 1px solid var(--tool-border);
+        transition: background 0.15s;
+        flex-shrink: 0;
+        z-index: 50;
+      }
+      .splitter:hover,
+      .splitter.active {
+        background: var(--tool-accent);
+      }
+      .splitter::after {
+        content: "||";
+        color: var(--tool-text-muted);
+        font-size: 10px;
+        letter-spacing: -1px;
+      }
+      .splitter:hover::after,
+      .splitter.active::after {
+        color: var(--tool-on-accent);
+      }
+
+      /* Right side: chat & results */
+      .sidebar {
+        width: 400px;
+        min-width: 250px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--tool-panel);
+      }
+      .chat-history {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+      .message {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--tool-radius-md);
+        max-width: 85%;
+        font-size: 0.9rem;
+      }
+      .msg-ai {
+        background: var(--tool-card);
+        align-self: flex-start;
+        border: 1px solid var(--tool-border);
+      }
+      .msg-user {
+        background: var(--tool-card-active);
+        border: 1px solid var(--tool-border-active);
+        align-self: flex-end;
+      }
+
+      .chat-input-area {
+        padding: 0.75rem;
+        background: var(--tool-panel-solid);
+        border-top: 1px solid var(--tool-border);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .context-pill {
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.4rem;
+        display: none;
+      }
+      .context-pill canvas {
+        height: 40px;
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-sm);
+      }
+      .context-pill-text {
+        font-size: 0.8rem;
+        color: var(--tool-text-muted);
+      }
+      .context-pill .tool-btn {
+        margin-left: auto;
+        padding: 0.2rem 0.5rem;
+      }
+      .chat-input-row {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .chat-input-row .tool-input {
+        flex: 1;
+      }
+
+      /* Selection box & props */
+      #selection-box {
+        position: absolute;
+        border: 2px dashed var(--tool-accent2);
+        background: var(--tool-accent2-glow);
+        pointer-events: none; /* Let canvas handle events */
+        display: none;
+        z-index: 5;
+      }
+      #selection-props {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        padding: 0.5rem 0.75rem;
+        display: flex;
+        gap: 0.75rem;
+        z-index: 20;
+        box-shadow: var(--tool-shadow-float);
+        border-radius: var(--tool-radius-md);
+      }
+      .prop-group {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        color: var(--tool-text-muted);
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+      .prop-input {
+        width: 56px;
+      }
     </style>
   </head>
-  <body>
     <header class="tool-header">
-      <h1>Xtractor - AI Image Workbench</h1>
-      <a href="/" class="nav-btn">Back to Engine</a>
+      <h1>Xtractor — AI Image Workbench</h1>
+      <button class="tool-close-btn" id="toolCloseBtn" title="Close Window" onclick="if (window.parent && window.parent !== window) { window.parent.postMessage({ type: 'close-tool' }, '*'); } try { window.close(); } catch(e) {}">✕</button>
     </header>
+    <script>if (window.self !== window.top || window.opener) document.body.classList.add("in-window");</script>
     
     <div class="main-container">
     <!-- WORKBENCH -->
     <div class="workbench">
       <div class="toolbar">
-        <label class="btn">
+        <label class="tool-btn primary">
           Upload Image/PDF
-          <input type="file" id="file-input" style="display:none;" accept="image/*,application/pdf" />
+          <input type="file" id="file-input" class="hidden" accept="image/*,application/pdf" />
         </label>
         
-        <div class="toolbar-group">
-          <input type="text" id="url-input" class="prop-input" style="width: 150px; font-weight:normal;" placeholder="https://... (Image URL)" />
-          <button class="btn secondary" id="btn-load-url" style="padding: 0.25rem 0.5rem; margin-left: 2px;">Load URL</button>
+        <div class="tool-tabs toolbar-group">
+          <input type="text" id="url-input" class="tool-input" placeholder="https://... (Image URL)" />
+          <button class="tool-btn" id="btn-load-url">Load URL</button>
         </div>
         
-        <div class="toolbar-group">
-          <button class="btn tool-btn" id="btn-tool-pan" title="Hand Tool">Hand</button>
-          <button class="btn tool-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rechteck</button>
-          <button class="btn tool-btn" id="btn-tool-circle" title="Kreis Auswahl">Kreis</button>
+        <div class="tool-tabs toolbar-group">
+          <button class="tool-btn" id="btn-tool-pan" title="Hand Tool">Hand</button>
+          <button class="tool-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rechteck</button>
+          <button class="tool-btn" id="btn-tool-circle" title="Kreis Auswahl">Kreis</button>
         </div>
         
-        <div class="toolbar-group">
-          <button class="btn tool-btn" id="btn-zoom-out">-</button>
-          <span style="color: #94a3b8; padding: 0 5px; font-weight: bold; font-size: 0.9rem; align-self: center;" id="zoom-label">100%</span>
-          <button class="btn tool-btn" id="btn-zoom-in">+</button>
+        <div class="tool-tabs toolbar-group">
+          <button class="tool-btn" id="btn-zoom-out">-</button>
+          <span class="zoom-label" id="zoom-label">100%</span>
+          <button class="tool-btn" id="btn-zoom-in">+</button>
         </div>
         
-        <button class="btn secondary" style="margin-left: auto;" id="btn-clear-selection">Clear Selection</button>
+        <button class="tool-btn toolbar-end" id="btn-clear-selection">Clear Selection</button>
       </div>
       
       <div class="canvas-container" id="canvas-wrapper">
@@ -283,11 +274,11 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
         </div>
         
         <!-- Precision Input Panel -->
-        <div id="selection-props" style="display: none;">
-          <div class="prop-group"><label>X:</label> <input type="number" id="prop-x" class="prop-input"/></div>
-          <div class="prop-group"><label>Y:</label> <input type="number" id="prop-y" class="prop-input"/></div>
-          <div class="prop-group"><label>W:</label> <input type="number" id="prop-w" class="prop-input"/></div>
-          <div class="prop-group"><label>H:</label> <input type="number" id="prop-h" class="prop-input"/></div>
+        <div id="selection-props" class="tool-panel" style="display: none;">
+          <div class="prop-group"><label>X:</label> <input type="number" id="prop-x" class="tool-input mono prop-input"/></div>
+          <div class="prop-group"><label>Y:</label> <input type="number" id="prop-y" class="tool-input mono prop-input"/></div>
+          <div class="prop-group"><label>W:</label> <input type="number" id="prop-w" class="tool-input mono prop-input"/></div>
+          <div class="prop-group"><label>H:</label> <input type="number" id="prop-h" class="tool-input mono prop-input"/></div>
         </div>
       </div>
     </div>
@@ -304,14 +295,14 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
       </div>
       
       <div class="chat-input-area">
-        <div class="context-pill" id="context-pill">
+        <div class="tool-card context-pill" id="context-pill">
           <canvas id="crop-preview-canvas"></canvas>
           <div class="context-pill-text">Ausschnitt markiert.</div>
-          <button class="btn secondary" style="padding: 0.2rem 0.5rem; margin-left: auto;" id="btn-cancel-crop">X</button>
+          <button class="tool-btn" id="btn-cancel-crop">X</button>
         </div>
         <div class="chat-input-row">
-          <input type="text" id="chat-input" placeholder="Z. B. 'Extrahiere alle Zahlen aus dem Bild...'" />
-          <button class="btn" id="btn-send">Senden</button>
+          <input type="text" id="chat-input" class="tool-input" placeholder="Z. B. 'Extrahiere alle Zahlen aus dem Bild...'" />
+          <button class="tool-btn primary" id="btn-send">Senden</button>
         </div>
       </div>
     </div>
@@ -808,8 +799,8 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
                         const sliceCanvas = document.createElement('canvas');
                         sliceCanvas.width = sliceWidth;
                         sliceCanvas.height = currentRect.h;
-                        sliceCanvas.style.border = '1px solid #38bdf8';
-                        sliceCanvas.style.background = '#0f172a';
+                        sliceCanvas.style.border = '1px solid var(--tool-accent2)';
+                        sliceCanvas.style.background = 'var(--tool-panel-solid)';
                         sliceCanvas.title = `Sprite ${i} (Klicken zum Speichern)`;
                         
                         const sCtx = sliceCanvas.getContext('2d');
@@ -834,7 +825,7 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--b
                     }
                     
                     const zipBtn = document.createElement('button');
-                    zipBtn.className = 'btn';
+                    zipBtn.className = 'tool-btn primary';
                     zipBtn.style.marginTop = '10px';
                     zipBtn.style.fontSize = '0.8rem';
                     zipBtn.style.padding = '0.4rem 0.8rem';

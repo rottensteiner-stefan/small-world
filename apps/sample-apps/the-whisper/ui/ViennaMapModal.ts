@@ -339,7 +339,7 @@ export class ViennaMapModal {
       justify-content: center;
       background: rgba(5, 7, 10, 0.88);
       backdrop-filter: blur(8px);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;
+      font-family: var(--font-ui, "Rajdhani", sans-serif);
       color: #e2e8f0;
       user-select: none;
       box-sizing: border-box;
@@ -488,7 +488,7 @@ export class ViennaMapModal {
             SCHNELLREISE...
           </div>
           <div id="transitStoryText" style="
-            font-family: 'Courier New', monospace;
+            font-family: var(--font-mono, "JetBrains Mono", monospace);
             font-size: 0.95rem;
             color: #e2e8f0;
             max-width: 650px;
@@ -635,7 +635,7 @@ export class ViennaMapModal {
           border: 1px solid ${badgeColor};
           border-radius: 4px;
           padding: 2px 6px;
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-mono, "JetBrains Mono", monospace);
           font-size: 10px;
           font-weight: bold;
           color: #fff;
@@ -715,7 +715,7 @@ export class ViennaMapModal {
           font-weight: bold;
           font-size: 0.85rem;
           text-align: center;
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-mono, "JetBrains Mono", monospace);
         ">
           📍 AKTUELLER STANDORT
         </div>
@@ -733,7 +733,7 @@ export class ViennaMapModal {
           font-size: 0.95rem;
           letter-spacing: 1px;
           cursor: pointer;
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-mono, "JetBrains Mono", monospace);
           box-shadow: 0 4px 15px rgba(255, 184, 77, 0.3);
           transition: all 0.2s ease;
         ">
@@ -752,7 +752,7 @@ export class ViennaMapModal {
           font-weight: bold;
           font-size: 0.85rem;
           text-align: center;
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-mono, "JetBrains Mono", monospace);
         ">
           🚧 ORT IN ENTWICKLUNG (DEMNÄCHST BETRETBAR)
         </div>
@@ -769,7 +769,7 @@ export class ViennaMapModal {
           font-weight: bold;
           font-size: 0.85rem;
           text-align: center;
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-mono, "JetBrains Mono", monospace);
         ">
           🔒 SPERRZONE (AUFTRAG NOCH NICHT ERFÜLLT)
         </div>
@@ -786,7 +786,7 @@ export class ViennaMapModal {
           font-weight: bold;
           font-size: 0.85rem;
           text-align: center;
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-mono, "JetBrains Mono", monospace);
         ">
           ⚰️ HAUPTZIEL DER REISE (URNEN-BESTATTUNG)
         </div>
@@ -819,7 +819,7 @@ export class ViennaMapModal {
 
       <!-- Title & Subtitle -->
       <h2 style="margin: 0 0 4px 0; font-size: 1.3rem; color: #fff; line-height: 1.3;">${loc.title}</h2>
-      <div style="font-size: 0.8rem; color: #94a3b8; font-family: 'Courier New', monospace; margin-bottom: 12px;">
+      <div style="font-size: 0.8rem; color: #94a3b8; font-family: var(--font-mono, "JetBrains Mono", monospace); margin-bottom: 12px;">
         ${loc.subtitle}
       </div>
 
@@ -850,7 +850,7 @@ export class ViennaMapModal {
           background: rgba(0,0,0,0.7);
           color: #ffb84d;
           font-size: 0.65rem;
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-mono, "JetBrains Mono", monospace);
           padding: 2px 6px;
           border-radius: 3px;
         ">VISUELLER SCHAUPLATZ</div>
@@ -936,7 +936,7 @@ export class ViennaMapModal {
           right: 12px;
           background: rgba(217, 119, 6, 0.4);
           color: #78350f;
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-mono, "JetBrains Mono", monospace);
           font-size: 0.65rem;
           font-weight: bold;
           font-style: normal;

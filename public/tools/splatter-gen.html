@@ -5,61 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/webp" href="/favicon.webp" />
     <link rel="stylesheet" href="/assets/shared.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="/assets/tool-theme.css" />
     <title>Procedural Splatter Generator</title>
     <style>
-:root {
-        --bg-dark: #0f111a;
-        --bg-panel: rgba(22, 28, 45, 0.7);
-        --bg-control: #1a1f35;
-        --accent: #3b82f6;
-        --accent-glow: rgba(59, 130, 246, 0.3);
-        --text-main: #f8fafc;
-        --text-muted: #94a3b8;
-        --border: rgba(148, 163, 184, 0.1);
-        --border-focus: rgba(59, 130, 246, 0.5);
-      }
-
       * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
       }
 
-      body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: var(--bg-dark);
-      }
-      ::-webkit-scrollbar-thumb {
-        background: var(--bg-control);
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: var(--accent);
-      }
-
-      
-      h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
-
-      .badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        background: var(--accent-glow);
-        border: 1px solid var(--accent);
-        border-radius: 9999px;
-        color: #93c5fd;
-        font-weight: 500;
+      body {
+        background: var(--tool-bg);
+        color: var(--tool-text);
+        font-family: var(--tool-font-ui);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
       }
 
       .app-container {
@@ -71,10 +33,9 @@
 
       /* Sidebar controls */
       .sidebar {
-        width: 400px;
-        background: var(--bg-panel);
-        backdrop-filter: blur(20px);
-        border-right: 1px solid var(--border);
+        width: 320px;
+        background: var(--tool-panel);
+        border-right: 1px solid var(--tool-border);
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -84,172 +45,94 @@
       .sidebar-scroll {
         flex: 1;
         overflow-y: auto;
-        padding: 1.75rem;
+        padding: 0.75rem;
       }
 
       .section-title {
-        font-size: 0.85rem;
-        font-weight: 600;
+        font-size: 0.72rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--text-muted);
-        margin-bottom: 1.25rem;
+        color: var(--tool-text-muted);
+        margin: 0.9rem 0 0.5rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        border-bottom: 1px solid var(--tool-border);
+        padding-bottom: 0.35rem;
+      }
+
+      .section-title:first-child {
+        margin-top: 0;
+      }
+
+      .control-group .section-title {
+        margin-top: 0;
       }
 
       .control-group {
-        margin-bottom: 1.75rem;
-        background: rgba(26, 31, 53, 0.4);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 1.25rem;
-        transition: all 0.3s ease;
-      }
-
-      .control-group:hover {
-        border-color: rgba(148, 163, 184, 0.2);
+        margin-bottom: 0.6rem;
       }
 
       .control-row {
-        margin-bottom: 1.25rem;
+        margin-bottom: 0.6rem;
       }
 
       .control-row:last-child {
         margin-bottom: 0;
       }
 
-      label {
+      .field-label {
         display: flex;
         justify-content: space-between;
-        font-size: 0.9rem;
+        font-size: 0.82rem;
         font-weight: 500;
-        color: var(--text-main);
-        margin-bottom: 0.5rem;
+        color: var(--tool-text);
+        margin-bottom: 0.3rem;
       }
 
-      .value-display {
-        color: var(--accent);
-        font-family: "JetBrains Mono", monospace;
-        font-size: 0.85rem;
-      }
-
-      select,
-      input[type="text"],
-      input[type="color"] {
+      .tool-select,
+      .tool-input {
         width: 100%;
-        background: var(--bg-control);
-        border: 1px solid var(--border);
-        color: var(--text-main);
-        padding: 0.65rem 0.85rem;
-        border-radius: 8px;
-        font-family: inherit;
-        font-size: 0.9rem;
-        outline: none;
-        transition: all 0.2s ease;
       }
 
-      select:focus,
-      input[type="text"]:focus {
-        border-color: var(--border-focus);
-        box-shadow: 0 0 0 3px var(--accent-glow);
-      }
-
-      /* Range slider styling */
-      input[type="range"] {
-        -webkit-appearance: none;
-        width: 100%;
-        height: 6px;
-        border-radius: 3px;
-        background: var(--bg-control);
-        outline: none;
-      }
-
-      input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: var(--accent);
+      .color-picker {
+        width: 48px;
+        height: 2rem;
+        padding: 2px;
         cursor: pointer;
-        box-shadow: 0 0 10px var(--accent-glow);
-        transition: all 0.15s ease;
+        flex-shrink: 0;
       }
 
-      input[type="range"]::-webkit-slider-thumb:hover {
-        transform: scale(1.15);
+      .color-hex {
+        flex: 1;
       }
 
       /* Preset color swatches */
       .color-presets {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
-        gap: 0.5rem;
-        margin-top: 0.75rem;
+        gap: 0.4rem;
+        margin-top: 0.5rem;
       }
 
-      .color-preset {
-        height: 30px;
-        border-radius: 6px;
-        border: 1px solid var(--border);
-        cursor: pointer;
-        transition:
-          transform 0.2s ease,
-          border-color 0.2s ease;
-      }
-
-      .color-preset:hover {
-        transform: translateY(-2px);
-        border-color: var(--text-main);
+      .color-presets .tool-swatch {
+        width: auto;
+        height: 24px;
       }
 
       .sidebar-actions {
-        padding: 1.25rem 1.75rem;
-        border-top: 1px solid var(--border);
-        background: rgba(15, 17, 26, 0.4);
+        padding: 0.75rem;
+        border-top: 1px solid var(--tool-border);
+        background: var(--tool-panel-solid);
         display: flex;
-        gap: 0.75rem;
-      }
-
-      button {
-        flex: 1;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
         gap: 0.5rem;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        font-family: inherit;
-        font-size: 0.95rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: none;
-        outline: none;
       }
 
-      .btn-primary {
-        background: var(--accent);
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-      }
-
-      .btn-primary:hover {
-        background: #2563eb;
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
-        transform: translateY(-1px);
-      }
-
-      .btn-secondary {
-        background: var(--bg-control);
-        color: var(--text-main);
-        border: 1px solid var(--border);
-      }
-
-      .btn-secondary:hover {
-        background: #222a47;
-        border-color: rgba(148, 163, 184, 0.3);
+      .sidebar-actions .tool-btn {
+        flex: 1;
+        padding: 0.55rem 0.8rem;
+        font-size: 0.85rem;
       }
 
       /* Main viewport area */
@@ -257,9 +140,10 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        background: #090a10;
-        padding: 2rem;
+        background: var(--tool-bg);
+        padding: 0.75rem;
         position: relative;
+        min-width: 0;
       }
 
       .canvas-container {
@@ -267,12 +151,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: radial-gradient(circle at center, #131722 0%, #090a10 100%);
-        border: 1px solid var(--border);
-        border-radius: 16px;
+        background: var(--tool-panel-solid);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-md);
         position: relative;
         overflow: hidden;
-        box-shadow: inset 0 4px 30px rgba(0, 0, 0, 0.5);
       }
 
       /* Checkerboard pattern for transparency */
@@ -280,19 +163,19 @@
         position: absolute;
         width: 512px;
         height: 512px;
+        background-color: var(--tool-panel-solid);
         background-image:
-          linear-gradient(45deg, #181d30 25%, transparent 25%),
-          linear-gradient(-45deg, #181d30 25%, transparent 25%),
-          linear-gradient(45deg, transparent 75%, #181d30 75%),
-          linear-gradient(-45deg, transparent 75%, #181d30 75%);
+          linear-gradient(45deg, var(--tool-card-hover) 25%, transparent 25%),
+          linear-gradient(-45deg, var(--tool-card-hover) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, var(--tool-card-hover) 75%),
+          linear-gradient(-45deg, transparent 75%, var(--tool-card-hover) 75%);
         background-size: 20px 20px;
         background-position:
           0 0,
           0 10px,
           10px -10px,
           -10px 0px;
-        border-radius: 8px;
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        border-radius: var(--tool-radius-md);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -300,66 +183,58 @@
 
       canvas {
         position: relative;
+        width: auto;
+        height: auto;
         max-width: 100%;
         max-height: 100%;
-        border-radius: 8px;
+        border-radius: var(--tool-radius-md);
         z-index: 2;
       }
 
-      /* Bottom Info & Code Panel */
+      /* Bottom info & code panel */
       .code-panel {
-        margin-top: 1.5rem;
-        background: var(--bg-panel);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        margin-top: 0.75rem;
+        border-radius: var(--tool-radius-md);
         height: 250px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
 
-      .code-
+      .code-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.4rem 0.6rem;
+        border-bottom: 1px solid var(--tool-border);
+      }
+
+      .code-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--tool-text-muted);
+      }
 
       .code-tabs {
         display: flex;
-        gap: 0.5rem;
-      }
-
-      .code-tab {
-        background: transparent;
-        border: none;
-        color: var(--text-muted);
-        font-size: 0.85rem;
-        font-weight: 500;
-        padding: 0.35rem 0.75rem;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      .code-tab.active {
-        background: var(--accent);
-        color: #fff;
-      }
-
-      .code-tab:hover:not(.active) {
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--text-main);
+        gap: 0.35rem;
       }
 
       pre {
         flex: 1;
         overflow: auto;
-        padding: 1.25rem;
-        font-family: "JetBrains Mono", monospace;
-        font-size: 0.85rem;
+        padding: 0.75rem;
+        font-family: var(--tool-font-mono);
+        font-size: 0.8rem;
         line-height: 1.5;
-        color: #a5b4fc;
-        background: #0b0d16;
+        color: var(--tool-text);
+        background: var(--tool-inset);
       }
 
-      /* Utility Styles */
+      /* Utility styles */
       .d-none {
         display: none !important;
       }
@@ -371,11 +246,11 @@
       }
     </style>
   </head>
-  <body>
     <header class="tool-header">
       <h1>Procedural Splatter Generator</h1>
-      <a href="/" class="nav-btn">Back to Engine</a>
+      <button class="tool-close-btn" id="toolCloseBtn" title="Close Window" onclick="if (window.parent && window.parent !== window) { window.parent.postMessage({ type: 'close-tool' }, '*'); } try { window.close(); } catch(e) {}">✕</button>
     </header>
+    <script>if (window.self !== window.top || window.opener) document.body.classList.add("in-window");</script>
     
     <div class="app-container">
       <div class="sidebar">
@@ -396,8 +271,8 @@
             </svg>
             Generation Method
           </div>
-          <div class="control-row" style="margin-bottom: 1.5rem">
-            <select id="algorithm-select">
+          <div class="control-row">
+            <select class="tool-select" id="algorithm-select">
               <option value="noise-warp">Seamless Noise-Warped Circle</option>
               <option value="metaballs">Liquid Metaballs</option>
               <option value="mud-splatter">Combined Mud Splatter (Recommended)</option>
@@ -425,64 +300,61 @@
           <!-- Shared Parameters -->
           <div class="control-group">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Base Radius
-                <span id="radius-val" class="value-display">120</span>
+                <span id="radius-val" class="tool-value">120</span>
               </label>
-              <input type="range" id="radius-slider" min="30" max="200" value="120" />
+              <input class="tool-slider" type="range" id="radius-slider" min="30" max="200" value="120" />
             </div>
 
+            <!-- tool-theme: allow-begin splatter-preset-data -->
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Color
-                <span id="color-val" class="value-display">#4a3728</span>
+                <span id="color-val" class="tool-value">#4a3728</span>
               </label>
               <div class="preset-row">
-                <input
-                  type="color"
-                  id="color-picker"
-                  value="#4a3728"
-                  style="width: 60px; height: 38px; padding: 2px; cursor: pointer"
-                />
-                <input type="text" id="color-hex" value="#4a3728" style="flex: 1" />
+                <input class="tool-input color-picker" type="color" id="color-picker" value="#4a3728" />
+                <input class="tool-input mono color-hex" type="text" id="color-hex" value="#4a3728" />
               </div>
               <div class="color-presets">
                 <div
-                  class="color-preset"
+                  class="tool-swatch color-preset"
                   style="background: #4a3728"
                   title="Mud Brown"
                   data-color="#4a3728"
                 ></div>
                 <div
-                  class="color-preset"
+                  class="tool-swatch color-preset"
                   style="background: #17181c"
                   title="Oil Black"
                   data-color="#17181c"
                 ></div>
                 <div
-                  class="color-preset"
+                  class="tool-swatch color-preset"
                   style="background: #102a43"
                   title="Dirty Ink"
                   data-color="#102a43"
                 ></div>
                 <div
-                  class="color-preset"
+                  class="tool-swatch color-preset"
                   style="background: #8b0000"
                   title="Dried Blood"
                   data-color="#8b0000"
                 ></div>
                 <div
-                  class="color-preset"
+                  class="tool-swatch color-preset"
                   style="background: #2d4a22"
                   title="Moss Green"
                   data-color="#2d4a22"
                 ></div>
               </div>
             </div>
+            <!-- tool-theme: allow-end -->
 
             <div class="control-row">
-              <label> Output Size </label>
-              <select id="size-select">
+              <label class="field-label"> Output Size </label>
+              <select class="tool-select" id="size-select">
                 <option value="256">256 x 256 (Fast)</option>
                 <option value="512" selected>512 x 512 (Recommended)</option>
                 <option value="1024">1024 x 1024 (HD)</option>
@@ -492,16 +364,17 @@
 
           <!-- Algorithm specific panels -->
           <div id="panel-noise-warp" class="control-group">
-            <div class="section-title" style="margin-bottom: 0.75rem; font-size: 0.75rem">
+            <div class="section-title">
               Noise Warp Details
             </div>
 
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Noise Frequency (Detail)
-                <span id="noise-freq-val" class="value-display">2.5</span>
+                <span id="noise-freq-val" class="tool-value">2.5</span>
               </label>
               <input
+                class="tool-slider"
                 type="range"
                 id="noise-freq-slider"
                 min="0.5"
@@ -512,27 +385,28 @@
             </div>
 
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Warp Amplitude (Strength)
-                <span id="noise-amp-val" class="value-display">40</span>
+                <span id="noise-amp-val" class="tool-value">40</span>
               </label>
-              <input type="range" id="noise-amp-slider" min="5" max="100" value="40" />
+              <input class="tool-slider" type="range" id="noise-amp-slider" min="5" max="100" value="40" />
             </div>
 
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Satellite Droplets
-                <span id="warp-sat-val" class="value-display">15</span>
+                <span id="warp-sat-val" class="tool-value">15</span>
               </label>
-              <input type="range" id="warp-sat-slider" min="0" max="40" value="15" />
+              <input class="tool-slider" type="range" id="warp-sat-slider" min="0" max="40" value="15" />
             </div>
 
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Satellite Distance
-                <span id="warp-sat-dist-val" class="value-display">1.5</span>
+                <span id="warp-sat-dist-val" class="tool-value">1.5</span>
               </label>
               <input
+                class="tool-slider"
                 type="range"
                 id="warp-sat-dist-slider"
                 min="1.0"
@@ -544,87 +418,87 @@
           </div>
 
           <div id="panel-metaballs" class="control-group d-none">
-            <div class="section-title" style="margin-bottom: 0.75rem; font-size: 0.75rem">
+            <div class="section-title">
               Metaball Liquid Details
             </div>
 
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Blob Count
-                <span id="blob-count-val" class="value-display">10</span>
+                <span id="blob-count-val" class="tool-value">10</span>
               </label>
-              <input type="range" id="blob-count-slider" min="3" max="30" value="10" />
+              <input class="tool-slider" type="range" id="blob-count-slider" min="3" max="30" value="10" />
             </div>
 
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Gaussian Blur Radius
-                <span id="blur-val" class="value-display">20</span>
+                <span id="blur-val" class="tool-value">20</span>
               </label>
-              <input type="range" id="blur-slider" min="5" max="40" value="20" />
+              <input class="tool-slider" type="range" id="blur-slider" min="5" max="40" value="20" />
             </div>
 
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Edge Threshold (Size)
-                <span id="threshold-val" class="value-display">110</span>
+                <span id="threshold-val" class="tool-value">110</span>
               </label>
-              <input type="range" id="threshold-slider" min="20" max="240" value="110" />
+              <input class="tool-slider" type="range" id="threshold-slider" min="20" max="240" value="110" />
             </div>
 
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Satellite Drops
-                <span id="meta-sat-val" class="value-display">8</span>
+                <span id="meta-sat-val" class="tool-value">8</span>
               </label>
-              <input type="range" id="meta-sat-slider" min="0" max="30" value="8" />
+              <input class="tool-slider" type="range" id="meta-sat-slider" min="0" max="30" value="8" />
             </div>
           </div>
 
           <div id="panel-mud-splatter" class="control-group d-none">
-            <div class="section-title" style="margin-bottom: 0.75rem; font-size: 0.75rem">
+            <div class="section-title">
               Mud Splatter Settings
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Blob Count
-                <span id="mud-blob-val" class="value-display">12</span>
+                <span id="mud-blob-val" class="tool-value">12</span>
               </label>
-              <input type="range" id="mud-blob-slider" min="3" max="30" value="12" />
+              <input class="tool-slider" type="range" id="mud-blob-slider" min="3" max="30" value="12" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Warp Amplitude
-                <span id="mud-warp-val" class="value-display">25</span>
+                <span id="mud-warp-val" class="tool-value">25</span>
               </label>
-              <input type="range" id="mud-warp-slider" min="0" max="80" value="25" />
+              <input class="tool-slider" type="range" id="mud-warp-slider" min="0" max="80" value="25" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Blur Radius
-                <span id="mud-blur-val" class="value-display">15</span>
+                <span id="mud-blur-val" class="tool-value">15</span>
               </label>
-              <input type="range" id="mud-blur-slider" min="5" max="40" value="15" />
+              <input class="tool-slider" type="range" id="mud-blur-slider" min="5" max="40" value="15" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Edge Threshold
-                <span id="mud-thresh-val" class="value-display">100</span>
+                <span id="mud-thresh-val" class="tool-value">100</span>
               </label>
-              <input type="range" id="mud-thresh-slider" min="20" max="240" value="100" />
+              <input class="tool-slider" type="range" id="mud-thresh-slider" min="20" max="240" value="100" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Radial Satellites
-                <span id="mud-sat-val" class="value-display">18</span>
+                <span id="mud-sat-val" class="tool-value">18</span>
               </label>
-              <input type="range" id="mud-sat-slider" min="0" max="50" value="18" />
+              <input class="tool-slider" type="range" id="mud-sat-slider" min="0" max="50" value="18" />
             </div>
           </div>
         </div>
 
         <div class="sidebar-actions">
-          <button id="btn-seed" class="btn-secondary">
+          <button id="btn-seed" class="tool-btn">
             <svg
               width="16"
               height="16"
@@ -639,7 +513,7 @@
             </svg>
             Seed Random
           </button>
-          <button id="btn-download" class="btn-primary">
+          <button id="btn-download" class="tool-btn primary">
             <svg
               width="16"
               height="16"
@@ -665,26 +539,16 @@
         </div>
 
         <!-- Code Inspector -->
-        <div class="code-panel">
+        <div class="code-panel tool-panel">
           <div class="code-header">
-            <span
-              style="
-                font-size: 0.85rem;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                color: var(--text-muted);
-              "
-              >Drawing Algorithm Code</span
-            >
-            <div class="code-tabs">
-              <button class="code-tab active" data-tab="js">JavaScript (Canvas 2D)</button>
-              <button class="code-tab" data-tab="shader">Shader Logic (Conceptual)</button>
+            <span class="code-title">Drawing Algorithm Code</span>
+            <div class="tool-tabs code-tabs">
+              <button class="tool-tab code-tab active" data-tab="js">JavaScript (Canvas 2D)</button>
+              <button class="tool-tab code-tab" data-tab="shader">Shader Logic (Conceptual)</button>
             </div>
             <button
               id="btn-copy"
-              class="btn-secondary"
-              style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px"
+              class="tool-btn"
             >
               Copy Code
             </button>
@@ -862,6 +726,7 @@
         offscreen.height = height;
         const octx = offscreen.getContext("2d");
 
+        // tool-theme: allow mask-buffer-data
         octx.fillStyle = "#ffffff";
         octx.clearRect(0, 0, width, height);
 
@@ -955,6 +820,7 @@
         offscreen.height = height;
         const octx = offscreen.getContext("2d");
 
+        // tool-theme: allow mask-buffer-data
         octx.fillStyle = "#ffffff";
         octx.clearRect(0, 0, width, height);
 
@@ -1193,6 +1059,7 @@
       // Code Generation & Display
       let activeTab = "js";
 
+      // tool-theme: allow-begin generated-code-template
       function updateCodeDisplay() {
         const codeBox = document.getElementById("code-content");
         const algo = inputs.algorithm.value;
@@ -1303,6 +1170,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 }`;
         }
       }
+      // tool-theme: allow-end
 
       // ----------------------------------------------------
       // Event Listeners

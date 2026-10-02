@@ -1,6 +1,6 @@
 import { Behavior } from "../behaviors/index.js";
 import { Object3D } from "../index.js";
-import { CameraInterfaceData } from "../../interfaces/index.js";
+import { CameraInterfaceData, isCameraTarget } from "../../interfaces/index.js";
 
 /**
  * A controller that rotates its target based on the device's physical orientation sensors.
@@ -61,7 +61,8 @@ export class DeviceOrientationController extends Behavior {
       return;
     }
 
-    const isCamera = "updateProjectionMatrix" in this.target;
+    const target = this.target;
+    const isCamera = isCameraTarget(target);
 
     // Depending on the screen orientation, we might need to swap axes.
     // For now, we assume standard portrait mode where:
@@ -70,13 +71,12 @@ export class DeviceOrientationController extends Behavior {
     // gamma = rotation around Y (maps to world Z / roll)
 
     if (isCamera) {
-      const cam = this.target as unknown as CameraInterfaceData;
-      cam.theta = this._alpha;
+      target.theta = this._alpha;
       // beta is usually 90 degrees (PI/2) when holding the phone upright.
       // Small World's phi expects 0 when looking straight forward.
-      cam.phi = this._beta - Math.PI / 2.0;
+      target.phi = this._beta - Math.PI / 2.0;
     } else {
-      const obj = this.target as Object3D;
+      const obj = target as Object3D;
       obj.rotation.set(this._beta - Math.PI / 2.0, this._alpha, -this._gamma);
     }
   }

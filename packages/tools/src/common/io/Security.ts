@@ -107,9 +107,9 @@ export class SecurityValidator {
   }
 
   /**
-   * Checks single file and total payload size against configured thresholds.
+   * Asserts single file and total payload size against configured thresholds, throwing if limits are exceeded.
    */
-  public validateSize(fileBytes: number, totalBytesAccumulator: number = 0): void {
+  public assertSize(fileBytes: number, totalBytesAccumulator: number = 0): void {
     if (fileBytes > this._maxFileBytes) {
       const mb = (this._maxFileBytes / (1024 * 1024)).toFixed(0);
       throw new Error(
@@ -120,6 +120,14 @@ export class SecurityValidator {
       const mb = (this._maxTotalBytes / (1024 * 1024)).toFixed(0);
       throw new Error(`Total payload size exceeds maximum limit of ${mb} MB`);
     }
+  }
+
+  /**
+   * Checks single file and total payload size against configured thresholds.
+   * Alias for `assertSize`.
+   */
+  public validateSize(fileBytes: number, totalBytesAccumulator: number = 0): void {
+    this.assertSize(fileBytes, totalBytesAccumulator);
   }
 
   /**
@@ -138,11 +146,21 @@ export class SecurityValidator {
     return new SecurityValidator().validatePath(rawPath);
   }
 
-  public static validateSize(
+  /**
+   * Checks if single file size is within the allowed limit.
+   */
+  public static isSizeAllowed(
     fileBytes: number,
     maxBytes: number = SecurityValidator.DEFAULT_MAX_FILE_BYTES,
   ): boolean {
     return fileBytes <= maxBytes;
+  }
+
+  public static validateSize(
+    fileBytes: number,
+    maxBytes: number = SecurityValidator.DEFAULT_MAX_FILE_BYTES,
+  ): boolean {
+    return SecurityValidator.isSizeAllowed(fileBytes, maxBytes);
   }
 
   public static isExtensionAllowed(path: string, allowed?: string[]): boolean {

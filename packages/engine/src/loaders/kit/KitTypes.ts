@@ -82,6 +82,44 @@ export interface KitManifest {
   license: string;
 }
 
+/** Type guard validating that unknown data conforms to KitManifest. */
+export function isKitManifest(data: unknown): data is KitManifest {
+  if (typeof data !== "object" || data === null) return false;
+  const d = data as Partial<KitManifest>;
+  return typeof d.id === "string" && typeof d.name === "string" && typeof d.version === "string";
+}
+
+/** Asserts that unknown data conforms to KitManifest, throwing an informative error otherwise. */
+export function assertKitManifest(
+  data: unknown,
+  context: string = "KitManifest",
+): asserts data is KitManifest {
+  if (!isKitManifest(data)) {
+    throw new Error(
+      `[${context}] Invalid kit manifest data structure: expected id, name, and version strings.`,
+    );
+  }
+}
+
+/** Type guard validating that unknown data conforms to PropMeta. */
+export function isPropMeta(data: unknown): data is PropMeta {
+  if (typeof data !== "object" || data === null) return false;
+  const d = data as Partial<PropMeta>;
+  return typeof d.id === "string" && typeof d.name === "string" && typeof d.kit === "string";
+}
+
+/** Asserts that unknown data conforms to PropMeta, throwing an informative error otherwise. */
+export function assertPropMeta(
+  data: unknown,
+  context: string = "PropMeta",
+): asserts data is PropMeta {
+  if (!isPropMeta(data)) {
+    throw new Error(
+      `[${context}] Invalid prop meta data structure: expected id, name, and kit strings.`,
+    );
+  }
+}
+
 /** Overrides that a level instance can exert over a socket's recommended light. */
 export interface SocketLightOverride {
   type?: string;

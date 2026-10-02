@@ -31,39 +31,34 @@ export class Xtractor extends ForgeTool {
       width: 100%;
       height: 100%;
       background: transparent;
-      color: var(--swf-text);
+      color: var(--tool-text);
     }
     .swf-ix-workbench {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: rgba(15, 23, 42, 0.4);
+      background: transparent;
       position: relative;
       min-width: 0;
     }
     .swf-ix-toolbar {
       padding: 0.5rem 1rem;
-      background: var(--swf-panel);
-      border-bottom: 1px solid var(--swf-border);
+      background: var(--tool-panel);
+      border-bottom: 1px solid var(--tool-border);
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 15px;
     }
     .swf-ix-toolbar-group {
-      display: flex;
       gap: 5px;
-      background: rgba(0,0,0,0.2);
-      padding: 4px;
-      border-radius: 6px;
-      border: 1px solid var(--swf-border);
     }
     .swf-ix-canvas-container {
       flex: 1;
       overflow: auto;
       padding: 2rem;
       position: relative;
-      background: repeating-conic-gradient(rgba(30, 41, 59, 0.5) 0% 25%, rgba(15, 23, 42, 0.5) 0% 50%) 50% / 20px 20px;
+      background: repeating-conic-gradient(var(--tool-card) 0% 25%, var(--tool-panel-solid) 0% 50%) 50% / 20px 20px;
     }
     #canvas-stage {
       position: relative; 
@@ -72,42 +67,44 @@ export class Xtractor extends ForgeTool {
       transition: transform 0.1s ease-out;
     }
     #image-canvas {
-      box-shadow: var(--swf-shadow);
+      box-shadow: var(--tool-shadow-float);
       cursor: crosshair;
       max-width: 100%;
     }
     #drop-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(15, 23, 42, 0.9);
+      background: color-mix(in srgb, var(--tool-bg) 90%, transparent);
       display: flex;
       justify-content: center;
       align-items: center;
       font-size: 1.5rem;
-      color: var(--swf-accent);
-      border: 4px dashed var(--swf-accent);
+      color: var(--tool-accent);
+      border: 2px dashed var(--tool-accent);
+      border-radius: var(--tool-radius-lg);
+      font-weight: 700;
       z-index: 10;
       display: none;
     }
     .swf-ix-splitter {
       width: 8px;
-      background: var(--swf-panel);
+      background: var(--tool-panel-solid);
       cursor: col-resize;
       display: flex;
       justify-content: center;
       align-items: center;
-      border-left: 1px solid var(--swf-border);
-      border-right: 1px solid var(--swf-border);
+      border-left: 1px solid var(--tool-border);
+      border-right: 1px solid var(--tool-border);
       transition: background 0.2s;
       flex-shrink: 0;
       z-index: 50;
     }
     .swf-ix-splitter:hover, .swf-ix-splitter.active {
-      background: var(--swf-accent);
+      background: var(--tool-accent);
     }
     .swf-ix-splitter::after {
       content: '||';
-      color: var(--swf-text-muted);
+      color: var(--tool-text-muted);
       font-size: 10px;
       letter-spacing: -1px;
     }
@@ -117,7 +114,7 @@ export class Xtractor extends ForgeTool {
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      background: rgba(15, 23, 42, 0.6);
+      background: var(--tool-panel);
     }
     .swf-ix-chat-history {
       flex: 1;
@@ -129,23 +126,23 @@ export class Xtractor extends ForgeTool {
     }
     .swf-ix-message {
       padding: 1rem;
-      border-radius: 8px;
+      border-radius: var(--tool-radius-md);
       max-width: 85%;
     }
     .msg-ai {
-      background: var(--swf-panel);
+      background: var(--tool-panel);
       align-self: flex-start;
-      border: 1px solid var(--swf-border);
+      border: 1px solid var(--tool-border);
     }
     .msg-user {
-      background: var(--swf-accent);
-      color: #000;
+      background: var(--tool-card-active);
+      border: 1px solid var(--tool-border-active);
       align-self: flex-end;
     }
     .swf-ix-chat-input-area {
       padding: 1rem;
-      background: var(--swf-panel);
-      border-top: 1px solid var(--swf-border);
+      background: var(--tool-panel);
+      border-top: 1px solid var(--tool-border);
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
@@ -154,15 +151,12 @@ export class Xtractor extends ForgeTool {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(0,0,0,0.3);
       padding: 0.5rem;
-      border-radius: 4px;
-      border: 1px solid var(--swf-accent);
       display: none;
     }
     .swf-ix-context-pill canvas {
       height: 40px;
-      border: 1px solid var(--swf-border);
+      border: 1px solid var(--tool-border);
     }
     .swf-ix-chat-input-row {
       display: flex;
@@ -170,8 +164,8 @@ export class Xtractor extends ForgeTool {
     }
     #selection-box {
       position: absolute;
-      border: 2px dashed var(--swf-accent);
-      background: rgba(0, 229, 255, 0.2);
+      border: 2px dashed var(--tool-accent2);
+      background: var(--tool-accent2-glow);
       pointer-events: none;
       display: none;
       z-index: 5;
@@ -180,14 +174,12 @@ export class Xtractor extends ForgeTool {
       position: absolute;
       bottom: 20px;
       left: 20px;
-      background: var(--swf-panel);
       padding: 10px 15px;
-      border-radius: 6px;
-      border: 1px solid var(--swf-border);
+      border-radius: var(--tool-radius-md);
       display: flex;
       gap: 15px;
       z-index: 20;
-      box-shadow: var(--swf-shadow);
+      box-shadow: var(--tool-shadow-float);
     }
   `;
     document.head.appendChild(style);
@@ -199,29 +191,29 @@ export class Xtractor extends ForgeTool {
     <!-- WORKBENCH -->
     <div class="swf-ix-workbench">
       <div class="swf-ix-toolbar">
-        <label class="swf-btn">
+        <label class="tool-btn primary">
           Upload Image/PDF
           <input type="file" id="file-input" style="display:none;" accept="image/*,application/pdf" />
         </label>
         
-        <div class="swf-ix-toolbar-group">
-          <input type="text" id="url-input" class="swf-input" style="width: 150px; font-weight:normal;" placeholder="https://..." />
-          <button class="swf-btn secondary" id="btn-load-url" style="padding: 0.25rem 0.5rem; margin-left: 2px;">Load</button>
+        <div class="tool-tabs swf-ix-toolbar-group">
+          <input type="text" id="url-input" class="tool-input" style="width: 150px;" placeholder="https://..." />
+          <button class="tool-btn" id="btn-load-url" style="padding: 0.25rem 0.5rem; margin-left: 2px;">Load</button>
         </div>
         
-        <div class="swf-ix-toolbar-group">
-          <button class="swf-btn secondary" id="btn-tool-pan" title="Hand Tool">Hand</button>
-          <button class="swf-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rect</button>
-          <button class="swf-btn secondary" id="btn-tool-circle" title="Kreis Auswahl">Circle</button>
+        <div class="tool-tabs swf-ix-toolbar-group">
+          <button class="tool-btn" id="btn-tool-pan" title="Hand Tool">Hand</button>
+          <button class="tool-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rect</button>
+          <button class="tool-btn" id="btn-tool-circle" title="Kreis Auswahl">Circle</button>
         </div>
         
-        <div class="swf-ix-toolbar-group">
-          <button class="swf-btn secondary" id="btn-zoom-out">-</button>
-          <span style="color: var(--swf-text-muted); padding: 0 5px; font-weight: bold; font-size: 0.9rem; align-self: center;" id="zoom-label">100%</span>
-          <button class="swf-btn secondary" id="btn-zoom-in">+</button>
+        <div class="tool-tabs swf-ix-toolbar-group">
+          <button class="tool-btn" id="btn-zoom-out">-</button>
+          <span style="color: var(--tool-text-muted); padding: 0 5px; font-weight: bold; font-size: 0.9rem; align-self: center;" id="zoom-label">100%</span>
+          <button class="tool-btn" id="btn-zoom-in">+</button>
         </div>
         
-        <button class="swf-btn secondary" style="margin-left: auto;" id="btn-clear-selection">Clear Selection</button>
+        <button class="tool-btn" style="margin-left: auto;" id="btn-clear-selection">Clear Selection</button>
       </div>
       
       <div class="swf-ix-canvas-container" id="canvas-wrapper">
@@ -232,11 +224,11 @@ export class Xtractor extends ForgeTool {
         </div>
         
         <!-- Precision Input Panel -->
-        <div id="selection-props" style="display: none;">
-          <div style="display: flex; align-items: center; gap: 5px; color: var(--swf-text-muted); font-size: 0.9rem; font-weight: bold;"><label>X:</label> <input type="number" id="prop-x" class="swf-input" style="width: 50px;"/></div>
-          <div style="display: flex; align-items: center; gap: 5px; color: var(--swf-text-muted); font-size: 0.9rem; font-weight: bold;"><label>Y:</label> <input type="number" id="prop-y" class="swf-input" style="width: 50px;"/></div>
-          <div style="display: flex; align-items: center; gap: 5px; color: var(--swf-text-muted); font-size: 0.9rem; font-weight: bold;"><label>W:</label> <input type="number" id="prop-w" class="swf-input" style="width: 50px;"/></div>
-          <div style="display: flex; align-items: center; gap: 5px; color: var(--swf-text-muted); font-size: 0.9rem; font-weight: bold;"><label>H:</label> <input type="number" id="prop-h" class="swf-input" style="width: 50px;"/></div>
+        <div id="selection-props" class="tool-panel" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 5px; color: var(--tool-text-muted); font-size: 0.9rem; font-weight: bold;"><label>X:</label> <input type="number" id="prop-x" class="tool-input mono" style="width: 56px;"/></div>
+          <div style="display: flex; align-items: center; gap: 5px; color: var(--tool-text-muted); font-size: 0.9rem; font-weight: bold;"><label>Y:</label> <input type="number" id="prop-y" class="tool-input mono" style="width: 56px;"/></div>
+          <div style="display: flex; align-items: center; gap: 5px; color: var(--tool-text-muted); font-size: 0.9rem; font-weight: bold;"><label>W:</label> <input type="number" id="prop-w" class="tool-input mono" style="width: 56px;"/></div>
+          <div style="display: flex; align-items: center; gap: 5px; color: var(--tool-text-muted); font-size: 0.9rem; font-weight: bold;"><label>H:</label> <input type="number" id="prop-h" class="tool-input mono" style="width: 56px;"/></div>
         </div>
       </div>
     </div>
@@ -252,15 +244,15 @@ export class Xtractor extends ForgeTool {
       </div>
       
       <div class="swf-ix-chat-input-area">
-        <div class="swf-ix-context-pill" id="context-pill">
+        <div class="tool-card swf-ix-context-pill" id="context-pill">
           <canvas id="crop-preview-canvas"></canvas>
-          <div style="font-size: 0.8rem; color: var(--swf-text-muted);">Ausschnitt markiert.</div>
-          <button class="swf-btn secondary" style="padding: 0.2rem 0.5rem; margin-left: auto; margin-right: 5px;" id="btn-send-pixler">An Pixler</button>
-          <button class="swf-btn secondary" style="padding: 0.2rem 0.5rem;" id="btn-cancel-crop">✖</button>
+          <div style="font-size: 0.8rem; color: var(--tool-text-muted);">Ausschnitt markiert.</div>
+          <button class="tool-btn" style="padding: 0.2rem 0.5rem; margin-left: auto; margin-right: 5px;" id="btn-send-pixler">An Pixler</button>
+          <button class="tool-btn" style="padding: 0.2rem 0.5rem;" id="btn-cancel-crop">✖</button>
         </div>
         <div class="swf-ix-chat-input-row">
-          <input type="text" id="chat-input" class="swf-input" style="flex:1;" placeholder="Z. B. 'Extrahiere alle Zahlen...'" />
-          <button class="swf-btn" id="btn-send">Senden</button>
+          <input type="text" id="chat-input" class="tool-input" style="flex:1;" placeholder="Z. B. 'Extrahiere alle Zahlen...'" />
+          <button class="tool-btn primary" id="btn-send">Senden</button>
         </div>
       </div>
     </div>`;
@@ -771,8 +763,8 @@ export class Xtractor extends ForgeTool {
           const sliceCanvas = document.createElement("canvas");
           sliceCanvas.width = sliceWidth;
           sliceCanvas.height = currentRect.h;
-          sliceCanvas.style.border = "1px solid #38bdf8";
-          sliceCanvas.style.background = "#0f172a";
+          sliceCanvas.style.border = "1px solid var(--tool-accent2)";
+          sliceCanvas.style.background = "var(--tool-panel-solid)";
           sliceCanvas.title = `Sprite ${i + 1} (Klicken zum Speichern)`;
 
           const sCtx = sliceCanvas.getContext("2d")!;

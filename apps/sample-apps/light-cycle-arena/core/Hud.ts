@@ -21,7 +21,7 @@ export class Hud {
           position: absolute;
           inset: 0;
           pointer-events: none;
-          font-family: ui-monospace, "SF Mono", "JetBrains Mono", Consolas, monospace;
+          font-family: var(--font-mono, "JetBrains Mono", "SF Mono", Consolas, monospace);
           z-index: 100;
         }
         .lca-time-flow {

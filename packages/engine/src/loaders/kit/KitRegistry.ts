@@ -9,17 +9,19 @@ import { StandardMaterial } from "../../core/materials/StandardMaterial.js";
 import { Vector3D } from "../../math/Vector3D.js";
 import { AssetManager } from "../AssetManager.js";
 import { GltfLoader } from "../GltfLoader.js";
-import type {
-  KitManifest,
-  KitManifestItem,
-  PropMeta,
-  LoadPropOptions,
-  KitPropInstance,
-  LevelDescriptor,
-  LevelInstance,
+import {
+  assertKitManifest,
+  assertPropMeta,
+  type KitManifest,
+  type KitManifestItem,
+  type PropMeta,
+  type LoadPropOptions,
+  type KitPropInstance,
+  type LevelDescriptor,
+  type LevelInstance,
 } from "./KitTypes.js";
 
-export type * from "./KitTypes.js";
+export * from "./KitTypes.js";
 
 export interface KitRegistryOptions {
   /** Base path prepended to kit queries. Defaults to "/assets/kits/". */
@@ -80,7 +82,8 @@ export class KitRegistry {
     const manifestUrl = `${this._basePath}${kitId}/kit.json`;
     const promise = (async (): Promise<KitManifest> => {
       try {
-        const json = (await this._assetManager.loadJson(manifestUrl)) as KitManifest;
+        const json = await this._assetManager.loadJson(manifestUrl);
+        assertKitManifest(json, `KitRegistry:${kitId}`);
         return json;
       } catch (err) {
         this._manifestCache.delete(kitId);
@@ -116,7 +119,8 @@ export class KitRegistry {
     const metaUrl = `${this._basePath}${kitId}/${item.meta}`;
     const promise = (async (): Promise<PropMeta> => {
       try {
-        const json = (await this._assetManager.loadJson(metaUrl)) as PropMeta;
+        const json = await this._assetManager.loadJson(metaUrl);
+        assertPropMeta(json, `KitRegistry:${kitPropId}`);
         return json;
       } catch (err) {
         this._metaCache.delete(kitPropId);

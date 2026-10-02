@@ -85,3 +85,92 @@ Prüft, an welchen Kollaborations-Themen der aufgerufene Agent (bzw. die aktuell
        ```
      - Ist der Agent an keiner Kollaboration beteiligt oder existieren keine `.pid`-Dateien:
        *„🔍 **Keine aktiven Kollaborations-Registrierungen gefunden.** (In `.agents/collaborate/` existieren keine aktiven Sessions für diesen Agenten).“*
+
+---
+
+### 👁️ `collab.mjs watch` (Autonomes, ressourcenfreies Warten)
+
+Ermöglicht Agenten, Hintergrund-Tasks oder Subagent-Runnern, verlustfrei und ohne CPU-/Token-Verbrauch darauf zu warten, dass sie am Zug sind.
+
+- **Aufruf:**
+  ```bash
+  node .agents/skills/collaborate/collab.mjs watch <TopicDatei> <AgentName> [--timeout <Sekunden>] [--interval <ms>]
+  ```
+- **Funktionsweise:**
+  1. **Sofortprüfung:** Ist `<AgentName>` bereits `active_agent` und der Status `idle`/`working` (oder ist die Session bereits `terminated`/`deadlock`), beendet sich der Befehl sofort mit Exit-Code 0.
+  2. **OS-Dateisystem-Watcher (`fs.watch`):** Registriert einen ereignisgesteuerten OS-Watcher auf die `.pid`-Datei sowie das Verzeichnis (reagiert auf atomare Replaces). Der Prozess schläft ohne CPU-Last.
+  3. **Fallback-Polling (Standard: 1000ms):** Fängt eventuell verpasste File-Events auf, ohne messbare Last zu erzeugen.
+  4. **Aufwachen:** Sobald der Vorzug beendet ist (`end-turn`) und `active_agent === AgentName`, gibt der Watcher ein JSON-Objekt aus und beendet sich mit Code 0:
+     ```json
+     {
+       "done": true,
+       "event": "turn_ready",
+       "agent": "Bob",
+       "round": 2,
+       "status": "idle",
+       "timestamp": "2026-10-01T19:30:00Z"
+     }
+     ```
+- **Autonome Agenten-Schleife (z. B. im CLI / Subagent-Harness):**
+  ```bash
+  # In der Shell des Agenten: Warten, bis Zug bereit, dann Zug ausführen
+  node .agents/skills/collaborate/collab.mjs watch diorama.md Bob && \
+    node .agents/skills/collaborate/collab.mjs begin-turn diorama.md Bob
+  ```
+
+---
+
+## 📋 Blackboard & Event-Sourcing (Parallele Kollaboration)
+
+Neben dem strikten Round-Robin-Verfahren (`.pid`) unterstützt das Collaborate-Protokoll ein paralleles **Blackboard-Muster** mit **Single Append-Only Log (`<topic>.board.jsonl`)**.
+
+### Kernprinzipien:
+1. **Lock-Free POSIX Atomic Append:** Ereignisse werden als JSON-Zeilen via `fs.appendFileSync(..., { flag: 'a' })` angehängt. In POSIX-Systemen (macOS, Linux) sind Append-Schreibvorgänge unter 4 KB atomar. Es gibt keine Sperrkonflikte (`.lock`) zwischen parallelen Subagenten.
+2. **Deterministische Projektion (`State = Reducer(Events)`):** Der Zustand des Blackboards (Aufgaben, Findings, Vorschläge, Votes) wird rein funktional aus dem Event-Stream abgeleitet (`projectBoard`).
+3. **Live Markdown-Projektion (`<topic>.md`):** Der aktuelle Board-Stand wird durch `render` in ein sauberes Markdown-Dokument mit Tabellen und Formatierung kompiliert.
+4. **Zero-Resource Watcher (`board-watch`):** Parallele Worker schlafen via `fs.watch` ressourcenfrei (0% CPU, 0 Token), bis eine Aufgabe zugewiesen, abgeschlossen oder ein Ereignis eingetroffen ist.
+
+### Blackboard CLI-Befehle
+
+| Befehl | Zweck | Parameter & Optionen |
+| :--- | :--- | :--- |
+| `board-init <topic> [Coordinator]` | Blackboard initialisieren | `[--mode plan\|decide] [--role <Rolle>] [--stance <Stance>]` |
+| `board-join <topic> <Agent>` | Teilnehmer registrieren | `[--role <Rolle>] [--stance <Stance>]` |
+| `post-task <topic> <Author> "<Title>"` | Aufgabe anheften | `[--assign <Agent>] [--id <T<n>>]` |
+| `claim-task <topic> <Agent> <TaskId>` | Aufgabe übernehmen | Setzt Task-Status auf `in_progress` |
+| `complete-task <topic> <Agent> <TaskId>` | Aufgabe abschließen | `[--result "<Zusammenfassung>"]` |
+| `post-finding <topic> <Agent> --title "<Titel>"` | Erkenntnis / Befund anheften | `[--task <TaskId>] [--severity info\|minor\|major\|critical] [--file <Pfad>] [--line <N>] [--desc "<Beschreibung>"]` |
+| `post-proposal <topic> <Agent> <P<n>> "<Titel>"` | Konsens-Vorschlag einbringen | `[--desc "<Beschreibung>"]` |
+| `post-vote <topic> <Agent> <P<n>> <VOTE>` | Abstimmen | `<AGREE\|DISAGREE\|DISSENT> [--reason "<Grund>"]` |
+| `resolve-board <topic> <Author> --outcome <Outcome>` | Blackboard finalisieren | `[--summary "<Abschlussbericht>"]` |
+| `board <topic>` | Status & offene Aufgaben abfragen | `[--json]` für vollen State-Dump |
+| `render <topic>` | In `<topic>.md` kompilieren | `[--stdout]` für Konsolenausgabe |
+| `board-watch <topic>` | Ereignisgesteuert warten | `[--task <TaskId>] [--agent <Agent>] [--timeout <Sekunden>] [--interval <ms>]` |
+
+### Beispiel-Workflow (Koordinator + 2 parallele Worker):
+
+```bash
+# 1. Koordinator initialisiert das Board
+node .agents/skills/collaborate/collab.mjs board-init refactoring Alice --role "Lead Architect"
+
+# 2. Koordinator postet Aufgaben
+node .agents/skills/collaborate/collab.mjs post-task refactoring Alice "Benchmark Matrix4 & Quaternion" --assign Bob
+node .agents/skills/collaborate/collab.mjs post-task refactoring Alice "Audit KitManifest type safety" --assign Charly
+
+# 3. Worker arbeiten parallel und posten Findings
+# (In Bob's Runner):
+node .agents/skills/collaborate/collab.mjs claim-task refactoring Bob T1
+node .agents/skills/collaborate/collab.mjs post-finding refactoring Bob --task T1 --severity major --file Matrix4.ts --line 42 --title "Dispatch overhead in at()"
+node .agents/skills/collaborate/collab.mjs complete-task refactoring Bob T1 --result "Replaced at() with direct array indexing"
+
+# 4. Koordinator oder Worker postet Vorschlag & Stimmen
+node .agents/skills/collaborate/collab.mjs post-proposal refactoring Alice P1 "Merge Phase 1 Hot-Path Optimization"
+node .agents/skills/collaborate/collab.mjs post-vote refactoring Bob P1 AGREE --reason "Benchmarks green"
+node .agents/skills/collaborate/collab.mjs post-vote refactoring Charly P1 AGREE --reason "Strict contracts intact"
+
+# 5. Koordinator schließt ab und rendert das Markdown-Dokument
+node .agents/skills/collaborate/collab.mjs resolve-board refactoring Alice --outcome CONSENSUS --summary "All checks passed."
+node .agents/skills/collaborate/collab.mjs render refactoring
+```
+
+

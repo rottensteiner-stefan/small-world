@@ -1,7 +1,6 @@
 import { SmallWorld } from "../index.js";
 import { EngineOptions } from "../../interfaces/index.js";
 import { CameraStrategyType, Keys, RendererType } from "../../enums/index.js";
-import { AssetManager } from "../../loaders/index.js";
 import { Vector3D } from "../../math/index.js";
 import { FlyController, OrbitController } from "../controllers/index.js";
 
@@ -330,8 +329,8 @@ export abstract class AbstractShowcase extends SmallWorld {
    * Useful to call at the end of setupScene.
    */
   protected async waitForAssets(): Promise<void> {
-    if (!AssetManager.isLoaded) {
-      await AssetManager.onLoaded();
+    if (!this.context.assetManager.isLoaded) {
+      await this.context.assetManager.onLoaded();
     }
   }
 

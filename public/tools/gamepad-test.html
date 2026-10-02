@@ -5,48 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/webp" href="/favicon.webp" />
     <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/tool-theme.css" />
     <title>Gamepad Diagnostic & Calibration Tool</title>
     <style>
-body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-      
-      h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; border-bottom: none; }
-      h1 span { color: #00e5ff; }
+body { margin: 0; font-family: var(--tool-font-ui); background-color: var(--tool-bg); color: var(--tool-text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
       .meta-box {
-        background: var(--swf-panel);
+        background: var(--tool-panel);
         padding: 1rem;
-        border-radius: 8px;
+        border-radius: var(--tool-radius-md);
         margin-bottom: 1.5rem;
-        border: 1px solid var(--swf-border);
+        border: 1px solid var(--tool-border);
       }
       .wizard-box {
-        background: var(--swf-bg);
-        border: 2px solid var(--swf-accent);
+        background: var(--tool-card);
+        border: 2px solid var(--tool-accent);
         padding: 1.5rem;
-        border-radius: 8px;
+        border-radius: var(--tool-radius-md);
         margin-bottom: 1.5rem;
         text-align: center;
       }
       .wizard-box h2 {
         margin-top: 0;
-        color: var(--swf-accent);
+        color: var(--tool-accent);
       }
       .wizard-instruction {
         font-size: 1.3rem;
         font-weight: bold;
         margin: 1rem 0;
         min-height: 40px;
-        color: #fb7185;
+        color: var(--tool-danger);
       }
       .wizard-progress {
-        background: #334155;
+        background: var(--tool-inset);
         height: 8px;
-        border-radius: 4px;
+        border-radius: var(--tool-radius-sm);
         margin: 1rem auto;
         width: 80%;
         overflow: hidden;
       }
       .wizard-progress-bar {
-        background: #38bdf8;
+        background: var(--tool-info);
         height: 100%;
         width: 0%;
         transition: width 0.3s ease;
@@ -57,15 +55,15 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19
         gap: 1.5rem;
       }
       .section {
-        background: var(--swf-panel);
+        background: var(--tool-panel);
         padding: 1.5rem;
-        border-radius: 8px;
-        border: 1px solid var(--swf-border);
+        border-radius: var(--tool-radius-md);
+        border: 1px solid var(--tool-border);
       }
       .section h2 {
         margin-top: 0;
-        color: var(--swf-accent);
-        border-bottom: 1px solid var(--swf-border);
+        color: var(--tool-accent);
+        border-bottom: 1px solid var(--tool-border);
         padding-bottom: 0.25rem;
       }
       .axis-row {
@@ -78,14 +76,14 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19
         margin-bottom: 0.25rem;
       }
       .axis-bar-container {
-        background: rgba(0,0,0,0.4);
+        background: var(--tool-inset);
         height: 20px;
-        border-radius: 4px;
+        border-radius: var(--tool-radius-sm);
         overflow: hidden;
         position: relative;
       }
       .axis-bar-value {
-        background: var(--swf-accent);
+        background: var(--tool-accent);
         height: 100%;
         width: 0%;
         transition: width 0.05s ease;
@@ -96,7 +94,7 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19
         top: 0;
         bottom: 0;
         width: 2px;
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--tool-text-muted);
       }
       .button-grid {
         display: grid;
@@ -104,36 +102,36 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19
         gap: 0.75rem;
       }
       .btn-indicator {
-        background: var(--swf-panel);
+        background: var(--tool-panel);
         padding: 0.75rem;
-        border-radius: 6px;
+        border-radius: var(--tool-radius-md);
         text-align: center;
         font-weight: bold;
         font-size: 0.85rem;
-        border: 1px solid var(--swf-border);
+        border: 1px solid var(--tool-border);
         transition: all 0.05s ease;
       }
       .btn-indicator.active {
-        background: #10b981;
-        color: #ffffff;
-        box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-        border-color: #34d399;
+        background: var(--tool-success);
+        color: var(--tool-on-accent);
+        box-shadow: 0 0 10px var(--tool-success);
+        border-color: var(--tool-success);
       }
       .results-box {
-        background: #022c22;
-        border: 2px solid #10b981;
+        background: var(--tool-panel);
+        border: 2px solid var(--tool-success);
         padding: 1rem;
-        border-radius: 8px;
+        border-radius: var(--tool-radius-md);
         margin-top: 1rem;
         text-align: left;
         display: none;
       }
       .results-box pre {
-        background: #064e3b;
+        background: var(--tool-inset);
         padding: 0.5rem;
-        border-radius: 4px;
+        border-radius: var(--tool-radius-sm);
         overflow-x: auto;
-        color: #a7f3d0;
+        color: var(--tool-success);
       }
       /* .btn-action -> now uses .swf-btn from shared.css */
 
@@ -146,9 +144,9 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19
         justify-content: center;
       }
       .ctrl-tab {
-        background: var(--swf-panel);
-        border: 1px solid var(--swf-border);
-        color: var(--swf-text-muted);
+        background: var(--tool-panel);
+        border: 1px solid var(--tool-border);
+        color: var(--tool-text-muted);
         padding: 6px 16px;
         border-radius: 20px;
         font-family: inherit;
@@ -160,13 +158,13 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19
         transition: all 0.2s;
       }
       .ctrl-tab:hover {
-        border-color: var(--swf-accent);
-        color: var(--swf-accent);
+        border-color: var(--tool-accent);
+        color: var(--tool-accent);
       }
       .ctrl-tab.active {
-        background: var(--swf-accent);
-        color: #000;
-        border-color: var(--swf-accent);
+        background: var(--tool-accent);
+        color: var(--tool-on-accent);
+        border-color: var(--tool-accent);
       }
       .ctrl-badge {
         display: inline-block;
@@ -174,16 +172,16 @@ body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19
         padding: 2px 7px;
         border-radius: 9999px;
         margin-left: 6px;
-        background: rgba(255,255,255,0.1);
+        background: var(--tool-hover);
         vertical-align: middle;
       }
     </style>
   </head>
-  <body>
     <header class="tool-header">
-      <h1>Gamepad Diagnostic & Calibration Tool</h1>
-      <a href="/" class="nav-btn">Back to Engine</a>
+      <h1>Gamepad Diagnostic & Calibration</h1>
+      <button class="tool-close-btn" id="toolCloseBtn" title="Close Window" onclick="if (window.parent && window.parent !== window) { window.parent.postMessage({ type: 'close-tool' }, '*'); } try { window.close(); } catch(e) {}">✕</button>
     </header>
+    <script>if (window.self !== window.top || window.opener) document.body.classList.add("in-window");</script>
     
     <!-- Controller Type Selector -->
     <div class="wizard-box" style="margin-bottom: 1rem">

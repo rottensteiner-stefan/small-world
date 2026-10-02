@@ -165,3 +165,10 @@ export interface CameraInterfaceData {
    */
   project(worldPos: Vector3D, result?: Vector3D): Vector3D;
 }
+
+/**
+ * Type guard to check whether a target is a CameraInterfaceData instance.
+ */
+export function isCameraTarget(target: unknown): target is CameraInterfaceData {
+  return typeof target === "object" && target !== null && "updateProjectionMatrix" in target;
+}

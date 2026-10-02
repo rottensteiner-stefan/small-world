@@ -5,32 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/webp" href="/favicon.webp" />
     <link rel="stylesheet" href="/assets/shared.css" />
-    <title>Map Generator - Small World</title>
+    <link rel="stylesheet" href="/assets/tool-theme.css" />
+    <title>Map Generator — Small World</title>
     <style>
-:root {
-        --bg-color: #0b0f19;
-        --card-bg: rgba(20, 25, 40, 0.7);
-        --text-color: #e0e0e0;
-        --accent: #00e5ff;
-        --border-radius: 12px;
+      body {
+        margin: 0;
+        font-family: var(--tool-font-ui);
+        background-color: var(--tool-bg);
+        color: var(--tool-text);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
       }
-      body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-      
-      h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
       
       .container {
         display: flex;
         flex: 1;
         overflow: hidden;
-        background: #0f172a;
+        background: var(--tool-panel-solid);
       }
     </style>
   </head>
   <body>
     <header class="tool-header">
-      <h1>Map Generator - Small World</h1>
-      <a href="/" class="nav-btn">Back to Engine</a>
+      <h1>Map Generator</h1>
+      <button class="tool-close-btn" id="toolCloseBtn" title="Close Window" onclick="if (window.parent && window.parent !== window) { window.parent.postMessage({ type: 'close-tool' }, '*'); } try { window.close(); } catch(e) {}">✕</button>
     </header>
+    <script>if (window.self !== window.top || window.opener) document.body.classList.add("in-window");</script>
     
     <div class="container" id="tool-container">
     </div>

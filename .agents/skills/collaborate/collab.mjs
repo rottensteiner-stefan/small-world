@@ -40,6 +40,293 @@ function resolvePid(topic) {
   return t.replace(/\.[^./]+$/, '') + '.pid';
 }
 
+function resolveBoard(topic) {
+  if (!topic) fail('Topic-Datei fehlt.');
+  let t = topic;
+  if (!t.includes('/') && !fs.existsSync(t)) t = path.join(DEFAULT_DIR, t);
+  if (t.endsWith('.board.jsonl')) return t;
+  return t.replace(/\.[^./]+$/, '') + '.board.jsonl';
+}
+
+function readBoardEvents(boardPath) {
+  if (!fs.existsSync(boardPath)) fail(`${boardPath} existiert nicht (zuerst "board-init").`);
+  const content = fs.readFileSync(boardPath, 'utf8');
+  const lines = content.split('\n').filter((l) => l.trim().length > 0);
+  const events = [];
+  for (let i = 0; i < lines.length; i++) {
+    try {
+      events.push(JSON.parse(lines[i]));
+    } catch (e) {
+      fail(`Korrupte Zeile ${i + 1} in ${boardPath}: ${e.message}`);
+    }
+  }
+  return events;
+}
+
+function appendBoardEvent(boardPath, event) {
+  event.timestamp ??= now();
+  const dir = path.dirname(boardPath);
+  fs.mkdirSync(dir, { recursive: true });
+  const line = JSON.stringify(event) + '\n';
+  fs.appendFileSync(boardPath, line, { flag: 'a' });
+  return event;
+}
+
+function projectBoard(events) {
+  const state = {
+    topic: null,
+    mode: 'plan',
+    status: 'active',
+    coordinator: null,
+    created_at: null,
+    resolved_at: null,
+    outcome: null,
+    summary: null,
+    roster: {},
+    tasks: {},
+    findings: [],
+    proposals: {},
+    notes: [],
+    eventCount: events.length,
+  };
+
+  for (const ev of events) {
+    switch (ev.type) {
+      case 'board_initialized':
+        state.topic = ev.topic;
+        state.mode = ev.mode ?? 'plan';
+        state.coordinator = ev.coordinator ?? null;
+        state.created_at = ev.timestamp;
+        if (ev.coordinator) {
+          state.roster[ev.coordinator] = {
+            name: ev.coordinator,
+            role: 'Coordinator',
+            stance: null,
+            joinedAt: ev.timestamp,
+          };
+        }
+        break;
+
+      case 'agent_joined':
+        state.roster[ev.agent] = {
+          name: ev.agent,
+          role: ev.role ?? '',
+          stance: ev.stance ?? null,
+          joinedAt: ev.timestamp,
+        };
+        break;
+
+      case 'task_posted':
+        state.tasks[ev.taskId] = {
+          id: ev.taskId,
+          title: ev.title,
+          assignedTo: ev.assignedTo ?? null,
+          status: ev.assignedTo ? 'claimed' : 'open',
+          createdBy: ev.author,
+          createdAt: ev.timestamp,
+          claimedAt: ev.assignedTo ? ev.timestamp : null,
+          completedAt: null,
+          result: null,
+        };
+        if (ev.author && !state.roster[ev.author]) {
+          state.roster[ev.author] = { name: ev.author, role: '', stance: null, joinedAt: ev.timestamp };
+        }
+        break;
+
+      case 'task_claimed':
+        if (state.tasks[ev.taskId]) {
+          state.tasks[ev.taskId].assignedTo = ev.agent;
+          state.tasks[ev.taskId].status = 'in_progress';
+          state.tasks[ev.taskId].claimedAt = ev.timestamp;
+        }
+        if (ev.agent && !state.roster[ev.agent]) {
+          state.roster[ev.agent] = { name: ev.agent, role: '', stance: null, joinedAt: ev.timestamp };
+        }
+        break;
+
+      case 'task_completed':
+        if (state.tasks[ev.taskId]) {
+          state.tasks[ev.taskId].status = 'completed';
+          state.tasks[ev.taskId].completedAt = ev.timestamp;
+          state.tasks[ev.taskId].result = ev.result ?? null;
+          if (ev.agent) state.tasks[ev.taskId].assignedTo = ev.agent;
+        }
+        break;
+
+      case 'finding_posted':
+        state.findings.push({
+          id: ev.findingId ?? `F${state.findings.length + 1}`,
+          taskId: ev.taskId ?? null,
+          severity: ev.severity ?? 'info',
+          file: ev.file ?? null,
+          line: ev.line ?? null,
+          title: ev.title,
+          description: ev.description ?? '',
+          author: ev.author,
+          timestamp: ev.timestamp,
+        });
+        if (ev.author && !state.roster[ev.author]) {
+          state.roster[ev.author] = { name: ev.author, role: '', stance: null, joinedAt: ev.timestamp };
+        }
+        break;
+
+      case 'proposal_posted':
+        state.proposals[ev.proposalId] = {
+          id: ev.proposalId,
+          title: ev.title,
+          description: ev.description ?? '',
+          proposedBy: ev.author,
+          timestamp: ev.timestamp,
+          votes: {},
+          status: 'open',
+        };
+        state.proposals[ev.proposalId].votes[ev.author] = {
+          vote: 'AGREE',
+          reason: 'Proposer',
+          timestamp: ev.timestamp,
+        };
+        if (ev.author && !state.roster[ev.author]) {
+          state.roster[ev.author] = { name: ev.author, role: '', stance: null, joinedAt: ev.timestamp };
+        }
+        break;
+
+      case 'vote_posted':
+        if (state.proposals[ev.proposalId]) {
+          state.proposals[ev.proposalId].votes[ev.agent] = {
+            vote: ev.vote,
+            reason: ev.reason ?? null,
+            timestamp: ev.timestamp,
+          };
+        }
+        if (ev.agent && !state.roster[ev.agent]) {
+          state.roster[ev.agent] = { name: ev.agent, role: '', stance: null, joinedAt: ev.timestamp };
+        }
+        break;
+
+      case 'board_resolved':
+        state.status = 'resolved';
+        state.outcome = ev.outcome;
+        state.summary = ev.summary ?? null;
+        state.resolved_at = ev.timestamp;
+        break;
+
+      case 'note_posted':
+        state.notes.push({
+          text: ev.text,
+          author: ev.author,
+          timestamp: ev.timestamp,
+        });
+        break;
+    }
+  }
+
+  const rosterNames = Object.keys(state.roster);
+  for (const p of Object.values(state.proposals)) {
+    if (state.status === 'resolved') break;
+    const agreeVotes = Object.values(p.votes).filter((v) => v.vote === 'AGREE');
+    if (rosterNames.length > 0 && agreeVotes.length >= rosterNames.length) {
+      p.status = 'accepted';
+    } else if (Object.values(p.votes).some((v) => v.vote === 'DISAGREE')) {
+      p.status = 'disputed';
+    }
+  }
+
+  return state;
+}
+
+function renderBoardToMarkdown(state, topicPath) {
+  const lines = [];
+  const title = path.basename(topicPath).replace(/\.[^./]+$/, '');
+  lines.push(`# Blackboard: ${title}\n`);
+  lines.push(`> **Mode:** \`${state.mode}\` | **Status:** \`${state.status}\` | **Coordinator:** ${state.coordinator ? `**${state.coordinator}**` : '—'} | **Events:** ${state.eventCount}`);
+  if (state.resolved_at) {
+    lines.push(`> **Outcome:** \`${state.outcome}\` | **Resolved At:** ${state.resolved_at}`);
+  }
+  lines.push('');
+
+  lines.push('## 👥 Roster\n');
+  const rosterEntries = Object.values(state.roster);
+  if (rosterEntries.length === 0) {
+    lines.push('*No agents registered yet.*\n');
+  } else {
+    lines.push('| Agent | Role | Stance | Joined |');
+    lines.push('| :--- | :--- | :--- | :--- |');
+    for (const r of rosterEntries) {
+      lines.push(`| **${r.name}** | ${r.role || '—'} | ${r.stance || '—'} | ${r.joinedAt || '—'} |`);
+    }
+    lines.push('');
+  }
+
+  lines.push('## 📋 Tasks\n');
+  const taskEntries = Object.values(state.tasks);
+  if (taskEntries.length === 0) {
+    lines.push('*No tasks posted yet.*\n');
+  } else {
+    lines.push('| ID | Title | Assigned To | Status | Result / Summary |');
+    lines.push('| :--- | :--- | :--- | :--- | :--- |');
+    for (const t of taskEntries) {
+      const statusIcon = t.status === 'completed' ? '✅ completed' : t.status === 'in_progress' ? '⚡ in_progress' : t.status === 'claimed' ? '📌 claimed' : '⏳ open';
+      lines.push(`| \`${t.id}\` | ${t.title} | ${t.assignedTo ? `**${t.assignedTo}**` : '—'} | ${statusIcon} | ${t.result || '—'} |`);
+    }
+    lines.push('');
+  }
+
+  if (state.findings.length > 0) {
+    lines.push('## 🔍 Findings\n');
+    lines.push('| ID | Task | Severity | Location | Title & Description | Author |');
+    lines.push('| :--- | :--- | :--- | :--- | :--- | :--- |');
+    for (const f of state.findings) {
+      const loc = f.file ? (f.line ? `\`${f.file}:${f.line}\`` : `\`${f.file}\``) : '—';
+      const desc = f.description ? `<br>*${f.description}*` : '';
+      lines.push(`| \`${f.id}\` | ${f.taskId ? `\`${f.taskId}\`` : '—'} | \`${f.severity}\` | ${loc} | **${f.title}**${desc} | **${f.author}** |`);
+    }
+    lines.push('');
+  }
+
+  if (Object.keys(state.proposals).length > 0) {
+    lines.push('## ⚖️ Proposals & Consensus\n');
+    for (const p of Object.values(state.proposals)) {
+      lines.push(`### Proposal \`${p.id}\`: ${p.title}`);
+      lines.push(`- **Proposed by:** **${p.proposedBy}** at ${p.timestamp}`);
+      lines.push(`- **Status:** \`${p.status}\``);
+      if (p.description) {
+        lines.push(`- **Description:** ${p.description}`);
+      }
+      lines.push('- **Votes:**');
+      const votes = Object.entries(p.votes);
+      if (votes.length === 0) {
+        lines.push('  - *No votes recorded.*');
+      } else {
+        for (const [agent, v] of votes) {
+          const reason = v.reason ? ` (*${v.reason}*)` : '';
+          lines.push(`  - **${agent}**: \`${v.vote}\`${reason}`);
+        }
+      }
+      lines.push('');
+    }
+  }
+
+  if (state.notes.length > 0) {
+    lines.push('## 📝 Notes & Discussion\n');
+    for (const n of state.notes) {
+      lines.push(`- **[${n.timestamp}] ${n.author}:** ${n.text}`);
+    }
+    lines.push('');
+  }
+
+  if (state.status === 'resolved') {
+    lines.push('---\n');
+    lines.push('## 🏁 Final Resolution\n');
+    lines.push(`- **Outcome:** \`${state.outcome}\``);
+    lines.push(`- **Resolved At:** ${state.resolved_at}`);
+    if (state.summary) {
+      lines.push(`- **Summary:**\n\n${state.summary}\n`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
 // ---- Sperre + atomares Schreiben -----------------------------------------------------------
 
 function withLock(pidPath, fn) {
@@ -438,20 +725,443 @@ const commands = {
     console.log('OK');
   },
 
+  async watch(pidPath, pos, opt) {
+    const agent = pos[0];
+    if (!agent) fail('watch <topic> <AgentName> [--timeout <Sekunden>] [--interval <ms>]');
+    const timeoutSec = opt.timeout !== undefined ? Number(opt.timeout) : 0;
+    const intervalMs = opt.interval !== undefined ? Number(opt.interval) : 1000;
+
+    const check = () => {
+      if (!fs.existsSync(pidPath)) return null;
+      try {
+        const s = load(pidPath);
+        if (s.status === 'terminated' || s.status === 'deadlock') {
+          return { done: true, event: 'session_ended', status: s.status, outcome: s.outcome, round: s.current_round };
+        }
+        if (s.active_agent === agent && ['idle', 'working'].includes(s.status)) {
+          return { done: true, event: 'turn_ready', agent, round: s.current_round, status: s.status, timestamp: now() };
+        }
+        return { done: false, active_agent: s.active_agent, status: s.status };
+      } catch {
+        return null;
+      }
+    };
+
+    const initial = check();
+    if (initial?.done) {
+      console.log(JSON.stringify(initial, null, 2));
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      let timeoutTimer = null;
+      let intervalTimer = null;
+      let fsWatcher = null;
+      let dirWatcher = null;
+      let finished = false;
+
+      const cleanup = () => {
+        finished = true;
+        if (timeoutTimer) clearTimeout(timeoutTimer);
+        if (intervalTimer) clearInterval(intervalTimer);
+        if (fsWatcher) { try { fsWatcher.close(); } catch {} }
+        if (dirWatcher) { try { dirWatcher.close(); } catch {} }
+      };
+
+      const onStateChange = () => {
+        if (finished) return;
+        const res = check();
+        if (res?.done) {
+          cleanup();
+          console.log(JSON.stringify(res, null, 2));
+          resolve();
+        }
+      };
+
+      const dir = path.dirname(pidPath);
+      try {
+        if (fs.existsSync(dir)) {
+          dirWatcher = fs.watch(dir, (eventType, filename) => {
+            if (!filename || filename === path.basename(pidPath)) {
+              onStateChange();
+            }
+          });
+        }
+      } catch {}
+
+      try {
+        if (fs.existsSync(pidPath)) {
+          fsWatcher = fs.watch(pidPath, () => onStateChange());
+        }
+      } catch {}
+
+      intervalTimer = setInterval(onStateChange, intervalMs);
+
+      if (timeoutSec > 0) {
+        timeoutTimer = setTimeout(() => {
+          cleanup();
+          const lastState = check();
+          const err = new CollabError(`Timeout (${timeoutSec}s) beim Warten auf Zug von ${agent}. Aktueller Status: ${lastState?.status ?? 'unbekannt'}, aktiv: ${lastState?.active_agent ?? 'unbekannt'}`);
+          err.exitCode = 3;
+          reject(err);
+        }, timeoutSec * 1000);
+      }
+    });
+  },
+
   status() {
     const dir = DEFAULT_DIR;
-    const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.pid')) : [];
-    if (!files.length) return console.log(`Keine .pid-Dateien in ${dir}.`);
-    console.log('| Thema | Modus | Status | Runde | Aktiv | Letzter Eintrag |\n| :-- | :-- | :-- | :-- | :-- | :-- |');
-    for (const f of files) {
-      const s = load(path.join(dir, f));
-      const last = s.history.at(-1)?.timestamp ?? '—';
-      console.log(`| ${f.replace(/\.pid$/, '')} | ${s.mode} | ${s.status} | ${s.current_round}/${s.max_rounds} | ${s.active_agent ?? '—'} | ${last} |`);
+    const pidFiles = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.pid')) : [];
+    const boardFiles = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.board.jsonl')) : [];
+    if (!pidFiles.length && !boardFiles.length) return console.log(`Keine Sessions in ${dir}.`);
+
+    if (pidFiles.length) {
+      console.log('### 🔄 Round-Robin Sessions (.pid)\n');
+      console.log('| Thema | Modus | Status | Runde | Aktiv | Letzter Eintrag |\n| :-- | :-- | :-- | :-- | :-- | :-- |');
+      for (const f of pidFiles) {
+        try {
+          const s = load(path.join(dir, f));
+          const last = s.history.at(-1)?.timestamp ?? '—';
+          console.log(`| ${f.replace(/\.pid$/, '')} | ${s.mode} | ${s.status} | ${s.current_round}/${s.max_rounds} | ${s.active_agent ?? '—'} | ${last} |`);
+        } catch {}
+      }
+      console.log('');
     }
+
+    if (boardFiles.length) {
+      console.log('### 📋 Blackboard Sessions (.board.jsonl)\n');
+      console.log('| Thema | Modus | Status | Coordinator | Tasks (Offen/Gesamt) | Events | Letzter Eintrag |\n| :-- | :-- | :-- | :-- | :-- | :-- | :-- |');
+      for (const f of boardFiles) {
+        try {
+          const boardPath = path.join(dir, f);
+          const events = readBoardEvents(boardPath);
+          const state = projectBoard(events);
+          const tasks = Object.values(state.tasks);
+          const openTasks = tasks.filter((t) => t.status !== 'completed').length;
+          const last = events.at(-1)?.timestamp ?? '—';
+          console.log(`| ${f.replace(/\.board\.jsonl$/, '')} | ${state.mode} | ${state.status} | ${state.coordinator ?? '—'} | ${openTasks}/${tasks.length} | ${events.length} | ${last} |`);
+        } catch {}
+      }
+    }
+  },
+
+  'board-init'(boardPath, pos, opt) {
+    if (fs.existsSync(boardPath)) fail(`${boardPath} existiert bereits.`);
+    const coordinator = pos[0] ?? opt.coordinator ?? null;
+    const mode = opt.mode ?? 'plan';
+    const topic = path.basename(boardPath).replace(/\.board\.jsonl$/, '');
+    appendBoardEvent(boardPath, {
+      type: 'board_initialized',
+      topic,
+      coordinator,
+      mode,
+    });
+    if (coordinator && opt.role) {
+      appendBoardEvent(boardPath, {
+        type: 'agent_joined',
+        agent: coordinator,
+        role: opt.role,
+        stance: opt.stance ?? null,
+      });
+    }
+    const state = projectBoard(readBoardEvents(boardPath));
+    console.log(JSON.stringify({
+      status: state.status,
+      mode: state.mode,
+      coordinator: state.coordinator,
+      board: boardPath,
+      events: state.eventCount,
+    }, null, 2));
+  },
+
+  'board-join'(boardPath, pos, opt) {
+    const agent = pos[0];
+    if (!agent) fail('board-join <topic> <Agent> [--role <Role>] [--stance <Stance>]');
+    appendBoardEvent(boardPath, {
+      type: 'agent_joined',
+      agent,
+      role: opt.role ?? '',
+      stance: opt.stance ?? null,
+    });
+    console.log(JSON.stringify({ agent, role: opt.role ?? '', stance: opt.stance ?? null }, null, 2));
+  },
+
+  'post-task'(boardPath, pos, opt) {
+    const author = pos[0];
+    const title = pos[1] ?? opt.title;
+    if (!author || !title) fail('post-task <topic> <Author> "<Title>" [--assign <Agent>] [--id <TaskId>]');
+    const events = readBoardEvents(boardPath);
+    const state = projectBoard(events);
+    const taskId = opt.id ?? pos[2] ?? `T${Object.keys(state.tasks).length + 1}`;
+    const assignedTo = opt.assign ?? null;
+
+    appendBoardEvent(boardPath, {
+      type: 'task_posted',
+      taskId,
+      title,
+      author,
+      assignedTo,
+    });
+    console.log(JSON.stringify({ taskId, title, assignedTo, author, status: assignedTo ? 'claimed' : 'open' }, null, 2));
+  },
+
+  'claim-task'(boardPath, pos) {
+    const [agent, taskId] = pos;
+    if (!agent || !taskId) fail('claim-task <topic> <Agent> <TaskId>');
+    const events = readBoardEvents(boardPath);
+    const state = projectBoard(events);
+    if (!state.tasks[taskId]) fail(`Task ${taskId} existiert nicht.`);
+    if (state.tasks[taskId].status === 'completed') fail(`Task ${taskId} ist bereits abgeschlossen.`);
+
+    appendBoardEvent(boardPath, {
+      type: 'task_claimed',
+      taskId,
+      agent,
+    });
+    console.log(JSON.stringify({ taskId, agent, status: 'in_progress' }, null, 2));
+  },
+
+  'complete-task'(boardPath, pos, opt) {
+    const [agent, taskId] = pos;
+    if (!agent || !taskId) fail('complete-task <topic> <Agent> <TaskId> [--result "<Summary>"]');
+    const events = readBoardEvents(boardPath);
+    const state = projectBoard(events);
+    if (!state.tasks[taskId]) fail(`Task ${taskId} existiert nicht.`);
+
+    const result = opt.result ?? pos[2] ?? null;
+    appendBoardEvent(boardPath, {
+      type: 'task_completed',
+      taskId,
+      agent,
+      result,
+    });
+    console.log(JSON.stringify({ taskId, agent, status: 'completed', result }, null, 2));
+  },
+
+  'post-finding'(boardPath, pos, opt) {
+    const agent = pos[0];
+    const title = opt.title ?? pos[1];
+    if (!agent || !title) fail('post-finding <topic> <Agent> --title "<Title>" [--task <TaskId>] [--severity info|minor|major|critical] [--file <Path>] [--line <N>] [--desc "<Desc>"]');
+    const events = readBoardEvents(boardPath);
+    const state = projectBoard(events);
+    const findingId = opt.id ?? `F${state.findings.length + 1}`;
+
+    appendBoardEvent(boardPath, {
+      type: 'finding_posted',
+      findingId,
+      taskId: opt.task ?? null,
+      severity: opt.severity ?? 'info',
+      file: opt.file ?? null,
+      line: opt.line ? Number(opt.line) : null,
+      title,
+      description: opt.desc ?? opt.description ?? '',
+      author: agent,
+    });
+    console.log(JSON.stringify({ findingId, taskId: opt.task ?? null, severity: opt.severity ?? 'info', title, author: agent }, null, 2));
+  },
+
+  'post-proposal'(boardPath, pos, opt) {
+    const [agent, proposalId, titleArg] = pos;
+    const title = titleArg ?? opt.title;
+    if (!agent || !proposalId || !title) fail('post-proposal <topic> <Agent> <P<n>> "<Title>" [--desc "<Desc>"]');
+    const events = readBoardEvents(boardPath);
+    const state = projectBoard(events);
+    if (state.proposals[proposalId]) fail(`Vorschlags-ID ${proposalId} existiert bereits.`);
+
+    appendBoardEvent(boardPath, {
+      type: 'proposal_posted',
+      proposalId,
+      title,
+      description: opt.desc ?? opt.description ?? '',
+      author: agent,
+    });
+    console.log(JSON.stringify({ proposalId, title, proposedBy: agent }, null, 2));
+  },
+
+  'post-vote'(boardPath, pos, opt) {
+    const [agent, proposalId, voteArg] = pos;
+    const vote = (voteArg ?? opt.vote ?? '').toUpperCase();
+    if (!agent || !proposalId || !['AGREE', 'DISAGREE', 'DISSENT'].includes(vote)) {
+      fail('post-vote <topic> <Agent> <P<n>> <AGREE|DISAGREE|DISSENT> [--reason "<Reason>"]');
+    }
+    const events = readBoardEvents(boardPath);
+    const state = projectBoard(events);
+    if (!state.proposals[proposalId]) fail(`Vorschlag ${proposalId} existiert nicht.`);
+
+    appendBoardEvent(boardPath, {
+      type: 'vote_posted',
+      proposalId,
+      agent,
+      vote,
+      reason: opt.reason ?? null,
+    });
+    console.log(JSON.stringify({ proposalId, agent, vote, reason: opt.reason ?? null }, null, 2));
+  },
+
+  'resolve-board'(boardPath, pos, opt) {
+    const author = pos[0];
+    const outcome = opt.outcome ?? pos[1];
+    if (!author || !outcome) fail('resolve-board <topic> <Author> --outcome <Outcome> [--summary "<Summary>"]');
+
+    appendBoardEvent(boardPath, {
+      type: 'board_resolved',
+      outcome,
+      summary: opt.summary ?? pos[2] ?? null,
+      author,
+    });
+    console.log(JSON.stringify({ outcome, summary: opt.summary ?? null, status: 'resolved' }, null, 2));
+  },
+
+  board(boardPath, pos, opt) {
+    const events = readBoardEvents(boardPath);
+    const state = projectBoard(events);
+    if (opt.json) {
+      console.log(JSON.stringify(state, null, 2));
+    } else {
+      const tasks = Object.values(state.tasks);
+      const openTasks = tasks.filter((t) => t.status !== 'completed');
+      console.log(JSON.stringify({
+        topic: state.topic,
+        status: state.status,
+        mode: state.mode,
+        coordinator: state.coordinator,
+        roster: Object.keys(state.roster),
+        tasks_total: tasks.length,
+        tasks_open: openTasks.map((t) => ({ id: t.id, title: t.title, assignedTo: t.assignedTo, status: t.status })),
+        findings: state.findings.length,
+        proposals: Object.keys(state.proposals).map((k) => ({ id: k, status: state.proposals[k].status, votes: Object.keys(state.proposals[k].votes).length })),
+        outcome: state.outcome,
+        events: state.eventCount,
+      }, null, 2));
+    }
+  },
+
+  render(boardPath, pos, opt) {
+    const events = readBoardEvents(boardPath);
+    const state = projectBoard(events);
+    const topicPath = boardPath.replace(/\.board\.jsonl$/, '.md');
+    const md = renderBoardToMarkdown(state, topicPath);
+    if (opt.stdout) {
+      console.log(md);
+    } else {
+      fs.writeFileSync(topicPath, md + '\n', 'utf8');
+      console.log(JSON.stringify({ rendered: topicPath, events: events.length, status: state.status }, null, 2));
+    }
+  },
+
+  async 'board-watch'(boardPath, pos, opt) {
+    const taskId = opt.task;
+    const agent = opt.agent;
+    const timeoutSec = opt.timeout !== undefined ? Number(opt.timeout) : 0;
+    const intervalMs = opt.interval !== undefined ? Number(opt.interval) : 500;
+
+    let lastEventCount = fs.existsSync(boardPath) ? readBoardEvents(boardPath).length : 0;
+
+    const check = () => {
+      if (!fs.existsSync(boardPath)) return null;
+      try {
+        const events = readBoardEvents(boardPath);
+        const state = projectBoard(events);
+
+        if (state.status === 'resolved') {
+          return { done: true, event: 'board_resolved', outcome: state.outcome, summary: state.summary };
+        }
+
+        if (taskId && state.tasks[taskId]) {
+          const task = state.tasks[taskId];
+          if (task.status === 'completed' || (agent && task.assignedTo === agent)) {
+            return { done: true, event: 'task_updated', task };
+          }
+        }
+
+        if (agent) {
+          const assigned = Object.values(state.tasks).find((t) => t.assignedTo === agent && t.status !== 'completed');
+          if (assigned) {
+            return { done: true, event: 'task_assigned', task: assigned };
+          }
+        }
+
+        if (!taskId && !agent && events.length > lastEventCount) {
+          return { done: true, event: 'new_events', count: events.length - lastEventCount, lastEvent: events.at(-1) };
+        }
+
+        return { done: false, eventCount: events.length, status: state.status };
+      } catch {
+        return null;
+      }
+    };
+
+    const initial = check();
+    if (initial?.done) {
+      console.log(JSON.stringify(initial, null, 2));
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      let timeoutTimer = null;
+      let intervalTimer = null;
+      let fsWatcher = null;
+      let dirWatcher = null;
+      let finished = false;
+
+      const cleanup = () => {
+        finished = true;
+        if (timeoutTimer) clearTimeout(timeoutTimer);
+        if (intervalTimer) clearInterval(intervalTimer);
+        if (fsWatcher) { try { fsWatcher.close(); } catch {} }
+        if (dirWatcher) { try { dirWatcher.close(); } catch {} }
+      };
+
+      const onEvent = () => {
+        if (finished) return;
+        const res = check();
+        if (res?.done) {
+          cleanup();
+          console.log(JSON.stringify(res, null, 2));
+          resolve();
+        }
+      };
+
+      const dir = path.dirname(boardPath);
+      try {
+        if (fs.existsSync(dir)) {
+          dirWatcher = fs.watch(dir, (eventType, filename) => {
+            if (!filename || filename === path.basename(boardPath)) {
+              onEvent();
+            }
+          });
+        }
+      } catch {}
+
+      try {
+        if (fs.existsSync(boardPath)) {
+          fsWatcher = fs.watch(boardPath, () => onEvent());
+        }
+      } catch {}
+
+      intervalTimer = setInterval(onEvent, intervalMs);
+
+      if (timeoutSec > 0) {
+        timeoutTimer = setTimeout(() => {
+          cleanup();
+          const err = new CollabError(`Timeout (${timeoutSec}s) beim Warten auf Blackboard-Event in ${boardPath}.`);
+          err.exitCode = 3;
+          reject(err);
+        }, timeoutSec * 1000);
+      }
+    });
   },
 };
 
 // ---- Einstieg ------------------------------------------------------------------------------
+
+const BOARD_COMMANDS = new Set([
+  'board-init', 'board-join', 'post-task', 'claim-task', 'complete-task',
+  'post-finding', 'post-proposal', 'post-vote', 'resolve-board',
+  'board', 'render', 'board-watch',
+]);
+
+const READ_ONLY_COMMANDS = new Set(['validate', 'watch', 'status', 'board', 'render', 'board-watch']);
 
 const { pos, opt } = parseArgs(process.argv.slice(2));
 const [cmd, topic, ...rest] = pos;
@@ -460,11 +1170,17 @@ if (!cmd || !commands[cmd]) {
   process.exit(1);
 }
 if (cmd === 'status') { commands.status(); process.exit(0); }
-const pidPath = resolvePid(topic);
+
+const targetPath = BOARD_COMMANDS.has(cmd) ? resolveBoard(topic) : resolvePid(topic);
 try {
-  withLock(pidPath, () => commands[cmd](pidPath, rest, opt));
+  if (READ_ONLY_COMMANDS.has(cmd) || BOARD_COMMANDS.has(cmd)) {
+    await commands[cmd](targetPath, rest, opt);
+  } else {
+    await withLock(targetPath, async () => commands[cmd](targetPath, rest, opt));
+  }
 } catch (e) {
   if (!(e instanceof CollabError)) throw e;
   console.error(`ERROR: ${e.message}`);
   process.exitCode = e.exitCode ?? 1;
 }
+

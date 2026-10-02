@@ -1,7 +1,7 @@
 {
   "name": "small-world",
   "private": true,
-  "version": "0.91.0",
+  "version": "0.92.0",
   "description": "A lightweight 3D engine for hybrid WebGL/WebGPU rendering pipelines.",
   "type": "module",
   "license": "MIT",
@@ -14,6 +14,7 @@
     "build:showcases": "vite build && cp -a dist/public/. dist/ && rm -rf dist/public",
     "build:lib": "npm run build --workspace=packages/engine",
     "changelog": "node scripts/generate-changelog.js",
+    "css:audit": "node scripts/audit-css-tokens.js",
     "dev": "NODE_OPTIONS='--max-old-space-size=4096' vite --host",
     "format": "prettier --write . && eslint . --fix",
     "lint": "eslint .",

@@ -26,7 +26,7 @@ export interface OrbitControllerOptions {
 /**
  * A controller that orbits a camera around a fixed target.
  */
-export class OrbitController extends Behavior {
+export class OrbitController extends Behavior<CameraInterfaceData> {
   public enabled: boolean = true;
   private _options: Required<OrbitControllerOptions>;
 
@@ -53,7 +53,7 @@ export class OrbitController extends Behavior {
       return;
     }
 
-    const cam = this.target as unknown as CameraInterfaceData;
+    const cam = this.target;
 
     // 1. Handle Rotation
     if (this._options.enableRotation) {

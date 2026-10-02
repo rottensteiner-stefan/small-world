@@ -1,27 +1,17 @@
 import {
   SmallWorld,
   Object3D,
-  Sphere,
-  Plane,
   Grid,
   DirectionalLight,
   AmbientLight,
-  PointLight,
   Color,
   Vector3D,
-  StandardMaterial,
-  BasicMaterial,
   WireframeMaterial,
-  Texture,
   KitRegistry,
   CameraStrategyType,
   PerspectiveProjection,
-  BoundingType,
-  BoundingBox,
-  CullMode,
-  EngineOptions,
 } from "@small-world/engine";
-import type { KitManifest, KitSocket } from "@small-world/engine";
+import type { KitManifest } from "@small-world/engine";
 import {
   type IAssetSource,
   type ValidationReport,
@@ -30,45 +20,22 @@ import {
   downloadBlob,
   validateKitManifest,
 } from "../common/io/index.js";
+import type {
+  KitMountResult,
+  LightingPreset,
+  KitInspectorOptions,
+  InspectedAssetInfo,
+  CameraFrame,
+} from "./types.js";
+import { buildPropView, buildPbrView, buildDecalView } from "./views/index.js";
 
-export interface KitMountResult {
-  ok: boolean;
-  report: ValidationReport;
-  /** Kit id used to address the mounted source (`manifest.id`). */
-  kitId: string;
-  /** Display name from the validated manifest. */
-  name: string;
-}
-
-export type LightingPreset = "studio" | "bunker" | "cold";
-
-export interface KitInspectorOptions extends EngineOptions {
-  canvasId: string;
-  basePath?: string;
-  onAssetLoaded?: ((info: InspectedAssetInfo) => void) | undefined;
-  onLoadingStateChange?: ((loading: boolean, message?: string) => void) | undefined;
-  onError?: ((err: Error) => void) | undefined;
-}
-
-export interface InspectedAssetInfo {
-  type: "prop" | "texture" | "decal";
-  id: string;
-  kitId: string;
-  name: string;
-  category: string;
-  description: string;
-  author: string;
-  license: string;
-  version: string;
-  previewUrl: string;
-  triangles?: number | undefined;
-  materialsCount?: number | undefined;
-  dimensions?: { width: number; height: number; depth: number } | undefined;
-  recommendedScale?: number | undefined;
-  sockets?: KitSocket[] | undefined;
-  textureMaps?: string[] | undefined;
-  decalFile?: string | undefined;
-}
+export type {
+  KitMountResult,
+  LightingPreset,
+  KitInspectorOptions,
+  InspectedAssetInfo,
+  CameraFrame,
+};
 
 /**
  * 3D Engine controller for the Asset Kit Inspector tool.
@@ -472,6 +439,14 @@ export class KitInspectorApp extends SmallWorld {
 
   // --- Asset Loading ---
 
+  private _applyCameraFrame(frame: CameraFrame): void {
+    this._orbitTarget.set(frame.target.x, frame.target.y, frame.target.z);
+    this._orbitDistance = frame.distance;
+    if (frame.yaw !== undefined) this._orbitYaw = frame.yaw;
+    if (frame.pitch !== undefined) this._orbitPitch = frame.pitch;
+    this._updateCameraTransform();
+  }
+
   /**
    * Loads and displays a 3D kit prop by its ID (e.g. "bunker/kerosene_lantern").
    */
@@ -480,67 +455,19 @@ export class KitInspectorApp extends SmallWorld {
     this._clearAsset();
 
     try {
-      const parts = kitPropId.split("/");
-      const kitId = parts[0] ?? "";
       const reg = this._registryFor(kitPropId);
-      const manifest = await reg.getKitManifest(kitId);
-      const meta = await reg.getPropMeta(kitPropId);
-      const propInst = await reg.loadProp(kitPropId);
+      const result = await buildPropView(reg, kitPropId);
 
-      this._assetRoot.add(propInst.root);
+      this._assetRoot.add(result.root);
+      this._socketsRoot.add(result.socketsRoot);
+      this._applyCameraFrame(result.cameraFrame);
 
-      // Measure bounding box to center object and adjust camera
-      const bounds = this._computeHierarchyBounds(propInst.root);
-      const sizeX = bounds.max.x - bounds.min.x;
-      const sizeY = bounds.max.y - bounds.min.y;
-      const sizeZ = bounds.max.z - bounds.min.z;
-      const maxDim = Math.max(sizeX, sizeY, sizeZ, 0.1);
-
-      // Center model horizontally and align bottom to ground (y=0)
-      propInst.root.position.x -= bounds.center.x;
-      propInst.root.position.z -= bounds.center.z;
-      propInst.root.position.y -= bounds.min.y;
-
-      // Adjust orbit target and distance
-      this._orbitTarget.set(0, sizeY * 0.5, 0);
-      this._orbitDistance = Math.max(0.6, maxDim * 2.2);
-      this._updateCameraTransform();
-
-      // Sockets visualization
-      this._buildSocketGizmos(meta.sockets, propInst.root);
-
-      // Re-apply wireframe if currently active
       if (this._isWireframe) {
         this.setWireframe(true);
       }
 
-      const itemDef = (manifest.items ?? []).find((it) => it.id === kitPropId);
-      const previewPath = itemDef ? `${reg.basePath}${kitId}/${itemDef.preview}` : "";
-
-      const info: InspectedAssetInfo = {
-        type: "prop",
-        id: kitPropId,
-        kitId,
-        name: meta.name,
-        category: meta.category,
-        description: meta.description,
-        author: meta.author,
-        license: meta.license,
-        version: meta.version,
-        previewUrl: previewPath,
-        triangles: meta.triangles,
-        materialsCount: meta.materials,
-        dimensions: {
-          width: meta.dimensions.width ?? meta.dimensions.radius ?? sizeX,
-          height: meta.dimensions.height ?? sizeY,
-          depth: meta.dimensions.depth ?? meta.dimensions.radius ?? sizeZ,
-        },
-        recommendedScale: meta.recommendedScale,
-        sockets: meta.sockets,
-      };
-
-      this._currentAssetInfo = info;
-      this._onAssetLoaded?.(info);
+      this._currentAssetInfo = result.info;
+      this._onAssetLoaded?.(result.info);
       this._onLoadingStateChange?.(false);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
@@ -560,80 +487,14 @@ export class KitInspectorApp extends SmallWorld {
     this._clearAsset();
 
     try {
-      const sphereGeo = new Sphere({
-        radius: 0.8,
-        widthSegments: 36,
-        heightSegments: 24,
-      }).getGeometryData();
-      const pbrSphere = new Object3D("PbrPreviewSphere");
-      pbrSphere.geometry = sphereGeo;
-
-      // maps[] are bare filenames; actual files live under textures/<slug>/
-      // e.g. id "flakturm/concrete_board" → slug "concrete_board"
-      const slug = texItem.id.includes("/") ? texItem.id.split("/").pop()! : texItem.id;
       const reg = this._registryForKit(kitId);
-      const base = `${reg.basePath}${kitId}/textures/${slug}`;
-      const mat = new StandardMaterial({
-        color: Color.WHITE,
-        roughness: 0.5,
-        metallic: 0.0,
-      });
+      const result = await buildPbrView(reg, kitId, texItem);
 
-      // Find maps
-      const findMapUrl = (keyword: string): string | undefined => {
-        const found = texItem.maps.find((m) => m.toLowerCase().includes(keyword));
-        return found ? `${base}/${found}` : undefined;
-      };
+      this._assetRoot.add(result.root);
+      this._applyCameraFrame(result.cameraFrame);
 
-      const albedoUrl = findMapUrl("albedo") ?? findMapUrl("diffuse");
-      const normalUrl = findMapUrl("normal");
-      const roughnessUrl = findMapUrl("roughness");
-      const aoUrl = findMapUrl("ao");
-      const metalnessUrl = findMapUrl("metalness") ?? findMapUrl("metallic");
-
-      const textureOptions = { assetManager: reg.assetManager };
-      if (albedoUrl) {
-        mat.diffuseMap = await Texture.fromUrl(albedoUrl, textureOptions);
-      }
-      if (normalUrl) {
-        mat.normalMap = await Texture.fromUrl(normalUrl, textureOptions);
-      }
-      if (roughnessUrl) {
-        mat.roughnessMap = await Texture.fromUrl(roughnessUrl, textureOptions);
-      }
-      if (aoUrl) {
-        mat.aoMap = await Texture.fromUrl(aoUrl, textureOptions);
-      }
-      if (metalnessUrl) {
-        mat.metallicMap = await Texture.fromUrl(metalnessUrl, textureOptions);
-        mat.metallic = 1.0;
-      }
-
-      pbrSphere.material = mat;
-      pbrSphere.position.set(0, 0.85, 0);
-      this._assetRoot.add(pbrSphere);
-
-      this._orbitTarget.set(0, 0.85, 0);
-      this._orbitDistance = 2.4;
-      this._updateCameraTransform();
-
-      const manifest = await reg.getKitManifest(kitId);
-      const info: InspectedAssetInfo = {
-        type: "texture",
-        id: texItem.id,
-        kitId,
-        name: texItem.name,
-        category: texItem.category ?? "surfaces",
-        description: `PBR-Textursatz aus dem Kit '${kitId}' mit ${texItem.maps.length} Texturkanälen.`,
-        author: manifest.author,
-        license: manifest.license,
-        version: manifest.version,
-        previewUrl: albedoUrl ?? "",
-        textureMaps: texItem.maps.map((m) => `${base}/${m}`),
-      };
-
-      this._currentAssetInfo = info;
-      this._onAssetLoaded?.(info);
+      this._currentAssetInfo = result.info;
+      this._onAssetLoaded?.(result.info);
       this._onLoadingStateChange?.(false);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
@@ -653,63 +514,14 @@ export class KitInspectorApp extends SmallWorld {
     this._clearAsset();
 
     try {
-      // file is a bare filename; actual files live under the decals/ subfolder
       const reg = this._registryForKit(kitId);
-      const fileUrl = `${reg.basePath}${kitId}/decals/${decalItem.file}`;
-      const decalTex = await Texture.fromUrl(fileUrl, {
-        assetManager: reg.assetManager,
-        flipY: true,
-      });
+      const result = await buildDecalView(reg, kitId, decalItem);
 
-      // Dynamically determine aspect ratio from the decoded image to avoid distortion
-      let aspect = 1.0;
-      if (decalTex.image && "width" in decalTex.image && "height" in decalTex.image) {
-        aspect = decalTex.image.width / Math.max(1, decalTex.image.height);
-      }
+      this._assetRoot.add(result.root);
+      this._applyCameraFrame(result.cameraFrame);
 
-      const planeWidth = aspect >= 1.0 ? 1.6 : 1.6 * aspect;
-      const planeHeight = aspect >= 1.0 ? 1.6 / aspect : 1.6;
-
-      const quadGeo = new Plane({ width: planeWidth, height: planeHeight }).getGeometryData();
-      const decalQuad = new Object3D("DecalQuad");
-      decalQuad.geometry = quadGeo;
-
-      const mat = new StandardMaterial({
-        color: Color.WHITE,
-        diffuseMap: decalTex,
-        roughness: 0.6,
-        metallic: 0.1,
-      });
-      mat.transparent = true;
-      mat.cullMode = CullMode.NONE;
-
-      decalQuad.material = mat;
-      decalQuad.position.set(0, 0.85, 0);
-      this._assetRoot.add(decalQuad);
-
-      this._orbitTarget.set(0, 0.85, 0);
-      this._orbitDistance = 2.4;
-      this._orbitYaw = 0;
-      this._orbitPitch = 0.05;
-      this._updateCameraTransform();
-
-      const manifest = await reg.getKitManifest(kitId);
-      const info: InspectedAssetInfo = {
-        type: "decal",
-        id: decalItem.id,
-        kitId,
-        name: decalItem.name,
-        category: "decals",
-        description: `Grafischer Decal-Sticker aus dem Kit '${kitId}'.`,
-        author: manifest.author,
-        license: manifest.license,
-        version: manifest.version,
-        previewUrl: fileUrl,
-        decalFile: fileUrl,
-      };
-
-      this._currentAssetInfo = info;
-      this._onAssetLoaded?.(info);
+      this._currentAssetInfo = result.info;
+      this._onAssetLoaded?.(result.info);
       this._onLoadingStateChange?.(false);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
@@ -732,69 +544,6 @@ export class KitInspectorApp extends SmallWorld {
       const child = this._socketsRoot.children[0];
       if (child) this._socketsRoot.remove(child);
     }
-  }
-
-  private _buildSocketGizmos(sockets?: KitSocket[], parent?: Object3D): void {
-    if (!sockets || sockets.length === 0) return;
-
-    const sphereGeo = new Sphere({
-      radius: 0.04,
-      widthSegments: 16,
-      heightSegments: 12,
-    }).getGeometryData();
-
-    for (const socket of sockets) {
-      const lightColorHex = socket.recommendedLight?.color ?? "#ffd273";
-      const lightCol = Color.fromHex(lightColorHex);
-
-      const marker = new Object3D(`SocketMarker_${socket.name}`);
-      marker.geometry = sphereGeo;
-      marker.material = new BasicMaterial({ color: lightCol });
-      marker.position.set(socket.position[0], socket.position[1], socket.position[2]);
-
-      // Mount active light
-      const pLight = new PointLight({
-        name: `SocketLight_${socket.name}`,
-        color: lightCol,
-        intensity: Math.min(socket.recommendedLight?.intensity ?? 1.5, 3.0),
-        distance: socket.recommendedLight?.distance ?? 4.0,
-      });
-      pLight.position.set(socket.position[0], socket.position[1], socket.position[2]);
-
-      if (parent) {
-        parent.add(marker);
-        parent.add(pLight);
-      } else {
-        this._socketsRoot.add(marker);
-        this._socketsRoot.add(pLight);
-      }
-    }
-  }
-
-  private _computeHierarchyBounds(root: Object3D): BoundingBox {
-    const min = new Vector3D(Infinity, Infinity, Infinity);
-    const max = new Vector3D(-Infinity, -Infinity, -Infinity);
-    let foundGeometry = false;
-
-    root.traverse((child) => {
-      if (!child.geometry) return;
-      const bv = child.geometry.getBoundingVolume();
-      if (bv && bv.type === BoundingType.BOX) {
-        const box = bv as BoundingBox;
-        foundGeometry = true;
-        min.x = Math.min(min.x, box.min.x * child.scale.x + child.position.x);
-        min.y = Math.min(min.y, box.min.y * child.scale.y + child.position.y);
-        min.z = Math.min(min.z, box.min.z * child.scale.z + child.position.z);
-        max.x = Math.max(max.x, box.max.x * child.scale.x + child.position.x);
-        max.y = Math.max(max.y, box.max.y * child.scale.y + child.position.y);
-        max.z = Math.max(max.z, box.max.z * child.scale.z + child.position.z);
-      }
-    });
-
-    if (!foundGeometry) {
-      return new BoundingBox(new Vector3D(-0.5, 0, -0.5), new Vector3D(0.5, 1.0, 0.5));
-    }
-    return new BoundingBox(min, max);
   }
 
   private _updateCameraTransform(): void {

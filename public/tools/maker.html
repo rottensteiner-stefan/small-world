@@ -5,20 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/webp" href="/favicon.webp" />
     <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/tool-theme.css" />
     <title>Maker - Small World</title>
     <style>
-      :root {
-        --bg-color: #0b0f19;
-        --panel-bg: rgba(20, 25, 40, 0.9);
-        --text-color: #e0e0e0;
-        --accent: #00e5ff;
-        --border-color: #263048;
-      }
       body {
         margin: 0;
-        font-family: "Rajdhani", sans-serif;
-        background-color: var(--bg-color);
-        color: var(--text-color);
+        font-family: var(--tool-font-ui);
+        background-color: var(--tool-bg);
+        color: var(--tool-text);
         display: flex;
         flex-direction: column;
         height: 100vh;
@@ -39,13 +33,13 @@
       .maker-sidebar {
         display: flex;
         flex-direction: column;
-        background: var(--panel-bg);
-        border-right: 1px solid var(--border-color);
+        background: var(--tool-panel);
+        border-right: 1px solid var(--tool-border);
         overflow-y: auto;
       }
       .maker-sidebar.right {
         border-right: none;
-        border-left: 1px solid var(--border-color);
+        border-left: 1px solid var(--tool-border);
       }
       .maker-panel-title {
         padding: 8px 10px;
@@ -53,7 +47,7 @@
         text-transform: uppercase;
         letter-spacing: 1px;
         opacity: 0.7;
-        border-bottom: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--tool-border);
       }
       #maker-hierarchy {
         flex: 1;
@@ -64,8 +58,8 @@
       }
       .maker-hierarchy-search-wrapper {
         padding: 6px;
-        border-bottom: 1px solid var(--border-color);
-        background: rgba(10, 15, 25, 0.6);
+        border-bottom: 1px solid var(--tool-border);
+        background: var(--tool-panel);
         position: sticky;
         top: 0;
         z-index: 2;
@@ -73,10 +67,10 @@
       .maker-hierarchy-search-input {
         width: 100%;
         box-sizing: border-box;
-        background: #141a29;
-        color: #e0e0e0;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
+        background: var(--tool-inset);
+        color: var(--tool-text);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-sm);
         padding: 4px 8px;
         font-family: inherit;
         font-size: 0.8rem;
@@ -84,8 +78,8 @@
         transition: border-color 0.2s, box-shadow 0.2s;
       }
       .maker-hierarchy-search-input:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 6px rgba(0, 229, 255, 0.35);
+        border-color: var(--tool-accent2);
+        box-shadow: 0 0 6px var(--tool-accent2-glow);
       }
       .maker-hierarchy-tree {
         flex: 1;
@@ -100,23 +94,23 @@
         border-radius: 3px;
       }
       .maker-hierarchy-row:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--tool-hover);
       }
       .maker-hierarchy-row.selected {
-        background: rgba(0, 229, 255, 0.2);
-        color: var(--accent);
+        background: var(--tool-accent2-glow);
+        color: var(--tool-accent2);
       }
       .maker-hierarchy-rename-input {
-        background: #101524;
-        color: #fff;
-        border: 1px solid var(--accent);
+        background: var(--tool-inset);
+        color: var(--tool-text-bright);
+        border: 1px solid var(--tool-accent2);
         border-radius: 3px;
         font-family: inherit;
         font-size: 0.85rem;
         padding: 1px 4px;
         width: calc(100% - 8px);
         outline: none;
-        box-shadow: 0 0 5px rgba(0, 229, 255, 0.4);
+        box-shadow: 0 0 5px var(--tool-accent2-glow);
       }
       #maker-palette {
         padding: 8px;
@@ -139,10 +133,10 @@
         margin-bottom: 6px;
       }
       .maker-palette-tile {
-        background: #141b2a;
-        color: var(--text-color);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
+        background: var(--tool-card);
+        color: var(--tool-text);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-sm);
         padding: 5px 2px;
         cursor: pointer;
         display: flex;
@@ -154,11 +148,11 @@
         min-height: 44px;
       }
       .maker-palette-tile:hover {
-        background: #1c263c;
-        border-color: var(--accent);
-        color: #fff;
+        background: var(--tool-card-hover);
+        border-color: var(--tool-accent2);
+        color: var(--tool-text-bright);
         transform: translateY(-1px);
-        box-shadow: 0 2px 6px rgba(0, 229, 255, 0.25);
+        box-shadow: 0 2px 6px var(--tool-accent2-glow);
       }
       .maker-palette-tile:active {
         transform: translateY(0);
@@ -176,22 +170,22 @@
         opacity: 0.9;
       }
       .maker-palette-btn {
-        background: #1a2233;
-        color: var(--text-color);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
+        background: var(--tool-card);
+        color: var(--tool-text);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-sm);
         padding: 6px 8px;
         cursor: pointer;
         font-size: 0.85rem;
         text-align: left;
       }
       .maker-palette-btn:hover {
-        border-color: var(--accent);
+        border-color: var(--tool-accent2);
       }
       .maker-palette-btn.active {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: rgba(0, 229, 255, 0.15);
+        border-color: var(--tool-accent2);
+        color: var(--tool-accent2);
+        background: var(--tool-accent2-glow);
       }
       .maker-prefab-save-row {
         display: flex;
@@ -201,10 +195,10 @@
       .maker-prefab-name-input {
         flex: 1;
         min-width: 0;
-        background: #1a2233;
-        color: var(--text-color);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
+        background: var(--tool-inset);
+        color: var(--tool-text);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-sm);
         padding: 4px 6px;
         font-size: 0.85rem;
       }
@@ -224,19 +218,19 @@
         object-fit: cover;
         border-radius: 3px;
         flex-shrink: 0;
-        background: #05070d;
+        background: var(--tool-bg);
       }
       .maker-map-textarea {
         width: 100%;
         box-sizing: border-box;
         min-height: 70px;
-        background: #1a2233;
-        color: var(--text-color);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
+        background: var(--tool-inset);
+        color: var(--tool-text);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-sm);
         padding: 6px 8px;
         font-size: 0.8rem;
-        font-family: monospace;
+        font-family: var(--tool-font-mono);
         resize: vertical;
         margin-bottom: 4px;
       }
@@ -253,12 +247,12 @@
       }
       .maker-viewport {
         position: relative;
-        background: #05070d;
+        background: var(--tool-bg);
       }
       .maker-marquee-box {
         position: absolute;
-        border: 1px dashed var(--accent);
-        background: rgba(0, 229, 255, 0.12);
+        border: 1px dashed var(--tool-accent2);
+        background: var(--tool-accent2-glow);
         pointer-events: none;
         display: none;
         z-index: 10;
@@ -274,20 +268,20 @@
         padding-bottom: 24px;
       }
       #maker-properties .tp-fldv {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid var(--tool-border);
         padding-bottom: 8px;
         margin-bottom: 8px;
       }
       #maker-properties .tp-fldv_c {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid var(--tool-border);
         padding-bottom: 6px;
       }
       .maker-status {
         padding: 4px 12px;
         font-size: 0.8rem;
         opacity: 0.7;
-        border-top: 1px solid var(--border-color);
-        background: var(--panel-bg);
+        border-top: 1px solid var(--tool-border);
+        background: var(--tool-panel);
       }
       .maker-prop-row {
         display: flex;
@@ -338,7 +332,7 @@
         height: 20px;
         background: transparent;
         border: none;
-        color: #94a3b8;
+        color: var(--tool-text-muted);
         cursor: pointer;
         font-size: 15px;
         font-weight: bold;
@@ -351,14 +345,14 @@
         transition: color 0.15s ease, background 0.15s ease;
       }
       .maker-behavior-menu-btn:hover {
-        color: #38bdf8;
-        background: rgba(56, 189, 248, 0.2);
+        color: var(--tool-info);
+        background: color-mix(in srgb, var(--tool-info) 15%, transparent);
       }
       .maker-behavior-dropdown {
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 6px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+        background: var(--tool-card);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-md);
+        box-shadow: 0 4px 16px var(--tool-modal-overlay);
         padding: 4px;
         min-width: 140px;
         font-family: inherit;
@@ -372,7 +366,7 @@
         padding: 6px 10px;
         background: transparent;
         border: none;
-        color: #e2e8f0;
+        color: var(--tool-text);
         font-size: 0.75rem;
         cursor: pointer;
         border-radius: 4px;
@@ -380,12 +374,12 @@
         transition: background 0.15s ease, color 0.15s ease;
       }
       .maker-behavior-dropdown-item:hover {
-        background: #334155;
-        color: #fff;
+        background: var(--tool-hover);
+        color: var(--tool-text-bright);
       }
       .maker-behavior-dropdown-danger:hover {
-        background: rgba(239, 68, 68, 0.2);
-        color: #fca5a5;
+        background: color-mix(in srgb, var(--tool-danger) 20%, transparent);
+        color: var(--tool-danger);
       }
 
       /* Unreal Engine 5 Style Content Drawer */
@@ -404,8 +398,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: #0c121e;
-        border-top: 1px solid #1e293b;
+        background: var(--tool-panel-solid);
+        border-top: 1px solid var(--tool-border);
         padding: 2px 10px;
         height: 26px;
         user-select: none;
@@ -413,7 +407,7 @@
       .maker-content-toggle-btn {
         background: transparent;
         border: none;
-        color: #94a3b8;
+        color: var(--tool-text-muted);
         font-family: inherit;
         font-size: 0.78rem;
         font-weight: 600;
@@ -426,35 +420,35 @@
         transition: all 0.15s;
       }
       .maker-content-toggle-btn:hover {
-        color: #38bdf8;
-        background: rgba(56, 189, 248, 0.1);
+        color: var(--tool-info);
+        background: color-mix(in srgb, var(--tool-info) 15%, transparent);
       }
       .maker-content-toggle-btn.active {
-        color: #38bdf8;
+        color: var(--tool-info);
       }
       .drawer-shortcut {
         font-size: 0.65rem;
-        background: #1e293b;
-        color: #64748b;
+        background: var(--tool-card);
+        color: var(--tool-text-muted);
         padding: 1px 4px;
         border-radius: 3px;
         margin-left: 4px;
       }
       .maker-content-badge {
         font-size: 0.72rem;
-        color: #64748b;
+        color: var(--tool-text-muted);
       }
       .maker-content-drawer {
         pointer-events: auto;
         height: 0;
         overflow: hidden;
-        background: rgba(12, 18, 30, 0.95);
+        background: var(--tool-panel);
         backdrop-filter: blur(8px);
-        border-top: 1px solid #26334d;
+        border-top: 1px solid var(--tool-border);
         display: flex;
         flex-direction: column;
         transition: height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 -8px 24px var(--tool-modal-overlay);
       }
       .maker-content-drawer-wrapper.open .maker-content-drawer {
         height: 280px;
@@ -467,21 +461,21 @@
         margin-top: -2px;
       }
       .maker-content-resizer:hover {
-        background: #00e5ff;
+        background: var(--tool-accent2);
       }
       .maker-content-toolbar {
         display: flex;
         align-items: center;
         gap: 8px;
         padding: 4px 10px;
-        border-bottom: 1px solid #1e293b;
-        background: rgba(8, 12, 20, 0.8);
+        border-bottom: 1px solid var(--tool-border);
+        background: var(--tool-panel-solid);
       }
       .maker-content-breadcrumbs {
         display: flex;
         align-items: center;
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--tool-text-muted);
         white-space: nowrap;
         flex: 1;
         overflow: hidden;
@@ -493,11 +487,11 @@
         border-radius: 3px;
       }
       .maker-crumb:hover {
-        color: #38bdf8;
-        background: rgba(56, 189, 248, 0.1);
+        color: var(--tool-info);
+        background: color-mix(in srgb, var(--tool-info) 15%, transparent);
       }
       .maker-crumb-sep {
-        color: #475569;
+        color: var(--tool-text-muted);
         margin: 0 2px;
       }
       .maker-content-filters {
@@ -505,9 +499,9 @@
         gap: 4px;
       }
       .maker-filter-pill {
-        background: #141c2c;
-        border: 1px solid #26334d;
-        color: #94a3b8;
+        background: var(--tool-card);
+        border: 1px solid var(--tool-border);
+        color: var(--tool-text-muted);
         font-size: 0.72rem;
         padding: 2px 8px;
         border-radius: 12px;
@@ -516,13 +510,13 @@
         font-family: inherit;
       }
       .maker-filter-pill:hover {
-        border-color: #38bdf8;
-        color: #fff;
+        border-color: var(--tool-info);
+        color: var(--tool-text-bright);
       }
       .maker-filter-pill.active {
-        background: #0284c7;
-        border-color: #38bdf8;
-        color: #fff;
+        background: var(--tool-info);
+        border-color: var(--tool-info);
+        color: var(--tool-on-accent);
         font-weight: 600;
       }
       .maker-content-search-box {
@@ -532,34 +526,34 @@
       .maker-content-search-input {
         width: 100%;
         box-sizing: border-box;
-        background: #141c2c;
-        border: 1px solid #26334d;
-        border-radius: 4px;
-        color: #e2e8f0;
+        background: var(--tool-inset);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-sm);
+        color: var(--tool-text);
         font-size: 0.75rem;
         padding: 3px 8px;
         outline: none;
         font-family: inherit;
       }
       .maker-content-search-input:focus {
-        border-color: #00e5ff;
-        box-shadow: 0 0 6px rgba(0, 229, 255, 0.35);
+        border-color: var(--tool-accent2);
+        box-shadow: 0 0 6px var(--tool-accent2-glow);
       }
       .maker-content-action-btn {
         background: transparent;
         border: none;
-        color: #94a3b8;
+        color: var(--tool-text-muted);
         cursor: pointer;
         padding: 2px 6px;
         border-radius: 3px;
         font-size: 0.85rem;
       }
       .maker-content-action-btn:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.1);
+        color: var(--tool-text-bright);
+        background: var(--tool-hover);
       }
       .maker-content-action-btn.pinned {
-        color: #00e5ff;
+        color: var(--tool-accent2);
       }
       .maker-content-body {
         display: grid;
@@ -568,16 +562,16 @@
         overflow: hidden;
       }
       .maker-content-tree-pane {
-        border-right: 1px solid #1e293b;
+        border-right: 1px solid var(--tool-border);
         overflow-y: auto;
         padding: 6px 0;
-        background: rgba(10, 15, 25, 0.6);
+        background: var(--tool-panel);
       }
       .maker-tree-header {
         font-size: 0.68rem;
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: #64748b;
+        color: var(--tool-text-muted);
         padding: 4px 10px;
         font-weight: 700;
       }
@@ -589,7 +583,7 @@
       .maker-tree-node {
         padding: 4px 10px;
         font-size: 0.78rem;
-        color: #cbd5e1;
+        color: var(--tool-text);
         cursor: pointer;
         white-space: nowrap;
         overflow: hidden;
@@ -598,12 +592,12 @@
         transition: background 0.12s;
       }
       .maker-tree-node:hover {
-        background: rgba(255, 255, 255, 0.06);
-        color: #fff;
+        background: var(--tool-hover);
+        color: var(--tool-text-bright);
       }
       .maker-tree-node.selected {
-        background: rgba(0, 229, 255, 0.15);
-        color: #00e5ff;
+        background: var(--tool-accent2-glow);
+        color: var(--tool-accent2);
         font-weight: 600;
       }
       .maker-content-grid-pane {
@@ -617,9 +611,9 @@
         gap: 8px;
       }
       .maker-asset-card {
-        background: #141b2a;
-        border: 1px solid #26334d;
-        border-radius: 6px;
+        background: var(--tool-card);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-md);
         padding: 4px;
         display: flex;
         flex-direction: column;
@@ -630,10 +624,10 @@
         overflow: hidden;
       }
       .maker-asset-card:hover {
-        border-color: #00e5ff;
+        border-color: var(--tool-accent2);
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 229, 255, 0.25);
-        background: #1a2336;
+        box-shadow: 0 4px 12px var(--tool-accent2-glow);
+        background: var(--tool-card-hover);
       }
       .maker-asset-card:active {
         cursor: grabbing;
@@ -641,8 +635,8 @@
       .maker-asset-thumb {
         width: 100%;
         aspect-ratio: 1;
-        background: #070a12;
-        border-radius: 4px;
+        background: var(--tool-bg);
+        border-radius: var(--tool-radius-sm);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -667,29 +661,29 @@
         padding: 1px 4px;
         border-radius: 3px;
         text-transform: uppercase;
-        background: rgba(0, 0, 0, 0.75);
+        background: var(--tool-modal-overlay);
       }
       .badge-prop {
-        color: #38bdf8;
+        color: var(--tool-info);
       }
       .badge-texture {
-        color: #f59e0b;
+        color: var(--tool-warning);
       }
       .badge-decal {
-        color: #ec4899;
+        color: var(--tool-accent);
       }
       .badge-primitive {
-        color: #10b981;
+        color: var(--tool-success);
       }
       .badge-light {
-        color: #fbbf24;
+        color: var(--tool-warning);
       }
       .badge-prefab {
-        color: #a855f7;
+        color: var(--tool-accent);
       }
       .maker-asset-name {
         font-size: 0.7rem;
-        color: #e2e8f0;
+        color: var(--tool-text);
         margin-top: 4px;
         white-space: nowrap;
         overflow: hidden;
@@ -701,16 +695,16 @@
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #64748b;
+        color: var(--tool-text-muted);
         font-size: 0.85rem;
       }
     </style>
   </head>
-  <body>
     <header class="tool-header">
-      <h1>Maker - Small World</h1>
-      <a href="/" class="nav-btn">Back to Engine</a>
+      <h1>Maker — Scene & Level Editor</h1>
+      <button class="tool-close-btn" id="toolCloseBtn" title="Close Window" onclick="if (window.parent && window.parent !== window) { window.parent.postMessage({ type: 'close-tool' }, '*'); } try { window.close(); } catch(e) {}">✕</button>
     </header>
+    <script>if (window.self !== window.top || window.opener) document.body.classList.add("in-window");</script>
 
     <div class="maker-layout">
       <aside class="maker-sidebar left">

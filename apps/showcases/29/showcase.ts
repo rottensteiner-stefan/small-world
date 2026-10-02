@@ -380,7 +380,7 @@ class Showcase29 extends AbstractShowcase {
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         color: #e2e8f0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: var(--font-ui, "Rajdhani", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
         font-size: 12px;
         z-index: 99999;
         user-select: none;
@@ -453,7 +453,7 @@ class Showcase29 extends AbstractShowcase {
         flex: 1;
       }
       #sponzaTuningHud .val-label {
-        font-family: monospace;
+        font-family: var(--font-mono, "JetBrains Mono", monospace);
         font-size: 11px;
         color: #38bdf8;
         min-width: 38px;

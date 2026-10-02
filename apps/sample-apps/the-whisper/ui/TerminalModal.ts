@@ -110,7 +110,7 @@ export class TerminalModal {
       align-items: center;
       justify-content: center;
       z-index: 1000;
-      font-family: 'Courier New', Courier, monospace, monospace;
+      font-family: var(--font-mono, "JetBrains Mono", monospace);
       color: #ffb84d;
       user-select: none;
     `;

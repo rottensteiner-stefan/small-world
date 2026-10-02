@@ -38,25 +38,24 @@ export class Hud {
   private _ammo: number = 50;
 
   constructor(private events: EventDispatcherImpl) {
-    // Load VT323 Font from Google Fonts
-    if (!document.getElementById("vt323-font")) {
-      const link = document.createElement("link");
-      link.id = "vt323-font";
-      link.href = "https://fonts.googleapis.com/css2?family=VT323&display=swap";
-      link.rel = "stylesheet";
-      document.head.appendChild(link);
-    }
-
-    // Load local Dungeon font
+    // Load local game fonts (Dungeon, VT323; no network fonts)
     if (!document.getElementById("dungeon-font-style")) {
       const style = document.createElement("style");
       style.id = "dungeon-font-style";
       style.innerHTML = `
         @font-face {
           font-family: 'Dungeon';
-          src: url('./assets/fonts/Dungeon.ttf') format('truetype');
+          src: url('./assets/fonts/Dungeon.woff2') format('woff2');
           font-weight: normal;
           font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'VT323';
+          src: url('./assets/fonts/VT323-Regular.woff2') format('woff2');
+          font-weight: normal;
+          font-style: normal;
+          font-display: swap;
         }
       `;
       document.head.appendChild(style);

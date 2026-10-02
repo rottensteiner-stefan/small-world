@@ -14,8 +14,6 @@ interface AssetProgress {
  * engine instead of living for the process's lifetime.
  */
 export class AssetManager {
-  private static _default: AssetManager | undefined;
-
   private _imageCache = new Map<string, Promise<ImageBitmap | HTMLImageElement>>();
   private _textCache = new Map<string, Promise<string>>();
   private _jsonCache = new Map<string, Promise<unknown>>();
@@ -162,7 +160,7 @@ export class AssetManager {
         if (onProgress) onProgress(loaded, total);
       };
 
-      if (!response.body) {
+      if (!onProgress || !response.body) {
         const blob = await response.blob();
         updateProgress(blob.size, blob.size);
         return blob;
@@ -377,67 +375,5 @@ export class AssetManager {
         this._checkCompletion(trackingKey);
       }
     });
-  }
-
-  private static get _sharedDefault(): AssetManager {
-    return (this._default ??= new AssetManager());
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static setBaseUrl(url: string): void {
-    this._sharedDefault.setBaseUrl(url);
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static setHeader(key: string, value: string): void {
-    this._sharedDefault.setHeader(key, value);
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static async onLoaded(): Promise<void> {
-    return this._sharedDefault.onLoaded();
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static get isLoaded(): boolean {
-    return this._sharedDefault.isLoaded;
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static getGlobalProgress(): number {
-    return this._sharedDefault.getGlobalProgress();
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static async loadImage(
-    url: string,
-    onProgress?: ProgressCallback,
-    flipY: boolean = false,
-  ): Promise<ImageBitmap | HTMLImageElement> {
-    return this._sharedDefault.loadImage(url, onProgress, flipY);
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
-    return this._sharedDefault.loadText(url, onProgress);
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static async loadJson(url: string, onProgress?: ProgressCallback): Promise<unknown> {
-    return this._sharedDefault.loadJson(url, onProgress);
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static async loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer> {
-    return this._sharedDefault.loadBinary(url, onProgress);
-  }
-
-  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
-  public static async streamBinary(
-    url: string,
-    onChunk?: (chunk: Uint8Array, loaded: number, total: number) => void,
-    onProgress?: ProgressCallback,
-  ): Promise<ArrayBuffer> {
-    return this._sharedDefault.streamBinary(url, onChunk, onProgress);
   }
 }

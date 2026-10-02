@@ -1,11 +1,41 @@
 /* public/resources/examples/examples.css */
-@import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap");
+@import url("fonts.css");
+
+:root {
+  /* Global Typography Tokens */
+  --font-ui: "Rajdhani", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+
+  /* Showcase Global Design Tokens */
+  --showcase-bg: #050505;
+  --showcase-overlay-bg: linear-gradient(to bottom, rgba(0, 10, 20, 0.9) 0%, rgba(0, 10, 20, 0) 100%);
+  --showcase-nav-bg: rgba(0, 15, 25, 0.6);
+  --showcase-footer-bg: rgba(0, 10, 20, 0.85);
+
+  --showcase-purple: #b000ff;
+  --showcase-purple-dark: #7a00cc;
+  --showcase-purple-glow: rgba(176, 0, 255, 0.8);
+  --showcase-purple-glow-outer: rgba(176, 0, 255, 0.4);
+
+  --showcase-cyan: #00e5ff;
+  --showcase-cyan-bright: #d1fdff;
+  --showcase-cyan-text: #88d4e0;
+  --showcase-cyan-muted: #559da8;
+  --showcase-cyan-glow: rgba(0, 229, 255, 0.5);
+  --showcase-cyan-dim: rgba(0, 229, 255, 0.2);
+  --showcase-cyan-subtle: rgba(0, 229, 255, 0.1);
+
+  --showcase-on-accent: #000000;
+  --showcase-font: var(--font-ui);
+  --showcase-radius-sm: 2px;
+  --showcase-radius-md: 4px;
+}
 
 body {
   margin: 0;
   overflow: hidden;
-  background-color: #050505;
-  font-family: "Rajdhani", sans-serif;
+  background-color: var(--showcase-bg);
+  font-family: var(--showcase-font);
   touch-action: none;
 }
 
@@ -15,7 +45,7 @@ canvas {
   height: 100vh;
 }
 
-/* Tron-style Overlay Header */
+/* Showcase Overlay Header */
 header#info {
   position: absolute;
   top: 0;
@@ -27,9 +57,9 @@ header#info {
   flex-direction: column;
   align-items: center;
   padding-top: 20px;
-  background: linear-gradient(to bottom, rgba(0, 10, 20, 0.9) 0%, rgba(0, 10, 20, 0) 100%);
+  background: var(--showcase-overlay-bg);
   text-align: center;
-  color: #dfdfdf;
+  color: var(--showcase-cyan-bright);
 }
 
 header#info h1 {
@@ -37,67 +67,84 @@ header#info h1 {
   font-size: 2.2rem;
   letter-spacing: 4px;
   text-transform: uppercase;
-  color: #d1fdff;
+  color: var(--showcase-cyan-bright);
   text-shadow:
-    0 0 5px #b000ff,
-    0 0 10px #b000ff,
-    0 0 20px #b000ff,
-    0 0 40px #7a00cc;
+    0 0 5px var(--showcase-purple),
+    0 0 10px var(--showcase-purple),
+    0 0 20px var(--showcase-purple),
+    0 0 40px var(--showcase-purple-dark);
 }
 
 header#info p {
   margin: 10px 0 0 0;
   font-size: 1.1rem;
-  color: #88d4e0;
+  color: var(--showcase-cyan-text);
   max-width: 700px;
   letter-spacing: 1px;
-  text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+  text-shadow: 0 0 5px var(--showcase-cyan-glow);
 }
 
 header#info p.credits {
   margin-top: 8px;
   opacity: 0.8;
   font-size: 0.9rem;
-  color: #559da8;
+  color: var(--showcase-cyan-muted);
 }
 
 /* Tool Header */
 header.tool-header {
-  padding: 1rem 2rem;
-  border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+  height: 38px;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--tool-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
+  background: var(--tool-panel-solid);
+  box-sizing: border-box;
+  font-family: var(--tool-font-ui, "Rajdhani", sans-serif);
+  user-select: none;
+  z-index: 50;
 }
 
 header.tool-header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #fff;
+  letter-spacing: 1.2px;
+  color: var(--tool-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-header.tool-header .nav-btn {
-  color: white;
-  text-decoration: none;
-  font-weight: bold;
-  background: rgba(0, 15, 25, 0.6);
-  border: 1px solid #b000ff;
-  padding: 8px 18px;
-  border-radius: 2px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
+.tool-close-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--tool-text-muted);
+  font-family: var(--tool-font-mono, monospace);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: var(--tool-radius-sm, 4px);
+  transition: all 0.15s ease;
 }
-header.tool-header .nav-btn:hover {
-  background: #b000ff;
-  color: #000;
-  box-shadow: 0 0 20px rgba(176, 0, 255, 0.8);
+.tool-close-btn:hover {
+  background: color-mix(in srgb, var(--tool-danger) 20%, transparent);
+  border-color: color-mix(in srgb, var(--tool-danger) 40%, transparent);
+  color: var(--tool-danger);
 }
 
-/* Tron-style Navigation Controls */
+body.in-window .tool-close-btn,
+.tool-close-btn.visible {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Showcase Navigation Controls */
 .example-nav {
   position: absolute;
   top: 20px;
@@ -109,11 +156,11 @@ header.tool-header .nav-btn:hover {
 }
 
 .example-nav .nav-btn {
-  background: rgba(0, 15, 25, 0.6);
-  border: 1px solid #b000ff;
-  color: #b000ff;
+  background: var(--showcase-nav-bg);
+  border: 1px solid var(--showcase-purple);
+  color: var(--showcase-purple);
   padding: 8px 18px;
-  border-radius: 2px;
+  border-radius: var(--showcase-radius-sm);
   cursor: pointer;
   font-size: 1.1rem;
   font-weight: 700;
@@ -124,16 +171,16 @@ header.tool-header .nav-btn:hover {
   user-select: none;
   backdrop-filter: blur(8px);
   box-shadow:
-    0 0 10px rgba(0, 229, 255, 0.2),
-    inset 0 0 15px rgba(0, 229, 255, 0.1);
+    0 0 10px var(--showcase-cyan-dim),
+    inset 0 0 15px var(--showcase-cyan-subtle);
 }
 
 .example-nav .nav-btn:hover {
-  background: #b000ff;
-  color: #000;
+  background: var(--showcase-purple);
+  color: var(--showcase-on-accent);
   box-shadow:
-    0 0 20px rgba(176, 0, 255, 0.8),
-    0 0 40px rgba(176, 0, 255, 0.4);
+    0 0 20px var(--showcase-purple-glow),
+    0 0 40px var(--showcase-purple-glow-outer);
   text-shadow: none;
 }
 
@@ -154,17 +201,7 @@ header.tool-header .nav-btn:hover {
   }
   
   header.tool-header {
-    padding: 1rem;
-    flex-direction: column;
-    gap: 1rem;
-    text-align: center;
-  }
-  header.tool-header h1 {
-    font-size: 1.2rem;
-  }
-  header.tool-header .nav-btn {
-    padding: 6px 12px;
-    font-size: 0.9rem;
+    padding: 0 0.75rem;
   }
 }
 
@@ -180,15 +217,15 @@ header.tool-header .nav-btn:hover {
   height: 36px;
   box-sizing: border-box;
   font-size: 0.8rem;
-  color: #559da8;
-  background: rgba(0, 10, 20, 0.85);
+  color: var(--showcase-cyan-muted);
+  background: var(--showcase-footer-bg);
   backdrop-filter: blur(5px);
-  border-top: 1px solid rgba(0, 229, 255, 0.1);
+  border-top: 1px solid var(--showcase-cyan-subtle);
   pointer-events: none;
   letter-spacing: 1px;
   z-index: 10000;
-  font-family: "Rajdhani", sans-serif;
-  text-shadow: 0 0 5px rgba(0, 229, 255, 0.2);
+  font-family: var(--showcase-font);
+  text-shadow: 0 0 5px var(--showcase-cyan-dim);
 }
 
 body:has(.tool-header) .app-footer {
@@ -209,10 +246,14 @@ body:has(.tool-header) .app-footer {
   --swf-border: rgba(176, 0, 255, 0.3);
   --swf-border-focus: rgba(176, 0, 255, 0.8);
   --swf-accent: #b000ff;
+  --swf-accent-glow: rgba(176, 0, 255, 0.2);
   --swf-accent-alt: #ff00ff;
+  --swf-accent-alt-glow: rgba(255, 0, 255, 0.2);
   --swf-text: #e2e8f0;
   --swf-text-muted: #94a3b8;
-  --swf-font: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --swf-inset: rgba(0, 0, 0, 0.3);
+  --swf-on-accent: #000000;
+  --swf-font: var(--font-ui);
   --swf-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
@@ -235,11 +276,11 @@ body:has(.tool-header) .app-footer {
   background: var(--swf-panel-hover);
   border-color: var(--swf-accent);
   color: var(--swf-accent);
-  box-shadow: 0 0 8px rgba(176, 0, 255, 0.2);
+  box-shadow: 0 0 8px var(--swf-accent-glow);
 }
 .swf-btn.active {
   background: var(--swf-accent);
-  color: #000;
+  color: var(--swf-on-accent);
   border-color: var(--swf-accent);
 }
 .swf-btn.secondary {
@@ -250,11 +291,11 @@ body:has(.tool-header) .app-footer {
 .swf-btn.secondary:hover {
   border-color: var(--swf-accent-alt);
   color: var(--swf-accent-alt);
-  box-shadow: 0 0 8px rgba(255, 0, 255, 0.2);
+  box-shadow: 0 0 8px var(--swf-accent-alt-glow);
 }
 
 .swf-input {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--swf-inset);
   border: 1px solid var(--swf-border);
   border-radius: 4px;
   color: var(--swf-text);
@@ -266,6 +307,6 @@ body:has(.tool-header) .app-footer {
 }
 .swf-input:focus {
   border-color: var(--swf-accent);
-  box-shadow: 0 0 5px rgba(176, 0, 255, 0.2);
+  box-shadow: 0 0 5px var(--swf-accent-glow);
 }
 

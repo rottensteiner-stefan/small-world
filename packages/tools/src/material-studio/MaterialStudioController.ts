@@ -250,6 +250,7 @@ export class MaterialStudioController {
               const v = Math.floor(
                 128 + Math.sin(x * 0.1) * 30 + Math.cos(y * 0.1) * 30 + Math.random() * 20,
               );
+              // tool-theme: allow generated-texture
               ctx.fillStyle = `rgb(${v},${v - 10},${v - 20})`;
               ctx.fillRect(x, y, 1, 1);
             }
@@ -389,9 +390,11 @@ export class MaterialStudioController {
       }
 
       // Tab switcher
-      document.querySelectorAll(".tab").forEach((tab) => {
+      document.querySelectorAll(".swf-ms-container .tabs-bar .tool-tab").forEach((tab) => {
         tab.addEventListener("click", () => {
-          document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+          document
+            .querySelectorAll(".swf-ms-container .tabs-bar .tool-tab")
+            .forEach((t) => t.classList.remove("active"));
           tab.classList.add("active");
 
           activeTab = tab.getAttribute("data-tab") || "";

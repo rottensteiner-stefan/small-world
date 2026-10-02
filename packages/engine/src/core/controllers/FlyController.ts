@@ -1,5 +1,5 @@
 import { Behavior } from "../behaviors/Behavior.js";
-import { CameraInterfaceData } from "../../interfaces/index.js";
+import { CameraInterfaceData, isCameraTarget } from "../../interfaces/index.js";
 import { Object3D, InputInterface, Scene } from "../index.js";
 import { Keys } from "../../enums/index.js";
 import { AudioSystem } from "../../audio/AudioSystem.js";
@@ -120,7 +120,8 @@ export class FlyController extends Behavior {
     }
 
     const input = this._options.input;
-    const isCamera = "updateProjectionMatrix" in this.target;
+    const target = this.target;
+    const isCamera = isCameraTarget(target);
 
     // 1. Mouse Look / Rotation
     let dx = 0;
@@ -148,12 +149,8 @@ export class FlyController extends Behavior {
       const moveZ = input.getAxis(Keys.W, Keys.S);
       const moveX = input.getAxis(Keys.A, Keys.D);
 
-      const theta = isCamera
-        ? (this.target as unknown as CameraInterfaceData).theta
-        : (this.target as Object3D).rotation.y;
-      const phi = isCamera
-        ? (this.target as unknown as CameraInterfaceData).phi
-        : (this.target as Object3D).rotation.x;
+      const theta = isCamera ? target.theta : (target as Object3D).rotation.y;
+      const phi = isCamera ? target.phi : (target as Object3D).rotation.x;
 
       const sinT = Math.sin(theta);
       const cosT = Math.cos(theta);
@@ -168,19 +165,19 @@ export class FlyController extends Behavior {
           const dirY = sinP;
           const dirZ = -cosT * cosP;
 
-          this.target.position.x += -moveZ * dirX * speed * deltaTime;
-          this.target.position.y += -moveZ * dirY * speed * deltaTime;
-          this.target.position.z += -moveZ * dirZ * speed * deltaTime;
+          target.position.x += -moveZ * dirX * speed * deltaTime;
+          target.position.y += -moveZ * dirY * speed * deltaTime;
+          target.position.z += -moveZ * dirZ * speed * deltaTime;
         } else {
-          this.target.position.x += -moveZ * sinT * speed * deltaTime;
-          this.target.position.z += -moveZ * -cosT * speed * deltaTime;
+          target.position.x += -moveZ * sinT * speed * deltaTime;
+          target.position.z += -moveZ * -cosT * speed * deltaTime;
         }
       }
 
       // Strafe Left / Right
       if (0 !== moveX) {
-        this.target.position.x += moveX * cosT * speed * deltaTime;
-        this.target.position.z += moveX * sinT * speed * deltaTime;
+        target.position.x += moveX * cosT * speed * deltaTime;
+        target.position.z += moveX * sinT * speed * deltaTime;
       }
 
       // Vertical Ascend / Descend (Space / E = Up, C / Q = Down)
@@ -194,30 +191,24 @@ export class FlyController extends Behavior {
         }
 
         if (0 !== verticalAxis) {
-          this.target.position.y += verticalAxis * speed * deltaTime;
+          target.position.y += verticalAxis * speed * deltaTime;
         }
       }
     }
 
     // 4. Resolve Collisions Against Walls and Scene Geometry (No God-Mode)
     if (this._options.enableCollision && this._options.scene && this._collider) {
-      resolveSphereCollisions(
-        this._collider,
-        this.target,
-        this._options.scene,
-        this._collider.radius,
-      );
+      resolveSphereCollisions(this._collider, target, this._options.scene, this._collider.radius);
     }
 
     // 5. Apply Look Rotation
     if (isCamera) {
-      const cam = this.target as unknown as CameraInterfaceData;
       if (this._options.enableRotation && (0 !== dx || 0 !== dy)) {
-        cam.pendingDx += dx;
-        cam.pendingDy += dy;
+        target.pendingDx += dx;
+        target.pendingDy += dy;
       }
     } else {
-      const obj = this.target as Object3D;
+      const obj = target as Object3D;
       if (this._options.enableRotation && (0 !== dx || 0 !== dy)) {
         obj.rotation.y -= dx * this._options.lookSensitivity;
         obj.rotation.x += dy * this._options.lookSensitivity;

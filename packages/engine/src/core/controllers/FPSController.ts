@@ -1,5 +1,5 @@
 import { Behavior } from "../behaviors/Behavior.js";
-import { CameraInterfaceData } from "../../interfaces/index.js";
+import { CameraInterfaceData, isCameraTarget } from "../../interfaces/index.js";
 import { Object3D, InputInterface, Scene } from "../index.js";
 import { InputMode, Keys } from "../../enums/index.js";
 import { AudioSystem } from "../../audio/AudioSystem.js";
@@ -84,7 +84,8 @@ export class FPSController extends Behavior {
     }
 
     const input = this._options.input;
-    const isCamera = "updateProjectionMatrix" in this.target;
+    const target = this.target;
+    const isCamera = isCameraTarget(target);
     let dx = 0;
     let dy = 0;
     if (this._options.enableRotation && input.isPointerLocked) {
@@ -102,18 +103,16 @@ export class FPSController extends Behavior {
         if (0 !== horizontalAxis) {
           const rotationAmount = horizontalAxis * 2.0 * deltaTime; // 2 rad/s
           if (isCamera) {
-            (this.target as unknown as CameraInterfaceData).theta += rotationAmount;
+            target.theta += rotationAmount;
           } else {
-            (this.target as Object3D).rotation.y -= rotationAmount;
+            (target as Object3D).rotation.y -= rotationAmount;
           }
         }
       }
 
       if (0 !== moveZ || (0 !== horizontalAxis && InputMode.STRAFE === this._options.inputMode)) {
         // If it's a camera, we use its current look direction (theta)
-        const theta = isCamera
-          ? (this.target as unknown as CameraInterfaceData).theta
-          : (this.target as import("../index.js").Object3D).rotation.y;
+        const theta = isCamera ? target.theta : (target as Object3D).rotation.y;
 
         const sin = Math.sin(theta);
         const cos = Math.cos(theta);
@@ -121,14 +120,14 @@ export class FPSController extends Behavior {
         // Forward/Backward
         if (0 !== moveZ) {
           // moveZ is -1 for W (forward), +1 for S (backward)
-          this.target.position.x += -moveZ * sin * this._options.moveSpeed * deltaTime;
-          this.target.position.z += moveZ * cos * this._options.moveSpeed * deltaTime;
+          target.position.x += -moveZ * sin * this._options.moveSpeed * deltaTime;
+          target.position.z += moveZ * cos * this._options.moveSpeed * deltaTime;
         }
 
         // Strafe
         if (0 !== horizontalAxis && InputMode.STRAFE === this._options.inputMode) {
-          this.target.position.x += horizontalAxis * cos * this._options.moveSpeed * deltaTime;
-          this.target.position.z += horizontalAxis * sin * this._options.moveSpeed * deltaTime;
+          target.position.x += horizontalAxis * cos * this._options.moveSpeed * deltaTime;
+          target.position.z += horizontalAxis * sin * this._options.moveSpeed * deltaTime;
         }
       }
     }
@@ -137,25 +136,24 @@ export class FPSController extends Behavior {
     if (this._options.enableVertical) {
       const moveY = input.getAxis(Keys.Q, Keys.E);
       if (0 !== moveY) {
-        this.target.position.y += moveY * this._options.moveSpeed * deltaTime;
+        target.position.y += moveY * this._options.moveSpeed * deltaTime;
       }
     }
 
     // 3. Resolve Collisions (BEFORE rotation application)
     if (this._options.enableCollision && this._options.scene) {
-      resolveSphereCollisions(this._collider, this.target, this._options.scene);
+      resolveSphereCollisions(this._collider, target, this._options.scene);
     }
 
     // 4. Apply Rotation / View Update
     if (isCamera) {
-      const cam = this.target as unknown as CameraInterfaceData;
       // Removed cam.update, rely on Camera's update logic
       if (this._options.enableRotation && input.isPointerLocked) {
-        cam.pendingDx += dx;
-        cam.pendingDy += dy;
+        target.pendingDx += dx;
+        target.pendingDy += dy;
       }
     } else {
-      const obj = this.target as Object3D;
+      const obj = target as Object3D;
       if (this._options.enableRotation) {
         obj.rotation.y -= dx * this._options.lookSensitivity;
         obj.rotation.x += dy * this._options.lookSensitivity;

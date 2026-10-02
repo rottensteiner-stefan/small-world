@@ -39,6 +39,7 @@ describe("AssetManager customFetch & Scheme Resolution", () => {
       if (url === "sw-asset://kit/bunker/kit.json") {
         return new Response(
           JSON.stringify({
+            id: "bunker",
             name: "Virtual Bunker",
             version: "1.0.0",
             author: "Tester",

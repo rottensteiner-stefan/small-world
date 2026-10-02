@@ -319,9 +319,19 @@ export class Vector3D implements Vector {
     const y: number = this.y;
     const z: number = this.z;
 
-    this.x = (d[0] ?? 0) * x + (d[4] ?? 0) * y + (d[8] ?? 0) * z;
-    this.y = (d[1] ?? 0) * x + (d[5] ?? 0) * y + (d[9] ?? 0) * z;
-    this.z = (d[2] ?? 0) * x + (d[6] ?? 0) * y + (d[10] ?? 0) * z;
+    const d0 = d[0]!,
+      d4 = d[4]!,
+      d8 = d[8]!;
+    const d1 = d[1]!,
+      d5 = d[5]!,
+      d9 = d[9]!;
+    const d2 = d[2]!,
+      d6 = d[6]!,
+      d10 = d[10]!;
+
+    this.x = d0 * x + d4 * y + d8 * z;
+    this.y = d1 * x + d5 * y + d9 * z;
+    this.z = d2 * x + d6 * y + d10 * z;
 
     return this.normalize();
   }

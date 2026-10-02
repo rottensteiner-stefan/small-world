@@ -1,6 +1,6 @@
 ---
 name: collaborate
-description: Protokoll für kollaborative Verhandlung und gemeinsame Problemlösung mehrerer KI-Agenten mit menschlichem Moderator — Round-Robin, gemeinsames Topic-Dokument, Zustandsdatei <topic>.pid, Rundenlimit, Pause/Resume/Stop, formaler Konsens; Modus `plan` (Umsetzungsplan) und Modus `decide` (Fragestellung jeder Art — technisch, fachlich, strategisch, konzeptionell, Wert- und Geschmacksfragen —, auch ohne klares Ergebnis gültig).
+description: Protokoll für kollaborative Verhandlung und gemeinsame Problemlösung mehrerer KI-Agenten mit menschlichem Moderator — Round-Robin (.pid) oder paralleles Blackboard mit Event-Sourcing (<topic>.board.jsonl), gemeinsames Topic-Dokument, Rundenlimit, Pause/Resume/Stop, formaler Konsens; Modus `plan` (Umsetzungsplan) und Modus `decide` (Fragestellung jeder Art — technisch, fachlich, strategisch, konzeptionell, Wert- und Geschmacksfragen —, auch ohne klares Ergebnis gültig).
 ---
 
 # Multi-Agent-Collaborate-Protokoll
@@ -51,6 +51,8 @@ Stellt ein Agent während seines Zugs fest, dass sein geplanter Arbeitsbereich m
 
 - **Moderator (Mensch):** Startet und steuert die Session mit `/collaborate --<flag>`, prüft Reihenfolge und Teilnehmer, löst Deadlocks, gewährt Verlängerungen, entscheidet im Zweifel (`--decide`) und beendet.
 - **Agenten (KI-Teilnehmer):** Lesen das Topic-Dokument, verhandeln Lösungen, hinterfragen Annahmen, bauen Konsens auf und übergeben den Zug per Round-Robin.
+  - **Modell-Agnostik & KI-Klone:** Ein Agent kann jedes beliebige KI-System sein (Claude, Gemini, OpenAI, DeepSeek, lokale LLMs etc.) oder eine **geklonte Instanz seiner selbst** (z. B. 3–10 parallele Antigravity- oder Claude-Instanzen). Bei Klonen desselben Modells sorgen unterschiedliche `role` und `stance`-Vorgaben (z. B. *Advocate*, *Red-Team / Skeptiker*, *Performance Lead*, *Security Auditor*) für echte Perspektivenvielfalt und verhindern Groupthink.
+  - **Universelle Schnittstelle:** Die Koordination erfolgt rein dateibasiert über `<topic>.md`, `<topic>.pid` und `collab.mjs watch`. Es werden keinerlei herstellerspezifische APIs zwischen den Agenten vorausgesetzt.
 - **Standardverzeichnis (`.agents/collaborate/`):** Ohne expliziten Pfad liegen alle Arbeits- und Statusdateien dort.
 - **Topic-Dokument (`<topic>.<ext>`):** Einzige Wahrheitsquelle für Anforderungen, Argumente, Vorschläge und Vereinbarungen (z. B. `.agents/collaborate/diorama.md`).
 - **Zustand & Sperre (`<topic>.pid`):** Maschinenlesbare Zustandsdatei im selben Verzeichnis, mit **demselben Basisnamen wie das Topic-Dokument, aber Endung `.pid`** (z. B. `diorama.md` → `.agents/collaborate/diorama.pid`). Steuert Zugsperre, Roster-Reihenfolge, Rundenlimit, Pausen und Konsens.
@@ -189,7 +191,9 @@ Felder ab Protokollversion 1.1 (ältere `.pid`-Dateien ohne diese Felder gelten 
 
 `turn_index` ist maßgeblich dafür, wer dran ist; `active_agent` ist ein abgeleitetes Komfortfeld und MUSS `roster[turn_index].name` entsprechen. Findet ein Leser beides inkonsistent vor, gilt die PID-Datei als korrupt: nicht raten, nicht stillschweigend reparieren — stoppen und dem Moderator melden.
 
-Jeder Roster-Eintrag KANN ein Feld `channel` tragen (Standard `"manual"`, auch wenn das Feld fehlt, z. B. in älteren Dateien). Drei Werte:
+Jeder Roster-Eintrag KANN ein Feld `channel` tragen (Standard `"manual"`, auch wenn das Feld fehlt, z. B. in älteren Dateien). Werte:
+- `"watch"` — der Agent überwacht die PID-Datei ressourcenfrei über `node collab.mjs watch <topic> <AgentName>` (OS-Events / kqueue / inotify, 0% CPU, 0 LLM-Tokens). Sobald `active_agent === Name` erreicht ist, beendet der Watcher sich mit Exit-Code 0 und weckt den Agenten auf. Die Staffelstab-Übergabe erfolgt vollautonom ohne Moderator-Eingriff beim Ausführen von `end-turn`.
+- `"subagent"` — der Agent ist ein programmatisch steuerbarer Subagent im selben Harness (z. B. via `invoke_subagent` oder `send_message`). Der aktive Agent ruft den nächsten Teilnehmer am Ende seines Zugs direkt mit `/collaborate --invite <NextAgent> <topic>` auf.
 - `"peer_session"` — der Agent ist eine Claude-Code-Session/ein Teammate, technisch erreichbar per `SendMessage` aus diesem Harness.
 - `"unix_signal"` — der Agent ist ein **langlaufender lokaler Prozess mit installiertem Signal-Handler**, der beim Signal selbstständig aufwacht, `<topic>.<ext>`/`<topic>.pid` neu liest und seinen Zug macht. Das ist etwas grundlegend anderes als eine interaktive CLI-/Chat-Session, die man per Prompt bedient: Eine interaktive Session hat keinen Handler, der sie wecken könnte, und MUSS daher auf `"manual"` bleiben, auch wenn sie in einem lokalen Terminal läuft. Ein Eintrag mit diesem Channel MUSS zusätzlich ein echtes OS-`"pid"`-Feld tragen (eine tatsächliche Prozess-ID — nicht zu verwechseln mit der JSON-*Datei* `<topic>.pid`). Der Moderator bestätigt bei `--invite`, dass der Zielprozess wirklich einen Handler für das vereinbarte Signal installiert; das wird nicht aus „es ist ein lokaler Prozess“ angenommen.
 - `"manual"` (Standard) — kein programmatischer Kanal: anderer Hersteller/anderes Produkt, ein Mensch, der von Hand weiterreicht, oder alles, was der Harness nicht erreichen oder signalisieren kann.
@@ -288,13 +292,30 @@ Die Regeln für Lesen, Beitragsformat, Rundfragen (`[TEAM_QUESTION]` mit Antwort
    - **Zug-Zeitstempel:** der ISO-8601-UTC-Zeitstempel (z. B. `2026-08-30T17:42:11Z`), den du soeben in `history` für diesen Zug geschrieben hast.
 - Danach 5.2 folgen: das copy-fertige Handoff-Kommando ausgeben oder die programmatische Übergabe auslösen.
 
-### 5.2 Staffelstab-Übergabe (bestätigter Handoff)
+### 5.2 Staffelstab-Übergabe (bestätigter Handoff & autonome Weitergabe)
 
-Zweck dieses Abschnitts: Den Aufwand des Moderators pro Zug auf ein einziges Copy-Paste bzw. eine Bestätigung senken.
+Zweck dieses Abschnitts: Die Verhandlung so autonom wie möglich zu gestalten bzw. den Aufwand des Moderators pro Zug auf ein Minimum zu senken.
 
 `roster[next_index].channel` nachschlagen (Standard: `"manual"`):
 
-- **`channel: "manual"` (Standard für Multi-Agent / Cross-Window):**
+- **`channel: "watch"` (Vollautonom via ressourcenfreiem File-Watching):**
+  - Der nächste Agent wartet bereits in einem Hintergrund-Task, Runner oder Watch-Loop via:
+    ```bash
+    node .agents/skills/collaborate/collab.mjs watch <FileName> <NextAgent>
+    ```
+  - Sobald der aktive Agent `collab.mjs end-turn` ausführt, wechselt die PID-Datei atomar den Zustand (`active_agent: <NextAgent>`, `status: "idle"`).
+  - Der OS-Watcher wacht **verzögerungsfrei und mit 0% CPU/0 Token-Verbrauch** auf und triggert den nächsten Agenten.
+  - **Kein Moderator-Eingriff nötig.** Der abgebende Agent meldet dem Moderator lediglich die Statuszusammenfassung und vermerkt:
+    *„👉 Staffelstab autonom per File-Watch an **<NextAgent>** übergeben.“*
+
+- **`channel: "subagent"` (Vollautonom via Subagent-Invocation / Messaging):**
+  1. Nach erfolgreichem `collab.mjs end-turn` ruft der abgebende Agent den nächsten Agenten direkt per Subagent-Tool auf:
+     - Falls der Subagent neu gestartet wird: `invoke_subagent` mit Prompt: `/collaborate --invite <NextAgent> <FileName>`.
+     - Falls der Subagent bereits läuft/pausiert: `send_message` an die Conversation-ID von `<NextAgent>`.
+  2. Der abgebende Agent meldet dem Moderator:
+     *„👉 Staffelstab autonom per Subagent-Aufruf an **<NextAgent>** übergeben.“*
+
+- **`channel: "manual"` (Standard für getrennte Fenster / manuelle Übergabe):**
   - Jeder Agent schließt seinen Zug mit einem copy-paste-fertigen Handoff-Block für den Moderator ab:
     ````markdown
     👉 **Kommando für den nächsten Agenten (<NextAgent>):**
@@ -302,7 +323,7 @@ Zweck dieses Abschnitts: Den Aufwand des Moderators pro Zug auf ein einziges Cop
     /collaborate --invite <NextAgent> <FileName>
     ```
     ````
-  - Der Moderator muss diesen Befehl nur in das Chat-Fenster des nächsten Agenten einfügen.
+  - Der Moderator fügt diesen Befehl in das Fenster des nächsten Agenten ein.
 
 - **`channel: "peer_session"`** (Agent über `SendMessage` / Harness erreichbar):
   1. Handoff-Nachricht mit der Anweisung `/collaborate --invite <NextAgent> <FileName>` entwerfen.
@@ -456,8 +477,39 @@ Das Protokoll bleibt von Hand benutzbar (Agenten ohne Shell, z. B. Web-Chats). W
 | `note <topic> "<Text>"` | `history`-Eintrag; gibt die einzufügende `[MODERATOR_NOTE <ts>] …`-Zeile aus |
 | `approve <topic> [P<n>]` | Moderator-Bestätigung für die Selbst-Planung (nur `plan` mit 1 Agent); gibt die einzufügende `[MODERATOR_APPROVAL P<n> <ts>]`-Zeile aus. `end-turn --consensus` verlangt in diesem Fall zusätzlich die Bestätigung |
 | `decide <topic> "<Entscheidung>"` | `MODERATOR_DECISION` + `terminated` |
-| `validate <topic>` · `status` | Invarianten prüfen · Übersichtstabelle aller `.pid` |
+| `validate <topic>` · `status` | Invarianten prüfen · Übersichtstabelle aller `.pid` und `.board.jsonl` Sessions |
+| `watch <topic> <Agent> [--timeout N] [--interval N]` | Ressourceneffiziente Dateiüberwachung (0% CPU, 0 Tokens): blockiert bis Zug bereit (`turn_ready`) oder Session beendet (`session_ended`) |
+| `board-init <topic> [Coordinator]` | Blackboard Session initialisieren (`<topic>.board.jsonl`) |
+| `board-join <topic> <Agent>` | Worker/Teilnehmer auf dem Blackboard registrieren (`--role`, `--stance`) |
+| `post-task <topic> <Author> "<Title>"` | Aufgabe anheften (`--assign <Agent>`, `--id <TaskId>`) |
+| `claim-task <topic> <Agent> <TaskId>` | Aufgabe in Bearbeitung nehmen (`in_progress`) |
+| `complete-task <topic> <Agent> <TaskId>` | Aufgabe abschließen (`--result "<Zusammenfassung>"`) |
+| `post-finding <topic> <Agent> --title "<Titel>"` | Befund/Finding anheften (`--task`, `--severity`, `--file`, `--line`, `--desc`) |
+| `post-proposal <topic> <Agent> <P<n>> "<Titel>"` | Konsens-Vorschlag anheften (`--desc`) |
+| `post-vote <topic> <Agent> <P<n>> <VOTE>` | Stimme abgeben (`AGREE`, `DISAGREE`, `DISSENT`, `--reason`) |
+| `resolve-board <topic> <Author> --outcome <Outcome>` | Blackboard finalisieren (`--summary`) |
+| `board <topic> [--json]` | Aktuellen Projektionszustand abfragen |
+| `render <topic> [--stdout]` | Blackboard in Markdown (`<topic>.md`) kompilieren |
+| `board-watch <topic> [--task T] [--agent A]` | Zero-Resource Watcher auf Blackboard-Events |
 
-Das Skript schreibt **nie** ins Topic-Dokument — Beiträge, Ergebnis-Block, Blind-Dateien und Archivierung bleiben Sache der Agenten.
+Das Skript schreibt im `.pid`-Modus **nie** ins Topic-Dokument — Beiträge, Ergebnis-Block, Blind-Dateien und Archivierung bleiben Sache der Agenten. Im Blackboard-Modus kompiliert `render` den Zustand automatisiert in `<topic>.md`.
 
 **Vorrang:** `SKILL.md` ist die Spezifikation, `collab.mjs` ihre Implementierung. Weicht das Skript von der Spezifikation ab, ist das ein Fehler des Skripts — im Zweifel gilt `SKILL.md`, und die Abweichung wird dem Moderator gemeldet.
+
+---
+
+## 12. Blackboard & Event-Sourcing (Parallele Multi-Agent-Kollaboration)
+
+Für Szenarien mit mehreren parallelen Subagenten (z. B. 1 Koordinator + 3 spezialisierte Worker) bietet das Protokoll neben der sequentiellen Round-Robin-Rotation das **Blackboard-Muster** mit **Single Append-Only Log (`<topic>.board.jsonl`)**.
+
+### 12.1 Architektur & POSIX Atomic Guarantee
+- **Single Append-Only File:** Alle Agenten schreiben ihre Aktionen (`task_posted`, `finding_posted`, `task_completed`, `vote_posted`) als einzelne JSON-Zeilen in `<topic>.board.jsonl`.
+- **Lock-Free Concurrency:** Unter POSIX-Systemen (macOS/Linux) sind Schreiboperationen via `fs.appendFileSync(path, line + '\n', { flag: 'a' })` unter 4 KB atomar. Es gibt keine `.lock`-Blockaden.
+- **Event-Sourcing & Determinismus:** Der Zustand des Boards ist eine reine Projektion `State = Reducer(Events)`.
+- **Live Markdown Compiler:** Der Befehl `collab.mjs render <topic>` kompiliert den aktuellen Projektionszustand verlustfrei in ein lesbares GitHub-Markdown-Dokument (`<topic>.md`) für menschliche Reviewer.
+- **Zero-Resource Watcher:** Parallele Subagenten blockieren mit `collab.mjs board-watch <topic> --task <TaskId>` ressourcenfrei via OS `fs.watch`, bis ihre Teilaufgabe oder neue Findings verfügbar sind.
+
+### 12.2 Rollenmodell im Blackboard
+1. **Koordinator / Lead:** Initialisiert das Board (`board-init`), formuliert Aufgabenpakete (`post-task`), moderiert Vorschläge (`post-proposal`) und schließt das Board ab (`resolve-board`).
+2. **Worker-Subagenten (Spezialisten):** Registrieren sich (`board-join`), beanspruchen Aufgaben (`claim-task`), führen Code-/Architekturanalysen durch, publizieren strukturierte Befunde (`post-finding`), schließen Aufgaben ab (`complete-task`) und stimmen über Vorschläge ab (`post-vote`).
+

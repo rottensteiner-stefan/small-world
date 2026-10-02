@@ -12,20 +12,22 @@ export type { InspectorField };
 /**
  * Base class for all behaviors attached to an Object3D.
  */
-export abstract class Behavior {
+export abstract class Behavior<
+  TTarget extends Object3D | CameraInterfaceData = Object3D | CameraInterfaceData,
+> {
   public static readonly inspector?: Record<string, InspectorField>;
 
   public readonly uuid: string = MathUtils.generateUUID();
   public isActive: boolean = true;
 
   /** The object this behavior is attached to. Set automatically. */
-  public target: Object3D | CameraInterfaceData | undefined = undefined;
+  public target: TTarget | undefined = undefined;
 
   /**
    * Called when the behavior is attached to an object.
    */
   public onAttach(target: Object3D | CameraInterfaceData): void {
-    this.target = target;
+    this.target = target as unknown as TTarget;
   }
 
   /**
@@ -40,7 +42,7 @@ export abstract class Behavior {
    * expected to `attachBehavior()` it onto the new host, which sets `target` correctly via
    * `onAttach()`). Used by `Object3D.clone()` (Maker's Duplicate command).
    */
-  public clone(): Behavior {
+  public clone(): Behavior<TTarget> {
     const copy = shallowCloneWithValueTypes(this);
     copy.target = undefined;
     return copy;

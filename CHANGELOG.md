@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.92.0] - 2026-10-02
+
+### "The details are not the details. They make the design." - Charles Eames
+
+- **Features:**
+  - *Unified Compact Tool Headers*: Standardized ultra-compact 38px header layout across all 9 engine tool applications (`pbr-gen`, `splatter-gen`, `xtractor`, `pixler`, `kit-inspector`, `ibl-gen`, `maker`, `map-gen`, `gamepad-test`), eliminating legacy navigation buttons and introducing conditional `.tool-close-btn` (`✕`) window-close triggers for embedded iframes and modal popup workflows.
+  - *Platform-Wide CSS Design Token System*: Parameterized all UI surfaces with semantic design tokens (`--tool-*`, `--showcase-*`, `--font-ui`, `--font-mono`) in [`tool-theme.css`](public/assets/tool-theme.css) and [`shared.css`](public/assets/shared.css), renaming trademarked `--tron-*` tokens to legally clean `--showcase-*` variables.
+  - *Zero-Network Font Architecture & 100% WOFF2 Migration*: Completely severed all external Google Fonts network calls in favor of local SIL OFL-licensed `.woff2` fonts in [`fonts.css`](public/assets/fonts.css); converted the legacy `Dungeon.ttf` asset into an optimized `Dungeon.woff2` (64.4% size reduction from 29.4 KB down to 10.5 KB).
+- **Architecture & Bugfixes:**
+  - *CSS Audit & Design Token Validator*: Introduced CLI tool [`audit-css-tokens.js`](scripts/audit-css-tokens.js) (`npm run css:audit`) scanning stylesheets and tool pages for raw color literals and untokenized typography, achieving a verified 0-literal baseline across the tool ecosystem.
+  - *Typography Fallback Streamlining*: Replaced fragmented font stacks (`Courier New`, `Inter`, `Georgia`, ad-hoc system chains) with centralized `--font-ui` and `--font-mono` tokens across portals, modals, launchers, and dioramas.
+  - *Collaborate Multi-Agent Protocol*: Enhanced multi-agent peer protocol under `.agents/skills/collaborate/` with structured coordinator support, append-only event sourcing, and round-robin locks.
+- **Housekeeping & Docs:**
+  - *Full Test & Lint Verification*: 209 test suites (1236 unit tests) passing 100% green with zero lint issues and strict TypeScript types.
+
 ## [0.91.0] - 2026-10-01
 
 ### "Order is not pressure which is put on things from without, but salvation which comes from within." - Josiah Royce

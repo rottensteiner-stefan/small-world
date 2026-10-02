@@ -5,63 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/webp" href="/favicon.webp" />
     <link rel="stylesheet" href="/assets/shared.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="/assets/tool-theme.css" />
     <title>PBR Texture Map Generator</title>
     <style>
-:root {
-        --bg-dark: #0f111a;
-        --bg-panel: rgba(22, 28, 45, 0.7);
-        --bg-control: #1a1f35;
-        --accent: #3b82f6;
-        --accent-glow: rgba(59, 130, 246, 0.3);
-        --accent-green: #10b981;
-        --accent-green-glow: rgba(16, 185, 129, 0.2);
-        --text-main: #f8fafc;
-        --text-muted: #94a3b8;
-        --border: rgba(148, 163, 184, 0.1);
-        --border-focus: rgba(59, 130, 246, 0.5);
-      }
-
       * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
       }
 
-      body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: var(--bg-dark);
-      }
-      ::-webkit-scrollbar-thumb {
-        background: var(--bg-control);
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: var(--accent);
-      }
-
-      
-      h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
-
-      .badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        background: var(--accent-glow);
-        border: 1px solid var(--accent);
-        border-radius: 9999px;
-        color: #93c5fd;
-        font-weight: 500;
+      body {
+        background: var(--tool-bg);
+        color: var(--tool-text);
+        font-family: var(--tool-font-ui);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
       }
 
       .app-container {
@@ -73,10 +33,9 @@
 
       /* Sidebar controls */
       .sidebar {
-        width: 380px;
-        background: var(--bg-panel);
-        backdrop-filter: blur(20px);
-        border-right: 1px solid var(--border);
+        width: 320px;
+        background: var(--tool-panel);
+        border-right: 1px solid var(--tool-border);
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -86,318 +45,147 @@
       .sidebar-scroll {
         flex: 1;
         overflow-y: auto;
-        padding: 1.5rem;
+        padding: 0.75rem;
       }
 
       .section-title {
-        font-size: 0.8rem;
-        font-weight: 600;
+        font-size: 0.72rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--text-muted);
-        margin-bottom: 1rem;
+        color: var(--tool-text-muted);
+        margin: 0.9rem 0 0.5rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
-        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--tool-border);
+        padding-bottom: 0.35rem;
       }
 
-      .control-group {
-        margin-bottom: 1.5rem;
-        background: rgba(26, 31, 53, 0.3);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 1.1rem;
-        transition: all 0.3s ease;
-      }
-
-      .control-group:hover {
-        border-color: rgba(148, 163, 184, 0.15);
+      .section-title:first-child {
+        margin-top: 0;
       }
 
       .control-row {
-        margin-bottom: 1rem;
+        margin-bottom: 0.6rem;
       }
 
       .control-row:last-child {
         margin-bottom: 0;
       }
 
-      label {
+      .field-label {
         display: flex;
         justify-content: space-between;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-weight: 500;
-        color: var(--text-muted);
-        margin-bottom: 0.5rem;
+        color: var(--tool-text-muted);
+        margin-bottom: 0.3rem;
       }
 
-      .value-display {
-        color: var(--accent);
-        font-family: "JetBrains Mono", monospace;
-        font-size: 0.8rem;
-        font-weight: 600;
-      }
-
-      select,
-      input[type="text"] {
+      .tool-select {
         width: 100%;
-        background: var(--bg-control);
-        border: 1px solid var(--border);
-        color: var(--text-main);
-        padding: 0.6rem 0.8rem;
-        border-radius: 8px;
-        font-family: inherit;
-        font-size: 0.85rem;
-        outline: none;
-        transition: all 0.2s ease;
       }
 
-      select:focus,
-      input[type="text"]:focus {
-        border-color: var(--border-focus);
-        box-shadow: 0 0 0 2px var(--accent-glow);
-      }
-
-      /* Range slider custom styling */
-      input[type="range"] {
-        -webkit-appearance: none;
-        width: 100%;
-        height: 6px;
-        border-radius: 3px;
-        background: var(--bg-control);
-        outline: none;
-      }
-
-      input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: var(--accent);
-        cursor: pointer;
-        transition:
-          transform 0.1s ease,
-          background-color 0.1s ease;
-        box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-      }
-
-      input[type="range"]::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-        background: #60a5fa;
-      }
-
-      /* Toggle switch styling */
+      /* Toggle switch row */
       .switch-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.2rem 0;
       }
 
-      .switch-row label {
+      .switch-row .field-label {
         margin-bottom: 0;
         cursor: pointer;
       }
 
-      .switch {
-        position: relative;
-        display: inline-block;
-        width: 38px;
-        height: 20px;
-      }
-
-      .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-      }
-
-      .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: var(--bg-control);
-        transition: 0.3s;
-        border-radius: 20px;
-        border: 1px solid var(--border);
-      }
-
-      .slider:before {
-        position: absolute;
-        content: "";
-        height: 14px;
-        width: 14px;
-        left: 2px;
-        bottom: 2px;
-        background-color: var(--text-muted);
-        transition: 0.3s;
-        border-radius: 50%;
-      }
-
-      input:checked + .slider {
-        background-color: var(--accent);
-        border-color: var(--accent);
-      }
-
-      input:checked + .slider:before {
-        transform: translateX(18px);
-        background-color: var(--text-main);
-      }
-
       /* Dropzone */
       .dropzone {
-        border: 2px dashed var(--border);
-        border-radius: 12px;
-        padding: 1.5rem 1rem;
+        border: 1px dashed var(--tool-border-active);
+        border-radius: var(--tool-radius-md);
+        padding: 1rem 0.75rem;
         text-align: center;
         cursor: pointer;
-        background: rgba(26, 31, 53, 0.2);
-        transition: all 0.3s ease;
-        margin-bottom: 1.5rem;
+        background: var(--tool-card);
+        transition: all 0.15s ease;
+        margin-bottom: 0.75rem;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.35rem;
       }
 
       .dropzone:hover,
       .dropzone.dragover {
-        border-color: var(--accent);
-        background: rgba(59, 130, 246, 0.05);
+        border-color: var(--tool-accent);
+        background: var(--tool-card-active);
       }
 
       .dropzone-icon {
-        color: var(--accent);
-        transition: transform 0.3s ease;
+        color: var(--tool-accent);
+        transition: transform 0.15s ease;
       }
 
       .dropzone:hover .dropzone-icon {
-        transform: translateY(-3px);
+        transform: translateY(-2px);
       }
 
       .dropzone-text {
         font-size: 0.85rem;
-        font-weight: 500;
-        color: var(--text-muted);
+        font-weight: 600;
+        color: var(--tool-text);
       }
 
       .dropzone-sub {
-        font-size: 0.7rem;
-        color: rgba(148, 163, 184, 0.6);
+        font-size: 0.72rem;
+        color: var(--tool-text-muted);
       }
 
       /* Sidebar action buttons */
       .sidebar-actions {
-        padding: 1.25rem 1.5rem;
-        border-top: 1px solid var(--border);
-        background: rgba(15, 17, 26, 0.4);
+        padding: 0.75rem;
+        border-top: 1px solid var(--tool-border);
+        background: var(--tool-panel-solid);
         display: grid;
         grid-template-columns: 1fr;
-        gap: 0.75rem;
-      }
-
-      .btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
         gap: 0.5rem;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        font-weight: 600;
+      }
+
+      .sidebar-actions .tool-btn {
+        padding: 0.55rem 0.8rem;
         font-size: 0.85rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: none;
-        outline: none;
       }
 
-      .btn-primary {
-        background: var(--accent);
-        color: var(--text-main);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-      }
-
-      .btn-primary:hover {
-        background: #2563eb;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
-      }
-
-      .btn-secondary {
-        background: var(--bg-control);
-        color: var(--text-main);
-        border: 1px solid var(--border);
-      }
-
-      .btn-secondary:hover {
-        background: #232a48;
-        border-color: rgba(148, 163, 184, 0.3);
-      }
-
-      .btn-secondary.active {
-        border-color: var(--accent);
-        background: var(--accent-glow);
-        color: var(--text-main);
-      }
-
-      /* Main Viewport & Tabs */
+      /* Main viewport & tabs */
       .viewport {
         flex: 1;
         display: flex;
         flex-direction: column;
-        background: #090a0f;
+        background: var(--tool-bg);
         overflow: hidden;
         position: relative;
       }
 
       .tabs-bar {
-        display: flex;
-        padding: 0.75rem 1.5rem 0 1.5rem;
-        background: rgba(15, 17, 26, 0.5);
-        border-bottom: 1px solid var(--border);
-        gap: 0.25rem;
+        margin: 0.6rem 0.75rem 0;
         overflow-x: auto;
+        flex-shrink: 0;
       }
 
-      .tab {
-        padding: 0.6rem 1rem;
-        background: transparent;
-        border: none;
-        color: var(--text-muted);
-        font-family: inherit;
-        font-size: 0.85rem;
-        font-weight: 500;
-        cursor: pointer;
-        border-radius: 8px 8px 0 0;
-        border-bottom: 2px solid transparent;
-        transition: all 0.2s ease;
+      .tool-tab {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.4rem;
         white-space: nowrap;
       }
 
-      .tab:hover {
-        color: var(--text-main);
-        background: rgba(255, 255, 255, 0.02);
-      }
-
-      .tab.active {
-        color: var(--accent);
-        border-bottom-color: var(--accent);
-        background: rgba(59, 130, 246, 0.05);
-        font-weight: 600;
+      .tool-tab.tab-engine:not(.active) {
+        color: var(--tool-accent2);
       }
 
       .canvas-container {
         flex: 1;
-        padding: 1.5rem;
+        padding: 0.75rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -405,88 +193,84 @@
         position: relative;
       }
 
+      /* Transparency checkerboard behind the maps */
       .checkerboard {
         background-image:
-          linear-gradient(45deg, #181b28 25%, transparent 25%),
-          linear-gradient(-45deg, #181b28 25%, transparent 25%),
-          linear-gradient(45deg, transparent 75%, #181b28 75%),
-          linear-gradient(-45deg, transparent 75%, #181b28 75%);
+          linear-gradient(45deg, var(--tool-card-hover) 25%, transparent 25%),
+          linear-gradient(-45deg, var(--tool-card-hover) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, var(--tool-card-hover) 75%),
+          linear-gradient(-45deg, transparent 75%, var(--tool-card-hover) 75%);
         background-size: 20px 20px;
         background-position:
           0 0,
           0 10px,
           10px -10px,
           -10px 0px;
-        background-color: #10121a;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        background-color: var(--tool-panel-solid);
+        border-radius: var(--tool-radius-md);
+        border: 1px solid var(--tool-border);
         display: flex;
         align-items: center;
         justify-content: center;
         max-width: 100%;
         max-height: 100%;
         padding: 10px;
-        transition: all 0.3s ease;
       }
 
       canvas {
         max-width: 100%;
         max-height: 70vh;
         object-fit: contain;
-        border-radius: 6px;
+        border-radius: var(--tool-radius-sm);
         display: block;
+        width: auto;
+        height: auto;
       }
 
-      /* Grid View */
+      /* Grid view */
       .grid-view {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 0.75rem;
         width: 100%;
         height: 100%;
-        padding: 0.5rem;
         overflow-y: auto;
+        align-content: start;
       }
 
       .grid-item {
-        background: var(--bg-panel);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 0.75rem;
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.5rem;
         align-items: center;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         position: relative;
       }
 
       .grid-item-title {
-        font-size: 0.8rem;
-        font-weight: 600;
+        font-size: 0.72rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--text-muted);
+        color: var(--tool-text-muted);
         align-self: flex-start;
         display: flex;
         justify-content: space-between;
         width: 100%;
         align-items: center;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
-        padding-bottom: 0.4rem;
+        border-bottom: 1px solid var(--tool-border);
+        padding-bottom: 0.3rem;
       }
 
       .grid-item-download {
         cursor: pointer;
-        color: var(--accent);
-        transition: color 0.2s ease;
+        color: var(--tool-accent);
+        transition: color 0.15s ease;
         display: flex;
         align-items: center;
       }
 
       .grid-item-download:hover {
-        color: #60a5fa;
+        color: var(--tool-text);
       }
 
       .grid-item .checkerboard {
@@ -501,14 +285,38 @@
         max-height: 100%;
       }
 
-      /* Tooltip/overlay loading indicator */
+      /* 3D preview */
+      .preview3d {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .preview3d-stage {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #SmallWorldPreview {
+        max-width: 100%;
+        max-height: 60vh;
+        background: var(--tool-bg);
+        border: 1px solid var(--tool-border);
+        border-radius: var(--tool-radius-md);
+      }
+
+      /* Loading overlay */
       .loading-overlay {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(9, 10, 15, 0.85);
+        inset: 0;
+        background: color-mix(in srgb, var(--tool-bg) 85%, transparent);
         z-index: 100;
         display: flex;
         flex-direction: column;
@@ -517,8 +325,7 @@
         gap: 1rem;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 0.3s ease;
-        backdrop-filter: blur(5px);
+        transition: opacity 0.2s ease;
       }
 
       .loading-overlay.active {
@@ -526,11 +333,17 @@
         pointer-events: auto;
       }
 
+      .loading-text {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--tool-text);
+      }
+
       .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid rgba(59, 130, 246, 0.1);
-        border-top-color: var(--accent);
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--tool-border);
+        border-top-color: var(--tool-accent);
         border-radius: 50%;
         animation: spin 1s infinite linear;
       }
@@ -558,15 +371,14 @@
       }
 
       /* Expandable sections */
-      .collapsible-
-
-      .collapsible-header:hover {
-        border-color: rgba(148, 163, 184, 0.2);
-        background: rgba(26, 31, 53, 0.7);
+      .collapsible-header {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 0.4rem;
       }
 
       .collapsible-header svg {
-        transition: transform 0.2s ease;
+        transition: transform 0.15s ease;
       }
 
       .collapsible-header.active svg {
@@ -577,28 +389,28 @@
         max-height: 0;
         overflow: hidden;
         transition:
-          max-height 0.3s ease-out,
-          padding 0.3s ease;
-        padding: 0 0.5rem;
+          max-height 0.25s ease-out,
+          padding 0.25s ease;
+        padding: 0 0.25rem;
       }
 
       .collapsible-content.open {
         max-height: 1000px;
-        padding: 0.75rem 0.5rem 1.25rem 0.5rem;
+        padding: 0.6rem 0.25rem 0.75rem;
       }
     </style>
   </head>
-  <body>
     <header class="tool-header">
       <h1>PBR Texture Map Generator</h1>
-      <a href="/" class="nav-btn">Back to Engine</a>
+      <button class="tool-close-btn" id="toolCloseBtn" title="Close Window" onclick="if (window.parent && window.parent !== window) { window.parent.postMessage({ type: 'close-tool' }, '*'); } try { window.close(); } catch(e) {}">✕</button>
     </header>
+    <script>if (window.self !== window.top || window.opener) document.body.classList.add("in-window");</script>
     
     <div class="app-container">
       <!-- Loading Screen -->
       <div id="loading-overlay" class="loading-overlay active">
         <div class="spinner"></div>
-        <div id="loading-text" style="font-weight: 600; font-size: 0.95rem">
+        <div id="loading-text" class="loading-text">
           Processing rock texture...
         </div>
       </div>
@@ -640,8 +452,8 @@
             </svg>
             Preset Profile
           </div>
-          <div class="control-row" style="margin-bottom: 1.5rem">
-            <select id="profile-select">
+          <div class="control-row">
+            <select class="tool-select" id="profile-select">
               <option value="default" selected>Default (Balanced)</option>
               <option value="stone">Stone (High Normal, Rough)</option>
               <option value="metal">Metal (Smooth, Shiny Spec)</option>
@@ -667,7 +479,7 @@
           </div>
 
           <!-- 1. Height Map Settings -->
-          <div class="collapsible-header active" data-target="height-settings">
+          <div class="tool-btn collapsible-header active" data-target="height-settings">
             <span>Height Map Settings</span>
             <svg
               width="12"
@@ -682,19 +494,18 @@
           </div>
           <div id="height-settings" class="collapsible-content open">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Blur Radius
-                <span id="height-blur-val" class="value-display">0</span>
+                <span id="height-blur-val" class="tool-value">0</span>
               </label>
-              <input type="range" id="height-blur-slider" min="0" max="10" step="1" value="0" />
+              <input class="tool-slider" type="range" id="height-blur-slider" min="0" max="10" step="1" value="0" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Contrast
-                <span id="height-contrast-val" class="value-display">1.0</span>
+                <span id="height-contrast-val" class="tool-value">1.0</span>
               </label>
-              <input
-                type="range"
+              <input class="tool-slider" type="range"
                 id="height-contrast-slider"
                 min="0.5"
                 max="3.0"
@@ -703,16 +514,14 @@
               />
             </div>
             <div class="control-row switch-row">
-              <label for="height-invert">Invert Map</label>
-              <div class="switch">
-                <input type="checkbox" id="height-invert" />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="height-invert">Invert Map</label>
+              <label class="tool-switch">
+                <input type="checkbox" id="height-invert" /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 2. Normal Map Settings -->
-          <div class="collapsible-header" data-target="normal-settings">
+          <div class="tool-btn collapsible-header" data-target="normal-settings">
             <span>Normal Map Settings</span>
             <svg
               width="12"
@@ -727,12 +536,11 @@
           </div>
           <div id="normal-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Bump Strength
-                <span id="normal-strength-val" class="value-display">100%</span>
+                <span id="normal-strength-val" class="tool-value">100%</span>
               </label>
-              <input
-                type="range"
+              <input class="tool-slider" type="range"
                 id="normal-strength-slider"
                 min="10"
                 max="300"
@@ -741,23 +549,21 @@
               />
             </div>
             <div class="control-row">
-              <label> Format </label>
-              <select id="normal-format">
+              <label class="field-label"> Format </label>
+              <select class="tool-select" id="normal-format">
                 <option value="opengl">OpenGL (+Y / Green Up)</option>
                 <option value="directx">DirectX (-Y / Green Down)</option>
               </select>
             </div>
             <div class="control-row switch-row">
-              <label for="normal-invert-r">Invert Red (X-axis)</label>
-              <div class="switch">
-                <input type="checkbox" id="normal-invert-r" />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="normal-invert-r">Invert Red (X-axis)</label>
+              <label class="tool-switch">
+                <input type="checkbox" id="normal-invert-r" /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 3. Specular Map Settings -->
-          <div class="collapsible-header" data-target="specular-settings">
+          <div class="tool-btn collapsible-header" data-target="specular-settings">
             <span>Specular Map Settings</span>
             <svg
               width="12"
@@ -772,30 +578,28 @@
           </div>
           <div id="specular-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Sigmoidal Contrast
-                <span id="spec-contrast-val" class="value-display">10</span>
+                <span id="spec-contrast-val" class="tool-value">10</span>
               </label>
-              <input type="range" id="spec-contrast-slider" min="0" max="30" step="1" value="10" />
+              <input class="tool-slider" type="range" id="spec-contrast-slider" min="0" max="30" step="1" value="10" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Midpoint Threshold
-                <span id="spec-thresh-val" class="value-display">50%</span>
+                <span id="spec-thresh-val" class="tool-value">50%</span>
               </label>
-              <input type="range" id="spec-thresh-slider" min="10" max="90" step="5" value="50" />
+              <input class="tool-slider" type="range" id="spec-thresh-slider" min="10" max="90" step="5" value="50" />
             </div>
             <div class="control-row switch-row">
-              <label for="spec-invert">Invert Specular</label>
-              <div class="switch">
-                <input type="checkbox" id="spec-invert" />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="spec-invert">Invert Specular</label>
+              <label class="tool-switch">
+                <input type="checkbox" id="spec-invert" /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 4. Roughness Map Settings -->
-          <div class="collapsible-header" data-target="roughness-settings">
+          <div class="tool-btn collapsible-header" data-target="roughness-settings">
             <span>Roughness Map Settings</span>
             <svg
               width="12"
@@ -810,12 +614,11 @@
           </div>
           <div id="roughness-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Gamma Exponent
-                <span id="rough-gamma-val" class="value-display">1.20</span>
+                <span id="rough-gamma-val" class="tool-value">1.20</span>
               </label>
-              <input
-                type="range"
+              <input class="tool-slider" type="range"
                 id="rough-gamma-slider"
                 min="0.20"
                 max="3.00"
@@ -824,16 +627,14 @@
               />
             </div>
             <div class="control-row switch-row">
-              <label for="rough-invert">Invert Roughness</label>
-              <div class="switch">
-                <input type="checkbox" id="rough-invert" />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="rough-invert">Invert Roughness</label>
+              <label class="tool-switch">
+                <input type="checkbox" id="rough-invert" /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 5. Ambient Occlusion Settings -->
-          <div class="collapsible-header" data-target="ao-settings">
+          <div class="tool-btn collapsible-header" data-target="ao-settings">
             <span>Ambient Occlusion Settings</span>
             <svg
               width="12"
@@ -848,30 +649,30 @@
           </div>
           <div id="ao-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Soft Shadow Blur
-                <span id="ao-soft-val" class="value-display">15px</span>
+                <span id="ao-soft-val" class="tool-value">15px</span>
               </label>
-              <input type="range" id="ao-soft-slider" min="3" max="40" step="1" value="15" />
+              <input class="tool-slider" type="range" id="ao-soft-slider" min="3" max="40" step="1" value="15" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Crevice Strength (Fine)
-                <span id="ao-fine-val" class="value-display">1.0</span>
+                <span id="ao-fine-val" class="tool-value">1.0</span>
               </label>
-              <input type="range" id="ao-fine-slider" min="0.0" max="3.0" step="0.1" value="1.0" />
+              <input class="tool-slider" type="range" id="ao-fine-slider" min="0.0" max="3.0" step="0.1" value="1.0" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 AO Intensity Level
-                <span id="ao-level-val" class="value-display">30%</span>
+                <span id="ao-level-val" class="tool-value">30%</span>
               </label>
-              <input type="range" id="ao-level-slider" min="0" max="80" step="5" value="30" />
+              <input class="tool-slider" type="range" id="ao-level-slider" min="0" max="80" step="5" value="30" />
             </div>
           </div>
 
           <!-- 6. Edge Map Settings -->
-          <div class="collapsible-header" data-target="edge-settings">
+          <div class="tool-btn collapsible-header" data-target="edge-settings">
             <span>Edge Map Settings</span>
             <svg
               width="12"
@@ -886,30 +687,27 @@
           </div>
           <div id="edge-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Contrast Threshold
-                <span id="edge-thresh-val" class="value-display">90%</span>
+                <span id="edge-thresh-val" class="tool-value">90%</span>
               </label>
-              <input type="range" id="edge-thresh-slider" min="50" max="98" step="1" value="90" />
+              <input class="tool-slider" type="range" id="edge-thresh-slider" min="50" max="98" step="1" value="90" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Edge Thickness
-                <span id="edge-thick-val" class="value-display">1</span>
+                <span id="edge-thick-val" class="tool-value">1</span>
               </label>
-              <input type="range" id="edge-thick-slider" min="1" max="5" step="1" value="1" />
+              <input class="tool-slider" type="range" id="edge-thick-slider" min="1" max="5" step="1" value="1" />
             </div>
             <div class="control-row switch-row">
-              <label for="edge-invert">Invert Colors (Dark line)</label>
-              <div class="switch">
-                <input type="checkbox" id="edge-invert" checked />
-                <span class="slider"></span>
-              </div>
+              <label class="field-label" for="edge-invert">Invert Colors (Dark line)</label>
+              <label class="tool-switch"><input type="checkbox" id="edge-invert" checked /><span class="tool-switch-track"></span></label>
             </div>
           </div>
 
           <!-- 7. 3D Preview Settings -->
-          <div class="collapsible-header" data-target="preview-3d-settings">
+          <div class="tool-btn collapsible-header" data-target="preview-3d-settings">
             <span>3D Preview Settings</span>
             <svg
               width="12"
@@ -924,19 +722,18 @@
           </div>
           <div id="preview-3d-settings" class="collapsible-content">
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Metallic Base
-                <span id="metallic-val" class="value-display">0%</span>
+                <span id="metallic-val" class="tool-value">0%</span>
               </label>
-              <input type="range" id="metallic-slider" min="0" max="100" step="5" value="0" />
+              <input class="tool-slider" type="range" id="metallic-slider" min="0" max="100" step="5" value="0" />
             </div>
             <div class="control-row">
-              <label>
+              <label class="field-label">
                 Roughness Override
-                <span id="roughness-override-val" class="value-display">60%</span>
+                <span id="roughness-override-val" class="tool-value">60%</span>
               </label>
-              <input
-                type="range"
+              <input class="tool-slider" type="range"
                 id="roughness-override-slider"
                 min="0"
                 max="100"
@@ -947,7 +744,7 @@
           </div>
 
           <!-- Global Export Size -->
-          <div class="section-title" style="margin-top: 1.5rem">
+          <div class="section-title">
             <svg
               width="14"
               height="14"
@@ -963,8 +760,8 @@
             Export Properties
           </div>
           <div class="control-row">
-            <label>Working Max Resolution</label>
-            <select id="export-size">
+            <label class="field-label">Working Max Resolution</label>
+            <select class="tool-select" id="export-size">
               <option value="256">256 x 256 (Ultra Fast)</option>
               <option value="512" selected>512 x 512 (Recommended)</option>
               <option value="1024">1024 x 1024 (HD Detail)</option>
@@ -975,7 +772,7 @@
 
         <!-- Action buttons -->
         <div class="sidebar-actions">
-          <button id="btn-download-active" class="btn btn-secondary">
+          <button id="btn-download-active" class="tool-btn">
             <svg
               width="16"
               height="16"
@@ -988,7 +785,7 @@
             </svg>
             Download Active Map
           </button>
-          <button id="btn-download-all" class="btn btn-primary">
+          <button id="btn-download-all" class="tool-btn primary">
             <svg
               width="16"
               height="16"
@@ -1006,8 +803,8 @@
 
       <!-- Main Viewport -->
       <div class="viewport">
-        <div class="tabs-bar">
-          <button class="tab active" data-tab="grid">
+        <div class="tool-tabs tabs-bar">
+          <button class="tool-tab active" data-tab="grid">
             <svg
               width="14"
               height="14"
@@ -1023,14 +820,14 @@
             </svg>
             All Maps Grid
           </button>
-          <button class="tab" data-tab="original">Original (Diffuse)</button>
-          <button class="tab" data-tab="height">Height Map</button>
-          <button class="tab" data-tab="normal">Normal Map</button>
-          <button class="tab" data-tab="specular">Specular Map</button>
-          <button class="tab" data-tab="roughness">Roughness Map</button>
-          <button class="tab" data-tab="ao">Ambient Occlusion</button>
-          <button class="tab" data-tab="edge">Edge Map</button>
-          <button class="tab" data-tab="preview3d" style="color: #60a5fa; font-weight: 600">
+          <button class="tool-tab" data-tab="original">Original (Diffuse)</button>
+          <button class="tool-tab" data-tab="height">Height Map</button>
+          <button class="tool-tab" data-tab="normal">Normal Map</button>
+          <button class="tool-tab" data-tab="specular">Specular Map</button>
+          <button class="tool-tab" data-tab="roughness">Roughness Map</button>
+          <button class="tool-tab" data-tab="ao">Ambient Occlusion</button>
+          <button class="tool-tab" data-tab="edge">Edge Map</button>
+          <button class="tool-tab tab-engine" data-tab="preview3d">
             <svg
               width="14"
               height="14"
@@ -1196,85 +993,20 @@
           <div
             id="single-view-container"
             class="checkerboard tab-content-hidden"
-            style="width: auto; height: auto"
           >
             <canvas id="canvas-main-preview"></canvas>
           </div>
 
           <!-- 3D Preview Container -->
-          <div
-            id="preview3d-container"
-            class="tab-content-hidden"
-            style="
-              width: 100%;
-              height: 100%;
-              display: flex;
-              flex-direction: column;
-              gap: 1.25rem;
-              align-items: center;
-              justify-content: center;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                gap: 0.5rem;
-                background: var(--bg-panel);
-                padding: 0.4rem;
-                border-radius: 8px;
-                border: 1px solid var(--border);
-              "
-            >
-              <button
-                class="btn btn-secondary geom-btn active"
-                data-geom="sphere"
-                style="padding: 0.4rem 0.8rem; font-size: 0.75rem"
-              >
-                Sphere
-              </button>
-              <button
-                class="btn btn-secondary geom-btn"
-                data-geom="cube"
-                style="padding: 0.4rem 0.8rem; font-size: 0.75rem"
-              >
-                Cube
-              </button>
-              <button
-                class="btn btn-secondary geom-btn"
-                data-geom="torus"
-                style="padding: 0.4rem 0.8rem; font-size: 0.75rem"
-              >
-                Torus
-              </button>
-              <button
-                class="btn btn-secondary geom-btn"
-                data-geom="plane"
-                style="padding: 0.4rem 0.8rem; font-size: 0.75rem"
-              >
-                Plane
-              </button>
+          <div id="preview3d-container" class="preview3d tab-content-hidden">
+            <div class="tool-tabs">
+              <button class="tool-tab geom-btn active" data-geom="sphere">Sphere</button>
+              <button class="tool-tab geom-btn" data-geom="cube">Cube</button>
+              <button class="tool-tab geom-btn" data-geom="torus">Torus</button>
+              <button class="tool-tab geom-btn" data-geom="plane">Plane</button>
             </div>
-            <div
-              style="
-                flex: 1;
-                width: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              "
-            >
-              <canvas
-                id="SmallWorldPreview"
-                width="512"
-                height="384"
-                style="
-                  max-width: 100%;
-                  max-height: 60vh;
-                  border-radius: 12px;
-                  background: #000;
-                  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-                "
-              ></canvas>
+            <div class="preview3d-stage">
+              <canvas id="SmallWorldPreview" width="512" height="384"></canvas>
             </div>
           </div>
         </div>
@@ -1535,6 +1267,7 @@
             const v = Math.floor(
               128 + Math.sin(x * 0.1) * 30 + Math.cos(y * 0.1) * 30 + Math.random() * 20,
             );
+            // tool-theme: allow generated-texture
             ctx.fillStyle = `rgb(${v},${v - 10},${v - 20})`;
             ctx.fillRect(x, y, 1, 1);
           }
@@ -1679,9 +1412,9 @@
       }
 
       // Tab switcher
-      document.querySelectorAll(".tab").forEach((tab) => {
+      document.querySelectorAll(".tabs-bar .tool-tab").forEach((tab) => {
         tab.addEventListener("click", () => {
-          document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+          document.querySelectorAll(".tabs-bar .tool-tab").forEach((t) => t.classList.remove("active"));
           tab.classList.add("active");
 
           activeTab = tab.getAttribute("data-tab");

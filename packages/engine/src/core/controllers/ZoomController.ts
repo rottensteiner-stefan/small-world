@@ -18,7 +18,7 @@ export interface ZoomControllerOptions {
 /**
  * A standalone controller for handling camera zoom (Wheel/Pinch).
  */
-export class ZoomController extends Behavior {
+export class ZoomController extends Behavior<CameraInterfaceData> {
   public enabled: boolean = true;
   private _options: Required<ZoomControllerOptions>;
 
@@ -41,7 +41,7 @@ export class ZoomController extends Behavior {
       return;
     }
 
-    const cam = this.target as unknown as CameraInterfaceData;
+    const cam = this.target;
     cam.zoom(this._options.input.mouse.zoom * this._options.zoomSensitivity);
   }
 }
