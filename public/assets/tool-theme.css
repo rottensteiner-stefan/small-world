@@ -531,3 +531,214 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
   --tp-folder-background-color-focus: var(--tool-card);
   --tp-folder-background-color-hover: var(--tool-card);
 }
+
+/* Dropzone (einheitliche Upload- und Drag-and-Drop-Komponente für alle Tools) */
+.dropzone {
+  border: 2px dashed var(--tool-border);
+  border-radius: var(--tool-radius-lg);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--tool-card);
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.dropzone:hover,
+.dropzone.dragover {
+  border-color: var(--tool-accent);
+  background: var(--tool-hover);
+  box-shadow: 0 0 16px var(--tool-accent-glow);
+}
+
+.dropzone-icon {
+  color: var(--tool-accent);
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.dropzone:hover .dropzone-icon,
+.dropzone.dragover .dropzone-icon {
+  transform: translateY(-3px);
+}
+
+.dropzone-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tool-text);
+  letter-spacing: 0.5px;
+}
+
+.dropzone-sub {
+  font-size: 0.72rem;
+  color: var(--tool-text-muted);
+}
+
+.dropzone.compact {
+  padding: 0.85rem 0.75rem;
+  border-radius: var(--tool-radius-md);
+  gap: 0.35rem;
+}
+
+.dropzone.compact .dropzone-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.dropzone.compact .dropzone-text {
+  font-size: 0.78rem;
+}
+
+.dropzone.compact .dropzone-sub {
+  font-size: 0.68rem;
+}
+
+.dropzone.hero {
+  padding: 3rem 2rem;
+  max-width: 480px;
+  width: 90%;
+  margin: auto;
+}
+
+.dropzone.hero .dropzone-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.dropzone.hero .dropzone-text {
+  font-size: 1.1rem;
+}
+
+.dropzone.hero .dropzone-sub {
+  font-size: 0.85rem;
+}
+
+/* Multi-Source Ingest (Datei / URL / Direkt-Code Tabs & Panels) */
+.dropzone-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.dropzone-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--tool-inset);
+  padding: 3px;
+  border-radius: var(--tool-radius-md);
+  border: 1px solid var(--tool-border);
+}
+
+.dropzone-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--tool-text-muted);
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: var(--tool-font-ui);
+  border-radius: var(--tool-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.dropzone-tab:hover {
+  color: var(--tool-text);
+  background: var(--tool-card-hover);
+}
+
+.dropzone-tab.active {
+  background: var(--tool-card);
+  color: var(--tool-accent);
+  box-shadow: 0 0 10px var(--tool-accent-glow);
+  font-weight: 600;
+}
+
+.dropzone-panel {
+  display: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.dropzone-panel.active {
+  display: flex;
+}
+
+.dropzone-input-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  align-items: center;
+}
+
+.dropzone-input {
+  flex: 1;
+  background: var(--tool-inset);
+  border: 1px solid var(--tool-border);
+  border-radius: var(--tool-radius-sm);
+  color: var(--tool-text);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  font-family: var(--tool-font-ui);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.dropzone-input:focus {
+  border-color: var(--tool-border-active);
+}
+
+.dropzone-textarea {
+  width: 100%;
+  min-height: 100px;
+  background: var(--tool-inset);
+  border: 1px solid var(--tool-border);
+  border-radius: var(--tool-radius-sm);
+  color: var(--tool-text);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-family: var(--tool-font-mono);
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.dropzone-textarea:focus {
+  border-color: var(--tool-border-active);
+}
+
+.dropzone-btn {
+  background: var(--tool-accent);
+  color: var(--tool-on-accent);
+  border: 1px solid var(--tool-accent);
+  border-radius: var(--tool-radius-sm);
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: var(--tool-font-ui);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dropzone-btn:hover {
+  box-shadow: 0 0 10px var(--tool-accent-glow);
+}
+
+

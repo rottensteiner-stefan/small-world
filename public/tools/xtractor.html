@@ -267,8 +267,17 @@
       
       <div class="canvas-container" id="canvas-wrapper">
         <div id="drop-overlay">Drop File Here</div>
+        
+        <div id="empty-dropzone" class="dropzone hero">
+          <svg class="dropzone-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+          </svg>
+          <div class="dropzone-text">Upload / Drag & Drop Image or PDF</div>
+          <div class="dropzone-sub">PNG, JPG, WebP, PDF &middot; Sprite-Sheets &middot; Vorlagen</div>
+        </div>
+
         <!-- We wrap the canvas in a div that exactly matches the image size to position absolute elements easily -->
-        <div id="canvas-stage">
+        <div id="canvas-stage" style="display: none;">
             <canvas id="image-canvas"></canvas>
             <div id="selection-box"></div>
         </div>
@@ -327,9 +336,14 @@
     const fileInput = document.getElementById('file-input');
     const canvasWrapper = document.getElementById('canvas-wrapper');
     const canvasStage = document.getElementById('canvas-stage');
+    const emptyDropzone = document.getElementById('empty-dropzone');
     const dropOverlay = document.getElementById('drop-overlay');
     const selectionBox = document.getElementById('selection-box');
     const selectionProps = document.getElementById('selection-props');
+    
+    if (emptyDropzone) {
+      emptyDropzone.addEventListener('click', () => fileInput.click());
+    }
     
     const urlInput = document.getElementById('url-input');
     const btnLoadUrl = document.getElementById('btn-load-url');
@@ -510,6 +524,8 @@
             const img = new Image();
             img.onload = () => {
                 currentImage = img;
+                if (emptyDropzone) emptyDropzone.style.display = 'none';
+                canvasStage.style.display = 'block';
                 canvas.width = img.width;
                 canvas.height = img.height;
                 ctx.drawImage(img, 0, 0);
@@ -530,6 +546,8 @@
         img.crossOrigin = 'Anonymous'; // Attempt to prevent canvas tainting
         img.onload = () => {
             currentImage = img;
+            if (emptyDropzone) emptyDropzone.style.display = 'none';
+            canvasStage.style.display = 'block';
             canvas.width = img.width;
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);

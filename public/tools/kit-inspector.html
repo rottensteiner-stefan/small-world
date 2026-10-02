@@ -655,6 +655,14 @@
           </div>
         </div>
 
+        <div id="kitDropzone" class="dropzone compact" style="margin: 0.5rem 0.75rem 0.25rem;">
+          <svg class="dropzone-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+          </svg>
+          <div class="dropzone-text">Custom Kit importieren</div>
+          <div class="dropzone-sub">ZIP oder Ordner hier ablegen (Cmd+O)</div>
+        </div>
+
         <div class="catalog-list" id="catalogList">
           <!-- Dynamically populated cards -->
         </div>
@@ -845,8 +853,9 @@
         app.focusCamera();
       });
 
-      // Unified I/O: import / export entry points (button, drop, shortcuts)
+      // Unified I/O: import / export entry points (button, dropzone, drop overlay, shortcuts)
       document.getElementById("btnImportKit").addEventListener("click", pickKitFolder);
+      document.getElementById("kitDropzone")?.addEventListener("click", pickKitFolder);
       document.getElementById("btnExportKit").addEventListener("click", exportKit);
 
       new ToolDropOverlay({

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.93.0] - 2026-10-02
+
+### "The universe is not made of things, but of relations." - Carlo Rovelli
+
+- **Features:**
+  - *Unified Multi-Modal Ingest Architecture (`UnifiedIngestPanel`)*: Introduced a standardized, modular 3-way input component (`packages/tools/src/common/io/ui/UnifiedIngestPanel.ts`) providing unified File Drag & Drop, URL Fetch, and Raw Text/Code Direct Input tabs across the toolchain.
+  - *Platform-Wide Dropzone Unification*: Replaced disparate ad-hoc file upload inputs with standardized token-based `.dropzone`, `.dropzone.compact`, and `.dropzone.hero` components in [`tool-theme.css`](public/assets/tool-theme.css) across `ibl-gen`, `pbr-gen`, `xtractor`, and `kit-inspector`.
+  - *Global Clipboard Ingest (`Cmd+V`)*: Added container- and window-wide clipboard ingestion for images, sprite assets, GeoJSON, and ASCII map data without requiring explicit input focus.
+  - *Map Generator & Maker Import Modernization*: Overhauled [`MapGenerator.ts`](packages/tools/src/MapGenerator.ts) and [`MapImportPanel.ts`](packages/tools/src/maker/MapImportPanel.ts) with multi-mode file/URL/text ingest and 1-click clipboard map export.
+- **Architecture & Bugfixes:**
+  - *Dropzone Token Strictness*: Fully bound all dropzone and ingest panel elements to semantic `:root` design tokens (`--tool-inset`, `--tool-border`, `--tool-card`, `--tool-hover`, `--tool-accent`, `--tool-accent-glow`), rigorously verified by `ToolTheme.test.ts`.
+- **Housekeeping & Docs:**
+  - *Ingest Test Suite & Quality Verification*: Added [`UnifiedIngestPanel.test.ts`](packages/tools/tests/UnifiedIngestPanel.test.ts) covering mode tabs, URL triggers, text parsing, and clipboard dispatch; verified all 210 test suites (1240 unit tests) green with 0 lint and 0 CSS token audit errors.
+
 ## [0.92.0] - 2026-10-02
 
 ### "The details are not the details. They make the design." - Charles Eames

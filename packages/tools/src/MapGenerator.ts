@@ -1,4 +1,5 @@
 import { ForgeTool, ForgeToolOptions } from "@small-world/engine";
+import { UnifiedIngestPanel } from "./common/io/ui/UnifiedIngestPanel.js";
 
 export class MapGenerator extends ForgeTool {
   private _gridWidth = 40;
@@ -8,7 +9,6 @@ export class MapGenerator extends ForgeTool {
 
   private _canvas!: HTMLCanvasElement;
   private _ctx!: CanvasRenderingContext2D;
-  private _textArea!: HTMLTextAreaElement;
 
   private _inputW!: HTMLInputElement;
   private _inputH!: HTMLInputElement;
@@ -191,10 +191,11 @@ export class MapGenerator extends ForgeTool {
           <button class="swf-btn" id="mapgen-btn-fill">Bucket Fill (Empty)</button>
           <button class="swf-btn" id="mapgen-btn-clear" style="background:#ef4444; color:white; border-color:#b91c1c;">Clear Map</button>
 
-          <h3 class="mapgen-header" style="margin-top:10px;">Data</h3>
-          <button class="swf-btn secondary" id="mapgen-btn-export">Export String \u2193</button>
-          <textarea class="mapgen-textarea" id="mapgen-textarea" placeholder="Map data here..."></textarea>
-          <button class="swf-btn secondary" id="mapgen-btn-import">Import String \u2191</button>
+          <h3 class="mapgen-header" style="margin-top:10px;">Import (Datei / URL / Text)</h3>
+          <div id="mapgen-ingest-slot"></div>
+          
+          <h3 class="mapgen-header" style="margin-top:10px;">Export</h3>
+          <button class="swf-btn secondary" id="mapgen-btn-export">Map kopieren (Clipboard) 📋</button>
           
           <button class="swf-btn mapgen-btn-play" id="mapgen-btn-play" style="border-color:#059669;">\u25B6 Play in YAD</button>
         </div>
@@ -206,9 +207,39 @@ export class MapGenerator extends ForgeTool {
 
     this._canvas = this._container.querySelector<HTMLCanvasElement>("#mapgen-canvas")!;
     this._ctx = this._canvas.getContext("2d")!;
-    this._textArea = this._container.querySelector<HTMLTextAreaElement>("#mapgen-textarea")!;
     this._inputW = this._container.querySelector<HTMLInputElement>("#mapgen-w")!;
     this._inputH = this._container.querySelector<HTMLInputElement>("#mapgen-h")!;
+
+    // Mount unified ingest panel
+    const ingestSlot = this._container.querySelector<HTMLElement>("#mapgen-ingest-slot");
+    if (ingestSlot) {
+      new UnifiedIngestPanel({
+        container: ingestSlot,
+        modes: ["text", "file", "url"],
+        defaultMode: "text",
+        variant: "compact",
+        fileLabel: "Map Datei ablegen",
+        fileSub: ".txt, .map oder .json",
+        fileAccept: ".txt,.map,.json",
+        urlPlaceholder: "https://.../map.txt",
+        textPlaceholder: "ASCII-Map oder Leveldaten einfügen…",
+        textButtonLabel: "Map Laden",
+        enablePaste: true,
+        onFile: async (file: File): Promise<void> => {
+          const text = await file.text();
+          this.loadMapString(text);
+        },
+        onUrl: async (url: string): Promise<void> => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status} beim Laden der URL`);
+          const text = await res.text();
+          this.loadMapString(text);
+        },
+        onText: (text: string): void => {
+          this.loadMapString(text);
+        },
+      });
+    }
 
     // Build Palette
     const paletteContainer = this._container.querySelector<HTMLElement>("#mapgen-palette")!;
@@ -258,11 +289,18 @@ export class MapGenerator extends ForgeTool {
     });
 
     this._container.querySelector("#mapgen-btn-export")?.addEventListener("click", () => {
-      this._textArea.value = this.getMapString();
-    });
-
-    this._container.querySelector("#mapgen-btn-import")?.addEventListener("click", () => {
-      this.loadMapString(this._textArea.value);
+      const mapStr = this.getMapString();
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(mapStr).catch(() => {});
+      }
+      const btn = this._container.querySelector("#mapgen-btn-export") as HTMLButtonElement;
+      if (btn) {
+        const oldText = btn.textContent;
+        btn.textContent = "✓ In Zwischenablage kopiert!";
+        setTimeout(() => {
+          if (btn) btn.textContent = oldText;
+        }, 1500);
+      }
     });
 
     this._container.querySelector("#mapgen-btn-clear")?.addEventListener("click", () => {
