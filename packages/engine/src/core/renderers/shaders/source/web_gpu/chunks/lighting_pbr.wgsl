@@ -10,7 +10,9 @@ let dotNV = max(dot(N, V), 0.0001);
 
 let ior = select(1.5, obj.liquidParams.x, obj.liquidParams.x > 0.0);
 let f0_dielectric = pow((ior - 1.0) / (ior + 1.0), 2.0);
-var F0 = mix(vec3f(f0_dielectric), albedo, metallic);
+// Albedo can exceed 1 (texture x tint), which would push F0 above 1, make kD = (1 - kS) * (1 - metallic)
+// negative and turn the later pow()/gamma step into NaN -- the HDR NaN then bloomed into rectangles.
+var F0 = clamp(mix(vec3f(f0_dielectric), albedo, metallic), vec3f(0.0), vec3f(1.0));
 
 let clearcoat = obj.liquidParams.w;
 let clearcoatRoughness = clamp(obj.thresholds.x, 0.05, 1.0);

@@ -7,7 +7,9 @@ float dotNV = max(dot(N, V), 0.0001);
 float ior = u_liquidParams.x > 0.0 ? u_liquidParams.x : 1.5;
 float f0_dielectric = pow((ior - 1.0) / (ior + 1.0), 2.0);
 vec3 F0 = vec3(f0_dielectric); 
-F0 = mix(F0, albedo, metallic);
+// Albedo can exceed 1 (texture x tint), which would push F0 above 1, make kD = (1 - kS) * (1 - metallic)
+// negative and turn the later pow()/gamma step into NaN -- the HDR NaN then bloomed into rectangles.
+F0 = clamp(mix(F0, albedo, metallic), vec3(0.0), vec3(1.0));
 
 float clearcoat = u_liquidParams.w;
 float clearcoatRoughness = clamp(u_thresholds.x, 0.05, 1.0);

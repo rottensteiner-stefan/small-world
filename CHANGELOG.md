@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.93.2] - 2026-10-02
+
+### "In the right light, at the right time, everything is extraordinary." - Aaron Rose
+
+- **Architecture & Bugfixes:**
+  - *PBR F0 Clamping & NaN Bloom Elimination*: Clamped specular reflectance $F_0 = \text{mix}(F_{0,\text{dielectric}}, \text{albedo}, \text{metallic})$ to $[0, 1]$ in WebGL1, WebGL2, and WebGPU PBR shader chunks ([light_calc_pbr.frag.glsl](packages/engine/src/core/renderers/shaders/source/web_gl1/chunks/light_calc_pbr.frag.glsl), [light_calc_pbr.frag.glsl](packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl), and [lighting_pbr.wgsl](packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl)). Prevents texture x tint multipliers from overshooting 1.0, which previously caused negative diffuse factor $k_D = (1 - k_S) \cdot (1 - \text{metallic}) < 0$, producing NaN during gamma/pow correction that the Bloom mip chain smeared into rectangular grid artifacts.
+- **Housekeeping & Docs:**
+  - *Shader & Pass Regression Test Suite*: Added unit tests in [NormalFallbackScaleIndependence.test.ts](packages/engine/tests/renderers/NormalFallbackScaleIndependence.test.ts) (verifying scale-independent vertex normal fallback and PBR F0 clamping across all 3 backends), [WebGLMainPassDepthMask.test.ts](packages/engine/tests/renderers/WebGLMainPassDepthMask.test.ts) (verifying depthMask restoration and state cache reset prior to depth clear), and [DirectionalLight.test.ts](packages/engine/tests/core/DirectionalLight.test.ts) (verifying freshly fitted cascade view-projection matrix calculation).
+  - All 212 test suites (1248 unit tests) passing green with 0 lint errors.
+
 ## [0.93.1] - 2026-10-02
 
 ### "It's not that I'm so smart, it's just that I stay with problems longer." - Albert Einstein
