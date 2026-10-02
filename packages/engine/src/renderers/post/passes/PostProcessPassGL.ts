@@ -409,6 +409,7 @@ export class PostProcessPassGL {
     }
 
     // Restore state
+    gl.depthMask(true);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
     gl.useProgram(null);

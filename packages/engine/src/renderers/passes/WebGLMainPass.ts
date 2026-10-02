@@ -37,7 +37,10 @@ export class WebGLMainPass implements WebGLRenderPass {
     // 1. Bind Main Render Target
     renderer.bindMainRenderTarget();
 
-    // 2. Clear
+    // 2. Clear (depth writes must be on: a depthMask(false) leaked from the previous frame's
+    // transparent / post-process draws would turn the depth clear into a no-op)
+    gl.depthMask(true);
+    (renderer as AbstractWebGLRenderer).resetStateCache();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

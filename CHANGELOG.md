@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.93.1] - 2026-10-02
+
+### "It's not that I'm so smart, it's just that I stay with problems longer." - Albert Einstein
+
+- **Architecture & Bugfixes:**
+  - *Showcase 29 WebGL2 darkness (root cause)*: [`base_vertex_main.vert.glsl`](packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/base_vertex_main.vert.glsl) replaced the normal with `(0, 1, 0)` whenever the *transformed* normal's squared length was below `0.0001`. Meshes with a small world scale (103 of 117 Sponza meshes at 0.008, so `|N|^2 = 6.4e-5`) therefore had almost every normal collapse to +Y: floors looked right by accident, ceilings and walls received no point-light contribution and the sun lit ceiling undersides. The fallback now tests the *local* vertex normal, so it no longer depends on mesh scale. Measured luma median/mean on the same camera: WebGL2 14/34 -> 67/85, WebGPU 66/83.
+  - *`depthMask` leak*: `WebGLMainPass` now restores `depthMask(true)` (and resets the renderer state cache) before the frame's depth clear, and `PostProcessPassGL` restores it after its fullscreen pass. Previously a `depthMask(false)` left over from transparent or post-process draws turned the next frame's depth clear into a no-op, which showed up as a black image whenever the sun had `castShadow = false` (the shadow pass otherwise masked the leak by setting `depthMask(true)` itself).
+  - *Stale cascade view-projection*: `DirectionalLight.updateCascades()` now recomputes each cascade camera's view-projection matrix after applying the new orthographic bounds; it previously multiplied the previous frame's bounds.
+- **Housekeeping & Docs:**
+  - Found by a parallel multi-agent investigation (per-light-type contribution compared across WebGL2 and WebGPU on an identical camera). Known open issue: WebGPU-only rectangular green/blue Bloom artifacts (8 px grid), not part of this release.
+  - 210 test suites (1240 unit tests) passing, 0 lint errors.
+
 ## [0.93.0] - 2026-10-02
 
 ### "The universe is not made of things, but of relations." - Carlo Rovelli

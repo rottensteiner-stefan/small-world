@@ -27,7 +27,10 @@ void main() {
   vec4 wp = modelMat * localPos;
   v_worldPos = wp.xyz;
   vec3 computedNormal = mat3(modelMat) * localNormal;
-  if (dot(computedNormal, computedNormal) < 0.0001) {
+  // Fallback only for a genuinely missing/zero vertex normal. The test must run on the LOCAL normal:
+  // testing the transformed one made it depend on the mesh scale (a 0.008-scaled model has
+  // |N|^2 = 6.4e-5 < 0.0001 and every normal collapsed to +Y).
+  if (dot(localNormal, localNormal) < 0.0001 || dot(computedNormal, computedNormal) < 1e-20) {
     computedNormal = vec3(0.0, 1.0, 0.0);
   }
   v_normal = normalize(computedNormal);

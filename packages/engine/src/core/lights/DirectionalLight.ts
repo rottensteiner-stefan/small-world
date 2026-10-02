@@ -201,6 +201,9 @@ export class DirectionalLight extends AbstractLight {
 
       ortho.update();
       cascadeCam.updateProjectionMatrix();
+      // updateViewMatrix() above multiplied the previous frame's ortho into the cached
+      // view-projection matrix; recompute it now that the new bounds are applied.
+      cascadeCam.updateViewMatrix();
 
       cascadeNear = cascadeFar;
     }
