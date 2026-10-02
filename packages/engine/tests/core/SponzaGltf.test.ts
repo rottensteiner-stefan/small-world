@@ -34,17 +34,7 @@ describe("Sponza glTF Loading Benchmark", () => {
       return document.createElement("img");
     });
 
-    const root = await (
-      loader as unknown as {
-        _parse: (
-          data: {
-            json: import("../../src/loaders/gltf/types.js").GltfJson;
-            buffers: ArrayBuffer[];
-          },
-          url: string,
-        ) => Promise<Object3D>;
-      }
-    )._parse({ json, buffers: [binBuffer] }, gltfPath);
+    const root = await loader.parse({ json, buffers: [binBuffer] }, gltfPath);
 
     expect(root).toBeDefined();
 

@@ -38,12 +38,14 @@ export class Optics {
    * @param normal Unit surface normal, pointing against `incident`.
    * @param n1 Refractive index of the medium the ray is leaving.
    * @param n2 Refractive index of the medium the ray is entering.
+   * @param target Optional Vector2D to store the refracted ray direction in, avoiding allocation.
    */
   public static refract(
     incident: Vector2D,
     normal: Vector2D,
     n1: number,
     n2: number,
+    target?: Vector2D,
   ): Vector2D | undefined {
     const eta = n1 / n2;
     const cosI = -(incident.x * normal.x + incident.y * normal.y);
@@ -51,7 +53,14 @@ export class Optics {
     if (sinT2 > 1) return undefined; // total internal reflection
     const cosT = Math.sqrt(1 - sinT2);
     const k = eta * cosI - cosT;
-    return new Vector2D(incident.x * eta + normal.x * k, incident.y * eta + normal.y * k);
+    const x = incident.x * eta + normal.x * k;
+    const y = incident.y * eta + normal.y * k;
+    if (target) {
+      target.x = x;
+      target.y = y;
+      return target;
+    }
+    return new Vector2D(x, y);
   }
 
   /**

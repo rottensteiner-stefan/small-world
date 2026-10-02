@@ -2,6 +2,10 @@ import { Behavior } from "../behaviors/index.js";
 import { Object3D } from "../index.js";
 import { CameraInterfaceData, isCameraTarget } from "../../interfaces/index.js";
 
+interface DeviceOrientationEventIOS {
+  requestPermission?: () => Promise<"granted" | "denied">;
+}
+
 /**
  * A controller that rotates its target based on the device's physical orientation sensors.
  */
@@ -32,11 +36,10 @@ export class DeviceOrientationController extends Behavior {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
+    const eventIOS = DeviceOrientationEvent as unknown as DeviceOrientationEventIOS;
+    if (typeof eventIOS.requestPermission === "function") {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const permission = await (DeviceOrientationEvent as any).requestPermission();
+        const permission = await eventIOS.requestPermission();
         if (permission === "granted") {
           this._startListening();
         } else {

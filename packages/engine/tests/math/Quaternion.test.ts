@@ -94,4 +94,24 @@ describe("Quaternion", () => {
     expect(recoveredEuler.y).toBeCloseTo(originalEuler.y);
     expect(recoveredEuler.z).toBeCloseTo(originalEuler.z);
   });
+
+  it("should handle positive pitch (+90 deg) gimbal lock singularity in toEuler", () => {
+    const pitchUp = new Vector3D(Math.PI / 2, 0.6, 0);
+    const q = new Quaternion().setFromEuler(pitchUp);
+    const euler = q.toEuler();
+
+    expect(euler.x).toBeCloseTo(Math.PI / 2);
+    expect(euler.y).toBeCloseTo(0.6);
+    expect(euler.z).toBeCloseTo(0);
+  });
+
+  it("should handle negative pitch (-90 deg) gimbal lock singularity in toEuler", () => {
+    const pitchDown = new Vector3D(-Math.PI / 2, 0.6, 0);
+    const q = new Quaternion().setFromEuler(pitchDown);
+    const euler = q.toEuler();
+
+    expect(euler.x).toBeCloseTo(-Math.PI / 2);
+    expect(euler.y).toBeCloseTo(0.6);
+    expect(euler.z).toBeCloseTo(0);
+  });
 });

@@ -134,6 +134,16 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     return root.animations;
   }
 
+  /**
+   * Parses a glTF data structure into an Object3D hierarchy.
+   * @param gltf The loaded glTF JSON and binary buffers.
+   * @param baseUrl Base URL for resolving external resources.
+   * @returns The root Object3D.
+   */
+  public async parse(gltf: GltfData, baseUrl: string = ""): Promise<Object3D> {
+    return this._parse(gltf, baseUrl);
+  }
+
   private async _parse(gltf: GltfData, baseUrl: string): Promise<Object3D> {
     const { json, buffers } = gltf;
     const folderPath = GltfLoader.getFolderPath(baseUrl);

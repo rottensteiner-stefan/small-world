@@ -1,6 +1,5 @@
 import { Bone } from "./Bone.js";
 import { Matrix4 } from "../../math/Matrix4.js";
-import { MathPool } from "../../math/MathPool.js";
 
 /**
  * Upper bound on bones per skeleton, matching `u_boneMatrices[64]` in
@@ -21,6 +20,9 @@ export class Skeleton {
   public boneInverses: Matrix4[];
 
   private _identityMatrix: Matrix4 = new Matrix4();
+  private _invMeshWorld: Matrix4 = new Matrix4();
+  private _tempMat: Matrix4 = new Matrix4();
+  private _finalMat: Matrix4 = new Matrix4();
 
   constructor(bones: Bone[] = [], boneInverses?: Matrix4[]) {
     if (bones.length > MAX_SKINNED_BONES) {
@@ -48,7 +50,7 @@ export class Skeleton {
    * @param meshWorldMatrix The world matrix of the SkinnedMesh.
    */
   public update(meshWorldMatrix?: Matrix4): void {
-    const invMeshWorld = MathPool.acquireMatrix();
+    const invMeshWorld = this._invMeshWorld;
     if (meshWorldMatrix) {
       invMeshWorld.data.set(meshWorldMatrix.data);
       // A singular mesh world matrix (e.g. a zero-scale "pop-in" spawn) can't be inverted --
@@ -60,14 +62,18 @@ export class Skeleton {
       invMeshWorld.data.set(this._identityMatrix.data);
     }
 
-    const tempMat = MathPool.acquireMatrix();
-    const finalMat = MathPool.acquireMatrix();
+    const tempMat = this._tempMat;
+    const finalMat = this._finalMat;
+    const bones = this.bones;
+    const boneCount = bones.length;
+    const boneInverses = this.boneInverses;
+    const boneMatrices = this.boneMatrices;
 
-    for (let i = 0; i < this.bones.length; i++) {
-      const bone = this.bones[i];
+    for (let i = 0; i < boneCount; i++) {
+      const bone = bones[i];
       if (!bone) continue;
 
-      const invBind = this.boneInverses[i] ?? bone.inverseBindMatrix;
+      const invBind = boneInverses[i] ?? bone.inverseBindMatrix;
 
       // bone.worldMatrix * invBind
       Matrix4.multiply(bone.worldMatrix, invBind, tempMat);
@@ -75,15 +81,11 @@ export class Skeleton {
       // invMeshWorld * (bone.worldMatrix * invBind)
       if (meshWorldMatrix) {
         Matrix4.multiply(invMeshWorld, tempMat, finalMat);
-        this.boneMatrices.set(finalMat.data, i * 16);
+        boneMatrices.set(finalMat.data, i * 16);
       } else {
-        this.boneMatrices.set(tempMat.data, i * 16);
+        boneMatrices.set(tempMat.data, i * 16);
       }
     }
-
-    MathPool.releaseMatrix(tempMat);
-    MathPool.releaseMatrix(finalMat);
-    MathPool.releaseMatrix(invMeshWorld);
   }
 
   /**

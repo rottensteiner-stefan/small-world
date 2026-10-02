@@ -100,16 +100,11 @@ describe("GltfVariants (KHR_materials_variants)", () => {
       assetManager: new AssetManager(),
     });
 
-    // Access protected _parse directly via subclassing / casting
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const root = await (loader as any)._parse(
-      { json: gltfJson, buffers: [posBuffer] },
-      "test.gltf",
-    );
+    const root = await loader.parse({ json: gltfJson, buffers: [posBuffer] }, "test.gltf");
 
     expect(GltfVariants.getVariantNames(root)).toEqual(["Variant_A", "Variant_B"]);
 
-    const meshNode = root.children[0]?.children[0];
+    const meshNode = root.children[0]!.children[0]!;
     expect(meshNode).toBeDefined();
 
     // Since variant: "Variant_B" was specified in options, material should be material 2 (blue)

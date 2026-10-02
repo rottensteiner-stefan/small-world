@@ -7,6 +7,7 @@ import {
   Scene,
   Texture,
   MAX_CLUSTERED_LIGHTS_PER_TYPE,
+  isSkinnedMesh,
 } from "../../core/index.js";
 import { RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { EngineOptions, LightDataInterface } from "../../interfaces/index.js";
@@ -1815,9 +1816,9 @@ export class WebGPURenderer extends AbstractRenderer {
       values["u_color"] = this._scratchColorArray;
     }
 
-    if ("skeleton" in o && (o as unknown as { skeleton?: Skeleton }).skeleton) {
+    if (isSkinnedMesh(o) && o.skeleton) {
       values["u_isSkinned"] = 1.0;
-      values["u_boneOffset"] = this._getBoneMatrixOffset(o as unknown as SkinnedMesh);
+      values["u_boneOffset"] = this._getBoneMatrixOffset(o);
     } else if (values["u_isSkinned"] === undefined) {
       // Only default these for materials that don't already carry a real value here --
       // LiquidWaveMaterial repurposes u_isSkinned/u_boneOffset (skeletal-only fields, meaningless

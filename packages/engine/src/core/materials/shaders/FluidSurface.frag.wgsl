@@ -37,19 +37,26 @@
     let noiseBlend = smoothstep(0.6, 0.8, noise);
     let finalBlend = saturate(noiseBlend + edgeBlend);
 
-    var finalColor = mix(baseColor, edgeCol, finalBlend);
+    var color = mix(baseColor, edgeCol, finalBlend);
 
     // Emissive glow (lava/molten presets) -- obj.extraParams.x and obj.liquidParams.zw are
     // otherwise unused by this shader, repurposed to carry emissiveColor.rgb pre-multiplied by
     // emissiveStrength (see FluidSurfaceMaterial.ts). Zero by default, a no-op for plain fluids.
     let emissive = vec3<f32>(obj.extraParams.x, obj.liquidParams.z, obj.liquidParams.w);
-    finalColor += sRGBToLinear(emissive);
+    color += sRGBToLinear(emissive);
 
     // Exposure
-    finalColor *= global.exposure;
+    color *= global.exposure;
+
+    // Tonemapping guard
+    if (global.gamma != 1.0) {
+        color = color / (color + vec3f(1.0)); // Reinhard
+    }
 
     // Gamma correction
-    finalColor = linearToSRGB(finalColor);
+    color = linearToSRGB(color);
 
-    return vec4<f32>(finalColor, 1.0);
+    [WGSL_FOG_CALC]
+
+    return vec4<f32>(color, 1.0);
 }

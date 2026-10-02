@@ -25,3 +25,10 @@ export class SkinnedMesh extends Object3D {
     }
   }
 }
+
+/**
+ * Type guard that checks if an object is a SkinnedMesh.
+ */
+export function isSkinnedMesh(object: unknown): object is SkinnedMesh {
+  return object instanceof SkinnedMesh;
+}

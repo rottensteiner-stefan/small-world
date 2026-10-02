@@ -54,6 +54,17 @@
         color = mix(color, color + finalTransmission * kD_refr, transmission);
     }
     
+    // Exposure
+    color *= global.exposure;
+
+    // Tonemapping guard
+    if (global.gamma != 1.0) {
+        color = color / (color + vec3f(1.0)); // Reinhard
+    }
+
+    // Gamma Correction (converts linear to sRGB for the render target)
+    color = linearToSRGB(color);
+
     [WGSL_FOG_CALC]
     return vec4f(color, finalAlpha);
 }

@@ -21,13 +21,20 @@
     texCol = mix(texCol, rock, slopeBlend);
 
     let albedo = sRGBToLinear(texCol.rgb) * sRGBToLinear(obj.color.rgb);
-    var finalColor = fL * albedo + spec * sRGBToLinear(obj.specColor.rgb);
+    var color = fL * albedo + spec * sRGBToLinear(obj.specColor.rgb);
 
     // Exposure
-    finalColor *= global.exposure;
+    color *= global.exposure;
+
+    // Tonemapping guard
+    if (global.gamma != 1.0) {
+        color = color / (color + vec3f(1.0)); // Reinhard
+    }
 
     // Gamma correction
-    finalColor = linearToSRGB(finalColor);
+    color = linearToSRGB(color);
 
-    return vec4f(finalColor, obj.color.a);
+    [WGSL_FOG_CALC]
+
+    return vec4f(color, obj.color.a);
 }

@@ -6,7 +6,6 @@ import {
   registerGltfExtension,
   Texture,
   StandardMaterial,
-  Object3D,
   CompressedTextureFormat,
 } from "@small-world/engine";
 import { khrTextureBasisu } from "../src/basisu/KhrTextureBasisu.js";
@@ -79,11 +78,7 @@ describe("KHR_texture_basisu", () => {
     };
 
     const loader = new GltfLoader();
-    const withParseAccess = loader as unknown as {
-      _parse: (gltfData: typeof gltf, baseUrl: string) => Promise<Object3D>;
-    };
-
-    const scene = await withParseAccess._parse(gltf, "");
+    const scene = await loader.parse(gltf, "");
     expect(scene).toBeDefined();
 
     const node = scene.getObjectByName("MaterialNode");

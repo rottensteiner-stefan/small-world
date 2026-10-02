@@ -74,6 +74,84 @@ export class MathUtils {
   }
 
   /**
+   * Performs smooth Hermite interpolation between `min` and `max` using a cubic polynomial: 3t^2 - 2t^3.
+   * @param min Lower bound.
+   * @param max Upper bound.
+   * @param x Value to interpolate.
+   * @returns Clamped interpolated value in [0, 1].
+   */
+  public static smoothstep(min: number, max: number, x: number): number {
+    if (x <= min) return 0;
+    if (x >= max) return 1;
+    const t = (x - min) / (max - min);
+    return t * t * (3 - 2 * t);
+  }
+
+  /**
+   * Performs Ken Perlin's quintic smoother interpolation: 6t^5 - 15t^4 + 10t^3 (zero 1st and 2nd derivatives at endpoints).
+   * @param min Lower bound.
+   * @param max Upper bound.
+   * @param x Value to interpolate.
+   * @returns Clamped interpolated value in [0, 1].
+   */
+  public static smootherstep(min: number, max: number, x: number): number {
+    if (x <= min) return 0;
+    if (x >= max) return 1;
+    const t = (x - min) / (max - min);
+    return t * t * t * (t * (t * 6 - 15) + 10);
+  }
+
+  /**
+   * Returns the normalized linear interpolation factor `t` in [0, 1] of `val` between `a` and `b`.
+   * @param a The start value.
+   * @param b The end value.
+   * @param val The value to measure.
+   * @returns Factor `t` such that `lerp(a, b, t) === val`. Returns 0 if `a === b`.
+   */
+  public static inverseLerp(a: number, b: number, val: number): number {
+    if (a !== b) {
+      return (val - a) / (b - a);
+    }
+    return 0;
+  }
+
+  /**
+   * Smoothly dampens a value toward a target using framerate-independent exponential smoothing.
+   * @param a Current value.
+   * @param b Target value.
+   * @param lambda Smoothing factor (higher = faster response).
+   * @param dt Elapsed time in seconds.
+   * @returns Dampened value.
+   */
+  public static damp(a: number, b: number, lambda: number, dt: number): number {
+    return MathUtils.lerp(a, b, 1 - Math.exp(-lambda * dt));
+  }
+
+  /**
+   * Checks whether an integer is a positive power of two.
+   * @param value The integer to check.
+   * @returns True if value is a power of two, false otherwise.
+   */
+  public static isPowerOfTwo(value: number): boolean {
+    return (value & (value - 1)) === 0 && value > 0;
+  }
+
+  /**
+   * Returns the smallest power of two greater than or equal to `value`.
+   * @param value The input number.
+   * @returns Next power of two.
+   */
+  public static nextPowerOfTwo(value: number): number {
+    let v = Math.max(0, value - 1);
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    return v + 1;
+  }
+
+  /**
    * Reads an element from a fixed-size array whose bounds are guaranteed
    * correct by construction (e.g. Float32Array components of a Matrix4/
    * Quaternion, or a small fixed axis list) — centralizes the

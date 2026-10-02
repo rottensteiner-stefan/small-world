@@ -1,7 +1,8 @@
-// Cheap 2D hash for the foam/caustics cell noise below -- not a general-purpose PRNG, just enough
-// decorrelation between neighboring cells to avoid an obviously repeating pattern.
+// Cheap 2D hash for the foam/caustics cell noise below -- fast dot-product polynomial hash without trigonometric calls.
 fn waterHash(p: vec2<f32>) -> f32 {
-    return fract(sin(dot(p, vec2<f32>(12.9898, 78.233))) * 43758.5453123);
+    var p3 = fract(vec3<f32>(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
 }
 
 // Worley/cellular noise: distance from `p` to the nearest jittered point among the 3x3

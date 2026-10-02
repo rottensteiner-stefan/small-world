@@ -1,5 +1,5 @@
 import { AbstractProjection } from "./AbstractProjection.js";
-import { Matrix4 } from "../index.js";
+import { Matrix4 } from "../Matrix4.js";
 import { ProjectionType } from "../../enums/index.js";
 import { ProjectionOptions } from "../../interfaces/index.js";
 
@@ -44,9 +44,6 @@ export class ObliqueProjection extends AbstractProjection {
 
   /** @inheritdoc */
   public override readonly type: ProjectionType = ProjectionType.OBLIQUE;
-
-  /** Scratch matrix holding the depth-axis shear, combined with the orthographic matrix in {@link update}. */
-  private _shearMatrix: Matrix4 = new Matrix4();
 
   /**
    * Creates an ObliqueProjection from engine config options.
@@ -107,12 +104,10 @@ export class ObliqueProjection extends AbstractProjection {
       this._matrix,
     );
 
-    // Shear the depth axis into X/Y before the orthographic projection is applied,
-    // producing an actual oblique (cavalier/cabinet-style) view instead of a plain orthographic one.
-    this._shearMatrix.identity();
-    this._shearMatrix.data[8] = -Math.cos(this.shearAngle) * this.shearScale;
-    this._shearMatrix.data[9] = -Math.sin(this.shearAngle) * this.shearScale;
-    Matrix4.multiply(this._matrix, this._shearMatrix, this._matrix);
+    // Shear the depth axis into X/Y directly in closed form, avoiding a full 4x4 matrix multiply.
+    const d = this._matrix.data;
+    d[8] = -d[0]! * Math.cos(this.shearAngle) * this.shearScale;
+    d[9] = -d[5]! * Math.sin(this.shearAngle) * this.shearScale;
   }
 
   public override setAspect(aspect: number): void {

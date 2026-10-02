@@ -18,7 +18,7 @@ import {
 } from "../post/passes/index.js";
 import { AbstractLight } from "../../core/lights/index.js";
 import { MAX_AREA_LIGHTS } from "../../core/lights/AreaLight.js";
-import { MAX_SKINNED_BONES } from "../../core/animation/Skeleton.js";
+import { MAX_SKINNED_BONES, isSkinnedMesh } from "../../core/animation/index.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { RenderManifest } from "../../core/renderers/shaders/index.js";
 import { Color } from "../../core/colors/index.js";
@@ -431,7 +431,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
       this._opaqueTexture = tex!;
 
-      const dummyTex = { isLoaded: true } as unknown as Texture;
+      const dummyTex = Texture.empty();
+      dummyTex.isLoaded = true;
       this._textures.registerTexture(dummyTex, tex!);
     } else {
       this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);
@@ -875,8 +876,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     if (
       objects[0] &&
-      (("skeleton" in objects[0] && (objects[0] as unknown as { skeleton?: unknown }).skeleton) ||
-        objects[0].geometry?.joints)
+      ((isSkinnedMesh(objects[0]) && objects[0].skeleton) || objects[0].geometry?.joints)
     ) {
       if (!shaderFlags.includes("USE_SKINNING")) {
         shaderFlags.push("USE_SKINNING");
@@ -1423,11 +1423,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         const uModel = u.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 
-        if (
-          "skeleton" in o &&
-          (o as unknown as { skeleton?: { boneMatrices: Float32Array } }).skeleton
-        ) {
-          const skel = (o as unknown as { skeleton: { boneMatrices: Float32Array } }).skeleton;
+        if (isSkinnedMesh(o) && o.skeleton) {
+          const skel = o.skeleton;
           const boneLoc =
             cache.uniforms.get("u_boneMatrices[0]") ??
             this.gl.getUniformLocation(cache.prog, "u_boneMatrices");

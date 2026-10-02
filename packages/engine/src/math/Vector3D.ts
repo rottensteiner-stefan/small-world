@@ -282,14 +282,15 @@ export class Vector3D implements Vector {
     const qz: number = q.z;
     const qw: number = q.w;
 
-    const ix: number = qw * x + qy * z - qz * y;
-    const iy: number = qw * y + qz * x - qx * z;
-    const iz: number = qw * z + qx * y - qy * x;
-    const iw: number = -qx * x - qy * y - qz * z;
+    // t = 2 * (q.xyz x v)
+    const tx: number = 2 * (qy * z - qz * y);
+    const ty: number = 2 * (qz * x - qx * z);
+    const tz: number = 2 * (qx * y - qy * x);
 
-    this.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
-    this.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
-    this.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+    // v' = v + qw * t + (q.xyz x t)
+    this.x = x + qw * tx + (qy * tz - qz * ty);
+    this.y = y + qw * ty + (qz * tx - qx * tz);
+    this.z = z + qw * tz + (qx * ty - qy * tx);
 
     return this;
   }

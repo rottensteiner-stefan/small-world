@@ -19,6 +19,7 @@ export class KeyframeTrack {
   private _tempVecA: Vector3D = new Vector3D();
   private _tempVecB: Vector3D = new Vector3D();
   private _segment = { i0: 0, i1: 0, alpha: null as number | null };
+  private _lastIndex: number = 0;
 
   constructor(
     targetName: string,
@@ -74,31 +75,57 @@ export class KeyframeTrack {
    * only valid until the next `_findSegment` call on this track.
    */
   private _findSegment(time: number, out: { i0: number; i1: number; alpha: number | null }): void {
-    if (0 === this.times.length) {
+    const times = this.times;
+    const len = times.length;
+    if (0 === len) {
       out.i0 = 0;
       out.i1 = 0;
       out.alpha = null;
       return;
     }
-    const lastIdx = this.times.length - 1;
-    if (lastIdx <= 0 || time <= this.times[0]!) {
+    const lastIdx = len - 1;
+    if (lastIdx <= 0 || time <= times[0]!) {
       out.i0 = 0;
       out.i1 = 0;
       out.alpha = null;
+      this._lastIndex = 0;
       return;
     }
-    if (time >= this.times[lastIdx]!) {
+    if (time >= times[lastIdx]!) {
       out.i0 = lastIdx;
       out.i1 = lastIdx;
       out.alpha = null;
+      this._lastIndex = lastIdx;
       return;
     }
 
-    let i0 = 0;
-    let i1 = 1;
-    while (i1 < this.times.length && this.times[i1]! < time) {
-      i0++;
-      i1++;
+    let i0 = this._lastIndex;
+    let i1 = i0 + 1;
+
+    // Fast paths: cached segment or sequential advance
+    if (0 <= i0 && i1 <= lastIdx && times[i0]! <= time && time < times[i1]!) {
+      // Still in cached segment
+    } else if (i1 < lastIdx && times[i1]! <= time && time < times[i1 + 1]!) {
+      // Monotonic forward step
+      i0 = i1;
+      i1 = i0 + 1;
+      this._lastIndex = i0;
+    } else {
+      // Binary search fallback for time jumps / loops
+      let low = 0;
+      let high = lastIdx;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        if (times[mid]! <= time) {
+          i0 = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      if (i0 >= lastIdx) i0 = lastIdx - 1;
+      i1 = i0 + 1;
+      this._lastIndex = i0;
     }
 
     if (this.interpolation === "STEP") {
@@ -108,8 +135,8 @@ export class KeyframeTrack {
       return;
     }
 
-    const t0 = this.times[i0]!;
-    const t1 = this.times[i1]!;
+    const t0 = times[i0]!;
+    const t1 = times[i1]!;
     out.i0 = i0;
     out.i1 = i1;
     out.alpha = (time - t0) / (t1 - t0);

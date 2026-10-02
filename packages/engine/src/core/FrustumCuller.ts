@@ -29,12 +29,25 @@ export class FrustumCuller {
     this._resetCulling(scene.root);
 
     if (scene.staticOctree || scene.dynamicOctree) {
-      for (const octree of [scene.staticOctree, scene.dynamicOctree]) {
-        if (!octree) continue;
+      if (scene.staticOctree) {
         this._queryHits.length = 0;
-        octree.query(this._frustum, this._queryHits, this.lastIntersectedNodes);
-        for (let i: number = 0; i < this._queryHits.length; i++) {
-          const obj = this._queryHits[i] as Object3D;
+        scene.staticOctree.query(this._frustum, this._queryHits, this.lastIntersectedNodes);
+        const hits = this._queryHits;
+        const hitLen = hits.length;
+        for (let i = 0; i < hitLen; i++) {
+          const obj = hits[i] as Object3D;
+          if (obj.isVisible) {
+            obj.inFrustum = true;
+          }
+        }
+      }
+      if (scene.dynamicOctree) {
+        this._queryHits.length = 0;
+        scene.dynamicOctree.query(this._frustum, this._queryHits, this.lastIntersectedNodes);
+        const hits = this._queryHits;
+        const hitLen = hits.length;
+        for (let i = 0; i < hitLen; i++) {
+          const obj = hits[i] as Object3D;
           if (obj.isVisible) {
             obj.inFrustum = true;
           }

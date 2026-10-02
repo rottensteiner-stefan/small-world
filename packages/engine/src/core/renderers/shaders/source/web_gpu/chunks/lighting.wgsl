@@ -98,7 +98,7 @@ for(var k=0u; k<spotCluster.y; k++) {
   let j = spotClusterIndices[spotCluster.x + k];
   let lVec = sLights[j].pos.xyz - i.wp;
   let d = length(lVec); 
-  let L = lVec/d; 
+  let L = lVec / max(d, 0.0001); 
   let S = normalize(sLights[j].dir.xyz); 
   let theta = dot(-L, S);
   if(theta > sLights[j].params.x) {

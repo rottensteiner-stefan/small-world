@@ -225,42 +225,47 @@ export class Matrix4 {
   public decompose(position: Vector3D, rotation: Vector3D, scale: Vector3D): this {
     const te = this.data;
     position.set(te[12]!, te[13]!, te[14]!);
-    const v1 = MathPool.acquireVector().set(te[0]!, te[1]!, te[2]!);
-    const v2 = MathPool.acquireVector().set(te[4]!, te[5]!, te[6]!);
-    const v3 = MathPool.acquireVector().set(te[8]!, te[9]!, te[10]!);
-    let sx = v1.length();
-    const sy = v2.length();
-    const sz = v3.length();
+
+    const te0 = te[0]!,
+      te1 = te[1]!,
+      te2 = te[2]!;
+    const te4 = te[4]!,
+      te5 = te[5]!,
+      te6 = te[6]!;
+    const te8 = te[8]!,
+      te9 = te[9]!,
+      te10 = te[10]!;
+
+    let sx = Math.hypot(te0, te1, te2);
+    const sy = Math.hypot(te4, te5, te6);
+    const sz = Math.hypot(te8, te9, te10);
+
     if (this.determinant() < 0) sx = -sx;
     scale.set(sx, sy, sz);
-    const m = MathPool.acquireMatrix();
-    m.data.set(this.data);
+
     const invSX = 1 / sx;
     const invSY = 1 / sy;
     const invSZ = 1 / sz;
-    m.data[0]! *= invSX;
-    m.data[1]! *= invSX;
-    m.data[2]! *= invSX;
-    m.data[4]! *= invSY;
-    m.data[5]! *= invSY;
-    m.data[6]! *= invSY;
-    m.data[8]! *= invSZ;
-    m.data[9]! *= invSZ;
-    m.data[10]! *= invSZ;
-    const md = m.data;
-    const m9 = md[9]!;
-    rotation.x = Math.asin(-Math.max(-1, Math.min(1, m9))); // Fixed decompose index
-    if (Math.abs(m9) < 0.99999) {
-      rotation.y = Math.atan2(md[8]!, md[10]!);
-      rotation.z = Math.atan2(md[1]!, md[5]!);
+
+    const r0 = te0 * invSX;
+    const r1 = te1 * invSX;
+    const r2 = te2 * invSX;
+
+    const r5 = te5 * invSY;
+
+    const r8 = te8 * invSZ;
+    const r9 = te9 * invSZ;
+    const r10 = te10 * invSZ;
+
+    rotation.x = Math.asin(-Math.max(-1, Math.min(1, r9)));
+    if (Math.abs(r9) < 0.99999) {
+      rotation.y = Math.atan2(r8, r10);
+      rotation.z = Math.atan2(r1, r5);
     } else {
-      rotation.y = Math.atan2(-md[2]!, md[0]!);
+      rotation.y = Math.atan2(-r2, r0);
       rotation.z = 0;
     }
-    MathPool.releaseVector(v1);
-    MathPool.releaseVector(v2);
-    MathPool.releaseVector(v3);
-    MathPool.releaseMatrix(m);
+
     return this;
   }
 

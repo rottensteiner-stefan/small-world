@@ -91,4 +91,24 @@ describe("Vector3D", () => {
     expect(v1.y).toBe(20);
     expect(v1.z).toBe(30);
   });
+
+  it("should rotate correctly when applyQuaternion is called", () => {
+    const v = new Vector3D(1, 0, 0);
+    // Rotate 90 deg around Y axis: (0, sin(45 deg), 0, cos(45 deg))
+    const halfAngle = Math.PI / 4;
+    const q = { x: 0, y: Math.sin(halfAngle), z: 0, w: Math.cos(halfAngle) };
+    v.applyQuaternion(q);
+    expect(v.x).toBeCloseTo(0);
+    expect(v.y).toBeCloseTo(0);
+    expect(v.z).toBeCloseTo(-1);
+  });
+
+  it("should rotate 180 deg around X axis with applyQuaternion", () => {
+    const v = new Vector3D(0, 1, 0);
+    const q = { x: 1, y: 0, z: 0, w: 0 };
+    v.applyQuaternion(q);
+    expect(v.x).toBeCloseTo(0);
+    expect(v.y).toBeCloseTo(-1);
+    expect(v.z).toBeCloseTo(0);
+  });
 });

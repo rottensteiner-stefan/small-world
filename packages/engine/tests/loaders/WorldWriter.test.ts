@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { WorldWriter, GltfDocument } from "../../src/loaders/WorldWriter.js";
 import { GltfLoader } from "../../src/loaders/GltfLoader.js";
+import { GltfData } from "../../src/loaders/gltf/index.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { PointLight } from "../../src/core/lights/PointLight.js";
 import { StandardMaterial } from "../../src/core/materials/StandardMaterial.js";
@@ -30,19 +31,14 @@ function triangleGeometry(): GeometryDataInterface {
   } as unknown as GeometryDataInterface;
 }
 
-type ParseFn = (
-  gltf: { json: unknown; buffers: ArrayBuffer[] },
-  baseUrl: string,
-) => Promise<Object3D>;
-
 async function parseDocument(doc: GltfDocument): Promise<Object3D> {
   // Round-trip through real JSON text, not just the in-memory object -- proves the document is
   // actually plain-JSON-safe, the same as it would be after being written to and read back
   // from a `.gltf` file on disk.
-  const roundTripped = JSON.parse(JSON.stringify(doc)) as unknown;
+  const roundTripped = JSON.parse(JSON.stringify(doc)) as GltfData["json"];
   const buffers = doc.buffers ? [decodeDataUri(doc.buffers[0]!.uri)] : [];
   const loader = new GltfLoader();
-  return (loader as unknown as { _parse: ParseFn })._parse({ json: roundTripped, buffers }, "");
+  return loader.parse({ json: roundTripped, buffers }, "");
 }
 
 describe("WorldWriter <-> GltfLoader round trip", () => {

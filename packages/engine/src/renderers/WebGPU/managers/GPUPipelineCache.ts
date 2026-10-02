@@ -482,6 +482,8 @@ export class GPUPipelineCache {
       code = wgslConstants + "\n" + code;
 
       if (isInstanced) {
+        // Replace obj.model with modelMat first, then inject vs signature with modelMat definition
+        code = code.replace(/obj\.model/g, "modelMat");
         // Match the entire function signature fn vs(...) -> Out {
         code = code.replace(
           /fn\s+vs\s*\(([\s\S]*?)\)\s*->\s*Out\s*\{/,
@@ -496,12 +498,10 @@ export class GPUPipelineCache {
   @location(9) inst_col3: vec4f,
   @location(10) inst_data: vec4f
 ) -> Out {
-  let instMatrix = mat4x4f(inst_col0, inst_col1, inst_col2, inst_col3);`;
+  let instMatrix = mat4x4f(inst_col0, inst_col1, inst_col2, inst_col3);
+  let modelMat = (obj.model * instMatrix);`;
           },
         );
-
-        // Replace obj.model with (obj.model * instMatrix)
-        code = code.replace(/obj\.model/g, "(obj.model * instMatrix)");
 
         code = code.replace(/return\s+o;/g, "o.texIndex = inst_data.x;\n    return o;");
       } else {

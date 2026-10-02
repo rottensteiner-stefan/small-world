@@ -121,26 +121,12 @@ describe("GltfLoader PBR Options", () => {
 });
 
 describe("GltfLoader node-parsing options", () => {
-  function withParseAccess(loader: GltfLoader): {
-    _parse: (gltf: { json: unknown; buffers: ArrayBuffer[] }, baseUrl: string) => Promise<Object3D>;
-  } {
-    return loader as unknown as {
-      _parse: (
-        gltf: { json: unknown; buffers: ArrayBuffer[] },
-        baseUrl: string,
-      ) => Promise<Object3D>;
-    };
-  }
-
   it("should apply nodeNameTransform to every parsed node's name", async () => {
     const loader = new GltfLoader({
       nodeNameTransform: (name): string => name.toUpperCase(),
     });
 
-    const root = await withParseAccess(loader)._parse(
-      { json: { nodes: [{ name: "hero" }] }, buffers: [] },
-      "",
-    );
+    const root = await loader.parse({ json: { nodes: [{ name: "hero" }] }, buffers: [] }, "");
 
     expect(root.getObjectByName("HERO")).toBeDefined();
     expect(root.getObjectByName("hero")).toBeUndefined();
@@ -149,7 +135,7 @@ describe("GltfLoader node-parsing options", () => {
   it("should normalize numeric Mixamo rig prefixes when normalizeMixamoRig is set", async () => {
     const loader = new GltfLoader({ normalizeMixamoRig: true });
 
-    const root = await withParseAccess(loader)._parse(
+    const root = await loader.parse(
       { json: { nodes: [{ name: "mixamorig3:Hips" }] }, buffers: [] },
       "",
     );
@@ -165,10 +151,7 @@ describe("GltfLoader node-parsing options", () => {
       },
     });
 
-    await withParseAccess(loader)._parse(
-      { json: { nodes: [{ name: "A" }, { name: "B" }] }, buffers: [] },
-      "",
-    );
+    await loader.parse({ json: { nodes: [{ name: "A" }, { name: "B" }] }, buffers: [] }, "");
 
     expect(seen).toEqual([
       { name: "A", rawName: "A" },
@@ -184,10 +167,7 @@ describe("GltfLoader node-parsing options", () => {
       },
     });
 
-    const root = await withParseAccess(loader)._parse(
-      { json: { nodes: [{ name: "A" }] }, buffers: [] },
-      "",
-    );
+    const root = await loader.parse({ json: { nodes: [{ name: "A" }] }, buffers: [] }, "");
 
     expect(receivedRoot).toBe(root);
     expect(receivedRoot?.getObjectByName("A")).toBeDefined();

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { GltfLoader, registerGltfExtension, Object3D } from "@small-world/engine";
+import { GltfLoader, registerGltfExtension } from "@small-world/engine";
 import { khrDracoMeshCompression } from "../src/draco/KhrDracoMeshCompression.js";
 import { DracoDecoder } from "../src/draco/DracoDecoder.js";
 
@@ -57,11 +57,7 @@ describe("KHR_draco_mesh_compression", () => {
     };
 
     const loader = new GltfLoader();
-    const withParseAccess = loader as unknown as {
-      _parse: (gltfData: typeof gltf, baseUrl: string) => Promise<Object3D>;
-    };
-
-    const scene = await withParseAccess._parse(gltf, "");
+    const scene = await loader.parse(gltf, "");
     expect(scene).toBeDefined();
 
     const node = scene.getObjectByName("HeroMeshNode");
@@ -100,11 +96,7 @@ describe("KHR_draco_mesh_compression", () => {
     };
 
     const loader = new GltfLoader();
-    const withParseAccess = loader as unknown as {
-      _parse: (gltfData: typeof gltf, baseUrl: string) => Promise<Object3D>;
-    };
-
-    const scene = await withParseAccess._parse(gltf, "");
+    const scene = await loader.parse(gltf, "");
     expect(scene).toBeDefined();
     // Primitive failed to decode, so no mesh child added
     expect(scene.children[0]?.children.length).toBe(0);

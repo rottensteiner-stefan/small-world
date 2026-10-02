@@ -31,11 +31,9 @@ export interface ThreadTask<TData, TResult> {
 export class ThreadPool {
   private _workers: Worker[] = [];
   private _idleWorkers: Worker[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _taskQueue: ThreadTask<any, any>[] = [];
+  private _taskQueue: ThreadTask<unknown, unknown>[] = [];
   private _taskCounter: number = 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _taskMap: Map<number, ThreadTask<any, any>> = new Map();
+  private _taskMap: Map<number, ThreadTask<unknown, unknown>> = new Map();
 
   /**
    * Creates a new ThreadPool.
@@ -117,7 +115,7 @@ export class ThreadPool {
         reject,
       };
 
-      this._taskQueue.push(task);
+      this._taskQueue.push(task as unknown as ThreadTask<unknown, unknown>);
       this._processQueue();
     });
   }

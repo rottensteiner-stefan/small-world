@@ -1,4 +1,4 @@
-import { Object3D, WorldWriter, GltfLoader } from "@small-world/engine";
+import { Object3D, WorldWriter, GltfLoader, GltfData } from "@small-world/engine";
 
 const AUTOSAVE_DEBOUNCE_MS = 500;
 const SCENE_FILE_NAME = "scene.gltf";
@@ -32,11 +32,6 @@ export interface FileSystemWritableFileStreamLike {
   write(data: string): Promise<void>;
   close(): Promise<void>;
 }
-
-type ParseFn = (
-  gltf: { json: unknown; buffers: ArrayBuffer[] },
-  baseUrl: string,
-) => Promise<Object3D>;
 
 /**
  * Binds Maker to a real project folder on disk via the File System Access API and keeps it
@@ -91,16 +86,13 @@ export class ProjectBinding {
       return undefined;
     }
     const file = await fileHandle.getFile();
-    const json = JSON.parse(await file.text()) as unknown;
+    const json = JSON.parse(await file.text()) as GltfData["json"];
     const loader = new GltfLoader();
-    return (loader as unknown as { _parse: ParseFn })._parse(
-      { json, buffers: ProjectBinding._decodeBuffers(json) },
-      "",
-    );
+    return loader.parse({ json, buffers: ProjectBinding._decodeBuffers(json) }, "");
   }
 
   /** `WorldWriter` embeds every buffer as a `data:` URI (see its own doc comment on why) -- a
-   * `.gltf` document `_parse()`s from a real file also needs those decoded into `ArrayBuffer`s
+   * `.gltf` document `parse()`s from a real file also needs those decoded into `ArrayBuffer`s
    * first, exactly like `GltfLoader.load()` itself does internally for a plain file fetch. Was
    * previously always called with `buffers: []`, silently dropping every mesh on reload -- only
    * surfaced once Phase 2's prefab instantiate actually rendered a round-tripped mesh. */
@@ -166,16 +158,13 @@ export class ProjectBinding {
       return undefined;
     }
     const file = await fileHandle.getFile();
-    const json = JSON.parse(await file.text()) as unknown;
+    const json = JSON.parse(await file.text()) as GltfData["json"];
     const loader = new GltfLoader();
     // `writeSingle()` wrote the original selected object as the document's one top-level node,
-    // so the synthetic "glTF_Root" wrapper `_parse()` returns has exactly that one child --
+    // so the synthetic "glTF_Root" wrapper `parse()` returns has exactly that one child --
     // tagging *it* (not the throwaway wrapper) is what actually reaches the scene once
     // `MakerApp` adds this child in.
-    const wrapper = await (loader as unknown as { _parse: ParseFn })._parse(
-      { json, buffers: ProjectBinding._decodeBuffers(json) },
-      "",
-    );
+    const wrapper = await loader.parse({ json, buffers: ProjectBinding._decodeBuffers(json) }, "");
     const instance = wrapper.children[0];
     if (instance) instance.prefabSource = name;
     return instance;

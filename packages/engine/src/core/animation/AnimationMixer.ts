@@ -12,12 +12,30 @@ const MIXAMO_RIG_PREFIX_RE = /^mixamorig\d*:/;
 
 type VecProperty = "translation" | "scale";
 
+interface VecBlendState {
+  target: Object3D;
+  property: VecProperty;
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+  si: number;
+}
+
+interface QuatBlendState {
+  target: Object3D;
+  q: Quaternion;
+  total: number;
+  si: number;
+}
+
 /**
  * The AnimationMixer is the player for animations on a particular object in the scene.
  */
 export class AnimationMixer {
   public root: Object3D;
   private _actions: Map<AnimationClip, AnimationAction> = new Map();
+  private _actionList: AnimationAction[] = [];
   private _bindings: Map<string, Object3D | undefined> = new Map();
 
   // Reused per-frame blend accumulators. Instead of building a fresh list of weighted samples per
@@ -25,11 +43,11 @@ export class AnimationMixer {
   // (`si !== _frameIndex`) tells whether this is the first contribution of the current `update()`
   // call. This keeps the hot path fully zero-allocation: states are created once and never cleared.
   private _frameIndex: number = 0;
-  private _vecState: Map<
-    Object3D,
-    Map<VecProperty, { x: number; y: number; z: number; w: number; si: number }>
-  > = new Map();
-  private _quatState: Map<Object3D, { q: Quaternion; total: number; si: number }> = new Map();
+  private _vecStateMap: Map<Object3D, { translation?: VecBlendState; scale?: VecBlendState }> =
+    new Map();
+  private _vecStateList: VecBlendState[] = [];
+  private _quatStateMap: Map<Object3D, QuatBlendState> = new Map();
+  private _quatStateList: QuatBlendState[] = [];
 
   constructor(root: Object3D) {
     this.root = root;
@@ -43,6 +61,7 @@ export class AnimationMixer {
     if (!action) {
       action = new AnimationAction(this, clip);
       this._actions.set(clip, action);
+      this._actionList.push(action);
     }
     return action;
   }
@@ -51,8 +70,10 @@ export class AnimationMixer {
    * Stops all active actions on this mixer.
    */
   public stopAllAction(): this {
-    for (const action of this._actions.values()) {
-      action.stop();
+    const actionList = this._actionList;
+    const len = actionList.length;
+    for (let i = 0; i < len; i++) {
+      actionList[i]!.stop();
     }
     return this;
   }
@@ -67,13 +88,17 @@ export class AnimationMixer {
     this._frameIndex++;
     const frameIndex = this._frameIndex;
 
-    for (const action of this._actions.values()) {
+    const actionList = this._actionList;
+    const actionCount = actionList.length;
+    for (let a = 0; a < actionCount; a++) {
+      const action = actionList[a]!;
       if (!action.isPlaying || action.weight <= 0) continue;
 
       action.update(deltaTime);
 
       const tracks = action.clip.tracks;
-      for (let i = 0; i < tracks.length; i++) {
+      const trackCount = tracks.length;
+      for (let i = 0; i < trackCount; i++) {
         const track = tracks[i];
         if (!track) continue;
 
@@ -90,10 +115,11 @@ export class AnimationMixer {
 
         if ("rotation" === track.property) {
           const sampled = track.sampleQuaternion(action.time);
-          let st = this._quatState.get(target);
+          let st = this._quatStateMap.get(target);
           if (!st) {
-            st = { q: new Quaternion(), total: 0, si: 0 };
-            this._quatState.set(target, st);
+            st = { target, q: new Quaternion(), total: 0, si: 0 };
+            this._quatStateMap.set(target, st);
+            this._quatStateList.push(st);
           }
           if (st.si !== frameIndex) {
             // First contribution of this frame seeds the blend.
@@ -108,15 +134,16 @@ export class AnimationMixer {
         } else {
           const sampled = track.sampleVector(action.time);
           const property = track.property as VecProperty;
-          let byProperty = this._vecState.get(target);
-          if (!byProperty) {
-            byProperty = new Map();
-            this._vecState.set(target, byProperty);
+          let byTarget = this._vecStateMap.get(target);
+          if (!byTarget) {
+            byTarget = {};
+            this._vecStateMap.set(target, byTarget);
           }
-          let st = byProperty.get(property);
+          let st = byTarget[property];
           if (!st) {
-            st = { x: 0, y: 0, z: 0, w: 0, si: 0 };
-            byProperty.set(property, st);
+            st = { target, property, x: 0, y: 0, z: 0, w: 0, si: 0 };
+            byTarget[property] = st;
+            this._vecStateList.push(st);
           }
           if (st.si !== frameIndex) {
             st.x = sampled.x * action.weight;
@@ -134,16 +161,22 @@ export class AnimationMixer {
       }
     }
 
-    for (const [target, byProperty] of this._vecState) {
-      for (const [property, st] of byProperty) {
-        if (st.si !== frameIndex || st.w <= 0) continue;
-        const dest = "translation" === property ? target.position : target.scale;
-        dest.set(st.x / st.w, st.y / st.w, st.z / st.w);
-      }
+    const vecList = this._vecStateList;
+    const vecCount = vecList.length;
+    for (let i = 0; i < vecCount; i++) {
+      const st = vecList[i]!;
+      if (st.si !== frameIndex || st.w <= 0) continue;
+      const dest = "translation" === st.property ? st.target.position : st.target.scale;
+      const invW = 1 / st.w;
+      dest.set(st.x * invW, st.y * invW, st.z * invW);
     }
-    for (const [target, st] of this._quatState) {
+
+    const quatList = this._quatStateList;
+    const quatCount = quatList.length;
+    for (let i = 0; i < quatCount; i++) {
+      const st = quatList[i]!;
       if (st.si !== frameIndex) continue;
-      target.quaternion = (target.quaternion || new Quaternion()).copyFrom(st.q);
+      st.target.quaternion = (st.target.quaternion || new Quaternion()).copyFrom(st.q);
     }
   }
 

@@ -15,8 +15,12 @@ export class Ray2D {
   /**
    * First forward intersection of this ray with segment `a`-`b`, or `undefined` if the ray misses
    * the segment or the segment lies behind the ray's origin.
+   * @param a Start point of segment.
+   * @param b End point of segment.
+   * @param target Optional Vector2D to store the result in, avoiding allocation.
+   * @returns Intersection point as Vector2D, or undefined.
    */
-  public intersectSegment(a: Vector2D, b: Vector2D): Vector2D | undefined {
+  public intersectSegment(a: Vector2D, b: Vector2D, target?: Vector2D): Vector2D | undefined {
     const segX = b.x - a.x;
     const segY = b.y - a.y;
     const denom = this.direction.x * segY - this.direction.y * segX;
@@ -26,6 +30,13 @@ export class Ray2D {
     const t = (diffX * segY - diffY * segX) / denom;
     const u = (diffX * this.direction.y - diffY * this.direction.x) / denom;
     if (t <= 1e-6 || u < 0 || u > 1) return undefined;
-    return new Vector2D(this.origin.x + this.direction.x * t, this.origin.y + this.direction.y * t);
+    const x = this.origin.x + this.direction.x * t;
+    const y = this.origin.y + this.direction.y * t;
+    if (target) {
+      target.x = x;
+      target.y = y;
+      return target;
+    }
+    return new Vector2D(x, y);
   }
 }

@@ -97,6 +97,7 @@ export class Object3D implements Collidable {
   public isCollidable: boolean = true;
   public frustumCulled: boolean = true;
   public isStatic: boolean = false;
+  public matrixWorldNeedsUpdate: boolean = true;
   public inFrustum: boolean = true;
   /** Set only by WebGPU Hierarchical-Z occlusion culling (see docs/adr/0008-...), one frame
    * stale by design (`mapAsync` GPU->CPU readback is never synchronous). Unlike `inFrustum`,
@@ -335,19 +336,25 @@ export class Object3D implements Collidable {
     return this;
   }
 
-  public updateMatrixWorld(): void {
-    if (this.quaternion) {
-      this.localMatrix.composeFromQuaternion(this.position, this.quaternion, this.scale);
-    } else {
-      this.localMatrix.compose(this.position, this.rotation, this.scale);
+  public updateMatrixWorld(force: boolean = false): void {
+    if (force || this.matrixWorldNeedsUpdate || !this.isStatic) {
+      if (this.quaternion) {
+        this.localMatrix.composeFromQuaternion(this.position, this.quaternion, this.scale);
+      } else {
+        this.localMatrix.compose(this.position, this.rotation, this.scale);
+      }
+      if (undefined === this.parent) {
+        this.worldMatrix.data.set(this.localMatrix.data);
+      } else {
+        Matrix4.multiply(this.parent.worldMatrix, this.localMatrix, this.worldMatrix);
+      }
+      this.matrixWorldNeedsUpdate = false;
+      force = true;
     }
-    if (undefined === this.parent) {
-      this.worldMatrix.data.set(this.localMatrix.data);
-    } else {
-      Matrix4.multiply(this.parent.worldMatrix, this.localMatrix, this.worldMatrix);
-    }
-    for (const child of this.children) {
-      child.updateMatrixWorld();
+    const children = this.children;
+    const len = children.length;
+    for (let i = 0; i < len; i++) {
+      children[i]!.updateMatrixWorld(force);
     }
   }
 

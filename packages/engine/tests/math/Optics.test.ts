@@ -41,6 +41,15 @@ describe("Optics.refract", () => {
     const result = Optics.refract(incident, normal, 1.0, 1.5)!;
     expect(Math.hypot(result.x, result.y)).toBeCloseTo(1, 5);
   });
+
+  it("populates and returns the optional target Vector2D when provided", () => {
+    const incident = new Vector2D(Math.SQRT1_2, Math.SQRT1_2);
+    const normal = new Vector2D(0, -1);
+    const target = new Vector2D(99, 99);
+    const result = Optics.refract(incident, normal, 1.0, 1.5, target);
+    expect(result).toBe(target);
+    expect(Math.hypot(target.x, target.y)).toBeCloseTo(1, 5);
+  });
 });
 
 describe("Optics.cauchyIndex", () => {

@@ -296,12 +296,6 @@ let diffuseAmbient = irradiance * albedo;
 // wins: without this check, adding scene-level IBL to a scene permanently hid real-time mirror
 // reflections behind the blurry static one, even though the probe kept updating correctly
 // underneath (e.g. Showcase 15's mirror spheres going flat/hazy once scene IBL was added).
-// A per-object dynamic reflection probe (u_envMap, e.g. DynamicReflectionProbe) is a sharp,
-// real-time capture of this object's actual surroundings, while the scene's prefilter map is a
-// single static, low-res bake shared by everything in the scene. When both are present the probe
-// wins: without this check, adding scene-level IBL to a scene permanently hid real-time mirror
-// reflections behind the blurry static one, even though the probe kept updating correctly
-// underneath (e.g. Showcase 15's mirror spheres going flat/hazy once scene IBL was added).
 let R = reflect(-V, N);
 let MAX_REFLECTION_LOD = 4.0;
 var specularAmbient: vec3f;
@@ -324,7 +318,7 @@ if (clearcoat > 0.0) {
     ambient = ambient * (1.0 - clearcoat * F_Schlick(dotNV, vec3f(0.04)).x) + ccSpecular;
 }
 
-if (length(irradiance) < 0.001) {
+if (dot(irradiance, irradiance) < 1e-6) {
     let f_fallback = F_Schlick(dotNV, F0);
     let kD_fallback = (vec3f(1.0) - f_fallback) * (1.0 - metallic);
     ambient = (kD_fallback * global.ambientColor.rgb * albedo + specularAmbient) * ao;
@@ -335,24 +329,3 @@ var color = ambient + Lo;
 // Emissive
 let emissive = sRGBToLinear(textureSample(u_emissiveMap, s, i.uv).rgb) * sRGBToLinear(obj.specColor.rgb) * obj.specColor.a;
 color += emissive;
-
-// Exposure
-color *= global.exposure;
-
-// ── Forward-Pass / Post-Pass tonemapping contract ──────────────────────────────────────────────
-// global.gamma == 1.0  →  PostProcessing is ENABLED. The renderer writes gamma=1.0 specifically
-//                         as a signal that the PostProcess pass will handle tonemapping, gamma,
-//                         and exposure (see WebGPURenderer.ts, "Forward-Pass / Post-Pass" block).
-//                         Do NOT add any tonemapping here — it would double-tonemap and produce a
-//                         visibly darker scene. linearToSRGB() below still runs to convert the
-//                         HDR-linear buffer to sRGB for the render target format.
-//
-// global.gamma != 1.0  →  PostProcessing is DISABLED. The forward pass IS the final pass.
-//                         Reinhard + linearToSRGB run here as a lightweight single-pass pipeline.
-//                         gamma value comes from _quality (default 2.2).
-if (global.gamma != 1.0) {
-    color = color / (color + vec3f(1.0)); // Reinhard
-}
-
-// Gamma Correction (always runs — converts linear to sRGB for the render target)
-color = linearToSRGB(color);

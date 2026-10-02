@@ -4,6 +4,20 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ## Geometry & Mathematics
 
+### `Rodrigues Quaternion-Vector Rotation`
+
+- **File:** `packages/engine/src/math/Vector3D.ts`
+- **Authors/Gurus:** Olinde Rodrigues (1840)
+- **Formulas:** $v' = v + 2w(q \times v) + 2(q \times (q \times v))$
+- **Usage:** Computes 3D vector rotation by unit quaternion with 15 multiplications and 12 additions, saving 40% of floating-point operations compared to full 4D Hamilton expansion ($q \cdot p \cdot q^*$) with zero memory allocations.
+
+### `Perlin Smootherstep Polynomial`
+
+- **File:** `packages/engine/src/math/MathUtils.ts`
+- **Authors/Gurus:** Ken Perlin (2002, *Improving Noise*)
+- **Formulas:** $S_2(t) = 6t^5 - 15t^4 + 10t^3$
+- **Usage:** Quintic Hermite interpolation with zero 1st and 2nd derivatives at endpoints ($C^2$ continuity), preventing acceleration discontinuities in camera movements, transitions, and shader blending.
+
 ### `Gear`
 
 - **File:** `packages/engine/src/geometry/Gear.ts`

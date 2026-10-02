@@ -1,4 +1,4 @@
-import { Matrix4 } from "../index.js";
+import { Matrix4 } from "../Matrix4.js";
 import { ProjectionType } from "../../enums/index.js";
 
 /**

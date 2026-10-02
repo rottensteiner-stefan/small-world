@@ -37,26 +37,26 @@
     
     // Normalize normals after transformation to world space with robust fallbacks
     let worldN = m33 * localNormal;
-    if (length(worldN) > 0.0001) {
-        o.n = normalize(worldN);
-    } else {
+    if (dot(localNormal, localNormal) < 0.0001 || dot(worldN, worldN) < 1e-20) {
         o.n = vec3f(0.0, 1.0, 0.0);
+    } else {
+        o.n = normalize(worldN);
     }
     
     let worldT = m33 * localTangent;
-    if (length(worldT) > 0.0001) {
-        o.t = normalize(worldT);
-    } else {
+    if (dot(localTangent, localTangent) < 0.0001 || dot(worldT, worldT) < 1e-20) {
         let up = select(vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), abs(o.n.y) > 0.999);
         o.t = normalize(cross(up, o.n));
+    } else {
+        o.t = normalize(worldT);
     }
     
     let worldB = cross(o.n, o.t);
-    if (length(worldB) > 0.0001) {
-        o.b = normalize(worldB);
-    } else {
+    if (dot(worldB, worldB) < 1e-20) {
         let up = select(vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), abs(o.n.y) > 0.999);
         o.b = normalize(cross(o.n, up));
+    } else {
+        o.b = normalize(worldB);
     }
     
     return o;

@@ -1,6 +1,5 @@
 import { Camera } from "../Camera.js";
 import { InstancedMesh } from "../InstancedMesh.js";
-import { Object3D } from "../Object3D.js";
 import { AbstractMaterial, StandardMaterial } from "../materials/index.js";
 import { Color } from "../colors/index.js";
 import { Plane } from "../../geometry/index.js";
@@ -58,10 +57,6 @@ export class BillboardInstancer {
   private readonly _scratchRot = new Vector3D();
   private readonly _scratchScale = new Vector3D();
   private readonly _scratchMatrix = new Matrix4();
-  /** Reused as a pure look-at math helper (never added to a scene) for the spherical (non
-   * axis-locked) case -- mirrors `Object3D.lookAt()`'s own `Matrix4.lookAt`+`invert`+`decompose`
-   * recipe without re-deriving it. */
-  private readonly _lookAtHelper = new Object3D("BillboardLookAtHelper");
 
   constructor(name: string, options: BillboardInstancerOptions) {
     this._axisLocked = options.axisLocked ?? true;
@@ -107,33 +102,44 @@ export class BillboardInstancer {
   }
 
   public update(camera: Camera): void {
-    for (let i = 0; i < this.mesh.instanceCount; i++) {
-      const x = this._positions[i * 3 + 0]!;
-      const y = this._positions[i * 3 + 1]!;
-      const z = this._positions[i * 3 + 2]!;
-      const scale = this._scales[i]!;
+    const camPos = camera.position;
+    const camX = camPos.x;
+    const camY = camPos.y;
+    const camZ = camPos.z;
+    const count = this.mesh.instanceCount;
+    const positions = this._positions;
+    const scales = this._scales;
+    const scratchPos = this._scratchPos;
+    const scratchRot = this._scratchRot;
+    const scratchScale = this._scratchScale;
+    const scratchMatrix = this._scratchMatrix;
+    const axisLocked = this._axisLocked;
 
-      this._scratchPos.set(x, y, z);
-      this._scratchScale.set(scale, scale, scale);
+    for (let i = 0; i < count; i++) {
+      const idx = i * 3;
+      const x = positions[idx + 0]!;
+      const y = positions[idx + 1]!;
+      const z = positions[idx + 2]!;
+      const scale = scales[i]!;
 
-      if (this._axisLocked) {
+      scratchPos.set(x, y, z);
+      scratchScale.set(scale, scale, scale);
+
+      const dx = camX - x;
+      const dz = camZ - z;
+
+      if (axisLocked) {
         // Plane geometry lies in the local XY plane, facing +Z (src/geometry/Plane.ts:59) -- the
         // standard yaw-only billboard formula for a +Z-forward quad.
-        const dx = camera.position.x - x;
-        const dz = camera.position.z - z;
-        this._scratchRot.set(0, Math.atan2(dx, dz), 0);
+        scratchRot.set(0, Math.atan2(dx, dz), 0);
       } else {
-        this._lookAtHelper.position.set(x, y, z);
-        this._lookAtHelper.lookAt(camera.position);
-        this._scratchRot.copyFrom(this._lookAtHelper.rotation);
-        // Object3D.lookAt() orients the local -Z axis at the target, but Plane's front face is
-        // +Z (see the axisLocked branch above) -- flip 180 degrees around Y so the billboard's
-        // textured face, not its backside, ends up toward the camera.
-        this._scratchRot.y += Math.PI;
+        const dy = camY - y;
+        const xzDist = Math.hypot(dx, dz);
+        scratchRot.set(-Math.atan2(dy, xzDist), Math.atan2(dx, dz), 0);
       }
 
-      this._scratchMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
-      this.mesh.setMatrixAt(i, this._scratchMatrix);
+      scratchMatrix.compose(scratchPos, scratchRot, scratchScale);
+      this.mesh.setMatrixAt(i, scratchMatrix);
     }
     this.mesh.instanceMatrixNeedsUpdate = true;
   }
