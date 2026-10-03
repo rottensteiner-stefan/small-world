@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.95.1] - 2026-10-03
+
+### "Every great advance in science has issued from a new audacity of imagination." - John Dewey
+
+- **Architecture & Bugfixes:**
+  - *WebGL2 opaque depth capture without post-processing*: [`WebGL2Renderer.copyToOpaqueDepthTexture()`](packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts) bailed out unless post-processing was enabled, so `u_opaqueDepthMap` stayed empty and materials such as StylizedWater (caustics, pool floor) and FluidSurface (absorption) rendered flat on WebGL2. It now blits from the default framebuffer, probes depth formats (`DEPTH24_STENCIL8`, `DEPTH_COMPONENT24`, `DEPTH_COMPONENT32F`, `DEPTH_COMPONENT16`) until a blit succeeds (Chrome's MSAA default framebuffer needs `DEPTH24_STENCIL8` although it reports no stencil bits), caches the working format, skips offscreen targets and reallocates on size or format change.
+  - *Zero cost for other scenes*: New cached [`AbstractWebGLRenderer.requiresOpaqueDepth()`](packages/engine/src/renderers/AbstractWebGLRenderer.ts) checks the shader layout for `u_opaqueDepthMap`; [`WebGLMainPass`](packages/engine/src/renderers/passes/WebGLMainPass.ts) captures depth only when post-processing is on or a transparent material declares that sampler. Measured in Showcase 10: 324 captures in 324 frames with liquid pools, 0 in 360 frames without them.
+- **Housekeeping & Docs:**
+  - *Tests*: Added [`WebGLMainPassOpaqueDepthGating.test.ts`](packages/engine/tests/renderers/WebGLMainPassOpaqueDepthGating.test.ts) and a `requiresOpaqueDepth` case in `AbstractWebGLRenderer.test.ts`.
+  - All 214 test suites (1269 unit tests) passing green with 0 lint errors.
+
 ## [0.95.0] - 2026-10-03
 
 ### "The sea, once it casts its spell, holds one in its net of wonder forever." - Jacques Cousteau

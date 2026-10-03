@@ -860,3 +860,11 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
   Vorbestehend (HEAD-Shader identisch), kein T6-Fehler. Postprocessing erzwingen ist keine Lösung
   (Standard-Stack wäscht die Szene blass-grau aus). Entscheidung des Users: eigene Engine-Aufgabe
   (Opaque-/Depth-Capture auf GL2 unabhängig vom Post-Chain), nicht Teil des Showcase-10-Plans.
+
+- ✅ **WebGL2: Opaque-Depth-Capture ohne Post-Stack erledigt (2026-10-03, v0.95.1):** Der oben als 📋
+  geführte Punkt ist gelöst. Nur `copyToOpaqueDepthTexture` brach ohne Post-Processing ab (der Farb-Capture
+  lief schon); jetzt Blit vom Default-Framebuffer mit Format-Probing, gegated über
+  `requiresOpaqueDepth()` (Null-Kosten für Szenen ohne `u_opaqueDepthMap`-Materialien). Offen/unverifiziert:
+  Fallback-Formate D24/D32F/D16 und andere GPUs/MSAA, Context Loss; Review-Kleinigkeiten (Farb-Capture
+  weiterhin unbedingt, unbegrenzte Error-Drain-Schleife, sticky `_opaqueDepthUnsupported`,
+  `mat.type` vs. `manifest.shaderId` im Gate).

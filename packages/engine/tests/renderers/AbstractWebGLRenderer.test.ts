@@ -4,7 +4,8 @@ import { AbstractWebGLRenderer } from "../../src/renderers/AbstractWebGLRenderer
 import { type WebGLRenderPass } from "../../src/renderers/WebGLRenderPass.js";
 import { Scene } from "../../src/core/Scene.js";
 import { DirectionalLight } from "../../src/core/lights/DirectionalLight.js";
-import { RendererType } from "../../src/enums/index.js";
+import { FluidSurfaceMaterial } from "../../src/core/materials/FluidSurfaceMaterial.js";
+import { MaterialType, RendererType } from "../../src/enums/index.js";
 
 // Dummy implementation of the abstract base class
 class TestWebGLRenderer extends AbstractWebGLRenderer {
@@ -106,5 +107,15 @@ describe("AbstractWebGLRenderer Pass System", () => {
     scene.remove(dLight);
     extracted = renderer.extractLights(scene);
     expect(extracted.dLight).toBeUndefined();
+  });
+});
+
+describe("AbstractWebGLRenderer.requiresOpaqueDepth", () => {
+  it("is true only for shaders whose layout declares u_opaqueDepthMap", () => {
+    const renderer = new TestWebGLRenderer({} as WebGL2RenderingContext);
+    new FluidSurfaceMaterial(); // registers its shader provider
+    expect(renderer.requiresOpaqueDepth(MaterialType.FLUID_SURFACE)).toBe(true);
+    expect(renderer.requiresOpaqueDepth(MaterialType.PHONG)).toBe(false);
+    expect(renderer.requiresOpaqueDepth("does-not-exist")).toBe(false);
   });
 });

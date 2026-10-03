@@ -98,7 +98,14 @@ export class WebGLMainPass implements WebGLRenderPass {
     // 5. Render Transparent
     if (renderList.transparent.length > 0) {
       renderer.copyToOpaqueTexture();
-      renderer.copyToOpaqueDepthTexture();
+      // With post-processing the capture was always done; without it (default framebuffer) only
+      // pay the depth blit when a transparent material actually samples u_opaqueDepthMap.
+      let needsDepth = renderer.postProcessing.enabled;
+      for (let i = 0; !needsDepth && i < renderList.transparent.length; i++) {
+        const mat = renderList.transparent[i]!.material;
+        if (mat) needsDepth = renderer.requiresOpaqueDepth(mat.type);
+      }
+      if (needsDepth) renderer.copyToOpaqueDepthTexture();
 
       for (const obj of renderList.transparent) {
         if (!obj.material) continue;

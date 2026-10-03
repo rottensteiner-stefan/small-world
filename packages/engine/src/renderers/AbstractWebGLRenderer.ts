@@ -125,6 +125,23 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
    * effects. No-op on renderers without a compatible depth-capture path (see WebGL1Renderer).
    */
   public abstract copyToOpaqueDepthTexture(): void;
+
+  private readonly _opaqueDepthRequirement = new Map<string, boolean>();
+
+  /**
+   * Whether the shader registered under `shaderId` samples `u_opaqueDepthMap` (declared in its
+   * layout). Lets the main pass capture the opaque depth only when a transparent material
+   * actually needs it. Cached per shader id.
+   */
+  public requiresOpaqueDepth(shaderId: string): boolean {
+    let needed = this._opaqueDepthRequirement.get(shaderId);
+    if (undefined === needed) {
+      const textures = this.context.shaderRegistry.get(shaderId)?.layout.textures;
+      needed = undefined !== textures && "u_opaqueDepthMap" in textures;
+      this._opaqueDepthRequirement.set(shaderId, needed);
+    }
+    return needed;
+  }
   public abstract flushPostProcess(): void;
 
   public abstract renderBatch(

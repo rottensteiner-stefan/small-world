@@ -79,6 +79,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _opaqueDepthFbo?: WebGLFramebuffer;
   private _opaqueDepthWidth: number = 0;
   private _opaqueDepthHeight: number = 0;
+  private _opaqueDepthFormat: number = 0;
+  /** Set when no depth format could be blitted from the default framebuffer. */
+  private _opaqueDepthUnsupported: boolean = false;
   protected _hdrFbo: WebGL2FrameBuffer | undefined = undefined;
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
   protected _bloomPassGL: BloomPassGL | undefined = undefined;
@@ -451,63 +454,96 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   }
 
   /**
-   * Captures the opaque depth buffer into a sampleable `DEPTH24_STENCIL8` texture, for
-   * underwater/refraction depth-fade effects (e.g. `OpenWaterMaterial`). Only possible while
-   * an HDR FBO is active: `_hdrFbo`'s depth/stencil renderbuffer has a known, fixed format
-   * (`DEPTH24_STENCIL8`), which `blitFramebuffer` requires to match the capture texture's
-   * format exactly. Without post-processing (rendering straight to the default framebuffer),
-   * the actual depth/stencil format is implementation-defined, so capture is skipped -- water
-   * materials fall back to their non-depth (Fresnel-based) blending in that case.
+   * Captures the opaque depth buffer into a sampleable texture, for underwater/refraction/
+   * absorption depth effects (e.g. `OpenWaterMaterial`, `FluidSurfaceMaterial`).
+   * `blitFramebuffer` requires the capture texture's depth format to match the source's exactly:
+   * with an HDR FBO that is `DEPTH24_STENCIL8`. The default framebuffer's real depth format is
+   * implementation-defined (and its reported bit counts are not a reliable guide), so without
+   * post-processing the first capture probes the candidate formats until a blit succeeds.
    */
   public copyToOpaqueDepthTexture(): void {
-    if (!this.postProcessing.enabled || !this._hdrFbo) {
-      return;
-    }
-
     const gl = this.gl;
+    const hdr = this.postProcessing.enabled ? this._hdrFbo : undefined;
+    // Offscreen targets (probes, planar reflections) have their own depth attachment -- no capture.
+    if (!hdr && (null !== this._activeRenderTarget || this._opaqueDepthUnsupported)) return;
+
     const w = gl.canvas.width;
     const h = gl.canvas.height;
+    const candidates = hdr
+      ? [gl.DEPTH24_STENCIL8]
+      : this._opaqueDepthFormat !== 0
+        ? [this._opaqueDepthFormat]
+        : [gl.DEPTH24_STENCIL8, gl.DEPTH_COMPONENT24, gl.DEPTH_COMPONENT32F, gl.DEPTH_COMPONENT16];
 
     if (!this._opaqueDepthTexture) {
       this._opaqueDepthTexture = gl.createTexture()!;
       this._opaqueDepthFbo = gl.createFramebuffer()!;
     }
 
-    if (this._opaqueDepthWidth !== w || this._opaqueDepthHeight !== h) {
-      gl.bindTexture(gl.TEXTURE_2D, this._opaqueDepthTexture);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.DEPTH24_STENCIL8,
-        w,
-        h,
-        0,
-        gl.DEPTH_STENCIL,
-        gl.UNSIGNED_INT_24_8,
-        null,
-      );
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    let captured = false;
+    for (const internalFormat of candidates) {
+      if (
+        this._opaqueDepthWidth !== w ||
+        this._opaqueDepthHeight !== h ||
+        this._opaqueDepthFormat !== internalFormat
+      ) {
+        this._allocateOpaqueDepth(internalFormat, w, h);
+      }
 
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._opaqueDepthFbo!);
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.DEPTH_STENCIL_ATTACHMENT,
-        gl.TEXTURE_2D,
-        this._opaqueDepthTexture,
-        0,
-      );
-
-      this._opaqueDepthWidth = w;
-      this._opaqueDepthHeight = h;
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, hdr ? hdr.framebuffer : null);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._opaqueDepthFbo!);
+      while (gl.NO_ERROR !== gl.getError()) {
+        // drain stale errors so the blit's own result is unambiguous
+      }
+      gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+      if (gl.NO_ERROR === gl.getError()) {
+        captured = true;
+        break;
+      }
+    }
+    if (!captured) {
+      this._opaqueDepthUnsupported = true;
+      this._opaqueDepthFormat = 0;
     }
 
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._hdrFbo.framebuffer);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._opaqueDepthFbo!);
-    gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
-    this._hdrFbo.bind();
+    if (hdr) hdr.bind();
+    else gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /** (Re)allocates the opaque depth capture texture in `internalFormat` and attaches it. */
+  private _allocateOpaqueDepth(internalFormat: number, w: number, h: number): void {
+    const gl = this.gl;
+    const hasStencil =
+      internalFormat === gl.DEPTH24_STENCIL8 || internalFormat === gl.DEPTH32F_STENCIL8;
+    const format = hasStencil ? gl.DEPTH_STENCIL : gl.DEPTH_COMPONENT;
+    let type: number = gl.UNSIGNED_INT_24_8;
+    if (!hasStencil) {
+      if (internalFormat === gl.DEPTH_COMPONENT16) type = gl.UNSIGNED_SHORT;
+      else if (internalFormat === gl.DEPTH_COMPONENT32F) type = gl.FLOAT;
+      else type = gl.UNSIGNED_INT;
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, this._opaqueDepthTexture!);
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, type, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._opaqueDepthFbo!);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, null, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, null, 0);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      hasStencil ? gl.DEPTH_STENCIL_ATTACHMENT : gl.DEPTH_ATTACHMENT,
+      gl.TEXTURE_2D,
+      this._opaqueDepthTexture!,
+      0,
+    );
+
+    this._opaqueDepthWidth = w;
+    this._opaqueDepthHeight = h;
+    this._opaqueDepthFormat = internalFormat;
   }
 
   public flushPostProcess(): void {
