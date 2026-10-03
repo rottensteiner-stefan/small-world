@@ -4,6 +4,7 @@ precision highp float;
 in vec3 v_worldPos;
 in vec3 v_normal;
 in vec2 v_uv;
+in float v_crest;
 
 [LIGHT_DEFS]
 
@@ -113,12 +114,13 @@ void main() {
     float splashPulse = 0.6 + 0.4 * sin(splashPhase);
     float foamMask = foamPattern * foamBlend * splashPulse;
 
-    // Wave-crest foam (foam on open water at steep crests, independent of any solid
-    // intersection) was attempted here via a normal.y threshold, but the per-vertex analytic
-    // normal of overlapping Gerstner waves carries real high-frequency curvature noise that
-    // threshold picks up as a busy, cracked-looking network instead of clean crest patches --
-    // not a mesh-resolution artifact (tested at 2x subdivision, identical result). Parked until
-    // there's a coarser way to estimate crest steepness than the raw vertex normal.
+    // Wave-crest foam: v_crest is the vertex-shader Jacobian (wave-folding) metric, 0 on flat
+    // water -> 1 where the Gerstner crests pinch together (replaces the parked normal.y
+    // threshold, which only picked up high-frequency curvature noise). smoothstep (no step)
+    // keeps the edge soft/alias-free; the existing Worley pattern breaks it into patches, and
+    // it's gated so it never fully covers the crest line.
+    float crestFoam = smoothstep(0.4, 0.7, v_crest) * foamPattern * 0.9;
+    foamMask = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMask);
 

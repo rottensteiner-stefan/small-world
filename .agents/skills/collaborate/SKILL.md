@@ -9,6 +9,8 @@ Protokoll für kollaborative Verhandlung und gemeinsame Problemlösung von 1 bis
 
 **Sprachregel:** Dieser Skill ist durchgehend deutsch. Protokoll-Token (Statuswerte, Marker wie `[AGREED]`, JSON-Feldnamen, Befehle) bleiben englisch, weil sie maschinenlesbare Literale sind und exakt so geschrieben werden müssen.
 
+**Kommunikationssprache (Agenten):** Die gesamte Kommunikation zwischen den Agenten ist **auf Englisch** zu führen: alle Prompts an Subagenten, `SendMessage`-Nachrichten, Handoff-Nachrichten, Beiträge im Topic-Dokument, Board-Einträge (`post-task`, `post-finding`, `complete-task`, `post-proposal`, Votes), `[AGREED]`-Begründungen und Abschlussberichte der Agenten. Die Meldungen an den menschlichen Moderator folgen dagegen der Sprache des Moderators (laut Projekt-/Nutzervorgabe, derzeit Deutsch). Dieser Skill selbst bleibt deutsch.
+
 **Begleitdateien** (gleiches Verzeichnis, bei Bedarf lesen):
 - `discussion-phase.md` — Regeln für den Diskussionszug: Beitragsformat, Rundfragen, Komprimierung (Teil A); Blind-Runde, Evidenz-Tags, Kritik & Stagnation im Modus `decide` (Teil B); Red-Team-Pflicht der Selbst-Planung mit 1 Agent im Modus `plan` (Teil C). **Vor dem ersten Zug lesen.**
 - `collab.mjs` — **optionales** Node-Hilfsskript (Abschnitt 11): übernimmt Index-Arithmetik, `revision`, atomares Schreiben und eine echte Sperre. Wer eine Shell hat, soll es statt händischer JSON-Edits nutzen.

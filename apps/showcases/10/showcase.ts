@@ -158,19 +158,19 @@ export class Showcase10 extends AbstractShowcase {
     tileTexture.repeat.x = 1;
     tileTexture.repeat.y = 1;
 
-    const lavaTexture = await Texture.fromUrl("./assets/lava.webp", {
+    const lavaTexture = await Texture.fromUrl("./assets/lava_crust.webp", {
       generateMipmaps: true,
       flipY: true,
     });
-    const lavaNormalMap = await Texture.fromUrl("./assets/lava_normal.webp", {
+    const lavaNormalMap = await Texture.fromUrl("./assets/lava_crust_normal.webp", {
       generateMipmaps: true,
       flipY: true,
     });
-    const slimeTexture = await Texture.fromUrl("./assets/slime.webp", {
+    const slimeTexture = await Texture.fromUrl("./assets/slime_bubbles.webp", {
       generateMipmaps: true,
       flipY: true,
     });
-    const slimeNormalMap = await Texture.fromUrl("./assets/slime_normal.webp", {
+    const slimeNormalMap = await Texture.fromUrl("./assets/slime_bubbles_normal.webp", {
       generateMipmaps: true,
       flipY: true,
     });
@@ -242,13 +242,8 @@ export class Showcase10 extends AbstractShowcase {
     });
 
     const lava = new LavaMaterial({
-      color: new Color(1.5, 0.5, 0.0),
-      edgeColor: new Color(0.1, 0.05, 0.05),
       noiseMap: lavaTexture,
       normalMap: lavaNormalMap,
-      flowSpeed: 0.3,
-      distortion: 2.0,
-      viscosity: 5.0,
     });
     this._buildPool({
       name: "LavaPool",
@@ -268,13 +263,8 @@ export class Showcase10 extends AbstractShowcase {
     this.scene.add(this._lavaLight);
 
     const slime = new SlimeMaterial({
-      color: new Color(0.3, 1.2, 0.2),
-      edgeColor: new Color(0.05, 0.15, 0.05),
       noiseMap: slimeTexture,
       normalMap: slimeNormalMap,
-      flowSpeed: 0.6,
-      distortion: 1.2,
-      viscosity: 1.5,
     });
     this._buildPool({
       name: "SlimePool",

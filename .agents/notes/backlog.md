@@ -852,3 +852,11 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
     Level-JSON-Export (`koje42.level.json`-kompatibel).
   - In `vite.config.ts`, `public/index.html` (als T-09 Tool) und `packages/tools` registriert; 4 neue
     Unit-Tests in `KitInspector.test.ts` (100% grün, 200 Testdateien, 1.184 Tests bestanden).
+
+- 📋 **WebGL2: Opaque-Capture ohne vollen Post-Stack (2026-10-03, aus Showcase-10-Abnahme):**
+  `StylizedWater` (und `FluidSurface`-Absorption) brauchen `u_opaqueMap`/`u_opaqueDepthMap`. Der
+  WebGL2-Renderer erfasst sie nur bei `postProcessing.enabled` (WebGL2Renderer ~l.463), WebGPU immer.
+  Folge in Showcase 10 unter WebGL2: Stylized-Pool flach navy ohne Kaustik/Boden, Slime-Absorption inert.
+  Vorbestehend (HEAD-Shader identisch), kein T6-Fehler. Postprocessing erzwingen ist keine Lösung
+  (Standard-Stack wäscht die Szene blass-grau aus). Entscheidung des Users: eigene Engine-Aufgabe
+  (Opaque-/Depth-Capture auf GL2 unabhängig vom Post-Chain), nicht Teil des Showcase-10-Plans.

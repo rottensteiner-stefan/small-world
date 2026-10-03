@@ -63,7 +63,7 @@ layout(std140) uniform GlobalUniforms {
 
 uniform mat4 u_model;
 uniform vec4 u_extraParams; // [intensity, time, flowSpeed, noiseScale]
-uniform vec4 u_liquidParams; // [waveFreq, waveAmp, 0, 0]
+uniform vec4 u_liquidParams; // [waveFreq, waveAmp, emissive.g, emissive.b]
 
 out vec2 v_uv;
 out vec3 v_worldPos;
@@ -82,12 +82,16 @@ void main() {
     float displacementSpeed = time * flowSpeed * 0.5;
     
     // Wave based on world coordinates for seamless tiling
-    float wave = sin(worldPos.x * waveFrequency + displacementSpeed) * cos(worldPos.z * waveFrequency + displacementSpeed) * waveAmplitude;
+    float px = worldPos.x * waveFrequency + displacementSpeed;
+    float pz = worldPos.z * waveFrequency + displacementSpeed;
+    float wave = sin(px) * cos(pz) * waveAmplitude;
     pos.y += wave;
+    // Analytic slope of the wave above -- tilts the normal so the fragment stage can light it.
+    vec2 slope = vec2(cos(px) * cos(pz), -sin(px) * sin(pz)) * (waveAmplitude * waveFrequency);
 
     // Re-calculate worldPos with displacement
     worldPos = u_model * vec4(pos, 1.0);
     v_worldPos = worldPos.xyz;
-    v_normal = (u_model * vec4(a_normal, 0.0)).xyz;
+    v_normal = normalize((u_model * vec4(a_normal, 0.0)).xyz - vec3(slope.x, 0.0, slope.y));
     gl_Position = u_vp * worldPos;
 }

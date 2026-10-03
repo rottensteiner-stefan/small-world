@@ -38,6 +38,16 @@ fn vs(
     wp += displacement;
     o.wp = wp;
     o.pos = global.vp * vec4f(wp, 1.0);
+
+    // Crest foam metric: horizontal Jacobian of the Gerstner displacement, J = Tx*Bz - Tz*Bx
+    // (t/b are dP/dx, dP/dz). J < 1 means the surface is compressed (wave crest pinching),
+    // J <= 0 means folding. Normalised by the summed steepness so the 0..1 range is
+    // preset-independent. Carried in Out.original_uv.x (unused by this shader). NOT in Out.texIndex: GPUPipelineCache
+    // injects a texIndex assignment at the end of every vertex function and would overwrite it.
+    // (Never write the literal end-of-function statement in a comment here: it is regex-matched.)
+    let steepSum = w1.z + w2.z + w3.z + w4.z + w5.z;
+    let jacobian = t.x * b.z - t.z * b.x;
+    o.original_uv = vec2f(clamp((1.0 - jacobian) / max(steepSum, 0.001), -1.0, 1.0), 0.0);
     
     o.uv = uv;
     o.n = normalize(cross(b, t));

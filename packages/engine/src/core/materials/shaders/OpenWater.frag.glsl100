@@ -3,6 +3,7 @@ precision highp float;
 varying vec3 v_worldPos;
 varying vec3 v_normal;
 varying vec2 v_uv;
+varying float v_crest;
 
 [LIGHT_DEFS]
 
@@ -78,7 +79,10 @@ void main() {
     float foamCutoff = u_useEnvMap;
     float foamNoiseScale = u_useReflectionMap;
     float foamNoiseSpeed = u_pad2;
-    float foamBlend = pow(1.0 - fresnel, 1.0 / foamDistance);
+    // No depth buffer on WebGL1: the old pow(1 - fresnel, ..) proxy is ~1 everywhere when seen from
+    // above, which turned the whole pool into a white blob field. Fresnel is the only "far shore"
+    // proxy we have, so shore foam now fades in only at grazing angles (same fix as StylizedWater).
+    float foamBlend = smoothstep(0.02, 0.02 + 0.3 * foamDistance, fresnel);
     vec2 foamUv = v_worldPos.xz * foamNoiseScale + u_time * foamNoiseSpeed;
     float foamCell = waterCellNoise(foamUv);
     float foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
@@ -91,12 +95,13 @@ void main() {
     float splashPulse = 0.6 + 0.4 * sin(splashPhase);
     float foamMask = foamPattern * foamBlend * splashPulse;
 
-    // Wave-crest foam (foam on open water at steep crests, independent of any solid
-    // intersection) was attempted here via a normal.y threshold, but the per-vertex analytic
-    // normal of overlapping Gerstner waves carries real high-frequency curvature noise that
-    // threshold picks up as a busy, cracked-looking network instead of clean crest patches --
-    // not a mesh-resolution artifact (tested at 2x subdivision, identical result). Parked until
-    // there's a coarser way to estimate crest steepness than the raw vertex normal.
+    // Wave-crest foam: v_crest is the vertex-shader Jacobian (wave-folding) metric, 0 on flat
+    // water -> 1 where the Gerstner crests pinch together (replaces the parked normal.y
+    // threshold, which only picked up high-frequency curvature noise). smoothstep (no step)
+    // keeps the edge soft/alias-free; the existing Worley pattern breaks it into patches, and
+    // it's gated so it never fully covers the crest line.
+    float crestFoam = smoothstep(0.4, 0.7, v_crest) * foamPattern * 0.9;
+    foamMask = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMask);
 

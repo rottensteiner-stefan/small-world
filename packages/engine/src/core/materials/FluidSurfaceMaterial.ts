@@ -26,8 +26,39 @@ export interface FluidSurfaceMaterialOptions {
   flowSpeed?: number | undefined;
   /** The distortion or noise scale. */
   distortion?: number | undefined;
-  /** The viscosity (affects wave frequency/amplitude). */
+  /**
+   * Viscosity: higher = thicker, more sluggish. Drives the vertex displacement towards fewer,
+   * larger blobs (lower frequency, bigger amplitude) -- NOT a higher wave frequency like water.
+   */
   viscosity?: number | undefined;
+  /** Overrides the viscosity-derived vertex wave amplitude (world units). */
+  waveAmplitude?: number | undefined;
+  /** Fresnel rim glow in `edgeColor` (translucent edge look). 0 = off (default). */
+  rimStrength?: number | undefined;
+  /** Directional-light specular intensity. 0 = off (default). */
+  specularStrength?: number | undefined;
+  /** Specular exponent (higher = tighter highlight). Default 48. */
+  specularPower?: number | undefined;
+  /** Strength of the `normalMap` tilt on the surface normal. 0 = map ignored (default). */
+  normalStrength?: number | undefined;
+  /**
+   * Beer-Lambert absorption density over the opaque depth capture (WebGL2/WebGPU only; WebGL1
+   * has no depth capture). Fluid alpha = 1 - exp(-absorption * thickness). 0 = fully opaque (default).
+   */
+  absorption?: number | undefined;
+  /** Wrapped-diffuse shading of the colour by the directional light. 0 = unlit (default). */
+  shade?: number | undefined;
+  /**
+   * 0 = constant additive emissive (legacy). 1 = emissive follows the noise: hot cracks where the
+   * noise is low, dark crust where it is high.
+   */
+  emissiveMask?: number | undefined;
+  /** Emissive pulsation amplitude (0 = steady, default). Rolls along the noise field. */
+  emissivePulse?: number | undefined;
+  /** Emissive pulsation speed in rad/s. Default 2. */
+  emissivePulseSpeed?: number | undefined;
+  /** Width of the noise transition falloffs (crust/edge/hot mask). 0.2 = legacy two-tone width. */
+  transitionSoftness?: number | undefined;
   /** A noise texture map used to generate the flow. */
   noiseMap?: Texture | undefined;
   /** Normal map for surface detail. */
@@ -53,8 +84,30 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
   public flowSpeed: number;
   /** The scale of the noise distortion. */
   public distortion: number;
-  /** The viscosity (controls wave properties). */
+  /** The viscosity (see {@link FluidSurfaceMaterialOptions.viscosity}). */
   public viscosity: number;
+  /** Explicit vertex wave amplitude; `undefined` derives it from viscosity. */
+  public waveAmplitude: number | undefined;
+  /** Fresnel rim strength. */
+  public rimStrength: number;
+  /** Directional specular intensity. */
+  public specularStrength: number;
+  /** Specular exponent. */
+  public specularPower: number;
+  /** Normal map tilt strength. */
+  public normalStrength: number;
+  /** Beer-Lambert absorption density. */
+  public absorption: number;
+  /** Wrapped diffuse shading strength. */
+  public shade: number;
+  /** Noise-driven emissive mask blend (0 constant, 1 fully masked). */
+  public emissiveMask: number;
+  /** Emissive pulse amplitude. */
+  public emissivePulse: number;
+  /** Emissive pulse speed (rad/s). */
+  public emissivePulseSpeed: number;
+  /** Width of the noise transition falloffs. */
+  public transitionSoftness: number;
   /** The current time/frame for animation. */
   public time: number = 0.0;
   /** The noise texture. */
@@ -88,6 +141,17 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
       normalMap = undefined,
       emissiveColor = new Color(0.0, 0.0, 0.0),
       emissiveStrength = 0.0,
+      waveAmplitude = undefined,
+      rimStrength = 0.0,
+      specularStrength = 0.0,
+      specularPower = 48.0,
+      normalStrength = 0.0,
+      absorption = 0.0,
+      shade = 0.0,
+      emissiveMask = 0.0,
+      emissivePulse = 0.0,
+      emissivePulseSpeed = 2.0,
+      transitionSoftness = 0.2,
     } = options;
 
     this.color = color;
@@ -99,6 +163,17 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
     this.normalMap = normalMap;
     this.emissiveColor = emissiveColor;
     this.emissiveStrength = emissiveStrength;
+    this.waveAmplitude = waveAmplitude;
+    this.rimStrength = rimStrength;
+    this.specularStrength = specularStrength;
+    this.specularPower = specularPower;
+    this.normalStrength = normalStrength;
+    this.absorption = absorption;
+    this.shade = shade;
+    this.emissiveMask = emissiveMask;
+    this.emissivePulse = emissivePulse;
+    this.emissivePulseSpeed = emissivePulseSpeed;
+    this.transitionSoftness = transitionSoftness;
 
     // Set transparency and blending
     this.transparent = true;
@@ -120,11 +195,17 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
         this.distortion,
       ];
       this._renderManifest.properties["u_liquidParams"] = [
-        this.viscosity,
-        0.05, // wave amplitude derived from viscosity or fixed
+        0,
+        0,
         this.emissiveColor.g * this.emissiveStrength,
         this.emissiveColor.b * this.emissiveStrength,
       ];
+      // Free StandardWebGPULayout slots carrying the optional look parameters (this shader reads
+      // them under these names; GLSL declarations carry the same comments):
+      // u_thresholds = [rim, specular, normalStrength, absorption], u_shininess = specularPower,
+      // u_isTerrain = emissiveMask, u_metallic = pulse amplitude, u_roughness = pulse speed,
+      // u_reflectivity = transitionSoftness, u_pad1 = shade.
+      this._renderManifest.properties["u_thresholds"] = [0, 0, 0, 0];
       this._renderManifest.textures["u_diffuseMap"] = this.noiseMap;
     }
 
@@ -142,9 +223,23 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
     extra[3] = this.distortion;
 
     const liquid = props["u_liquidParams"] as number[];
-    liquid[0] = this.viscosity;
+    // Viscosity -> sluggish, large blobs: lower frequency, bigger amplitude as it grows.
+    liquid[0] = 3.0 / (1.0 + this.viscosity * 0.1);
+    liquid[1] = this.waveAmplitude ?? 0.03 + this.viscosity * 0.006;
     liquid[2] = this.emissiveColor.g * this.emissiveStrength;
     liquid[3] = this.emissiveColor.b * this.emissiveStrength;
+
+    const thr = props["u_thresholds"] as number[];
+    thr[0] = this.rimStrength;
+    thr[1] = this.specularStrength;
+    thr[2] = this.normalStrength;
+    thr[3] = this.absorption;
+    props["u_shininess"] = this.specularPower;
+    props["u_isTerrain"] = this.emissiveMask;
+    props["u_metallic"] = this.emissivePulse;
+    props["u_roughness"] = this.emissivePulseSpeed;
+    props["u_reflectivity"] = this.transitionSoftness;
+    props["u_pad1"] = this.shade;
 
     texs["u_diffuseMap"] = this.noiseMap;
     if (this.normalMap) texs["u_normalMap"] = this.normalMap;

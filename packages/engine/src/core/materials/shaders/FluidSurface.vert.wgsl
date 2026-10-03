@@ -19,8 +19,12 @@ fn vs(
     let displacementSpeed = time * flowSpeed * 0.5;
     
     // Wave based on world coordinates for seamless tiling
-    let wave = sin(worldPosInit.x * waveFrequency + displacementSpeed) * cos(worldPosInit.z * waveFrequency + displacementSpeed) * waveAmplitude;
+    let px = worldPosInit.x * waveFrequency + displacementSpeed;
+    let pz = worldPosInit.z * waveFrequency + displacementSpeed;
+    let wave = sin(px) * cos(pz) * waveAmplitude;
     p.y += wave;
+    // Analytic slope of the wave above -- tilts the normal so the fragment stage can light it.
+    let slope = vec2f(cos(px) * cos(pz), -sin(px) * sin(pz)) * (waveAmplitude * waveFrequency);
 
     let worldPos = obj.model * vec4f(p, 1.0);
     o.wp = worldPos.xyz;
@@ -30,7 +34,7 @@ fn vs(
     // o.pos.z = (o.pos.z + o.pos.w) * 0.5;
     
     o.uv = uv;
-    o.n = normalize((obj.model * vec4f(normal, 0.0)).xyz);
+    o.n = normalize((obj.model * vec4f(normal, 0.0)).xyz - vec3f(slope.x, 0.0, slope.y));
     o.t = normalize((obj.model * vec4f(tangent, 0.0)).xyz);
     o.b = normalize(cross(o.n, o.t));
     

@@ -31,6 +31,15 @@ out vec4 fragColor;
 
 [LIQUID_WORLEY_NOISE]
 
+// Anti-aliased threshold: replaces a binary step() with a smoothstep ramp whose width tracks the
+// local screen-space gradient (fwidth), so hard mask edges de-quantize instead of aliasing. The
+// ramp only widens where the underlying value actually varies fast per pixel -- slow gradations
+// stay pixel-sharp, which preserves the stylized toon identity (sharp edges, no jaggies/banding).
+float aaStepMask(float edge, float value, float softness) {
+    float width = max(fwidth(value) * 1.5, softness);
+    return smoothstep(edge - width, edge + width, value);
+}
+
 void main() {
     vec3 shallowColor = sRGBToLinear(u_color.rgb);
     vec3 deepColor = sRGBToLinear(u_specColor.rgb);
@@ -81,7 +90,7 @@ void main() {
     float causticsFade = 1.0 - smoothstep(0.0, maxCausticsDepth, depthDiff);
     float causticsThreshold = 0.42;
     vec3 causticsColor = vec3(1.0, 0.98, 0.88);
-    vec3 finalCaustics = vec3(step(causticsThreshold, causticsNoise1 * causticsNoise2)) * causticsFade * causticsColor * 1.2;
+    vec3 finalCaustics = vec3(aaStepMask(causticsThreshold, causticsNoise1 * causticsNoise2, 0.08)) * causticsFade * causticsColor * u_specColor.a; // a = causticStrength
 
     // Add caustics to underwater scene before absorption/transmittance
     vec3 illuminatedUnderwater = opaqueUnderwaterColor + finalCaustics;
@@ -94,7 +103,7 @@ void main() {
 
     // 5. Stylized Edge color transition
     float edgeBlend = 1.0 - clamp(depthDiff / edgeSoftness, 0.0, 1.0);
-    vec3 surfaceColor = mix(baseWaterColor, edgeColor, edgeBlend * 0.7);
+    vec3 surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * 0.6);
 
     // 6. Fresnel & Specular
     vec3 camDir = normalize(u_viewPos - v_worldPos);
@@ -105,7 +114,7 @@ void main() {
     vec3 lightDir = normalize(u_dirLightDir);
     vec3 halfVector = normalize(lightDir + camDir);
     float nDotH = clamp(dot(v_normal, halfVector), 0.0, 1.0);
-    float specular = step(0.92, nDotH) * 1.2; // Toon-specular
+    float specular = aaStepMask(0.99, nDotH, 0.008) * u_color.a; // Toon-specular, a = specularStrength
     surfaceColor += u_dirLightColor * specular;
 
     // 7. Advanced Procedural Foam (Intersection Foam + Crest Foam)
@@ -121,16 +130,11 @@ void main() {
     float noise2 = 1.0 - waterCellNoise(uvFoam2);
     float shoreFoamDepthMod = 1.0 - smoothstep(0.0, foamDistance, depthDiff);
     float shoreFoamMask = (noise1 * noise2) * shoreFoamDepthMod;
-    float finalShoreFoam = step(foamCutoff, shoreFoamMask);
+    float finalShoreFoam = aaStepMask(foamCutoff, shoreFoamMask, 0.06);
 
-    // 7b. Wave Crest Foam (Steepness / Slope-Driven)
-    float crestIntensity = smoothstep(0.92, 0.75, v_normal.y); // Steeper slope = lower normal.y
-    float crestFoamCutoff = foamCutoff * 0.85;
-    float finalCrestFoam = step(crestFoamCutoff, noise1 * crestIntensity);
-
-    // 7c. Total Foam synthesis
-    float totalFoam = max(finalShoreFoam, finalCrestFoam);
-    vec3 finalColor = mix(surfaceColor, foamColor, totalFoam);
+    // Crest foam removed: the per-vertex-normal.y metric reads as a busy cracked network on summed
+    // Gerstner waves (see OpenWater.frag.glsl); a proper Jacobian crest metric is a separate task.
+    vec3 finalColor = mix(surfaceColor, foamColor, finalShoreFoam);
 
     finalColor *= u_exposure;
     finalColor = linearToSRGB(finalColor);

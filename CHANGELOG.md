@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.95.0] - 2026-10-03
+
+### "The sea, once it casts its spell, holds one in its net of wonder forever." - Jacques Cousteau
+
+- **Features:**
+  - *Showcase 10 liquid quality pass*: Four agents (collaborate session `showcase-10`, consensus P1) reworked all four pools without forking the two shader cores.
+  - *Crest foam on clear water*: [`OpenWater.vert.*`](packages/engine/src/core/materials/shaders/OpenWater.vert.glsl) derives a Jacobian wave-folding metric from the Gerstner tangents and passes it as a varying; the fragment shaders turn it into whitecaps with `smoothstep` (no new uniforms).
+  - *StylizedWater de-cluttering*: Hard `step()` masks replaced by an anti-aliased `aaStepMask` with per-effect softness, the x1.2 overdrives and the normal-slope crest foam removed, new `style: "flat" | "toon" | "bold"`, `causticStrength` and `specularStrength` on [`StylizedWaterMaterial`](packages/engine/src/core/materials/StylizedWaterMaterial.ts).
+  - *FluidSurface substance*: [`FluidSurfaceMaterial`](packages/engine/src/core/materials/FluidSurfaceMaterial.ts) now samples `u_normalMap` and gains `rimStrength`, `specularStrength`/`specularPower`, `normalStrength`, `absorption` (Beer-Lambert over the opaque depth map), `shade`, noise-driven `emissiveMask`, `emissivePulse`/`emissivePulseSpeed`, `transitionSoftness` and `waveAmplitude`, all via free uniform slots in GLSL300, GLSL100 and WGSL. Defaults keep the old look.
+  - *Lava and Slime looks*: New tileable crust and bubble textures with normal maps in `apps/showcases/10/assets`, new presets in [`LavaMaterial`](packages/engine/src/core/materials/LavaMaterial.ts) and [`SlimeMaterial`](packages/engine/src/core/materials/SlimeMaterial.ts).
+- **Architecture & Bugfixes:**
+  - *`viscosity` semantics*: Now drives slow, large-amplitude blobs (`3 / (1 + 0.1 * viscosity)` frequency, `0.03 + 0.006 * viscosity` amplitude) instead of a higher wave frequency; vertex normals are computed analytically so lighting reacts to the waves.
+  - *FluidSurface WebGL1 vertex shader*: Read dead uniform names, so no waves appeared under WebGL1; it now uses the same uniform blocks as WebGL2.
+  - *WebGL1 shore-foam proxy*: The `pow(1 - fresnel)` approximation covered pools top-down in flat white; replaced by a Fresnel `smoothstep` gate in [`StylizedWater.frag.glsl100`](packages/engine/src/core/materials/shaders/StylizedWater.frag.glsl100) and [`OpenWater.frag.glsl100`](packages/engine/src/core/materials/shaders/OpenWater.frag.glsl100).
+  - *WebGPU crest metric*: `GPUPipelineCache` overwrites `Out.texIndex` before every vertex `return`, so a metric stored there is always 0; it is now carried in `Out.original_uv.x`.
+  - *Known gap*: WebGL2 captures the opaque colour/depth maps only with post-processing enabled, so the stylized pool shows no caustics or floor and slime absorption is inert there (WebGPU always captures); tracked in `.agents/notes/backlog.md`.
+- **Housekeeping & Docs:**
+  - *Collaborate skill*: Added a rule that all agent-to-agent communication, prompts and board entries are written in English.
+  - All 213 test suites (1264 unit tests) passing green with 0 lint errors.
+
 ## [0.94.0] - 2026-10-02
 
 ### "The mathematician's patterns, like the painter's or the poet's, must be beautiful." - G. H. Hardy

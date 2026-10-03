@@ -1,5 +1,14 @@
 [WGSL_LIQUID_WORLEY_NOISE]
 
+// Anti-aliased threshold: replaces a binary step() with a smoothstep ramp whose width tracks the
+// local screen-space gradient (fwidth), so hard mask edges de-quantize instead of aliasing. The
+// ramp only widens where the underlying value actually varies fast per pixel -- slow gradations
+// stay pixel-sharp, which preserves the stylized toon identity (sharp edges, no jaggies/banding).
+fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
+    let width = max(fwidth(value) * 1.5, softness);
+    return smoothstep(edge - width, edge + width, value);
+}
+
 @fragment fn fs(i: Out) -> @location(0) vec4<f32> {
     let shallowColor = sRGBToLinear(obj.color.rgb);
     let deepColor = sRGBToLinear(obj.specColor.rgb);
@@ -50,7 +59,7 @@
     let causticsFade = 1.0 - smoothstep(0.0, maxCausticsDepth, depthDiff);
     let causticsThreshold = 0.42;
     let causticsColor = vec3<f32>(1.0, 0.98, 0.88);
-    let finalCaustics = vec3<f32>(step(causticsThreshold, causticsNoise1 * causticsNoise2)) * causticsFade * causticsColor * 1.2;
+    let finalCaustics = vec3<f32>(aaStepMask(causticsThreshold, causticsNoise1 * causticsNoise2, 0.08)) * causticsFade * causticsColor * obj.specColor.a;
 
     let illuminatedUnderwater = opaqueUnderwaterColor + finalCaustics;
 
@@ -60,7 +69,7 @@
     var baseWaterColor = mix(deepColor, tintedSeabed, transmittance);
 
     let edgeBlend = 1.0 - saturate(depthDiff / edgeSoftness);
-    var surfaceColor = mix(baseWaterColor, edgeColor, edgeBlend * 0.7);
+    var surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * 0.6);
 
     let camDir = normalize(global.viewPos.xyz - i.wp);
     let fresnel = pow(1.0 - saturate(dot(i.n, camDir)), 4.0);
@@ -70,7 +79,7 @@
     let lightDir = normalize(global.dirLightDir.xyz);
     let halfVector = normalize(lightDir + camDir);
     let nDotH = saturate(dot(i.n, halfVector));
-    let specular = step(0.92, nDotH) * 1.2;
+    let specular = aaStepMask(0.99, nDotH, 0.008) * obj.color.a;
     surfaceColor += global.dirLightColor.rgb * specular;
 
     let foamColor = sRGBToLinear(vec3<f32>(obj.isTerrain, obj.metallic, obj.roughness));
@@ -85,15 +94,10 @@
     let noise2 = 1.0 - waterCellNoise(uvFoam2);
     let shoreFoamDepthMod = 1.0 - smoothstep(0.0, foamDistance, depthDiff);
     let shoreFoamMask = (noise1 * noise2) * shoreFoamDepthMod;
-    let finalShoreFoam = step(foamCutoff, shoreFoamMask);
+    let finalShoreFoam = aaStepMask(foamCutoff, shoreFoamMask, 0.06);
 
-    // Wave Crest foam
-    let crestIntensity = smoothstep(0.92, 0.75, i.n.y);
-    let crestFoamCutoff = foamCutoff * 0.85;
-    let finalCrestFoam = step(crestFoamCutoff, noise1 * crestIntensity);
-
-    let totalFoam = max(finalShoreFoam, finalCrestFoam);
-    var finalColor = mix(surfaceColor, foamColor, totalFoam);
+    // Crest foam removed (per-vertex normal.y metric reads as busy/cracked, see OpenWater).
+    var finalColor = mix(surfaceColor, foamColor, finalShoreFoam);
 
     finalColor *= global.exposure;
     finalColor = linearToSRGB(finalColor);

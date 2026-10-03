@@ -14,6 +14,7 @@ uniform float u_reflectivity;
 varying vec3 v_worldPos;
 varying vec3 v_normal;
 varying vec2 v_uv;
+varying float v_crest;
 
 [LIQUID_GERSTNER_WAVE]
 
@@ -43,6 +44,14 @@ void main() {
     wp += displacement;
     v_worldPos = wp;
     gl_Position = u_vp * vec4(wp, 1.0);
+
+    // Crest foam metric: horizontal Jacobian of the Gerstner displacement, J = Tx*Bz - Tz*Bx
+    // (t/b are dP/dx, dP/dz). J < 1 means the surface is compressed (wave crest pinching),
+    // J <= 0 means folding. Normalised by the summed steepness so the 0..1 range is
+    // preset-independent; carried as a varying (no new uniforms -- ADR 0013 layout is full).
+    float steepSum = w1.z + w2.z + w3.z + w4.z + w5.z;
+    float jacobian = t.x * b.z - t.z * b.x;
+    v_crest = clamp((1.0 - jacobian) / max(steepSum, 0.001), -1.0, 1.0);
 
     v_uv = a_uv;
     v_normal = normalize(cross(b, t));

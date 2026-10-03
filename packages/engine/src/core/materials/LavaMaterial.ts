@@ -9,17 +9,27 @@ export type LavaMaterialOptions = FluidSurfaceMaterialOptions;
  * docs/adr/0013-unified-liquid-surface-material.md. A "flow family" sibling of
  * {@link OpenWaterMaterial}/{@link StylizedWaterMaterial} (the "wave family"): same noise-driven
  * flow mechanism, opaque and emissive instead of transparent and refractive.
+ *
+ * The `noiseMap` is a crack/crust mask: LOW luma = hot crack (emissive, `color`), HIGH luma = cooled
+ * crust (`edgeColor`). Stylized look: dark crust, glowing pulsing cracks, normal-mapped plates.
  */
 export class LavaMaterial extends FluidSurfaceMaterial {
   constructor(options: LavaMaterialOptions = {}) {
     const {
-      color = new Color(0.25, 0.03, 0.0),
-      edgeColor = new Color(0.15, 0.02, 0.0),
+      color = new Color(1.0, 0.3, 0.02),
+      edgeColor = new Color(0.12, 0.05, 0.035),
       flowSpeed = 0.3,
-      distortion = 1.2,
+      distortion = 0.7,
       viscosity = 14.0,
-      emissiveColor = new Color(1.0, 0.35, 0.05),
-      emissiveStrength = 1.8,
+      emissiveColor = new Color(1.0, 0.3, 0.03),
+      emissiveStrength = 1.6,
+      emissiveMask = 1.0,
+      emissivePulse = 0.35,
+      emissivePulseSpeed = 1.6,
+      transitionSoftness = 0.15,
+      normalStrength = 1.0,
+      shade = 0.6,
+      waveAmplitude = 0.05,
       ...rest
     } = options;
 
@@ -32,6 +42,13 @@ export class LavaMaterial extends FluidSurfaceMaterial {
         viscosity,
         emissiveColor,
         emissiveStrength,
+        emissiveMask,
+        emissivePulse,
+        emissivePulseSpeed,
+        transitionSoftness,
+        normalStrength,
+        shade,
+        waveAmplitude,
         ...rest,
       },
       MaterialType.LAVA,
