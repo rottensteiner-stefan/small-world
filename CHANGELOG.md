@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.95.2] - 2026-10-03
+
+### "Small leaks sink great ships." - Benjamin Franklin
+
+- **Architecture & Bugfixes:**
+  - *Bounded GL error drain*: The stale-error drain before the opaque depth blit in [`WebGL2Renderer.copyToOpaqueDepthTexture()`](packages/engine/src/renderers/WebGL2/WebGL2Renderer.ts) is capped at 8 iterations; a lost context reports `CONTEXT_LOST_WEBGL` forever and would have spun the loop endlessly. The sticky `_opaqueDepthUnsupported` verdict is now documented as intentional (no context-restore path exists).
+  - *Lazy shader registration*: [`AbstractWebGLRenderer.requiresOpaqueDepth()`](packages/engine/src/renderers/AbstractWebGLRenderer.ts) no longer caches an unregistered shader id as "not needed", so a lazily registered shader is asked again.
+  - *Gate uses the render shader id*: [`WebGLMainPass`](packages/engine/src/renderers/passes/WebGLMainPass.ts) now queries `getRenderManifest().shaderId` (the id the draw uses) instead of `material.type`, so material variants with a different shader are gated correctly.
+  - *Known, unchanged*: The opaque colour capture is still taken whenever any transparent object exists; gating it needs a reliable `u_opaqueMap` detection across the standard layouts and is tracked in the backlog.
+- **Housekeeping & Docs:**
+  - *Tests*: Added an unregistered-shader-id caching case to `AbstractWebGLRenderer.test.ts`.
+  - All 214 test suites (1270 unit tests) passing green with 0 lint errors.
+
 ## [0.95.1] - 2026-10-03
 
 ### "Every great advance in science has issued from a new audacity of imagination." - John Dewey

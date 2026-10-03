@@ -118,4 +118,12 @@ describe("AbstractWebGLRenderer.requiresOpaqueDepth", () => {
     expect(renderer.requiresOpaqueDepth(MaterialType.PHONG)).toBe(false);
     expect(renderer.requiresOpaqueDepth("does-not-exist")).toBe(false);
   });
+
+  it("does not cache an unregistered shader id, so a lazily registered one is asked again", () => {
+    const renderer = new TestWebGLRenderer({} as WebGL2RenderingContext);
+    expect(renderer.requiresOpaqueDepth("late-shader")).toBe(false);
+    const cache = (renderer as unknown as { _opaqueDepthRequirement: Map<string, boolean> })
+      ._opaqueDepthRequirement;
+    expect(cache.has("late-shader")).toBe(false);
+  });
 });

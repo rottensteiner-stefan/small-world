@@ -136,7 +136,10 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   public requiresOpaqueDepth(shaderId: string): boolean {
     let needed = this._opaqueDepthRequirement.get(shaderId);
     if (undefined === needed) {
-      const textures = this.context.shaderRegistry.get(shaderId)?.layout.textures;
+      const definition = this.context.shaderRegistry.get(shaderId);
+      // A shader that is not registered (yet) is not cached, so a lazily registered one still gets asked again.
+      if (undefined === definition) return false;
+      const textures = definition.layout.textures;
       needed = undefined !== textures && "u_opaqueDepthMap" in textures;
       this._opaqueDepthRequirement.set(shaderId, needed);
     }

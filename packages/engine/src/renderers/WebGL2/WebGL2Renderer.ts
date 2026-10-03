@@ -492,9 +492,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, hdr ? hdr.framebuffer : null);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._opaqueDepthFbo!);
-      while (gl.NO_ERROR !== gl.getError()) {
-        // drain stale errors so the blit's own result is unambiguous
-      }
+      // Drain stale errors so the blit's own result is unambiguous (bounded: a lost context
+      // reports CONTEXT_LOST_WEBGL forever, which would otherwise never leave this loop).
+      for (let drained = 0; drained < 8 && gl.NO_ERROR !== gl.getError(); drained++);
       gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
       if (gl.NO_ERROR === gl.getError()) {
         captured = true;
@@ -502,6 +502,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     }
     if (!captured) {
+      // Sticky on purpose: every candidate format failed, so retrying each frame would only spam
+      // GL errors. This renderer has no context-restore path that could invalidate the verdict.
       this._opaqueDepthUnsupported = true;
       this._opaqueDepthFormat = 0;
     }

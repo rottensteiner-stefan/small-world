@@ -103,7 +103,7 @@ export class WebGLMainPass implements WebGLRenderPass {
       let needsDepth = renderer.postProcessing.enabled;
       for (let i = 0; !needsDepth && i < renderList.transparent.length; i++) {
         const mat = renderList.transparent[i]!.material;
-        if (mat) needsDepth = renderer.requiresOpaqueDepth(mat.type);
+        if (mat) needsDepth = renderer.requiresOpaqueDepth(mat.getRenderManifest().shaderId);
       }
       if (needsDepth) renderer.copyToOpaqueDepthTexture();
 
