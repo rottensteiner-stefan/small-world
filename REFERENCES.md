@@ -865,6 +865,27 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** ["Creating a Stylized 3D Water Shader"](https://gameidea.org/2026/02/01/creating-a-stylized-3d-water-shader/) — gameidea, published 2026-02-01
 - **Usage:** Reference for the stylized (Sea of Thieves-inspired) open-water look: simple sine/noise-based Gerstner-like vertex wave displacement combined with fragment-side depth fade (mixing toward an underwater fog color with scene depth) and screen-space foam near intersections with other geometry, instead of a physically simulated ocean (no FFT).
 
+### Smooth-Min Voronoi Caustics Network ($F_1 - \text{Smooth}F_1$)
+
+- **File:** `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/liquid_caustics.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/liquid_caustics.wgsl`
+- **Authors/Gurus:** Inigo Quilez (Smooth Voronoi / Cellular Noise)
+- **Source:** [Inigo Quilez - Smooth Voronoi](https://iquilezles.org/articles/smoothvoronoi/)
+- **Formulas:**
+  - 2D Domain Warp: $p' = p + 0.35 \sin(p \cdot 2.1 + t \cdot 0.8)$
+  - Smooth Minimum: $smin(a, b, k) = -k \cdot \ln(e^{-a/k} + e^{-b/k})$ or polynomial $smin(a, b, k) = \frac{a+b-\sqrt{(a-b)^2+k^2}}{2}$
+  - Cell Edge Network: $C(p) = \text{smoothstep}(w_0, w_1, F_1(p') - \text{smooth}F_1(p'))$
+- **Usage:** Provides organic, soft anime/Ghibli-style caustic cell networks underneath transparent fluid surfaces in WebGL and WebGPU without sharp cellular boundaries or lookup texture overhead.
+
+### Stepped-Time Star Billboard Glint & Sparkle Lattice
+
+- **File:** `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/liquid_glint.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/liquid_glint.wgsl`
+- **Authors/Gurus:** Traditional Japanese Limited Animation (Studio Ghibli aesthetic cadence)
+- **Formulas:**
+  - Stepped Time Quantization: $t_{\text{step}} = \frac{\lfloor t \cdot \text{fps} \rfloor}{\text{fps}}$ (e.g. 8 or 12 FPS)
+  - 4-Point Astroid Star Shape: $S(u, v) = \max(0, 1 - (|u|^{0.5} + |v|^{0.5})^2)$
+  - Sparkle Modulation: $I = S(u, v) \cdot \text{step}(\tau, N(c, t_{\text{step}}))$
+- **Usage:** Generates crisp anime/Ghibli specular sparkle cross glints on wave crests animated at deliberate low framerates (on-twos / on-threes) to emulate hand-drawn traditional cel animation.
+
 ## AI Coding & Architecture Assistants
 
 ### Google Gemini (2.5 Pro)

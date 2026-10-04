@@ -85,3 +85,50 @@ describe("WebGPU Object Uniform MAT4 alignment (WGSL/std140 spec compliance)", (
     [0.1, 0.2, 0.3, 0.4].forEach((expected, i) => expect(packedColor[i]).toBeCloseTo(expected));
   });
 });
+
+describe("StandardWebGPULayout ObjectUniforms 256-byte budget and style slots", () => {
+  it("packs StandardWebGPULayout into exactly 64 floats (256 bytes) with u_styleA at float 56 and u_styleB at float 60", async () => {
+    const { StandardWebGPULayout } =
+      await import("../../src/core/renderers/shaders/StandardWebGPULayout.js");
+    const targetBuffer = new Float32Array(64);
+    const dummyValues: Record<string, unknown> = {
+      u_model: new Matrix4(),
+      u_color: new Float32Array([1, 1, 1, 1]),
+      u_specColor: new Float32Array([0, 0, 0, 0]),
+      u_texOffset: [0, 0],
+      u_texRepeat: [1, 1],
+      u_shininess: 30,
+      u_isTerrain: 0,
+      u_metallic: 0,
+      u_roughness: 1,
+      u_extraParams: [0, 0, 0, 0],
+      u_liquidParams: [0, 0, 0, 0],
+      u_thresholds: [0, 0, 0, 0],
+      u_useEnvMap: 0,
+      u_useReflectionMap: 0,
+      u_reflectivity: 1,
+      u_time: 0,
+      u_isSkinned: 0,
+      u_boneOffset: 0,
+      u_pad1: 0,
+      u_pad2: 0,
+      u_pad3: 0,
+      u_styleA: [0.8, 0.5, 0.4, 1.2],
+      u_styleB: [0.12, 0.6, 0.3, 2.0],
+    };
+
+    UniformPacker.packInto(StandardWebGPULayout, dummyValues, targetBuffer);
+
+    // u_styleA must land at float offset 56 (byte offset 224)
+    expect(targetBuffer[56]).toBeCloseTo(0.8);
+    expect(targetBuffer[57]).toBeCloseTo(0.5);
+    expect(targetBuffer[58]).toBeCloseTo(0.4);
+    expect(targetBuffer[59]).toBeCloseTo(1.2);
+
+    // u_styleB must land at float offset 60 (byte offset 240)
+    expect(targetBuffer[60]).toBeCloseTo(0.12);
+    expect(targetBuffer[61]).toBeCloseTo(0.6);
+    expect(targetBuffer[62]).toBeCloseTo(0.3);
+    expect(targetBuffer[63]).toBeCloseTo(2.0);
+  });
+});

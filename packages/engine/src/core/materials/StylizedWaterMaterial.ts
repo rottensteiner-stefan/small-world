@@ -9,6 +9,36 @@ import { Color } from "../colors/index.js";
 import { MaterialType } from "../../enums/index.js";
 import { RenderManifest, ShaderDefinition } from "../renderers/shaders/index.js";
 
+export interface StylizedWaterExtensionHooks {
+  decl?: string;
+  surface?: string;
+}
+
+export function composeStylizedWaterSources(
+  ext?: StylizedWaterExtensionHooks,
+): ShaderDefinition["sources"] {
+  const decl = ext?.decl ?? "";
+  const surface = ext?.surface ?? "";
+
+  const replaceHooks = (source: string, isWgsl = false): string => {
+    const declToken = isWgsl ? "[WGSL_WATER_EXT_DECL]" : "[WATER_EXT_DECL]";
+    const surfaceToken = isWgsl ? "[WGSL_WATER_EXT_SURFACE]" : "[WATER_EXT_SURFACE]";
+    return source.replace(declToken, decl).replace(surfaceToken, surface);
+  };
+
+  return {
+    glsl300: {
+      vs: vertGLSL,
+      fs: replaceHooks(fragGLSL),
+    },
+    glsl100: {
+      vs: vertGLSL100,
+      fs: replaceHooks(fragGLSL100),
+    },
+    wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n${replaceHooks(fragWGSL, true)}`,
+  };
+}
+
 export interface StylizedWaterMaterialOptions {
   shallowWaterColor?: Color;
   deepWaterColor?: Color;
@@ -29,20 +59,116 @@ export interface StylizedWaterMaterialOptions {
   causticStrength?: number;
   /** Brightness of the toon sun-glint specular, 0 = off. Default 0.4. */
   specularStrength?: number;
+  /** Depth ramp softness (0 = banded cel ramp, 1 = smooth painterly wash). */
+  rampSoftness?: number;
+  /** Low-frequency brush stroke noise modulation on depth. */
+  washAmount?: number;
+  /** Ripple stroke lines density. */
+  lineDensity?: number;
+  /** Ripple stroke lines width/frequency. */
+  lineWidth?: number;
+  /** Shoreline foam edge softness (0.02 = crisp cel edge, 0.15 = soft painterly foam). */
+  foamSoftness?: number;
+  /** Sky/cloud reflection blend factor (0.0 to 1.0). */
+  skyTint?: number;
+  /** Sun-glint star sparkle strength (0 = off, 1.0 = full sparkling stars). */
+  glitterStrength?: number;
+  /** Style ID (0 = legacy toon, 1 = soft anime/Ghibli, 2 = sparkle anime, 3 = custom extension). */
+  styleId?: number;
   /** Style-ladder preset; explicit options override its values. Default "toon". */
   style?: StylizedWaterStyle;
 }
 
-/** Style ladder (low to high effect density). Only strengths differ; one shader, no forks. */
-export type StylizedWaterStyle = "flat" | "toon" | "bold";
+/** Style ladder across the anime/stylized spectrum. */
+export type StylizedWaterStyle =
+  "flat" | "toon" | "bold" | "soft" | "sparkle" | "dredge" | "custom";
 
-const STYLE_PRESETS: Record<
-  StylizedWaterStyle,
-  { causticStrength: number; specularStrength: number }
-> = {
-  flat: { causticStrength: 0.0, specularStrength: 0.0 },
-  toon: { causticStrength: 0.6, specularStrength: 0.4 },
-  bold: { causticStrength: 1.2, specularStrength: 1.2 }, // the original, hard-stacked look
+export interface StylizedWaterStyleVector {
+  causticStrength: number;
+  specularStrength: number;
+  rampSoftness: number;
+  washAmount: number;
+  lineDensity: number;
+  lineWidth: number;
+  foamSoftness: number;
+  skyTint: number;
+  glitterStrength: number;
+  styleId: number;
+}
+
+const STYLE_PRESETS: Record<Exclude<StylizedWaterStyle, "custom">, StylizedWaterStyleVector> = {
+  flat: {
+    causticStrength: 0.0,
+    specularStrength: 0.0,
+    rampSoftness: 0.0,
+    washAmount: 0.0,
+    lineDensity: 0.0,
+    lineWidth: 0.0,
+    foamSoftness: 0.02,
+    skyTint: 0.0,
+    glitterStrength: 0.0,
+    styleId: 0.0,
+  },
+  toon: {
+    causticStrength: 0.6,
+    specularStrength: 0.4,
+    rampSoftness: 0.3,
+    washAmount: 0.0,
+    lineDensity: 0.0,
+    lineWidth: 0.0,
+    foamSoftness: 0.06,
+    skyTint: 0.45,
+    glitterStrength: 0.0,
+    styleId: 0.0,
+  },
+  bold: {
+    causticStrength: 1.2,
+    specularStrength: 1.2,
+    rampSoftness: 0.3,
+    washAmount: 0.0,
+    lineDensity: 0.0,
+    lineWidth: 0.0,
+    foamSoftness: 0.06,
+    skyTint: 0.45,
+    glitterStrength: 0.0,
+    styleId: 0.0,
+  },
+  soft: {
+    causticStrength: 0.25,
+    specularStrength: 0.2,
+    rampSoftness: 0.85,
+    washAmount: 0.4,
+    lineDensity: 0.4,
+    lineWidth: 1.5,
+    foamSoftness: 0.12,
+    skyTint: 0.6,
+    glitterStrength: 0.35,
+    styleId: 1.0,
+  },
+  sparkle: {
+    causticStrength: 0.85,
+    specularStrength: 0.6,
+    rampSoftness: 0.6,
+    washAmount: 0.25,
+    lineDensity: 0.7,
+    lineWidth: 1.2,
+    foamSoftness: 0.08,
+    skyTint: 0.5,
+    glitterStrength: 1.0,
+    styleId: 2.0,
+  },
+  dredge: {
+    causticStrength: 0.3,
+    specularStrength: 0.4,
+    rampSoftness: 0.5,
+    washAmount: 0.6,
+    lineDensity: 0.4,
+    lineWidth: 1.8,
+    foamSoftness: 0.1,
+    skyTint: 0.3,
+    glitterStrength: 0.2,
+    styleId: 1.0,
+  },
 };
 
 /**
@@ -54,10 +180,24 @@ const STYLE_PRESETS: Record<
 export class StylizedWaterMaterial extends LiquidWaveMaterial {
   public causticStrength: number;
   public specularStrength: number;
+  public rampSoftness: number;
+  public washAmount: number;
+  public lineDensity: number;
+  public lineWidth: number;
+  public foamSoftness: number;
+  public skyTint: number;
+  public glitterStrength: number;
+  public styleId: number;
+
   private readonly _colorWithSpecular: number[] = [0, 0, 0, 0];
   private readonly _deepWithCaustic: number[] = [0, 0, 0, 0];
+  private readonly _styleAArray: number[] = [0, 0, 0, 0];
+  private readonly _styleBArray: number[] = [0, 0, 0, 0];
 
-  constructor(options: StylizedWaterMaterialOptions = {}) {
+  constructor(
+    options: StylizedWaterMaterialOptions = {},
+    materialType: string = MaterialType.STYLIZED_WATER,
+  ) {
     const {
       shallowWaterColor = new Color(0.05, 0.45, 0.55),
       deepWaterColor = new Color(0.01, 0.1, 0.18),
@@ -76,11 +216,22 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
       foamNoiseSpeed = 0.6,
       style = "toon",
     } = options;
-    const preset = STYLE_PRESETS[style];
-    const { causticStrength = preset.causticStrength, specularStrength = preset.specularStrength } =
-      options;
 
-    super(MaterialType.STYLIZED_WATER, {
+    const preset = style === "custom" ? STYLE_PRESETS.toon : STYLE_PRESETS[style];
+    const {
+      causticStrength = preset.causticStrength,
+      specularStrength = preset.specularStrength,
+      rampSoftness = preset.rampSoftness,
+      washAmount = preset.washAmount,
+      lineDensity = preset.lineDensity,
+      lineWidth = preset.lineWidth,
+      foamSoftness = preset.foamSoftness,
+      skyTint = preset.skyTint,
+      glitterStrength = preset.glitterStrength,
+      styleId = preset.styleId,
+    } = options;
+
+    super(materialType, {
       color: shallowWaterColor,
       deepWaterColor,
       edgeColor,
@@ -97,44 +248,55 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
       foamNoiseScale,
       foamNoiseSpeed,
     });
+
     this.causticStrength = causticStrength;
     this.specularStrength = specularStrength;
+    this.rampSoftness = rampSoftness;
+    this.washAmount = washAmount;
+    this.lineDensity = lineDensity;
+    this.lineWidth = lineWidth;
+    this.foamSoftness = foamSoftness;
+    this.skyTint = skyTint;
+    this.glitterStrength = glitterStrength;
+    this.styleId = styleId;
   }
 
-  /**
-   * No free uniform slot is left (see LiquidWaveMaterial), but the alpha channels of u_color and
-   * u_specColor are unused by the shader (output alpha is 1.0): they carry specularStrength and
-   * causticStrength respectively.
-   */
   public override getRenderManifest(): RenderManifest {
     const manifest = super.getRenderManifest();
     const props = manifest.properties as Record<string, unknown>;
+
     const c = this._colorWithSpecular;
     c[0] = this.color.r;
     c[1] = this.color.g;
     c[2] = this.color.b;
     c[3] = this.specularStrength;
     props["u_color"] = c;
+
     const d = this._deepWithCaustic;
     d[0] = this.deepWaterColor.r;
     d[1] = this.deepWaterColor.g;
     d[2] = this.deepWaterColor.b;
     d[3] = this.causticStrength;
     props["u_specColor"] = d;
+
+    const sA = this._styleAArray;
+    sA[0] = this.rampSoftness;
+    sA[1] = this.washAmount;
+    sA[2] = this.lineDensity;
+    sA[3] = this.lineWidth;
+    props["u_styleA"] = sA;
+
+    const sB = this._styleBArray;
+    sB[0] = this.foamSoftness;
+    sB[1] = this.skyTint;
+    sB[2] = this.glitterStrength;
+    sB[3] = this.styleId;
+    props["u_styleB"] = sB;
+
     return manifest;
   }
 
   protected override _getLiquidWaveShaderSources(): ShaderDefinition["sources"] {
-    return {
-      glsl300: {
-        vs: vertGLSL,
-        fs: fragGLSL,
-      },
-      glsl100: {
-        vs: vertGLSL100,
-        fs: fragGLSL100,
-      },
-      wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n${fragWGSL}`,
-    };
+    return composeStylizedWaterSources();
   }
 }

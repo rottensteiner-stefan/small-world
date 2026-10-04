@@ -4,6 +4,12 @@ import LIQUID_GERSTNER_WAVE_GLSL from "../../materials/shaders/chunks/liquid_ger
 import LIQUID_GERSTNER_WAVE_WGSL from "../../materials/shaders/chunks/liquid_gerstner_wave.wgsl?raw";
 import LIQUID_WORLEY_NOISE_GLSL from "../../materials/shaders/chunks/liquid_worley_noise.glsl?raw";
 import LIQUID_WORLEY_NOISE_WGSL from "../../materials/shaders/chunks/liquid_worley_noise.wgsl?raw";
+import LIQUID_CAUSTICS_GLSL from "../../materials/shaders/chunks/liquid_caustics.glsl?raw";
+import LIQUID_CAUSTICS_WGSL from "../../materials/shaders/chunks/liquid_caustics.wgsl?raw";
+import LIQUID_GLINT_GLSL from "../../materials/shaders/chunks/liquid_glint.glsl?raw";
+import LIQUID_GLINT_WGSL from "../../materials/shaders/chunks/liquid_glint.wgsl?raw";
+import LIQUID_EXT_DEFAULT_GLSL from "../../materials/shaders/chunks/liquid_ext_default.glsl?raw";
+import LIQUID_EXT_DEFAULT_WGSL from "../../materials/shaders/chunks/liquid_ext_default.wgsl?raw";
 import FILTER_GLITCH_DISTORT_GLSL from "../../materials/shaders/chunks/filter_glitch_distort.glsl?raw";
 import FILTER_GLITCH_DISTORT_WGSL from "../../materials/shaders/chunks/filter_glitch_distort.wgsl?raw";
 import FILTER_VHS_DISTORT_GLSL from "../../materials/shaders/chunks/filter_vhs_distort.glsl?raw";
@@ -81,6 +87,10 @@ export class CoreShaderChunks {
     registry.registerChunk("FOG_CALC", FOG_CALC, "glsl300");
     registry.registerChunk("LIQUID_GERSTNER_WAVE", LIQUID_GERSTNER_WAVE_GLSL, "glsl300");
     registry.registerChunk("LIQUID_WORLEY_NOISE", LIQUID_WORLEY_NOISE_GLSL, "glsl300");
+    registry.registerChunk("LIQUID_CAUSTICS", LIQUID_CAUSTICS_GLSL, "glsl300");
+    registry.registerChunk("LIQUID_GLINT", LIQUID_GLINT_GLSL, "glsl300");
+    registry.registerChunk("WATER_EXT_DECL", LIQUID_EXT_DEFAULT_GLSL, "glsl300");
+    registry.registerChunk("WATER_EXT_SURFACE", LIQUID_EXT_DEFAULT_GLSL, "glsl300");
 
     // --- WebGL 1 Chunks ---
     registry.registerChunk("BASE_VS", gl1BaseVs, "glsl100");
@@ -94,6 +104,10 @@ export class CoreShaderChunks {
     registry.registerChunk("FOG_CALC", FOG_CALC, "glsl100");
     registry.registerChunk("LIQUID_GERSTNER_WAVE", LIQUID_GERSTNER_WAVE_GLSL, "glsl100");
     registry.registerChunk("LIQUID_WORLEY_NOISE", LIQUID_WORLEY_NOISE_GLSL, "glsl100");
+    registry.registerChunk("LIQUID_CAUSTICS", LIQUID_CAUSTICS_GLSL, "glsl100");
+    registry.registerChunk("LIQUID_GLINT", LIQUID_GLINT_GLSL, "glsl100");
+    registry.registerChunk("WATER_EXT_DECL", LIQUID_EXT_DEFAULT_GLSL, "glsl100");
+    registry.registerChunk("WATER_EXT_SURFACE", LIQUID_EXT_DEFAULT_GLSL, "glsl100");
 
     // --- WebGPU Chunks ---
     registry.registerChunk("WGSL_STRUCTS", wgslStructs, "wgsl");
@@ -105,6 +119,10 @@ export class CoreShaderChunks {
     registry.registerChunk("WGSL_SCREEN_FOOTPRINT", wgslScreenFootprint, "wgsl");
     registry.registerChunk("WGSL_LIQUID_GERSTNER_WAVE", LIQUID_GERSTNER_WAVE_WGSL, "wgsl");
     registry.registerChunk("WGSL_LIQUID_WORLEY_NOISE", LIQUID_WORLEY_NOISE_WGSL, "wgsl");
+    registry.registerChunk("WGSL_LIQUID_CAUSTICS", LIQUID_CAUSTICS_WGSL, "wgsl");
+    registry.registerChunk("WGSL_LIQUID_GLINT", LIQUID_GLINT_WGSL, "wgsl");
+    registry.registerChunk("WGSL_WATER_EXT_DECL", LIQUID_EXT_DEFAULT_WGSL, "wgsl");
+    registry.registerChunk("WGSL_WATER_EXT_SURFACE", LIQUID_EXT_DEFAULT_WGSL, "wgsl");
     registry.registerChunk("WGSL_VS", wgslBaseVs, "wgsl");
 
     // --- Post-Processing Filter Chunks ---

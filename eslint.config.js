@@ -95,9 +95,22 @@ export default [
         {
           patterns: [
             {
-              group: ["**/apps/**", "@small-world/sample-apps"],
+              group: [
+                "**/apps/**",
+                "@small-world/sample-apps",
+                "**/packages/liquid-extras/**",
+                "@small-world/liquid-extras",
+                "**/packages/vfx-extras/**",
+                "@small-world/vfx-extras",
+                "**/packages/physics-extras/**",
+                "@small-world/physics-extras",
+                "**/packages/geometry-extras/**",
+                "@small-world/geometry-extras",
+                "**/packages/gltf-extensions/**",
+                "@small-world/gltf-extensions",
+              ],
               message:
-                "Die Engine (packages/engine) darf nichts aus apps/ importieren. Siehe ADR 0014/0015.",
+                "Die Engine (packages/engine) darf weder aus apps/ noch aus Extension-Paketen importieren. Siehe ADR 0014/0015/0025.",
             },
           ],
         },

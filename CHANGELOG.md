@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.96.0] - 2026-10-04
+
+### "Art does not reproduce the visible; rather, it makes visible." - Paul Klee
+
+- **Features:**
+  - *Anime Fluid Pipeline & Preset Ladder*: Unified `StylizedWaterMaterial` into a modular stylized fluid shader core supporting presets (`flat`, `toon`, `bold`, `soft`, `sparkle`, `dredge`, `custom`) for water, magma, toxic slime, and oil.
+  - *Stepped Star Glint & Smooth Voronoi Caustics*: Introduced procedural $F_1-\text{Smooth}F_1$ Voronoi caustic networks and quantized 4-point astroid star glints (8/12 FPS cadence for traditional animation feel) across WebGL1, WebGL2, and WebGPU.
+  - *Modular Liquid Extensions*: Created `@small-world/liquid-extras` package and compile-time injection hooks (`[WATER_EXT_DECL]`, `[WATER_EXT_SURFACE]`) enabling external look extensions (e.g. `NoirWaterMaterial`) with zero engine core overhead.
+- **Architecture & Bugfixes:**
+  - *Std140 Uniform Layout Alignment*: Added `u_styleA` and `u_styleB` (vec4) to `ObjectUniforms` (float offsets 56 and 60) within the 256-byte budget in `StandardWebGPULayout` and `structs.wgsl`.
+  - *Architectural Decision Record*: Documented engine core vs. extension boundaries in ADR 0025 (`0025-stylized-liquid-looks-engine-vs-extension.md`).
+- **Housekeeping & Docs:**
+  - *Domain Modeling & Mathematical References*: Documented anime fluid family concepts in `CONTEXT.md` and mathematical derivations in `REFERENCES.md`.
+  - *ESLint Engine Isolation*: Enforced boundary rule preventing `@small-world/engine` from importing extension packages.
+  - All 216 test suites (1278 unit tests) passing green with 0 lint errors.
+
 ## [0.95.2] - 2026-10-03
 
 ### "Small leaks sink great ships." - Benjamin Franklin

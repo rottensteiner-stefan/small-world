@@ -868,3 +868,11 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
   Fallback-Formate D24/D32F/D16 und andere GPUs/MSAA, Context Loss; Review-Kleinigkeiten (Farb-Capture
   weiterhin unbedingt, unbegrenzte Error-Drain-Schleife, sticky `_opaqueDepthUnsupported`,
   `mat.type` vs. `manifest.shaderId` im Gate).
+
+- 📋 **Stilisiertes Wasser (Richtung `soft`/`sparkle`, Referenzen Spirited Away + Dredge), Phase B wartet auf Freigabe (2026-10-03):**
+  Analysen, Board-Exporte, ADR-0025-Entwurf und Aufgabenplan B0–B8 liegen in
+  `docs/research/stylized-water/` (Einstieg: `README.md`). Proposal P1 einstimmig (5/5), Entscheidungen des
+  Moderators: `toon` unverändert (kein Löschen des alten Kaustik-Pfads), Paket `@small-world/liquid-extras`
+  mit Noir-Paket als erste Extension, `sparkle` in der Engine, „Ghibli" nur intern. Erster Schritt der
+  Umsetzung: V0-Baseline aller drei Backends vor jeder Shader-Änderung. Nichts davon ist in der Engine
+  gerendert; Budgets sind aus Quelltext geschätzt.

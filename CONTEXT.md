@@ -4,6 +4,10 @@ The foundational domain model for the Small World 3D engine. It defines the core
 
 ## Language
 
+**Anime Fluid Family**:
+The unified stylized liquid and fluid pipeline within Small World (`StylizedWaterMaterial` / `UniversalFluidMaterial`) covering toon, Ghibli-soft, painterly sparkle, dredge, and other stylized looks via parameter vectors and compile-time extension hooks.
+_Avoid_: Ghibli Water Subsystem, Liquid Fork — Ghibli is one preset on the continuous Anime continuum; non-water fluids (lava, slime, dark oil) reuse the identical shader core.
+
 **Asset Kit**:
 A self-contained, schema-validated directory of modular 3D environment assets, props, and procedural builders sharing a unified PBR palette, scale rhythm, and metadata bindings (`kit.json`, `meta.json`).
 _Avoid_: Asset Pack, Model Bundle (informal; Asset Kit names a strictly schema-validated format, ADR 0011).
@@ -67,6 +71,10 @@ _Avoid_: Asset Manager — `AssetManager` handles low-level glTF/texture downloa
 **Light Coverage**:
 The range of Clusters — a screen-space X/Y range plus a depth-slice range — that a single light's bounding sphere can possibly reach.
 _Avoid_: Light Bounds, Footprint
+
+**Liquid Extension Hook**:
+Compile-time shader injection slots (`[WATER_EXT_DECL]`, `[WATER_EXT_SURFACE]`) allowing extension packages (such as `liquid-extras`) to inject custom procedural looks (e.g. Noir comic-book ink) without modifying or branching engine core shaders (ADR 0025).
+_Avoid_: Dynamic Shader Patching, Runtime Shader Interception.
 
 **Mannequin (Asset Root)**:
 The canonical folder structure (`public/assets/<app>/mannequin/<character>/` and `raw/mannequin/`) organizing game-ready rigged characters and shared mocap pools per character namespace rather than by asset type.

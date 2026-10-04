@@ -1,0 +1,14 @@
+{
+  "name": "@small-world/liquid-extras",
+  "version": "0.1.0",
+  "description": "Specialized art-direction packs and hook-based liquid shader extensions for Small World.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@small-world/engine": "*"
+  }
+}
