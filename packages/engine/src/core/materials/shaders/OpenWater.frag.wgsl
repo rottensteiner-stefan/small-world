@@ -45,12 +45,13 @@
     // unnatural blackness in deep or shaded regions.
     let waterAbsorption = vec3<f32>(obj.isSkinned, obj.boneOffset, obj.pad1);
     let transmittance = exp(-depthDiff * waterAbsorption);
-    let tintedSeabed = refractedColor * waterColor;
+    let tintedSeabed = refractedColor * mix(vec3<f32>(1.0), waterColor, 0.6);
     let inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
     let underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
     var baseColor = mix(deepWaterColor, underwaterLighting, transmittance);
 
-    let edgeBlend = 1.0 - saturate(depthDiff / edgeSoftness);
+    // Squared falloff, capped at 0.55: the edge colour tints the shoreline instead of blowing it out to white.
+    let edgeBlend = pow(1.0 - saturate(depthDiff / edgeSoftness), 2.0) * 0.4;
 
     let viewDir = normalize(global.viewPos.xyz - i.wp);
     let fresnel = pow(1.0 - saturate(dot(i.n, viewDir)), 5.0);
@@ -60,7 +61,7 @@
     let lightDir = normalize(global.dirLightDir.xyz);
     let halfVector = normalize(lightDir + viewDir);
     let nDotH = saturate(dot(i.n, halfVector));
-    let specular = pow(nDotH, 100.0) * 1.5;
+    let specular = pow(nDotH, 1200.0) * 0.8;
     baseColor += global.dirLightColor.rgb * specular;
 
     let edgeColLinear = sRGBToLinear(edgeColor);
@@ -72,7 +73,7 @@
     let foamCutoff = obj.useEnvMap;
     let foamNoiseScale = obj.useReflectionMap;
     let foamNoiseSpeed = obj.pad2;
-    let foamBlend = 1.0 - saturate(depthDiff / foamDistance);
+    let foamBlend = pow(1.0 - saturate(depthDiff / foamDistance), 2.0);
     let foamUv = i.wp.xz * foamNoiseScale + obj.time * foamNoiseSpeed;
     let foamCell = waterCellNoise(foamUv);
     let foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
@@ -80,24 +81,27 @@
     // Splash pulse: modulates intersection foam intensity over time instead of a static band
     let splashPhase = dot(normalize(vec2<f32>(1.0, 0.4)), i.wp.xz) * 0.8 - obj.time * 1.6;
     let splashPulse = 0.6 + 0.4 * sin(splashPhase);
-    let foamMask = foamPattern * foamBlend * splashPulse;
+    let foamMask = foamPattern * foamBlend * splashPulse * 0.65;
 
     // Wave-crest foam from vertex Jacobian metric
-    let crestFoam = smoothstep(0.4, 0.7, i.original_uv.x) * foamPattern * 0.9;
+    let crestFoam = smoothstep(0.65, 0.95, i.original_uv.x) * foamPattern * 0.5;
     let foamMaskFinal = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMaskFinal);
 
-    // Ground-projected caustics: anchors caustic cells to the underwater pool tiles / seabed
-    let rayDir = normalize(i.wp - global.viewPos.xyz);
-    let groundWorldPos = i.wp + rayDir * depthDiff;
-    let causticsUv1 = (groundWorldPos.xz + i.n.xz * 0.25) * foamNoiseScale * 0.75 + vec2<f32>(obj.time * foamNoiseSpeed * 0.35, obj.time * foamNoiseSpeed * 0.2);
-    let causticsUv2 = (groundWorldPos.xz - i.n.xz * 0.2) * foamNoiseScale * 1.05 - vec2<f32>(obj.time * foamNoiseSpeed * 0.25, obj.time * foamNoiseSpeed * 0.4);
+    // Ground-projected caustics: cells are anchored to the pool floor by following the sun ray
+    // (not the view ray, which smeared them radially along the walls). Own scale, independent of foam.
+    let toLight = normalize(global.dirLightDir.xyz);
+    let causticsDepth = min(depthDiff, 3.0);
+    let groundXZ = i.wp.xz - toLight.xz * causticsDepth / max(toLight.y, 0.3);
+    let causticsScale = 1.4;
+    let causticsUv1 = (groundXZ + i.n.xz * 0.25) * causticsScale + vec2<f32>(obj.time * foamNoiseSpeed * 0.35, obj.time * foamNoiseSpeed * 0.2);
+    let causticsUv2 = (groundXZ - i.n.xz * 0.2) * causticsScale * 1.4 - vec2<f32>(obj.time * foamNoiseSpeed * 0.25, obj.time * foamNoiseSpeed * 0.4);
     let caustics1 = 1.0 - waterCellNoise(causticsUv1);
     let caustics2 = 1.0 - waterCellNoise(causticsUv2);
     let causticsValue = pow(caustics1 * caustics2, 1.6) * 3.2;
-    let causticsFade = exp(-depthDiff * 0.35) * smoothstep(0.02, 0.2, depthDiff);
-    let causticsLight = vec3<f32>(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.4;
+    let causticsFade = exp(-depthDiff * 0.7) * smoothstep(0.05, 0.4, depthDiff);
+    let causticsLight = vec3<f32>(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.1;
     finalColor += causticsLight;
 
     finalColor *= global.exposure;

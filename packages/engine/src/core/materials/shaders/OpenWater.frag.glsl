@@ -72,12 +72,13 @@ void main() {
     // unnatural blackness in deep or shaded regions.
     vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
     vec3 transmittance = exp(-depthDiff * waterAbsorption);
-    vec3 tintedSeabed = refractedColor * waterColor;
+    vec3 tintedSeabed = refractedColor * mix(vec3(1.0), waterColor, 0.6);
     vec3 inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
     vec3 underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
     vec3 baseColor = mix(deepWaterColor, underwaterLighting, transmittance);
 
-    float edgeBlend = 1.0 - clamp(depthDiff / edgeSoftness, 0.0, 1.0);
+    // Squared falloff, capped at 0.55: the edge colour tints the shoreline instead of blowing it out to white.
+    float edgeBlend = pow(1.0 - clamp(depthDiff / edgeSoftness, 0.0, 1.0), 2.0) * 0.4;
 
     vec3 viewDir = normalize(u_viewPos - v_worldPos);
     float fresnel = pow(1.0 - clamp(dot(v_normal, viewDir), 0.0, 1.0), 5.0);
@@ -87,7 +88,7 @@ void main() {
     vec3 lightDir = normalize(u_dirLightDir);
     vec3 halfVector = normalize(lightDir + viewDir);
     float nDotH = clamp(dot(v_normal, halfVector), 0.0, 1.0);
-    float specular = pow(nDotH, 100.0) * 1.5;
+    float specular = pow(nDotH, 1200.0) * 0.8;
     baseColor += u_dirLightColor * specular;
 
     vec3 edgeColLinear = sRGBToLinear(edgeColor);
@@ -99,7 +100,7 @@ void main() {
     float foamCutoff = u_useEnvMap;
     float foamNoiseScale = u_useReflectionMap;
     float foamNoiseSpeed = u_pad2;
-    float foamBlend = 1.0 - clamp(depthDiff / foamDistance, 0.0, 1.0);
+    float foamBlend = pow(1.0 - clamp(depthDiff / foamDistance, 0.0, 1.0), 2.0);
     vec2 foamUv = v_worldPos.xz * foamNoiseScale + u_time * foamNoiseSpeed;
     float foamCell = waterCellNoise(foamUv);
     float foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
@@ -107,24 +108,27 @@ void main() {
     // Splash pulse: modulates intersection foam intensity over time instead of a static band
     float splashPhase = dot(normalize(vec2(1.0, 0.4)), v_worldPos.xz) * 0.8 - u_time * 1.6;
     float splashPulse = 0.6 + 0.4 * sin(splashPhase);
-    float foamMask = foamPattern * foamBlend * splashPulse;
+    float foamMask = foamPattern * foamBlend * splashPulse * 0.65;
 
     // Wave-crest foam from vertex Jacobian metric
-    float crestFoam = smoothstep(0.4, 0.7, v_crest) * foamPattern * 0.9;
+    float crestFoam = smoothstep(0.65, 0.95, v_crest) * foamPattern * 0.5;
     foamMask = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMask);
 
-    // Ground-projected caustics: anchors caustic cells to the underwater pool tiles / seabed
-    vec3 rayDir = normalize(v_worldPos - u_viewPos);
-    vec3 groundWorldPos = v_worldPos + rayDir * depthDiff;
-    vec2 causticsUv1 = (groundWorldPos.xz + v_normal.xz * 0.25) * foamNoiseScale * 0.75 + vec2(u_time * foamNoiseSpeed * 0.35, u_time * foamNoiseSpeed * 0.2);
-    vec2 causticsUv2 = (groundWorldPos.xz - v_normal.xz * 0.2) * foamNoiseScale * 1.05 - vec2(u_time * foamNoiseSpeed * 0.25, u_time * foamNoiseSpeed * 0.4);
+    // Ground-projected caustics: cells are anchored to the pool floor by following the sun ray
+    // (not the view ray, which smeared them radially along the walls). Own scale, independent of foam.
+    vec3 toLight = normalize(u_dirLightDir);
+    float causticsDepth = min(depthDiff, 3.0);
+    vec2 groundXZ = v_worldPos.xz - toLight.xz * causticsDepth / max(toLight.y, 0.3);
+    float causticsScale = 1.4;
+    vec2 causticsUv1 = (groundXZ + v_normal.xz * 0.25) * causticsScale + vec2(u_time * foamNoiseSpeed * 0.35, u_time * foamNoiseSpeed * 0.2);
+    vec2 causticsUv2 = (groundXZ - v_normal.xz * 0.2) * causticsScale * 1.4 - vec2(u_time * foamNoiseSpeed * 0.25, u_time * foamNoiseSpeed * 0.4);
     float caustics1 = 1.0 - waterCellNoise(causticsUv1);
     float caustics2 = 1.0 - waterCellNoise(causticsUv2);
     float causticsValue = pow(caustics1 * caustics2, 1.6) * 3.2;
-    float causticsFade = exp(-depthDiff * 0.35) * smoothstep(0.02, 0.2, depthDiff);
-    vec3 causticsLight = vec3(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.4;
+    float causticsFade = exp(-depthDiff * 0.7) * smoothstep(0.05, 0.4, depthDiff);
+    vec3 causticsLight = vec3(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.1;
     finalColor += causticsLight;
 
     finalColor *= u_exposure;

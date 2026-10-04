@@ -86,6 +86,9 @@ void main() {
     vec4 w1 = u_extraParams;
     vec4 w2 = u_liquidParams;
     vec4 w3 = u_thresholds;
+    vec4 w4 = vec4(w1.y, -w1.x, w1.z * 0.45, w1.w * 0.42); // Detail wave 1 (perpendicular)
+    vec4 w5 = vec4(-w2.y, w2.x, w2.z * 0.35, w2.w * 0.35); // Detail wave 2
+    vec4 w6 = vec4(w1.x * 0.5 - w1.y * 0.866, w1.x * 0.866 + w1.y * 0.5, w1.z * 0.25, w1.w * 0.22); // Bimodal 60-deg cross-swell
 
     vec3 t = vec3(1.0, 0.0, 0.0);
     vec3 b = vec3(0.0, 0.0, 1.0);
@@ -96,6 +99,9 @@ void main() {
     if (w3.w > 0.001) {
         displacement += gerstnerWave(w3, wp, speed, time, t, b);
     }
+    displacement += gerstnerWave(w4, wp, speed, time, t, b);
+    displacement += gerstnerWave(w5, wp, speed, time, t, b);
+    displacement += gerstnerWave(w6, wp, speed, time, t, b);
 
     wp += displacement;
     v_worldPos = wp;

@@ -30,7 +30,7 @@ import {
   WorldMaterial,
   ZoomController,
 } from "../../../packages/engine/src/index.js";
-import { NoirWaterMaterial } from "../../../packages/liquid-extras/src/index.js";
+import { NoirWaterMaterial, OilSlickMaterial } from "../../../packages/liquid-extras/src/index.js";
 
 const WALL_THICKNESS = 0.3;
 const POOL_SIZE = 5;
@@ -38,6 +38,58 @@ const WALL_HEIGHT = 1.5;
 const WALL_CENTER_Y = -0.6; // top face at +0.15 (a small curb above the ground), bottom at -1.35
 const FLOOR_Y = -1.35;
 const LIQUID_Y = 0.0; // flush with the ground, just below the curb top
+
+interface TilePalette {
+  grout: string;
+  groutSpeckle: string;
+  /** Four glaze gradient stops, top-left to bottom-right. */
+  glaze: [string, string, string, string];
+  /** Alpha of the white glaze reflection and top/left bevel (dark tiles get less). */
+  shine: number;
+}
+
+/** Pool frame palettes: bright cyan for the water family, dark ceramics for the dark / special liquids. */
+const TILE_PALETTES: Record<
+  "pool" | "murk" | "noir" | "basalt" | "toxic" | "graphite",
+  TilePalette
+> = {
+  pool: {
+    grout: "#ffffff",
+    groutSpeckle: "#f0f6fa",
+    glaze: ["#48c8ec", "#34b4dc", "#209ec8", "#1486b0"],
+    shine: 1.0,
+  },
+  murk: {
+    grout: "#2e3a38",
+    groutSpeckle: "#26302e",
+    glaze: ["#3d5e58", "#34524c", "#2b4540", "#233a36"],
+    shine: 0.35,
+  },
+  noir: {
+    grout: "#101010",
+    groutSpeckle: "#1a1a1a",
+    glaze: ["#6a6a6a", "#5a5a5a", "#484848", "#383838"],
+    shine: 0.35,
+  },
+  basalt: {
+    grout: "#14100e",
+    groutSpeckle: "#1d1814",
+    glaze: ["#4a403a", "#3c332e", "#2e2723", "#231e1b"],
+    shine: 0.2,
+  },
+  toxic: {
+    grout: "#1a2214",
+    groutSpeckle: "#222c1a",
+    glaze: ["#5d6b3a", "#4f5c32", "#404b2a", "#333c22"],
+    shine: 0.3,
+  },
+  graphite: {
+    grout: "#0c0d0f",
+    groutSpeckle: "#16181b",
+    glaze: ["#3a3f46", "#31353b", "#272a30", "#1e2126"],
+    shine: 0.25,
+  },
+};
 
 /**
  * Periodically drops the attached object into the pool from above, lets it splash (impact +
@@ -108,7 +160,8 @@ class SplashDropBehavior extends Behavior {
  */
 export class Showcase10 extends AbstractShowcase {
   private readonly _moveSpeed: number = 12.0;
-  private readonly _eyeHeight: number = 4.0;
+  private readonly _startEyeHeight: number = 9.0;
+  private readonly _minEyeHeight: number = 0.1;
   private readonly _lightPulseSpeed: number = 2.1;
 
   private _liquids: (
@@ -139,9 +192,10 @@ export class Showcase10 extends AbstractShowcase {
     });
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(-25, this._eyeHeight, 0);
-    this.camera.theta = MathUtils.HALF_PI; // Look straight down the central avenue along +X
-    this.camera.phi = MathUtils.degToRad(-6);
+    this.camera.position.set(0, this._startEyeHeight, 21);
+    this.camera.theta = 0; // Look across both pool rows along -Z (all 10 pools in view)
+    this.camera.phi = MathUtils.degToRad(-24);
+    this.renderer.setClearColor(new Color(0.3, 0.5, 0.78, 1.0)); // Daylight sky instead of a black void
     this.camera.addBehavior(
       new FPSController({ input: this.input, audio: this.audio, moveSpeed: this._moveSpeed }),
     );
@@ -153,9 +207,13 @@ export class Showcase10 extends AbstractShowcase {
     this.scene.add(sun);
 
     // Swimming pool ceramic tile texture: classic cyan/water-blue tiles with clean white grout lines
-    const tileTexture = this._createPoolTileTexture();
-    const tileMaterial = new WorldMaterial({ diffuseMap: tileTexture });
-    tileMaterial.color = Color.WHITE;
+    const tileMaterial = this._createTileMaterial(TILE_PALETTES.pool);
+    // Dark frames for the dark / special liquids: the bright cyan frame clashes with lava, oil, noir...
+    const murkTileMaterial = this._createTileMaterial(TILE_PALETTES.murk);
+    const noirTileMaterial = this._createTileMaterial(TILE_PALETTES.noir);
+    const basaltTileMaterial = this._createTileMaterial(TILE_PALETTES.basalt);
+    const toxicTileMaterial = this._createTileMaterial(TILE_PALETTES.toxic);
+    const oilTileMaterial = this._createTileMaterial(TILE_PALETTES.graphite);
 
     // Meadow grass texture for the surrounding terrain
     const grassTexture = this._createGrassTexture();
@@ -288,8 +346,8 @@ export class Showcase10 extends AbstractShowcase {
       dropper: this._makeCrate(new Color(0.2, 0.6, 0.8)),
     });
 
-    // 4. Ghibli Soft Watercolor (Smooth Voronoi Caustics & Gentle Gradients)
-    const softGhibliWater = new StylizedWaterMaterial({
+    // 4. Soft Anime Watercolor (Smooth Voronoi Caustics & Gentle Gradients)
+    const softWatercolorWater = new StylizedWaterMaterial({
       style: "soft",
       shallowWaterColor: new Color(0.18, 0.76, 0.82),
       deepWaterColor: new Color(0.02, 0.22, 0.35),
@@ -303,10 +361,10 @@ export class Showcase10 extends AbstractShowcase {
       wave3: [-0.3, 0.5, 0.03, 1.0],
     });
     this._buildPool({
-      name: "GhibliSoftPool",
+      name: "SoftWatercolorPool",
       x: 9,
       z: -7.5,
-      liquid: softGhibliWater,
+      liquid: softWatercolorWater,
       needsTangents: true,
       tileMaterial,
       spawnDelay: 3.5,
@@ -321,20 +379,27 @@ export class Showcase10 extends AbstractShowcase {
       dropper: this._makeCrate(new Color(0.65, 0.55, 0.42)),
     });
 
-    // 5. Painterly Sparkle (Twinkling 4-Point Astroid Star Glints)
+    // 5. Painterly Sparkle (Twinkling 4-Point Astroid Star Glints & Vibrant Turquoise Caustics)
     const sparkleWater = new StylizedWaterMaterial({
       style: "sparkle",
-      shallowWaterColor: new Color(0.14, 0.72, 0.88),
-      deepWaterColor: new Color(0.01, 0.18, 0.32),
-      edgeColor: new Color(1.0, 1.0, 0.95),
-      edgeSoftness: 0.6,
-      glitterStrength: 1.0,
-      causticStrength: 0.45,
-      foamDistance: 0.9,
-      speed: 0.9,
-      wave1: [1.0, 0.35, 0.075, 3.0],
-      wave2: [0.3, 0.9, 0.05, 1.9],
-      wave3: [-0.4, 0.6, 0.035, 1.2],
+      shallowWaterColor: new Color(0.0, 0.88, 0.94), // Vibrant electric turquoise / aqua-cyan
+      deepWaterColor: new Color(0.01, 0.17, 0.26), // Deep oceanic petrol-teal / sapphire navy
+      edgeColor: new Color(0.91, 1.0, 1.0), // Luminous aqua-white shimmer
+      edgeSoftness: 0.45,
+      glitterStrength: 1.35,
+      causticStrength: 1.25,
+      refractionStrength: 0.038,
+      waterAbsorption: [0.38, 0.075, 0.018],
+      rampSoftness: 0.6,
+      washAmount: 0.22,
+      foamColor: new Color(0.96, 1.0, 1.0),
+      foamDistance: 0.75,
+      foamNoiseScale: 4.2,
+      foamNoiseSpeed: 0.65,
+      speed: 0.85,
+      wave1: [0.9, 0.35, 0.065, 3.0],
+      wave2: [0.35, 0.85, 0.045, 1.9],
+      wave3: [-0.4, 0.55, 0.025, 1.2],
     });
     this._buildPool({
       name: "PainterlySparklePool",
@@ -345,11 +410,15 @@ export class Showcase10 extends AbstractShowcase {
       tileMaterial,
       spawnDelay: 4.0,
       sunkObjects: [
-        [this._makeDebris(new Color(0.95, 0.85, 0.3), 0.4), -0.8, -0.6], // Crystal prism
-        [this._makeBall(new Color(0.4, 0.8, 0.95), 0.32), 0.9, 0.6],
+        [this._makeBall(new Color(0.28, 0.52, 0.68), 0.42), -1.1, -0.7], // Smooth river stone (teal-slate)
+        [this._makeBall(new Color(0.38, 0.65, 0.8), 0.36), -0.4, -0.9], // River pebble (azure-grey)
+        [this._makeBall(new Color(0.2, 0.42, 0.58), 0.46), 0.4, -0.5], // River rock (deep cyan)
+        [this._makeBall(new Color(0.45, 0.72, 0.88), 0.32), 1.1, -0.8], // River pebble (light aqua)
+        [this._makeDebris(new Color(0.95, 0.88, 0.4), 0.38), -0.6, 0.6], // Sunlit crystal prism
+        [this._makeBall(new Color(0.32, 0.58, 0.74), 0.38), 0.8, 0.7], // River stone
       ],
       floaters: [
-        [this._makeDebris(new Color(1.0, 0.9, 0.2), 0.4), -1.1, 1.1, 0.1, 2.2], // Golden star
+        [this._makeDebris(new Color(1.0, 0.92, 0.3), 0.4), -1.1, 1.1, 0.1, 2.2], // Golden star
         [this._makeBall(new Color(0.95, 0.4, 0.7), 0.34), 1.2, -0.9, 0.09, 2.0],
       ],
       dropper: this._makeCrate(new Color(0.9, 0.8, 0.3)),
@@ -378,7 +447,7 @@ export class Showcase10 extends AbstractShowcase {
       z: 7.5,
       liquid: dredgeWater,
       needsTangents: true,
-      tileMaterial,
+      tileMaterial: murkTileMaterial,
       spawnDelay: 5.5,
       sunkObjects: [
         [this._makeCrate(new Color(0.15, 0.18, 0.17)), -0.9, -0.5],
@@ -392,22 +461,14 @@ export class Showcase10 extends AbstractShowcase {
     });
 
     // 7. Noir Graphic Novel (Black-and-White Comic Ink Posterization)
-    const noirWater = new NoirWaterMaterial({
-      shallowWaterColor: new Color(0.9, 0.9, 0.9),
-      deepWaterColor: new Color(0.08, 0.08, 0.08),
-      edgeColor: new Color(1.0, 1.0, 1.0),
-      speed: 0.85,
-      wave1: [0.9, 0.35, 0.07, 2.8],
-      wave2: [0.25, 0.85, 0.05, 1.8],
-      wave3: [-0.35, 0.55, 0.035, 1.2],
-    });
+    const noirWater = new NoirWaterMaterial();
     this._buildPool({
       name: "NoirGraphicPool",
       x: -9,
       z: 7.5,
       liquid: noirWater,
       needsTangents: true,
-      tileMaterial,
+      tileMaterial: noirTileMaterial,
       spawnDelay: 4.2,
       sunkObjects: [
         [this._makeCrate(new Color(0.1, 0.1, 0.1)), -0.9, -0.6],
@@ -424,7 +485,15 @@ export class Showcase10 extends AbstractShowcase {
     const lava = new LavaMaterial({
       noiseMap: lavaTexture,
       normalMap: lavaNormalMap,
+      color: new Color(1.0, 0.3, 0.02),
+      edgeColor: new Color(0.2, 0.07, 0.04), // Lighter crust so the plates read against the glow
+      emissiveStrength: 2.4,
+      emissiveColor: new Color(1.0, 0.2, 0.03), // Orange-red hue, less yellow when overexposed
       emissivePulse: 0.85,
+      transitionSoftness: 0.35,
+      normalStrength: 2.0,
+      waveAmplitude: 0.09,
+      shade: 0.9,
       viscosity: 14.0,
     });
     this._buildPool({
@@ -433,24 +502,24 @@ export class Showcase10 extends AbstractShowcase {
       z: 7.5,
       liquid: lava,
       needsTangents: false,
-      tileMaterial,
+      tileMaterial: basaltTileMaterial,
       spawnDelay: 4.0,
       sunkObjects: [
-        [this._makeCrate(new Color(0.2, 0.08, 0.05)), -0.8, -0.5],
-        [this._makeDebris(new Color(0.9, 0.25, 0.05), 0.38), 0.8, 0.6],
+        [this._makeCrate(new Color(0.55, 0.16, 0.06)), -0.8, -0.5], // Heat-tinted (lit by the magma)
+        [this._makeDebris(new Color(1.0, 0.45, 0.08), 0.38), 0.8, 0.6],
       ],
       floaters: [
-        [this._makeDebris(new Color(0.12, 0.08, 0.08), 0.42), -1.2, 1.1, 0.07, 1.2], // Charred rock
+        [this._makeDebris(new Color(0.3, 0.14, 0.09), 0.42), -1.2, 1.1, 0.07, 1.2], // Charred rock, rim-lit by the lava
         [this._makeBall(new Color(0.85, 0.35, 0.05), 0.32), 1.0, -1.0, 0.06, 1.5],
       ],
       dropper: this._makeDebris(new Color(0.15, 0.09, 0.08), 0.4),
     });
     this._lavaLight = new PointLight({
       color: new Color(1.0, 0.5, 0.15),
-      intensity: 4.0,
-      distance: 14,
+      intensity: 6.0,
+      distance: 12,
     });
-    this._lavaLight.position.set(0, 1.6, 7.5);
+    this._lavaLight.position.set(0, 0.9, 7.5); // Low over the surface: the orange light bleeds onto the frame and floaters
     this.scene.add(this._lavaLight);
 
     // 9. Toxic Slime (Bioluminescent Green Acid with Bubbles)
@@ -458,8 +527,12 @@ export class Showcase10 extends AbstractShowcase {
       noiseMap: slimeTexture,
       normalMap: slimeNormalMap,
       color: new Color(0.15, 0.95, 0.25),
+      edgeColor: new Color(0.35, 0.75, 0.2), // Softer neon rim
+      emissiveStrength: 0.4,
+      rimStrength: 0.3,
       shade: 0.6,
-      absorption: 3.5,
+      absorption: 2.2,
+      normalStrength: 1.2,
       viscosity: 10.0,
     });
     this._buildPool({
@@ -468,7 +541,7 @@ export class Showcase10 extends AbstractShowcase {
       z: 7.5,
       liquid: slime,
       needsTangents: false,
-      tileMaterial,
+      tileMaterial: toxicTileMaterial,
       spawnDelay: 5.0,
       sunkObjects: [
         [this._makeCrate(new Color(0.18, 0.35, 0.15)), -0.9, -0.6],
@@ -488,114 +561,52 @@ export class Showcase10 extends AbstractShowcase {
     this._slimeLight.position.set(9, 1.6, 7.5);
     this.scene.add(this._slimeLight);
 
-    // 10. Petroleum Oil (Dark Viscous Industrial Fluid)
-    const darkOil = new FluidSurfaceMaterial({
-      color: new Color(0.012, 0.012, 0.016),
-      edgeColor: new Color(0.045, 0.038, 0.028),
-      noiseMap: lavaTexture,
-      normalMap: lavaNormalMap,
-      normalStrength: 0.35,
-      waveAmplitude: 0.03,
-      viscosity: 16.0,
-      flowSpeed: 0.5,
-      specularStrength: 2.2,
-      specularPower: 80.0,
-      rimStrength: 0.2,
-      absorption: 12.0,
-      shade: 0.85,
-    });
+    // 10. Petroleum Oil (Dark Viscous Hydrocarbon with a slick sheen). Colours, specular and
+    // sheen come from the OilSlickMaterial defaults; nothing is overridden here.
+    const darkOil = new OilSlickMaterial();
     this._buildPool({
       name: "PetroleumOilPool",
       x: 18,
       z: 7.5,
       liquid: darkOil,
-      needsTangents: false,
-      tileMaterial,
+      needsTangents: true,
+      tileMaterial: oilTileMaterial,
       spawnDelay: 6.0,
       sunkObjects: [
-        [this._makeCrate(new Color(0.12, 0.12, 0.14)), -0.8, -0.6],
-        [this._makeDebris(new Color(0.2, 0.18, 0.16), 0.38), 0.8, 0.5],
+        [this._makeIndustrialPipe(new Color(0.2, 0.22, 0.24)), -0.8, -0.6],
+        [this._makeIndustrialGear(new Color(0.18, 0.19, 0.21)), 0.9, 0.6],
       ],
       floaters: [
-        [this._makeBarrel(new Color(0.5, 0.25, 0.15)), -1.1, 1.0, 0.05, 1.1], // Rust oil drum
-        [this._makeCrate(new Color(0.25, 0.28, 0.3)), 1.1, -1.0, 0.06, 1.3],
+        [this._makeIndustrialBarrel(new Color(0.72, 0.2, 0.12)), -1.1, 1.0, 0.04, 1.0], // Industrial hazard red barrel
+        [this._makeMetallicBuoy(new Color(0.88, 0.65, 0.12)), 1.1, -1.0, 0.05, 1.2], // Yellow hazard buoy
       ],
-      dropper: this._makeBarrel(new Color(0.5, 0.25, 0.15)),
+      dropper: this._makeIndustrialBarrel(new Color(0.18, 0.2, 0.22)), // Dark steel oil drum
     });
 
-    // Signboards for Row 1 (Left / North side): angled slightly towards the entrance for perspective readability
-    this._createSignboard(
-      "Clear Water",
-      "PBR Ocean • Gerstner & Foam",
-      -18,
-      -3.7,
-      MathUtils.degToRad(-25),
-    );
-    this._createSignboard(
-      "Classic Toon Water",
-      "Cel Shader • Stepped Foam Bands",
-      -9,
-      -3.7,
-      MathUtils.degToRad(-25),
-    );
-    this._createSignboard(
-      "Bold Anime Water",
-      "High-Contrast • Saturated Waves",
-      0,
-      -3.7,
-      MathUtils.degToRad(-25),
-    );
-    this._createSignboard(
-      "Ghibli Watercolor",
-      "Smooth-Min Voronoi Caustics",
-      9,
-      -3.7,
-      MathUtils.degToRad(-25),
-    );
-    this._createSignboard(
-      "Painterly Sparkle",
-      "12 FPS Astroid Star Glints",
-      18,
-      -3.7,
-      MathUtils.degToRad(-25),
-    );
-
-    // Signboards for Row 2 (Right / South side): angled slightly towards the entrance for perspective readability
-    this._createSignboard(
-      "Dredge Abyssal Fog",
-      "Eerie Murk • Jade Subsurface",
-      -18,
-      3.7,
-      Math.PI + MathUtils.degToRad(25),
-    );
-    this._createSignboard(
-      "Noir Graphic Novel",
-      "Monochrome Comic Ink Hatching",
-      -9,
-      3.7,
-      Math.PI + MathUtils.degToRad(25),
-    );
-    this._createSignboard(
-      "Molten Lava",
-      "Viscous Magma • Heat Pulse Glow",
-      0,
-      3.7,
-      Math.PI + MathUtils.degToRad(25),
-    );
-    this._createSignboard(
-      "Toxic Slime",
-      "Bioluminescent Acid • Bubbles",
-      9,
-      3.7,
-      Math.PI + MathUtils.degToRad(25),
-    );
-    this._createSignboard(
-      "Petroleum Dark Oil",
-      "Heavy Viscosity • Glassy Specular",
-      18,
-      3.7,
-      Math.PI + MathUtils.degToRad(25),
-    );
+    // Signboards stand BESIDE the pools (in the gap on the entrance side of each pool, not in front
+    // of the edges), angled towards the avenue so they read from the start view.
+    const rowASigns: Array<[string, string, number]> = [
+      ["Clear Water", "PBR Ocean • Gerstner & Foam", -18],
+      ["Classic Toon Water", "Cel Shader • Stepped Foam Bands", -9],
+      ["Bold Anime Water", "High-Contrast • Saturated Waves", 0],
+      ["Soft Anime Watercolor", "Smooth-Min Voronoi Caustics", 9],
+      ["Painterly Sparkle", "12 FPS Astroid Star Glints", 18],
+    ];
+    const rowBSigns: Array<[string, string, number]> = [
+      ["Dredge Abyssal Fog", "Eerie Murk • Jade Subsurface", -18],
+      ["Noir Graphic Novel", "Monochrome Ink • Posterized Tones", -9],
+      ["Molten Lava", "Viscous Magma • Emissive Crust Glow", 0],
+      ["Toxic Slime", "Bioluminescent Acid • Bubbles", 9],
+      ["Petroleum Dark Oil", "Dark Hydrocarbon • Oil Slick Sheen", 18],
+    ];
+    const signYawA = MathUtils.degToRad(12);
+    const signYawB = MathUtils.degToRad(-12);
+    for (const [title, subtitle, px] of rowASigns) {
+      this._createSignboard(title, subtitle, px + 4.5, -6.0, signYawA);
+    }
+    for (const [title, subtitle, px] of rowBSigns) {
+      this._createSignboard(title, subtitle, px + 4.5, 6.0, signYawB);
+    }
 
     this.scene.update();
 
@@ -603,7 +614,7 @@ export class Showcase10 extends AbstractShowcase {
   }
 
   /**
-   * Generates an elegant, high-legibility 3D signboard in front of the pool with crisp high-DPI text.
+   * Generates a high-legibility 3D signboard beside a pool with large, crisp text on both faces.
    */
   private _createSignboard(
     title: string,
@@ -621,19 +632,19 @@ export class Showcase10 extends AbstractShowcase {
     post.geometry = new Cylinder({
       radiusTop: 0.035,
       radiusBottom: 0.045,
-      height: 1.05,
+      height: 1.25,
       radialSegments: 12,
     }).getGeometryData();
-    post.position.set(0, 0.525, 0);
+    post.position.set(0, 0.625, 0);
     post.material = new BasicMaterial({ color: new Color(0.2, 0.22, 0.25) });
     post.castShadow = true;
     sign.add(post);
 
-    // 2. Tilted dark backplate
+    // 2. Tilted backplate (the same text face is mounted on both sides, so there is no blank back)
     const board = new Object3D("SignBoard");
     board.geometry = new Cube({ size: 1 }).getGeometryData();
-    board.scale.set(2.4, 1.1, 0.06);
-    board.position.set(0, 1.05, 0);
+    board.scale.set(3.1, 1.45, 0.06);
+    board.position.set(0, 1.25, 0);
     board.rotation.x = -0.32; // Ergonomic upward tilt (~18 deg) for player eye height
     board.material = new BasicMaterial({ color: new Color(0.08, 0.1, 0.14) });
     board.castShadow = true;
@@ -652,44 +663,39 @@ export class Showcase10 extends AbstractShowcase {
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 1024, 480);
 
-      // Cyan accent border
+      // Cyan accent border + header line
       ctx.strokeStyle = "#38bdf8";
-      ctx.lineWidth = 8;
-      ctx.strokeRect(6, 6, 1012, 468);
-
-      // Top glowing header line
+      ctx.lineWidth = 10;
+      ctx.strokeRect(8, 8, 1008, 464);
       ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(20, 20, 984, 4);
+      ctx.fillRect(28, 28, 968, 6);
 
-      // Category badge
-      ctx.fillStyle = "#64748b";
-      ctx.font =
-        "bold 26px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("SMALL WORLD • LIQUID GALLERY", 512, 65);
+      const font = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
-      // Main Title
+      // Main title (shrinks to fit long names)
       ctx.fillStyle = "#ffffff";
-      ctx.font =
-        "bold 64px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillText(title, 512, 190);
+      let titleSize = 104;
+      ctx.font = `bold ${titleSize}px ${font}`;
+      while (ctx.measureText(title).width > 940 && titleSize > 40) {
+        titleSize -= 4;
+        ctx.font = `bold ${titleSize}px ${font}`;
+      }
+      ctx.fillText(title, 512, 185);
 
-      // Subtitle / Tech description
-      ctx.fillStyle = "#38bdf8";
-      ctx.font =
-        "500 36px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillText(subtitle, 512, 290);
+      // Subtitle / tech description
+      ctx.fillStyle = "#7dd3fc";
+      let subSize = 58;
+      ctx.font = `600 ${subSize}px ${font}`;
+      while (ctx.measureText(subtitle).width > 940 && subSize > 30) {
+        subSize -= 2;
+        ctx.font = `600 ${subSize}px ${font}`;
+      }
+      ctx.fillText(subtitle, 512, 330);
 
-      // Bottom separator accent
       ctx.fillStyle = "rgba(56, 189, 248, 0.35)";
-      ctx.fillRect(200, 360, 624, 2);
-
-      // Bottom metadata
-      ctx.fillStyle = "#94a3b8";
-      ctx.font =
-        "bold 22px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillText("Interactive Real-Time Shader Pipeline", 512, 410);
+      ctx.fillRect(160, 405, 704, 3);
     }
 
     const textTexture = Texture.fromCanvas(canvas, {
@@ -698,24 +704,38 @@ export class Showcase10 extends AbstractShowcase {
     });
     textTexture.flipY();
 
+    const faceMaterial = new BasicMaterial({ diffuseMap: textTexture });
     const displayPlane = new Object3D("SignFace");
-    displayPlane.geometry = new Plane({ width: 2.34, height: 1.04 }).getGeometryData();
-    displayPlane.position.set(0, 1.05, 0.035);
+    displayPlane.geometry = new Plane({ width: 3.0, height: 1.4 }).getGeometryData();
+    displayPlane.position.set(0, 1.25, 0.035);
     displayPlane.rotation.x = -0.32;
-    displayPlane.material = new BasicMaterial({
-      diffuseMap: textTexture,
-    });
+    displayPlane.material = faceMaterial;
     sign.add(displayPlane);
+
+    // Back face: turned 180 degrees around the board's own Y axis
+    const backFace = new Object3D("SignFaceBack");
+    backFace.geometry = new Plane({ width: 3.0, height: 1.4 }).getGeometryData();
+    backFace.position.set(0, 1.25, -0.035);
+    backFace.rotation.set(0.32, Math.PI, 0);
+    backFace.material = faceMaterial;
+    sign.add(backFace);
 
     this.scene.add(sign);
     return sign;
   }
 
+  /** Wraps a generated ceramic tile texture into a world material for the pool frame. */
+  private _createTileMaterial(palette: TilePalette): WorldMaterial {
+    const material = new WorldMaterial({ diffuseMap: this._createPoolTileTexture(palette) });
+    material.color = Color.WHITE;
+    return material;
+  }
+
   /**
-   * Generates a high-quality classic swimming pool ceramic tile texture:
-   * radiant aqua/cyan ceramic tiles with clean, crisp white grout lines.
+   * Generates a ceramic tile texture from a palette: glazed tiles with grout lines
+   * (bright aqua for the water pools, dark ceramics for the dark liquids).
    */
-  private _createPoolTileTexture(): Texture {
+  private _createPoolTileTexture(palette: TilePalette): Texture {
     const size = 1024;
     const canvas = document.createElement("canvas");
     canvas.width = size;
@@ -727,12 +747,11 @@ export class Showcase10 extends AbstractShowcase {
     const tileSize = size / tilesPerAxis;
     const groutSize = 6;
 
-    // Crisp white grout base
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = palette.grout;
     ctx.fillRect(0, 0, size, size);
 
     // Subtle fine grout texture
-    ctx.fillStyle = "#f0f6fa";
+    ctx.fillStyle = palette.groutSpeckle;
     for (let i = 0; i < 400; i++) {
       const gx = Math.random() * size;
       const gy = Math.random() * size;
@@ -747,12 +766,11 @@ export class Showcase10 extends AbstractShowcase {
         const tw = tileSize - groutSize * 2;
         const th = tileSize - groutSize * 2;
 
-        // Radiant cyan/aqua ceramic glaze gradient
         const grad = ctx.createLinearGradient(tx, ty, tx + tw, ty + th);
-        grad.addColorStop(0.0, "#48c8ec");
-        grad.addColorStop(0.35, "#34b4dc");
-        grad.addColorStop(0.7, "#209ec8");
-        grad.addColorStop(1.0, "#1486b0");
+        grad.addColorStop(0.0, palette.glaze[0]);
+        grad.addColorStop(0.35, palette.glaze[1]);
+        grad.addColorStop(0.7, palette.glaze[2]);
+        grad.addColorStop(1.0, palette.glaze[3]);
 
         ctx.fillStyle = grad;
         ctx.fillRect(tx, ty, tw, th);
@@ -766,14 +784,14 @@ export class Showcase10 extends AbstractShowcase {
           ty + th * 0.3,
           tw * 0.7,
         );
-        radialGrad.addColorStop(0.0, "rgba(255, 255, 255, 0.45)");
-        radialGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.12)");
+        radialGrad.addColorStop(0.0, `rgba(255, 255, 255, ${0.45 * palette.shine})`);
+        radialGrad.addColorStop(0.5, `rgba(255, 255, 255, ${0.12 * palette.shine})`);
         radialGrad.addColorStop(1.0, "rgba(255, 255, 255, 0.0)");
         ctx.fillStyle = radialGrad;
         ctx.fillRect(tx, ty, tw, th);
 
         // 3D Inner Bevel Highlight (Top & Left edges)
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.85 * palette.shine})`;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(tx, ty + th);
@@ -922,12 +940,12 @@ export class Showcase10 extends AbstractShowcase {
       this.scene.add(chunk);
     };
 
-    // Total area: 90 x 70 (X [-45, +45], Z [-35, +35])
+    // Total area: 600 x 600 (X/Z [-300, +300]) so the meadow edge never shows in the gallery views.
     // 1. Large surrounding perimeter slabs:
-    addGroundChunk("Ground_North", 90, 25, 0, -22.5); // Z: [-35, -10]
-    addGroundChunk("Ground_South", 90, 25, 0, 22.5); // Z: [+10, +35]
-    addGroundChunk("Ground_West", 24.5, 20, -32.75, 0); // X: [-45, -20.5], Z: [-10, +10]
-    addGroundChunk("Ground_East", 24.5, 20, 32.75, 0); // X: [+20.5, +45], Z: [-10, +10]
+    addGroundChunk("Ground_North", 600, 290, 0, -155); // Z: [-300, -10]
+    addGroundChunk("Ground_South", 600, 290, 0, 155); // Z: [+10, +300]
+    addGroundChunk("Ground_West", 279.5, 20, -160.25, 0); // X: [-300, -20.5], Z: [-10, +10]
+    addGroundChunk("Ground_East", 279.5, 20, 160.25, 0); // X: [+20.5, +300], Z: [-10, +10]
 
     // 2. Central Plaza walkway between Row 1 and Row 2:
     addGroundChunk("Ground_Center_Plaza", 41, 10, 0, 0); // X: [-20.5, +20.5], Z: [-5, +5]
@@ -1109,9 +1127,150 @@ export class Showcase10 extends AbstractShowcase {
     return barrel;
   }
 
+  private _makeIndustrialBarrel(
+    color: Color = new Color(0.18, 0.2, 0.22),
+    stripeColor?: Color,
+  ): Object3D {
+    const root = new Object3D("IndustrialBarrel");
+    const body = new Object3D("BarrelBody");
+    body.geometry = new Cylinder({
+      radiusTop: 0.28,
+      radiusBottom: 0.28,
+      height: 0.72,
+      radialSegments: 16,
+    }).getGeometryData();
+    body.material = new BasicMaterial({ color });
+    root.add(body);
+
+    const ringMat = new BasicMaterial({ color: stripeColor ?? new Color(0.1, 0.1, 0.12) });
+    const topRing = new Object3D("TopRing");
+    topRing.geometry = new Cylinder({
+      radiusTop: 0.295,
+      radiusBottom: 0.295,
+      height: 0.06,
+      radialSegments: 16,
+    }).getGeometryData();
+    topRing.position.set(0, 0.2, 0);
+    topRing.material = ringMat;
+    root.add(topRing);
+
+    const bottomRing = new Object3D("BottomRing");
+    bottomRing.geometry = new Cylinder({
+      radiusTop: 0.295,
+      radiusBottom: 0.295,
+      height: 0.06,
+      radialSegments: 16,
+    }).getGeometryData();
+    bottomRing.position.set(0, -0.2, 0);
+    bottomRing.material = ringMat;
+    root.add(bottomRing);
+
+    return root;
+  }
+
+  private _makeMetallicBuoy(bodyColor: Color = new Color(0.85, 0.55, 0.1)): Object3D {
+    const root = new Object3D("MetallicBuoy");
+    const sphere = new Object3D("BuoySphere");
+    sphere.geometry = new Sphere({
+      radius: 0.34,
+      widthSegments: 16,
+      heightSegments: 12,
+    }).getGeometryData();
+    sphere.material = new BasicMaterial({ color: bodyColor });
+    root.add(sphere);
+
+    const ring = new Object3D("BuoyRing");
+    ring.geometry = new Cylinder({
+      radiusTop: 0.37,
+      radiusBottom: 0.37,
+      height: 0.08,
+      radialSegments: 16,
+    }).getGeometryData();
+    ring.material = new BasicMaterial({ color: new Color(0.12, 0.12, 0.15) });
+    root.add(ring);
+
+    const mast = new Object3D("BuoyMast");
+    mast.geometry = new Cylinder({
+      radiusTop: 0.02,
+      radiusBottom: 0.03,
+      height: 0.35,
+      radialSegments: 8,
+    }).getGeometryData();
+    mast.position.set(0, 0.4, 0);
+    mast.material = new BasicMaterial({ color: new Color(0.9, 0.2, 0.1) });
+    root.add(mast);
+
+    return root;
+  }
+
+  private _makeIndustrialGear(color: Color = new Color(0.2, 0.22, 0.25)): Object3D {
+    const root = new Object3D("IndustrialGear");
+    const hub = new Object3D("GearHub");
+    hub.geometry = new Cylinder({
+      radiusTop: 0.4,
+      radiusBottom: 0.4,
+      height: 0.12,
+      radialSegments: 12,
+    }).getGeometryData();
+    hub.material = new BasicMaterial({ color });
+    root.add(hub);
+
+    for (let i = 0; i < 6; i++) {
+      const tooth = new Object3D(`Tooth_${i}`);
+      tooth.geometry = new Cube({ size: 1 }).getGeometryData();
+      tooth.scale.set(0.14, 0.12, 0.16);
+      const angle = (i / 6) * Math.PI * 2;
+      tooth.position.set(Math.cos(angle) * 0.42, 0, Math.sin(angle) * 0.42);
+      tooth.rotation.y = -angle;
+      tooth.material = new BasicMaterial({ color });
+      root.add(tooth);
+    }
+    return root;
+  }
+
+  private _makeIndustrialPipe(color: Color = new Color(0.28, 0.3, 0.33)): Object3D {
+    const root = new Object3D("IndustrialPipe");
+    const pipe = new Object3D("PipeMain");
+    pipe.geometry = new Cylinder({
+      radiusTop: 0.2,
+      radiusBottom: 0.2,
+      height: 1.1,
+      radialSegments: 14,
+    }).getGeometryData();
+    pipe.rotation.z = Math.PI * 0.5;
+    pipe.material = new BasicMaterial({ color });
+    root.add(pipe);
+
+    const flange1 = new Object3D("Flange1");
+    flange1.geometry = new Cylinder({
+      radiusTop: 0.28,
+      radiusBottom: 0.28,
+      height: 0.08,
+      radialSegments: 14,
+    }).getGeometryData();
+    flange1.position.set(-0.5, 0, 0);
+    flange1.rotation.z = Math.PI * 0.5;
+    flange1.material = new BasicMaterial({ color: new Color(0.18, 0.2, 0.22) });
+    root.add(flange1);
+
+    const flange2 = new Object3D("Flange2");
+    flange2.geometry = new Cylinder({
+      radiusTop: 0.28,
+      radiusBottom: 0.28,
+      height: 0.08,
+      radialSegments: 14,
+    }).getGeometryData();
+    flange2.position.set(0.5, 0, 0);
+    flange2.rotation.z = Math.PI * 0.5;
+    flange2.material = new BasicMaterial({ color: new Color(0.18, 0.2, 0.22) });
+    root.add(flange2);
+
+    return root;
+  }
+
   protected override update(deltaTime: number): void {
     this._time += deltaTime;
-    this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
+    this.camera.position.y = Math.max(this._minEyeHeight, this.camera.position.y);
 
     for (const liquid of this._liquids) {
       liquid.time = this._time;
@@ -1119,7 +1278,7 @@ export class Showcase10 extends AbstractShowcase {
 
     if (this._lavaLight) {
       const pulse = Math.sin(this._time * this._lightPulseSpeed) * 0.5 + 0.5;
-      this._lavaLight.intensity = 3.0 + pulse * 4.0;
+      this._lavaLight.intensity = 4.5 + pulse * 5.0;
       this._lavaLight.color.g = 0.4 + pulse * 0.3;
     }
 
@@ -1132,3 +1291,4 @@ export class Showcase10 extends AbstractShowcase {
 
 const app = new Showcase10();
 app.start().catch((err: unknown) => console.error("[Showcase10] Failed to start:", err));
+(window as unknown as Record<string, unknown>)["__app"] = app; // TMP-WATER-QA (remove when the QA session ends)

@@ -225,7 +225,8 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
     const liquid = props["u_liquidParams"] as number[];
     // Viscosity -> sluggish, large blobs: lower frequency, bigger amplitude as it grows.
     liquid[0] = 3.0 / (1.0 + this.viscosity * 0.1);
-    liquid[1] = this.waveAmplitude ?? 0.03 + this.viscosity * 0.006;
+    const effectiveWaveAmplitude = this.waveAmplitude ?? 0.03 + this.viscosity * 0.006;
+    liquid[1] = effectiveWaveAmplitude;
     liquid[2] = this.emissiveColor.g * this.emissiveStrength;
     liquid[3] = this.emissiveColor.b * this.emissiveStrength;
 
@@ -243,6 +244,14 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
 
     texs["u_diffuseMap"] = this.noiseMap;
     if (this.normalMap) texs["u_normalMap"] = this.normalMap;
+
+    // An opaque, vertex-displaced surface must not enter the WebGPU depth pre-pass: that pass
+    // draws it with the flat shared DepthMaterial (no wave displacement), so the displaced
+    // troughs of the main pass (depth compare less-equal) fail the depth test and the clear
+    // colour shows through as horizontal stripes (see RenderManifest.skipDepthPrePass).
+    if (this._renderManifest.state) {
+      this._renderManifest.state.skipDepthPrePass = !this.transparent && effectiveWaveAmplitude > 0;
+    }
 
     return this._renderManifest;
   }

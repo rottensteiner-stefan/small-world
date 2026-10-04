@@ -52,6 +52,13 @@ void main() {
     float edgeSoftness = max(u_texRepeat.y, 0.001);
     float foamDistance = max(u_pad3, 0.001);
 
+    // styleId map: 0 toon, 1 soft, 2 sparkle, 3 extension (Noir/Oil), 4 dredge, 5 bold
+    float styleId = u_styleB.w;
+    bool painterly = (styleId > 0.5 && styleId < 2.5) || styleId > 3.5;
+    bool isSparkle = abs(styleId - 2.0) < 0.5;
+    bool isExtension = abs(styleId - 3.0) < 0.5;
+    bool isDredge = abs(styleId - 4.0) < 0.5;
+
     // 1. Depth buffer reading & exact linear depth delta
     vec2 screenUv = gl_FragCoord.xy / vec2(textureSize(u_opaqueDepthMap, 0));
     float bgDepth = texture(u_opaqueDepthMap, screenUv).r;
@@ -73,7 +80,7 @@ void main() {
     float distortedBgDepth = texture(u_opaqueDepthMap, distortedUv).r;
     float ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
     float linDistortedBgDepth = (2.0 * near * far) / (far + near - ndcDistortedBg * (far - near));
-    vec2 refractionUv = (linDistortedBgDepth > linFragDepth) ? distortedUv : screenUv;
+    vec2 refractionUv = (linDistortedBgDepth > linFragDepth && abs(linDistortedBgDepth - linBgDepth) < 0.25) ? distortedUv : screenUv; // depth-discontinuity guard: no smear across pool walls
 
     vec3 opaqueUnderwaterColor = sRGBToLinear(texture(u_opaqueMap, refractionUv).rgb);
 
@@ -93,12 +100,20 @@ void main() {
     vec3 illuminatedUnderwater = opaqueUnderwaterColor;
 
     if (u_styleB.w > 0.5) {
-        // Anime / Ghibli F1-SmoothF1 cellular caustics network
+        // Anime / Ghibli F1-SmoothF1 cellular caustics network with bold pure white core + soft cyan halo
         vec2 warpedCaustics = waterDomainWarp(uvCaustics * (u_useReflectionMap * 0.9), u_time * causticsSpeed);
-        float lineSignal = waterCausticLine(warpedCaustics, 0.15);
-        float causticLine = aaStepMask(0.45, lineSignal, 0.08);
-        finalCaustics = vec3(causticLine) * causticsFade * causticsColor * u_specColor.a;
-        illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3(0.85, 0.92, 0.98), vec3(1.0), 1.0 - causticLine * 0.4) + finalCaustics;
+        float lineSignal = waterCausticLine(warpedCaustics, 0.18);
+        float causticHalo = smoothstep(0.30, 0.55, lineSignal);
+        float causticCore = aaStepMask(0.62, lineSignal, 0.06);
+
+        vec3 cyanHalo = isExtension ? vec3(0.7) : vec3(0.0, 0.88, 0.95);
+        vec3 pureWhite = vec3(1.0, 1.0, 1.0);
+        vec3 causticRgb = cyanHalo * (causticHalo * 0.55) + pureWhite * (causticCore * 1.0);
+
+        // Compressed gain: a strong causticStrength brightens the net without clipping to flat cyan
+        float causticGain = u_specColor.a / (1.0 + 0.5 * u_specColor.a);
+        finalCaustics = causticRgb * causticsFade * causticGain;
+        illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3(0.82, 0.92, 0.98), vec3(1.0), 1.0 - causticCore * 0.45) + finalCaustics;
     } else {
         // Legacy Dual-Chromatic Panning Voronoi noise
         vec2 causticsUv1 = uvCaustics * (u_useReflectionMap * 0.85) + vec2(u_time * causticsSpeed, u_time * causticsSpeed * 0.5);
@@ -130,7 +145,19 @@ void main() {
 
     // 5. Stylized Edge color transition
     float edgeBlend = 1.0 - clamp(depthDiff / edgeSoftness, 0.0, 1.0);
-    vec3 surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * 0.6);
+    float edgeAmount = 0.6;
+    if (painterly) {
+        // Painterly styles: weaker, noise-broken edge tint instead of a solid bright border
+        edgeAmount = 0.28 * (0.5 + 0.8 * waterCellNoise(v_worldPos.xz * 1.7 + vec2(u_time * 0.05, 0.0)));
+    }
+    vec3 surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * edgeAmount);
+
+    // 5b. Dredge murk: depth fog (styleId 1.5 only)
+    if (isDredge) {
+        vec3 fogColor = mix(shallowColor, deepColor, 0.6) * 0.9;
+        float fogAmount = (1.0 - exp(-depthDiff * 0.9)) * 0.8;
+        surfaceColor = mix(surfaceColor, fogColor, fogAmount);
+    }
 
     // 6. Fresnel & Specular + Star Glints
     vec3 camDir = normalize(u_viewPos - v_worldPos);
@@ -142,20 +169,40 @@ void main() {
     vec3 lightDir = normalize(u_dirLightDir);
     vec3 halfVector = normalize(lightDir + camDir);
     float nDotH = clamp(dot(v_normal, halfVector), 0.0, 1.0);
-    float specular = aaStepMask(0.99, nDotH, 0.008) * u_color.a; // Toon-specular, a = specularStrength
+    // Toon-specular, a = specularStrength. Narrow cone: wave slopes are smooth over metres, a wide cone covers ~20 percent of the pool
+    float specular = aaStepMask(0.9993, nDotH, 0.0005) * u_color.a;
     surfaceColor += u_dirLightColor * specular;
 
     if (u_styleB.z > 0.0) {
-        float stepFps = (u_styleB.w > 1.5) ? 8.0 : 12.0;
-        float glint = waterGlintStar(v_worldPos.xz * 3.5, u_time * stepFps, nDotH) * u_styleB.z;
+        float stepFps = isSparkle ? 8.0 : 12.0;
+        float glint = waterGlintStar(v_worldPos.xz * 2.6, u_time * stepFps, nDotH) * u_styleB.z;
         surfaceColor += vec3(1.0, 0.92, 0.7) * glint * u_color.a;
     }
 
     // Stroke / Ripple lines
     if (u_styleA.z > 0.0) {
-        float ripplePattern = sin((v_worldPos.x + v_worldPos.z) * u_styleA.w + u_time * 1.5);
-        float rippleLine = aaStepMask(0.75, ripplePattern, 0.05) * u_styleA.z * (1.0 - smoothstep(0.0, 5.0, depthDiff));
+        float rippleLine;
+        if (painterly) {
+            // Painterly strokes: lineWidth = stroke thickness 0..1, phase warped by noise, broken up by a patch mask
+            vec2 rp = v_worldPos.xz;
+            float rippleWarp = sin(rp.x * 0.7 + u_time * 0.25) * 1.6 + cos(rp.y * 0.9 - u_time * 0.2) * 1.3 + (waterCellNoise(rp * 0.6) - 0.5) * 3.0;
+            float rippleAngle = 0.6;
+            float ripplePhase = sin(dot(rp, vec2(cos(rippleAngle), sin(rippleAngle))) * 7.0 + rippleWarp * 1.3 + u_time * 0.8);
+            float strokeThreshold = cos(clamp(u_styleA.w, 0.02, 1.0) * 1.5708);
+            float strokePatch = smoothstep(0.2, 0.55, 1.0 - waterCellNoise(rp * 0.5 + vec2(u_time * 0.05, 0.0)));
+            rippleLine = aaStepMask(strokeThreshold, ripplePhase, 0.06) * strokePatch * u_styleA.z * (1.0 - smoothstep(0.0, 5.0, depthDiff));
+        } else {
+            float ripplePattern = sin((v_worldPos.x + v_worldPos.z) * u_styleA.w + u_time * 1.5);
+            rippleLine = aaStepMask(0.75, ripplePattern, 0.05) * u_styleA.z * (1.0 - smoothstep(0.0, 5.0, depthDiff));
+        }
         surfaceColor += edgeColor * rippleLine * 0.5;
+    }
+
+    if (isSparkle) {
+        // Soft shoulder so saturated cyan keeps a gradient instead of clipping flat
+        float sparkleLuma = dot(surfaceColor, vec3(0.299, 0.587, 0.114));
+        surfaceColor = mix(vec3(sparkleLuma), surfaceColor, 0.92);
+        surfaceColor = surfaceColor * 1.1 / (1.0 + 0.3 * surfaceColor);
     }
 
     // 7. Advanced Procedural Foam (Intersection Foam + Crest Foam)
@@ -172,9 +219,19 @@ void main() {
     float noise2 = 1.0 - waterCellNoise(uvFoam2);
     float shoreFoamDepthMod = 1.0 - smoothstep(0.0, foamDistance, depthDiff);
     float shoreFoamMask = (noise1 * noise2) * shoreFoamDepthMod;
+    if (painterly) {
+        // Foam band hugging the shore instead of isolated bubbles; noise only roughens its inner edge
+        shoreFoamMask = pow(shoreFoamDepthMod, 5.0) * mix(0.3, 1.7, clamp(noise1 * noise2 * 3.0, 0.0, 1.0));
+    }
     float finalShoreFoam = aaStepMask(foamCutoff, shoreFoamMask, foamSoftness);
+    if (painterly) {
+        // Gentle rim: broken into tufts by noise and only partly opaque
+        finalShoreFoam *= 0.4 * smoothstep(0.25, 0.65, noise1 + 0.35 * noise2);
+    }
 
-    vec3 finalColor = mix(surfaceColor, foamColor, finalShoreFoam);
+    // Dredge: murky foam that picks up the water colour instead of stark white
+    vec3 shoreFoamColor = isDredge ? mix(foamColor, surfaceColor, 0.6) : foamColor;
+    vec3 finalColor = mix(surfaceColor, shoreFoamColor, finalShoreFoam);
 
     [WATER_EXT_SURFACE]
 

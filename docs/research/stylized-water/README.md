@@ -2,6 +2,8 @@
 
 Ablage der Analysen und Aufgaben zweier `/collaborate`-Sessions (Blackboard, 4 Agenten + Moderator). Historischer Stand, kein lebender Standard; die Entscheidungen werden mit ADR 0025 (Entwurf unten) verbindlich.
 
+> **Update 2026-10-04:** Die hier geplante Phase B ist inzwischen umgesetzt (v0.96.0, vom Moderator in einer eigenen Session: Architektur A = 2-Familien-System `OpenWaterMaterial` + universeller stilisierter Kern, Paket `@small-world/liquid-extras`). Die Abschnitte zu Phase B und zu offenen Fragen unten beschreiben den Planungsstand vom 2026-10-03 und sind **historisch**. Eine harte Qualitätsanalyse des umgesetzten Showcase 10 (10 Pools, Noten 1 bis 5, Vergleichsbilder, Vorhersagen) und die anschließende Fix-Runde liegen lokal unter `.agents/collaborate/scratches/water/` (git-ignoriert; Einstieg `showcase10-quality.md`, `showcase10-fixes-requirements.md`). Ergebnis der Analyse: Klarwasser 1/5, Stylized 2 bis 3/5, Noir und Öl je 2/5, Lava und Slime je 3/5, Galerie 2,5/5. Gemeinsame Ursache des hellen Flecks war der enge Toon-Specular-Kegel (`nDotH > 0.99`), Ursache der WebGPU-Lava-Streifen die fehlende Wellenverschiebung im Depth-Pre-Pass.
+
 ## Inhalt dieses Ordners
 
 | Datei | Inhalt |
@@ -44,7 +46,7 @@ Vier Pools in Showcase 10 (Klarwasser, Stylized, Slime, Lava) überarbeitet, ohn
 ### Konsens: Proposal P1 (5/5 AGREE) und Zusatzbedingungen
 Kriterien: **Engine** = prozedural, asset-frei, Parität in GLSL300/GLSL100/WGSL, im Budget, und (braucht Engine-Interna oder gemeinsame Mathematik oder Stufe der Leiter); **Extension** = additiv über Hooks und (Nischen-Art-Direction, Assets/Lizenzen, Kosten über Engine-Budget, schnellere Iteration); im Zweifel zuerst Extension. Verbindliche Zusätze: eine feste 8-Lane-Tabelle mit `styleId` (`styleId == 0` = alter Toon-Pfad), Nullwerte für neue Slots, Struct-Größentest ≤ 256 Byte plus Nicht-Wasser-WebGPU-Szene (V1b), Toon nach **jedem** Shader-Schritt neu aufnehmen (V1c), Hook-Prüfung beim Zusammenbau (kein `return o;`, keine Bracket-Token, eindeutige Typ-Strings), V0-Baseline aller drei Backends bei identischer Canvas-Größe **vor** jeder Shader-Änderung. Rückzugsbedingungen der Stimmen sind Checkpunkte (u. a.: alte Kaustik ist schon ein Netz; Struct-Änderung verändert Pixel anderer Materialien; kombinierter GLSL100-Shader kompiliert/linkt nicht oder Toon-Frametime steigt; H1-Stills zeigen weiteren Ad-hoc-Term für `soft`).
 
-## Aufgaben: Phase B (Stand: **nicht freigegeben**, wartet auf Moderator)
+## Aufgaben: Phase B (Planungsstand 2026-10-03, historisch; umgesetzt in v0.96.0)
 
 Jede Aufgabe hat eigene Dateien; Reihenfolge B0 → B1 → (B2 ‖ B3 ‖ B4 ‖ B5) → B6 → (B7 ‖ B8).
 
@@ -61,5 +63,5 @@ Jede Aufgabe hat eigene Dateien; Reihenfolge B0 → B1 → (B2 ‖ B3 ‖ B4 ‖
 | B8 | Alice | ADR 0025, Guides, `REFERENCES.md`, `CONTEXT.md`, Changelog, Release |
 
 ## Offene Fragen und Verifikationsstand
-- **Nichts davon ist in der Engine kompiliert oder gerendert worden.** Alle Budgets und die „passt in 256 Byte"-Aussage stammen aus Quelltext-Lektüre, die Looks aus CPU-Nachbildungen und Palettenseiten.
+- **Stand 2026-10-03 (historisch): Nichts davon war in der Engine kompiliert oder gerendert.** Alle Budgets und die „passt in 256 Byte"-Aussage stammen aus Quelltext-Lektüre, die Looks aus CPU-Nachbildungen und Palettenseiten.
 - Offen: Freigabe Phase B; GLSL100-Präzision (`highp`/`mediump`) — Erin (F29) und Bob widersprechen sich, V0/Kompilierung klärt es; ob die Dredge-Stimmung ein Preset reicht (H1); Aufräumen der lokalen Download-Dateien (Video, `.blend`, `venv`).

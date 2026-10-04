@@ -22,16 +22,16 @@ describe("StylizedWaterMaterial Anime Style Ladder & Preset Vectors", () => {
   it("configures soft (Ghibli) preset correctly", () => {
     const mat = new StylizedWaterMaterial({ style: "soft" });
     expect(mat.styleId).toBe(1.0);
-    expect(mat.rampSoftness).toBe(0.85);
-    expect(mat.washAmount).toBe(0.4);
-    expect(mat.foamSoftness).toBe(0.12);
-    expect(mat.skyTint).toBe(0.6);
-    expect(mat.glitterStrength).toBe(0.35);
+    expect(mat.rampSoftness).toBe(0.9);
+    expect(mat.washAmount).toBe(0.5);
+    expect(mat.foamSoftness).toBe(0.16);
+    expect(mat.skyTint).toBe(0.55);
+    expect(mat.glitterStrength).toBe(0);
 
     const manifest = mat.getRenderManifest();
     const styleA = manifest.properties["u_styleA"] as number[];
     const styleB = manifest.properties["u_styleB"] as number[];
-    expect(styleA[0]).toBeCloseTo(0.85);
+    expect(styleA[0]).toBeCloseTo(0.9);
     expect(styleB[3]).toBe(1.0);
   });
 
@@ -66,5 +66,13 @@ describe("StylizedWaterMaterial Anime Style Ladder & Preset Vectors", () => {
     expect(sources.glsl300?.fs).not.toContain("[WATER_EXT_SURFACE]");
     expect(sources.wgsl).not.toContain("[WGSL_WATER_EXT_DECL]");
     expect(sources.wgsl).not.toContain("[WGSL_WATER_EXT_SURFACE]");
+  });
+
+  it("maps the presets to explicit integer style ids", () => {
+    const ids: Record<string, number> = { toon: 0, soft: 1, sparkle: 2, dredge: 4, bold: 5 };
+    for (const [style, id] of Object.entries(ids)) {
+      const mat = new StylizedWaterMaterial({ style: style as "toon" });
+      expect(mat.styleId).toBe(id);
+    }
   });
 });

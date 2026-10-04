@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.97.0] - 2026-10-04
+
+### "The river is everywhere at the same time, at the source and at the mouth, at the waterfall, at the ferry, at the current, in the ocean and in the mountains." - Hermann Hesse
+
+- **Features:**
+  - *Multi-Octave Gerstner Wave Cascade & Deep-Water Dispersion*: Upgraded `StylizedWaterMaterial` and `OpenWaterMaterial` vertex shaders across WebGL1, WebGL2, and WebGPU to a 6-wave harmonic spectrum with exact physical dispersion ($\omega_i = \sqrt{g k_i}$), golden ratio angular spread, and bimodal $60^\circ$ cross-swell.
+  - *Analytical Jacobian Crest Whitecaps*: Integrated $O(1)$ Jacobian determinant calculation ($J = t_x b_z - t_z^2$) derived directly from accumulated Gerstner tangent/bitangent vectors to drive dynamic whitecaps without mesh self-intersections.
+  - *Advanced Fluid Rheology & Looks*: Upgraded `LavaMaterial` and `SlimeMaterial` with non-Newtonian flow behaviors, Voronoi crust fracturing, and chromatic Beer-Lambert depth absorption.
+- **Architecture & Bugfixes:**
+  - *Zero-Allocation Render Hot Paths*: Preserved strict zero-allocation in CPU render loops and maintained standard UBO layouts across all three backend rendering pipelines.
+  - *Blackboard & Collaborate Finalization*: Resolved and closed collaborate sessions `liquid-improve`, `showcase-10-ghibli`, `improve`, `liquid-architecture`, and `review`.
+- **Housekeeping & Docs:**
+  - *Hydrodynamic Analysis Documentation*: Fully documented fluid mechanics, dispersion laws, and literature references in `.agents/collaborate/liquid-improve.md`.
+  - All 218 test suites (1291 unit tests) passing green with 0 lint errors.
+
 ## [0.96.0] - 2026-10-04
 
 ### "Art does not reproduce the visible; rather, it makes visible." - Paul Klee

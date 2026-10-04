@@ -65,7 +65,10 @@ export interface StylizedWaterMaterialOptions {
   washAmount?: number;
   /** Ripple stroke lines density. */
   lineDensity?: number;
-  /** Ripple stroke lines width/frequency. */
+  /**
+   * Ripple stroke thickness (0..1) for the painterly styles (styleId 1, 2, 4, 5); noise-warped, broken strokes.
+   * Toon (0) and extensions (3) keep the old meaning: sin frequency in rad/unit.
+   */
   lineWidth?: number;
   /** Shoreline foam edge softness (0.02 = crisp cel edge, 0.15 = soft painterly foam). */
   foamSoftness?: number;
@@ -73,7 +76,7 @@ export interface StylizedWaterMaterialOptions {
   skyTint?: number;
   /** Sun-glint star sparkle strength (0 = off, 1.0 = full sparkling stars). */
   glitterStrength?: number;
-  /** Style ID (0 = legacy toon, 1 = soft anime/Ghibli, 2 = sparkle anime, 3 = custom extension). */
+  /** Style ID (0 = legacy toon, 1 = soft anime/Ghibli, 2 = sparkle anime, 3 = custom extension, 4 = dredge murk, 5 = bold). */
   styleId?: number;
   /** Style-ladder preset; explicit options override its values. Default "toon". */
   style?: StylizedWaterStyle;
@@ -123,51 +126,54 @@ const STYLE_PRESETS: Record<Exclude<StylizedWaterStyle, "custom">, StylizedWater
   },
   bold: {
     causticStrength: 1.2,
-    specularStrength: 1.2,
-    rampSoftness: 0.3,
+    specularStrength: 0.4,
+    rampSoftness: 0.0,
     washAmount: 0.0,
     lineDensity: 0.0,
     lineWidth: 0.0,
     foamSoftness: 0.06,
     skyTint: 0.45,
     glitterStrength: 0.0,
-    styleId: 0.0,
+    styleId: 5.0, // bold: anime cellular caustic net, crisp ink look, no painterly lines
   },
   soft: {
-    causticStrength: 0.25,
-    specularStrength: 0.2,
-    rampSoftness: 0.85,
-    washAmount: 0.4,
-    lineDensity: 0.4,
-    lineWidth: 1.5,
-    foamSoftness: 0.12,
-    skyTint: 0.6,
-    glitterStrength: 0.35,
+    causticStrength: 0.22,
+    specularStrength: 0.1,
+    rampSoftness: 0.9,
+    washAmount: 0.5,
+    lineDensity: 0.22,
+    lineWidth: 0.18,
+    foamSoftness: 0.16,
+    skyTint: 0.55,
+    glitterStrength: 0.0,
     styleId: 1.0,
   },
   sparkle: {
     causticStrength: 0.85,
-    specularStrength: 0.6,
+    specularStrength: 0.5,
     rampSoftness: 0.6,
     washAmount: 0.25,
     lineDensity: 0.7,
-    lineWidth: 1.2,
+    lineWidth: 0.2,
     foamSoftness: 0.08,
     skyTint: 0.5,
     glitterStrength: 1.0,
     styleId: 2.0,
   },
+  // styleId lane (u_styleB.w) is a plain integer selector, no spare uniform lane exists:
+  // 0 toon (legacy), 1 soft, 2 sparkle, 3 extensions (Noir/Oil), 4 dredge (soft family + depth fog), 5 bold.
+  // Any value above 0 switches to the anime caustic network and soft foam; the shaders derive their flags from it.
   dredge: {
     causticStrength: 0.3,
-    specularStrength: 0.4,
+    specularStrength: 0.15,
     rampSoftness: 0.5,
     washAmount: 0.6,
-    lineDensity: 0.4,
-    lineWidth: 1.8,
+    lineDensity: 0.3,
+    lineWidth: 0.25,
     foamSoftness: 0.1,
-    skyTint: 0.3,
-    glitterStrength: 0.2,
-    styleId: 1.0,
+    skyTint: 0.15,
+    glitterStrength: 0.0,
+    styleId: 4.0, // dredge: soft family plus depth fog (murk)
   },
 };
 

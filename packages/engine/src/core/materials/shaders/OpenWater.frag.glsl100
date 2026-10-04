@@ -3,6 +3,7 @@ precision highp float;
 varying vec3 v_worldPos;
 varying vec3 v_normal;
 varying vec2 v_uv;
+varying vec4 v_clipPos;
 varying float v_crest;
 
 [LIGHT_DEFS]
@@ -43,7 +44,9 @@ void main() {
     float edgeSoftness = max(u_texRepeat.y, 0.001);
     float foamDistance = max(u_pad3, 0.001);
 
-    vec2 refractionUv = clamp(v_uv + v_normal.xz * u_shininess, vec2(0.001), vec2(0.999));
+    // Real screen UV from the clip-space varying (the mesh UV sampled the capture as a sub-rectangle)
+    vec2 screenUv = v_clipPos.xy / v_clipPos.w * 0.5 + 0.5;
+    vec2 refractionUv = clamp(screenUv + v_normal.xz * u_shininess, vec2(0.001), vec2(0.999));
     vec3 refractedColor = texture2D(u_opaqueMap, refractionUv).rgb;
     refractedColor = pow(refractedColor, vec3(2.2));
 
@@ -55,7 +58,7 @@ void main() {
     // Scaled by 10 to land in roughly the same absorption range as those depth-based versions.
     vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
     vec3 transmittance = exp(-fresnel * 10.0 * waterAbsorption);
-    vec3 tintedSeabed = refractedColor * waterColor;
+    vec3 tintedSeabed = refractedColor * mix(vec3(1.0), waterColor, 0.6);
     vec3 inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
     vec3 underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
     vec3 baseColor = mix(deepWaterColor, underwaterLighting, transmittance);
@@ -66,10 +69,11 @@ void main() {
     vec3 lightDir = normalize(u_dirLightDir);
     vec3 halfVector = normalize(lightDir + viewDir);
     float nDotH = clamp(dot(v_normal, halfVector), 0.0, 1.0);
-    float specular = pow(nDotH, 100.0) * 1.5;
+    float specular = smoothstep(0.9993, 0.9999, nDotH) * 0.25;
     baseColor += u_dirLightColor * specular;
 
-    float edgeBlend = pow(1.0 - fresnel, 1.0 / max(edgeSoftness, 0.001));
+    // Fresnel proxy only at grazing angles: top-down fresnel is ~0 and the old pow term tinted the whole pool.
+    float edgeBlend = smoothstep(0.04, 0.04 + 0.5 * edgeSoftness, fresnel) * 0.5;
     vec3 edgeColLinear = pow(edgeColor, vec3(2.2));
     vec3 finalColor = mix(baseColor, edgeColLinear, edgeBlend * 0.3);
 
@@ -84,7 +88,7 @@ void main() {
     // No depth buffer on WebGL1: the old pow(1 - fresnel, ..) proxy is ~1 everywhere when seen from
     // above, which turned the whole pool into a white blob field. Fresnel is the only "far shore"
     // proxy we have, so shore foam now fades in only at grazing angles (same fix as StylizedWater).
-    float foamBlend = smoothstep(0.02, 0.02 + 0.3 * foamDistance, fresnel);
+    float foamBlend = smoothstep(0.04, 0.04 + 0.5 * foamDistance, fresnel) * 0.6;
     vec2 foamUv = v_worldPos.xz * foamNoiseScale + u_time * foamNoiseSpeed;
     float foamCell = waterCellNoise(foamUv);
     float foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
@@ -102,19 +106,19 @@ void main() {
     // threshold, which only picked up high-frequency curvature noise). smoothstep (no step)
     // keeps the edge soft/alias-free; the existing Worley pattern breaks it into patches, and
     // it's gated so it never fully covers the crest line.
-    float crestFoam = smoothstep(0.4, 0.7, v_crest) * foamPattern * 0.9;
+    float crestFoam = smoothstep(0.65, 0.95, v_crest) * foamPattern * 0.5;
     foamMask = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMask);
 
     // Procedural caustics: a lighter second Worley-noise layer.
-    vec2 causticsUv1 = (v_worldPos.xz + v_normal.xz * 0.25) * foamNoiseScale * 0.75 + vec2(u_time * foamNoiseSpeed * 0.35, u_time * foamNoiseSpeed * 0.2);
-    vec2 causticsUv2 = (v_worldPos.xz - v_normal.xz * 0.2) * foamNoiseScale * 1.05 - vec2(u_time * foamNoiseSpeed * 0.25, u_time * foamNoiseSpeed * 0.4);
+    vec2 causticsUv1 = (v_worldPos.xz + v_normal.xz * 0.25) * 1.4 + vec2(u_time * foamNoiseSpeed * 0.35, u_time * foamNoiseSpeed * 0.2);
+    vec2 causticsUv2 = (v_worldPos.xz - v_normal.xz * 0.2) * 1.96 - vec2(u_time * foamNoiseSpeed * 0.25, u_time * foamNoiseSpeed * 0.4);
     float caustics1 = 1.0 - waterCellNoise(causticsUv1);
     float caustics2 = 1.0 - waterCellNoise(causticsUv2);
     float causticsValue = pow(caustics1 * caustics2, 1.6) * 3.2;
     float causticsFade = 1.0 - smoothstep(0.0, 1.0, fresnel);
-    finalColor += vec3(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.4;
+    finalColor += vec3(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.1;
 
     finalColor = pow(finalColor, vec3(1.0 / 2.2));
 

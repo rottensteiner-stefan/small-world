@@ -19,6 +19,13 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     let edgeSoftness = max(obj.texRepeat.y, 0.001);
     let foamDistance = max(obj.pad3, 0.001);
 
+    // styleId map: 0 toon, 1 soft, 2 sparkle, 3 extension (Noir/Oil), 4 dredge, 5 bold
+    let styleId = obj.styleB.w;
+    let painterly = (styleId > 0.5 && styleId < 2.5) || styleId > 3.5;
+    let isSparkle = abs(styleId - 2.0) < 0.5;
+    let isExtension = abs(styleId - 3.0) < 0.5;
+    let isDredge = abs(styleId - 4.0) < 0.5;
+
     let fragPosCoords = vec2<i32>(i.pos.xy);
     let bgDepth = textureLoad(u_opaqueDepthMap, fragPosCoords, 0);
 
@@ -42,7 +49,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     let distortedBgDepth = textureLoad(u_opaqueDepthMap, distortedCoords, 0);
     let ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
     let linDistortedBgDepth = (2.0 * near * far) / (far + near - ndcDistortedBg * (far - near));
-    let refractionUv = select(screenUv, distortedUv, linDistortedBgDepth > linFragDepth);
+    let refractionUv = select(screenUv, distortedUv, linDistortedBgDepth > linFragDepth && abs(linDistortedBgDepth - linBgDepth) < 0.25); // depth-discontinuity guard: no smear across pool walls
 
     let opaqueUnderwaterColor = sRGBToLinear(textureSample(u_opaqueMap, s, refractionUv).rgb);
 
@@ -62,10 +69,18 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
 
     if (obj.styleB.w > 0.5) {
         let warpedCaustics = waterDomainWarp(uvCaustics * (obj.useReflectionMap * 0.9), obj.time * causticsSpeed);
-        let lineSignal = waterCausticLine(warpedCaustics, 0.15);
-        let causticLine = aaStepMask(0.45, lineSignal, 0.08);
-        finalCaustics = vec3<f32>(causticLine) * causticsFade * causticsColor * obj.specColor.a;
-        illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3<f32>(0.85, 0.92, 0.98), vec3<f32>(1.0), 1.0 - causticLine * 0.4) + finalCaustics;
+        let lineSignal = waterCausticLine(warpedCaustics, 0.18);
+        let causticHalo = smoothstep(0.30, 0.55, lineSignal);
+        let causticCore = aaStepMask(0.62, lineSignal, 0.06);
+
+        let cyanHalo = select(vec3<f32>(0.0, 0.88, 0.95), vec3<f32>(0.7), isExtension);
+        let pureWhite = vec3<f32>(1.0, 1.0, 1.0);
+        let causticRgb = cyanHalo * (causticHalo * 0.55) + pureWhite * (causticCore * 1.0);
+
+        // Compressed gain: a strong causticStrength brightens the net without clipping to flat cyan
+        let causticGain = obj.specColor.a / (1.0 + 0.5 * obj.specColor.a);
+        finalCaustics = causticRgb * causticsFade * causticGain;
+        illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3<f32>(0.82, 0.92, 0.98), vec3<f32>(1.0), 1.0 - causticCore * 0.45) + finalCaustics;
     } else {
         let causticsUv1 = uvCaustics * (obj.useReflectionMap * 0.85) + vec2<f32>(obj.time * causticsSpeed, obj.time * causticsSpeed * 0.5);
         let causticsUv2 = uvCaustics * (obj.useReflectionMap * 1.1) - vec2<f32>(obj.time * causticsSpeed * 0.6, obj.time * causticsSpeed * 0.8);
@@ -94,7 +109,19 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     }
 
     let edgeBlend = 1.0 - saturate(depthDiff / edgeSoftness);
-    var surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * 0.6);
+    var edgeAmount = 0.6;
+    if (painterly) {
+        // Painterly styles: weaker, noise-broken edge tint instead of a solid bright border
+        edgeAmount = 0.28 * (0.5 + 0.8 * waterCellNoise(i.wp.xz * 1.7 + vec2<f32>(obj.time * 0.05, 0.0)));
+    }
+    var surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * edgeAmount);
+
+    // Dredge murk: depth fog (styleId 1.5 only)
+    if (isDredge) {
+        let fogColor = mix(shallowColor, deepColor, 0.6) * 0.9;
+        let fogAmount = (1.0 - exp(-depthDiff * 0.9)) * 0.8;
+        surfaceColor = mix(surfaceColor, fogColor, fogAmount);
+    }
 
     let camDir = normalize(global.viewPos.xyz - i.wp);
     let fresnel = pow(1.0 - saturate(dot(i.n, camDir)), 4.0);
@@ -105,19 +132,39 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     let lightDir = normalize(global.dirLightDir.xyz);
     let halfVector = normalize(lightDir + camDir);
     let nDotH = saturate(dot(i.n, halfVector));
-    let specular = aaStepMask(0.99, nDotH, 0.008) * obj.color.a;
+    // Narrow cone: wave slopes are smooth over metres, a wide cone covers ~20 percent of the pool
+    let specular = aaStepMask(0.9993, nDotH, 0.0005) * obj.color.a;
     surfaceColor += global.dirLightColor.rgb * specular;
 
     if (obj.styleB.z > 0.0) {
-        let stepFps = select(12.0, 8.0, obj.styleB.w > 1.5);
-        let glint = waterGlintStar(i.wp.xz * 3.5, obj.time * stepFps, nDotH) * obj.styleB.z;
+        let stepFps = select(12.0, 8.0, isSparkle);
+        let glint = waterGlintStar(i.wp.xz * 2.6, obj.time * stepFps, nDotH) * obj.styleB.z;
         surfaceColor += vec3<f32>(1.0, 0.92, 0.7) * glint * obj.color.a;
     }
 
     if (obj.styleA.z > 0.0) {
-        let ripplePattern = sin((i.wp.x + i.wp.z) * obj.styleA.w + obj.time * 1.5);
-        let rippleLine = aaStepMask(0.75, ripplePattern, 0.05) * obj.styleA.z * (1.0 - smoothstep(0.0, 5.0, depthDiff));
+        var rippleLine: f32;
+        if (painterly) {
+            // Painterly strokes: lineWidth = stroke thickness 0..1, phase warped by noise, broken up by a patch mask
+            let rp = i.wp.xz;
+            let rippleWarp = sin(rp.x * 0.7 + obj.time * 0.25) * 1.6 + cos(rp.y * 0.9 - obj.time * 0.2) * 1.3 + (waterCellNoise(rp * 0.6) - 0.5) * 3.0;
+            let rippleAngle = 0.6;
+            let ripplePhase = sin(dot(rp, vec2<f32>(cos(rippleAngle), sin(rippleAngle))) * 7.0 + rippleWarp * 1.3 + obj.time * 0.8);
+            let strokeThreshold = cos(clamp(obj.styleA.w, 0.02, 1.0) * 1.5708);
+            let strokePatch = smoothstep(0.2, 0.55, 1.0 - waterCellNoise(rp * 0.5 + vec2<f32>(obj.time * 0.05, 0.0)));
+            rippleLine = aaStepMask(strokeThreshold, ripplePhase, 0.06) * strokePatch * obj.styleA.z * (1.0 - smoothstep(0.0, 5.0, depthDiff));
+        } else {
+            let ripplePattern = sin((i.wp.x + i.wp.z) * obj.styleA.w + obj.time * 1.5);
+            rippleLine = aaStepMask(0.75, ripplePattern, 0.05) * obj.styleA.z * (1.0 - smoothstep(0.0, 5.0, depthDiff));
+        }
         surfaceColor += edgeColor * rippleLine * 0.5;
+    }
+
+    if (isSparkle) {
+        // Soft shoulder so saturated cyan keeps a gradient instead of clipping flat
+        let sparkleLuma = dot(surfaceColor, vec3<f32>(0.299, 0.587, 0.114));
+        surfaceColor = mix(vec3<f32>(sparkleLuma), surfaceColor, 0.92);
+        surfaceColor = surfaceColor * 1.1 / (1.0 + 0.3 * surfaceColor);
     }
 
     let foamColor = sRGBToLinear(vec3<f32>(obj.isTerrain, obj.metallic, obj.roughness));
@@ -132,10 +179,20 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     let noise1 = 1.0 - waterCellNoise(uvFoam1);
     let noise2 = 1.0 - waterCellNoise(uvFoam2);
     let shoreFoamDepthMod = 1.0 - smoothstep(0.0, foamDistance, depthDiff);
-    let shoreFoamMask = (noise1 * noise2) * shoreFoamDepthMod;
-    let finalShoreFoam = aaStepMask(foamCutoff, shoreFoamMask, foamSoftness);
+    var shoreFoamMask = (noise1 * noise2) * shoreFoamDepthMod;
+    if (painterly) {
+        // Foam band hugging the shore instead of isolated bubbles; noise only roughens its inner edge
+        shoreFoamMask = pow(shoreFoamDepthMod, 5.0) * mix(0.3, 1.7, clamp(noise1 * noise2 * 3.0, 0.0, 1.0));
+    }
+    var finalShoreFoam = aaStepMask(foamCutoff, shoreFoamMask, foamSoftness);
+    if (painterly) {
+        // Gentle rim: broken into tufts by noise and only partly opaque
+        finalShoreFoam = finalShoreFoam * 0.4 * smoothstep(0.25, 0.65, noise1 + 0.35 * noise2);
+    }
 
-    var finalColor = mix(surfaceColor, foamColor, finalShoreFoam);
+    // Dredge: murky foam that picks up the water colour instead of stark white
+    let shoreFoamColor = select(foamColor, mix(foamColor, surfaceColor, 0.6), isDredge);
+    var finalColor = mix(surfaceColor, shoreFoamColor, finalShoreFoam);
 
     [WGSL_WATER_EXT_SURFACE]
 

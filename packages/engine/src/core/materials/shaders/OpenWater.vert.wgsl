@@ -26,14 +26,16 @@ fn vs(
     var b = vec3f(0.0, 0.0, 1.0);
     var displacement = vec3f(0.0, 0.0, 0.0);
 
-    let w4 = vec4f(w1.y, -w1.x, w1.z * 0.4, w1.w * 0.45); // Detail wave 1 (perpendicular, shorter)
-    let w5 = vec4f(-w2.y, w2.x, w2.z * 0.3, w2.w * 0.35); // Detail wave 2
+    let w4 = vec4f(w1.y, -w1.x, w1.z * 0.45, w1.w * 0.42); // Detail wave 1 (perpendicular, shorter)
+    let w5 = vec4f(-w2.y, w2.x, w2.z * 0.35, w2.w * 0.35); // Detail wave 2
+    let w6 = vec4f(w1.x * 0.5 - w1.y * 0.866, w1.x * 0.866 + w1.y * 0.5, w1.z * 0.25, w1.w * 0.22); // Bimodal 60-deg cross-swell
 
     displacement += gerstnerWave(w1, wp, speed, time, &t, &b);
     displacement += gerstnerWave(w2, wp, speed, time, &t, &b);
     displacement += gerstnerWave(w3, wp, speed, time, &t, &b);
     displacement += gerstnerWave(w4, wp, speed, time, &t, &b);
     displacement += gerstnerWave(w5, wp, speed, time, &t, &b);
+    displacement += gerstnerWave(w6, wp, speed, time, &t, &b);
 
     wp += displacement;
     o.wp = wp;
@@ -45,7 +47,7 @@ fn vs(
     // preset-independent. Carried in Out.original_uv.x (unused by this shader). NOT in Out.texIndex: GPUPipelineCache
     // injects a texIndex assignment at the end of every vertex function and would overwrite it.
     // (Never write the literal end-of-function statement in a comment here: it is regex-matched.)
-    let steepSum = w1.z + w2.z + w3.z + w4.z + w5.z;
+    let steepSum = w1.z + w2.z + w3.z + w4.z + w5.z + w6.z;
     let jacobian = t.x * b.z - t.z * b.x;
     o.original_uv = vec2f(clamp((1.0 - jacobian) / max(steepSum, 0.001), -1.0, 1.0), 0.0);
     

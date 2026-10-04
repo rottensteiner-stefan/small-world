@@ -91,8 +91,9 @@ void main() {
     vec4 w1 = u_extraParams;
     vec4 w2 = u_liquidParams;
     vec4 w3 = u_thresholds;
-    vec4 w4 = vec4(w1.y, -w1.x, w1.z * 0.4, w1.w * 0.45); // Detail wave 1 (perpendicular, shorter)
-    vec4 w5 = vec4(-w2.y, w2.x, w2.z * 0.3, w2.w * 0.35); // Detail wave 2
+    vec4 w4 = vec4(w1.y, -w1.x, w1.z * 0.45, w1.w * 0.42); // Detail wave 1 (perpendicular, shorter)
+    vec4 w5 = vec4(-w2.y, w2.x, w2.z * 0.35, w2.w * 0.35); // Detail wave 2
+    vec4 w6 = vec4(w1.x * 0.5 - w1.y * 0.866, w1.x * 0.866 + w1.y * 0.5, w1.z * 0.25, w1.w * 0.22); // Bimodal 60-deg cross-swell
 
     vec3 t = vec3(1.0, 0.0, 0.0);
     vec3 b = vec3(0.0, 0.0, 1.0);
@@ -103,6 +104,7 @@ void main() {
     displacement += gerstnerWave(w3, wp, speed, time, t, b);
     displacement += gerstnerWave(w4, wp, speed, time, t, b);
     displacement += gerstnerWave(w5, wp, speed, time, t, b);
+    displacement += gerstnerWave(w6, wp, speed, time, t, b);
 
     wp += displacement;
     v_worldPos = wp;
@@ -112,7 +114,7 @@ void main() {
     // (t/b are dP/dx, dP/dz). J < 1 means the surface is compressed (wave crest pinching),
     // J <= 0 means folding. Normalised by the summed steepness so the 0..1 range is
     // preset-independent; carried as a varying (no new uniforms -- ADR 0013 layout is full).
-    float steepSum = w1.z + w2.z + w3.z + w4.z + w5.z;
+    float steepSum = w1.z + w2.z + w3.z + w4.z + w5.z + w6.z;
     float jacobian = t.x * b.z - t.z * b.x;
     v_crest = clamp((1.0 - jacobian) / max(steepSum, 0.001), -1.0, 1.0);
 
