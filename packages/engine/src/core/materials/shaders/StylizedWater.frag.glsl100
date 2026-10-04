@@ -82,7 +82,9 @@ void main() {
     float washNoise = (waterCellNoise(v_worldPos.xz * 0.5 + vec2(u_time * 0.08, u_time * 0.04)) - 0.5) * u_styleA.y;
     vec3 transmittance = exp(-fresnel * 10.0 * waterAbsorption);
     vec3 tintedSeabed = illuminatedUnderwater * shallowColor;
-    vec3 baseColor = mix(deepColor, tintedSeabed, transmittance);
+    vec3 inScatterCol = mix(shallowColor, deepColor, 0.35) * 0.15;
+    vec3 underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
+    vec3 baseColor = mix(deepColor, underwaterLighting, transmittance);
 
     if (u_styleA.x > 0.05) {
         float rampT = clamp(fresnel * 3.0 + washNoise, 0.0, 1.0);

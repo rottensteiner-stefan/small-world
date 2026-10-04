@@ -56,7 +56,9 @@ void main() {
     vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
     vec3 transmittance = exp(-fresnel * 10.0 * waterAbsorption);
     vec3 tintedSeabed = refractedColor * waterColor;
-    vec3 baseColor = mix(deepWaterColor, tintedSeabed, transmittance);
+    vec3 inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
+    vec3 underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
+    vec3 baseColor = mix(deepWaterColor, underwaterLighting, transmittance);
 
     vec3 skyColor = vec3(0.6, 0.8, 1.0);
     baseColor = mix(baseColor, skyColor, fresnel * 0.5);
@@ -105,16 +107,14 @@ void main() {
 
     finalColor = mix(finalColor, foamColor, foamMask);
 
-    // Procedural caustics: a lighter second Worley-noise layer. No real depth on WebGL1 (see
-    // comment above), so `fresnel` again doubles as the "how deep does this look" proxy used to
-    // fade caustics out with apparent depth.
-    vec2 causticsUv1 = v_worldPos.xz * foamNoiseScale * 0.5 + u_time * foamNoiseSpeed * 0.3;
-    vec2 causticsUv2 = v_worldPos.xz * foamNoiseScale * 0.35 - u_time * foamNoiseSpeed * 0.25;
+    // Procedural caustics: a lighter second Worley-noise layer.
+    vec2 causticsUv1 = (v_worldPos.xz + v_normal.xz * 0.25) * foamNoiseScale * 0.75 + vec2(u_time * foamNoiseSpeed * 0.35, u_time * foamNoiseSpeed * 0.2);
+    vec2 causticsUv2 = (v_worldPos.xz - v_normal.xz * 0.2) * foamNoiseScale * 1.05 - vec2(u_time * foamNoiseSpeed * 0.25, u_time * foamNoiseSpeed * 0.4);
     float caustics1 = 1.0 - waterCellNoise(causticsUv1);
     float caustics2 = 1.0 - waterCellNoise(causticsUv2);
-    float causticsValue = caustics1 * caustics2;
+    float causticsValue = pow(caustics1 * caustics2, 1.6) * 3.2;
     float causticsFade = 1.0 - smoothstep(0.0, 1.0, fresnel);
-    finalColor += causticsValue * causticsFade * 0.3;
+    finalColor += vec3(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.4;
 
     finalColor = pow(finalColor, vec3(1.0 / 2.2));
 

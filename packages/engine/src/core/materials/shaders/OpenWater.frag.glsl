@@ -57,10 +57,9 @@ void main() {
     float depthDiff = max(linBgDepth - linFragDepth, 0.0);
 
     // Screen-space refraction: distort the sample point by the wave normal's horizontal
-    // components. If the distorted sample lands in front of the water surface (e.g. a
-    // foreground object peeking through a steep wave slope near the shore), fall back to the
-    // undistorted UV -- otherwise that pixel would show something that's not actually underwater.
-    vec2 distortedUv = screenUv + v_normal.xz * u_shininess;
+    // components, damped in shallow depth to prevent edge tear.
+    float refrDamping = clamp(depthDiff / 0.3, 0.0, 1.0);
+    vec2 distortedUv = screenUv + (v_normal.xz * u_shininess * refrDamping);
     float distortedBgDepth = texture(u_opaqueDepthMap, distortedUv).r;
     float ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
     float linDistortedBgDepth = (2.0 * near * far) / (far + near - ndcDistortedBg * (far - near));
@@ -69,13 +68,14 @@ void main() {
     vec3 refractedColor = sRGBToLinear(texture(u_opaqueMap, refractionUv).rgb);
 
     // Beer-Lambert absorption: light traveling through `depthDiff` units of water loses each
-    // color channel at its own exponential rate (waterAbsorption), rather than fading linearly
-    // to a single flat color -- this is what gives real water its per-channel, non-linear color
-    // falloff (e.g. red disappearing long before blue in deep water).
+    // color channel at its own exponential rate (waterAbsorption). Ambient in-scattering prevents
+    // unnatural blackness in deep or shaded regions.
     vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
     vec3 transmittance = exp(-depthDiff * waterAbsorption);
     vec3 tintedSeabed = refractedColor * waterColor;
-    vec3 baseColor = mix(deepWaterColor, tintedSeabed, transmittance);
+    vec3 inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
+    vec3 underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
+    vec3 baseColor = mix(deepWaterColor, underwaterLighting, transmittance);
 
     float edgeBlend = 1.0 - clamp(depthDiff / edgeSoftness, 0.0, 1.0);
 
@@ -94,9 +94,7 @@ void main() {
     vec3 finalColor = mix(baseColor, edgeColLinear, edgeBlend);
 
     // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to its own
-    // shoreline/intersection band (foamDistance) -- independent of the edge-color blend's
-    // distance above, so the foam can be wider or narrower than the color transition (matches
-    // the Unity "Simple Water" reference's separate Depth/Foam Amount distances).
+    // shoreline/intersection band (foamDistance).
     vec3 foamColor = sRGBToLinear(vec3(u_isTerrain, u_metallic, u_roughness));
     float foamCutoff = u_useEnvMap;
     float foamNoiseScale = u_useReflectionMap;
@@ -106,36 +104,28 @@ void main() {
     float foamCell = waterCellNoise(foamUv);
     float foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
 
-    // Splash pulse: modulates intersection foam intensity over time instead of a static band, so
-    // it reads as water repeatedly slapping the object rather than a painted-on ring. Traveling
-    // in wave1's rough direction (baked in as a constant here, not a uniform -- re-deriving the
-    // exact vertex-shader phase would mean duplicating its wave uniforms into the fragment stage).
+    // Splash pulse: modulates intersection foam intensity over time instead of a static band
     float splashPhase = dot(normalize(vec2(1.0, 0.4)), v_worldPos.xz) * 0.8 - u_time * 1.6;
     float splashPulse = 0.6 + 0.4 * sin(splashPhase);
     float foamMask = foamPattern * foamBlend * splashPulse;
 
-    // Wave-crest foam: v_crest is the vertex-shader Jacobian (wave-folding) metric, 0 on flat
-    // water -> 1 where the Gerstner crests pinch together (replaces the parked normal.y
-    // threshold, which only picked up high-frequency curvature noise). smoothstep (no step)
-    // keeps the edge soft/alias-free; the existing Worley pattern breaks it into patches, and
-    // it's gated so it never fully covers the crest line.
+    // Wave-crest foam from vertex Jacobian metric
     float crestFoam = smoothstep(0.4, 0.7, v_crest) * foamPattern * 0.9;
     foamMask = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMask);
 
-    // Procedural caustics: a lighter second Worley-noise layer, projected using the water
-    // surface's own world position rather than the true refracted seabed position (which would
-    // need reconstructing world position from depth via INV_VIEW_MATRIX/INV_PROJECTION_MATRIX --
-    // new renderer-wide uniforms this material alone doesn't warrant). Close enough at the
-    // shallow depths caustics are visible at anyway; fades out entirely in deep water.
-    vec2 causticsUv1 = v_worldPos.xz * foamNoiseScale * 0.5 + u_time * foamNoiseSpeed * 0.3;
-    vec2 causticsUv2 = v_worldPos.xz * foamNoiseScale * 0.35 - u_time * foamNoiseSpeed * 0.25;
+    // Ground-projected caustics: anchors caustic cells to the underwater pool tiles / seabed
+    vec3 rayDir = normalize(v_worldPos - u_viewPos);
+    vec3 groundWorldPos = v_worldPos + rayDir * depthDiff;
+    vec2 causticsUv1 = (groundWorldPos.xz + v_normal.xz * 0.25) * foamNoiseScale * 0.75 + vec2(u_time * foamNoiseSpeed * 0.35, u_time * foamNoiseSpeed * 0.2);
+    vec2 causticsUv2 = (groundWorldPos.xz - v_normal.xz * 0.2) * foamNoiseScale * 1.05 - vec2(u_time * foamNoiseSpeed * 0.25, u_time * foamNoiseSpeed * 0.4);
     float caustics1 = 1.0 - waterCellNoise(causticsUv1);
     float caustics2 = 1.0 - waterCellNoise(causticsUv2);
-    float causticsValue = caustics1 * caustics2;
-    float causticsFade = 1.0 - smoothstep(0.0, 10.0, depthDiff);
-    finalColor += causticsValue * causticsFade * 0.3;
+    float causticsValue = pow(caustics1 * caustics2, 1.6) * 3.2;
+    float causticsFade = exp(-depthDiff * 0.35) * smoothstep(0.02, 0.2, depthDiff);
+    vec3 causticsLight = vec3(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.4;
+    finalColor += causticsLight;
 
     finalColor *= u_exposure;
     finalColor = linearToSRGB(finalColor);

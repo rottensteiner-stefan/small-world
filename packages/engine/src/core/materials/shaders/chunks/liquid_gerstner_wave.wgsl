@@ -1,13 +1,15 @@
-// One Gerstner wave term. Accumulates its tangent/bitangent contribution into `*t`/`*b` and
-// returns its displacement. Shared by every wave-displaced liquid surface (OpenWater,
-// StylizedWater) -- mirrors liquid_gerstner_wave.glsl exactly.
+// One Gerstner wave term with deep-water dispersion (w = sqrt(g * k)).
+// Accumulates its tangent/bitangent contribution into `*t`/`*b` and returns its displacement.
+// Shared by every wave-displaced liquid surface (OpenWater, StylizedWater) -- mirrors
+// liquid_gerstner_wave.glsl exactly.
 fn gerstnerWave(wave: vec4<f32>, wp: vec3<f32>, speed: f32, time: f32, t: ptr<function, vec3<f32>>, b: ptr<function, vec3<f32>>) -> vec3<f32> {
     let dir = normalize(wave.xy);
     let steepness = wave.z;
-    let wavelength = wave.w;
-    let k = 6.28318530718 / max(wavelength, 0.001);
+    let wavelength = max(wave.w, 0.001);
+    let k = 6.28318530718 / wavelength;
+    let w = sqrt(9.81 * k);
     let a = steepness / max(k, 0.001);
-    let f = k * (dot(dir, wp.xz) - speed * time);
+    let f = k * dot(dir, wp.xz) - w * speed * time;
     let cosf = cos(f);
     let sinf = sin(f);
 

@@ -865,6 +865,17 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** ["Creating a Stylized 3D Water Shader"](https://gameidea.org/2026/02/01/creating-a-stylized-3d-water-shader/) — gameidea, published 2026-02-01
 - **Usage:** Reference for the stylized (Sea of Thieves-inspired) open-water look: simple sine/noise-based Gerstner-like vertex wave displacement combined with fragment-side depth fade (mixing toward an underwater fog color with scene depth) and screen-space foam near intersections with other geometry, instead of a physically simulated ocean (no FFT).
 
+### Physical Gerstner Waves & Deep-Water Dispersion Relation
+
+- **File:** `packages/engine/src/core/materials/shaders/chunks/liquid_gerstner_wave.glsl`, `packages/engine/src/core/materials/shaders/chunks/liquid_gerstner_wave.wgsl`
+- **Authors/Gurus:** František Josef Gerstner (1804), Jerry Tessendorf (2001, *Simulating Ocean Water*)
+- **Formulas:**
+  - Deep-Water Dispersion Relation: $\omega(k) = \sqrt{g \cdot k} = \sqrt{\frac{2\pi g}{\lambda}}$ (Phase speed $c = \sqrt{\frac{g}{k}}$)
+  - Surface Position: $\mathbf{P}(x_0, z_0, t) = \left(x_0 - \sum \frac{Q_i}{k_i} d_{x,i} \sin\phi_i, \ \sum A_i \cos\phi_i, \ z_0 - \sum \frac{Q_i}{k_i} d_{z,i} \sin\phi_i\right)^T$ where $\phi_i = k_i (\mathbf{d}_i \cdot \mathbf{x}_0) - \omega_i t$
+  - Analytical Tangents & Bitangents: $\mathbf{T} = \frac{\partial \mathbf{P}}{\partial x_0}, \ \mathbf{B} = \frac{\partial \mathbf{P}}{\partial z_0}, \ \mathbf{N} = \text{normalize}(\mathbf{B} \times \mathbf{T})$
+  - Horizontal Jacobian Metric: $J = T_x B_z - T_z B_x$ ($J < 1$ represents crest pinching / compression; $J \le 0$ indicates breaking wave cusps)
+- **Usage:** Provides realistic, non-linear ocean wave propagation where long swell waves outrun short chop, sharp trochoidal wave crests form naturally without self-intersection, and exact analytical normal vectors eliminate finite-difference artifacts across WebGL and WebGPU.
+
 ### Smooth-Min Voronoi Caustics Network ($F_1 - \text{Smooth}F_1$)
 
 - **File:** `packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/liquid_caustics.glsl`, `packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/liquid_caustics.wgsl`

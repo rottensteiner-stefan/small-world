@@ -6,6 +6,7 @@
   "dependencies": {
     "@small-world/engine": "*",
     "@small-world/geometry-extras": "*",
+    "@small-world/liquid-extras": "*",
     "@small-world/tools": "*"
   }
 }

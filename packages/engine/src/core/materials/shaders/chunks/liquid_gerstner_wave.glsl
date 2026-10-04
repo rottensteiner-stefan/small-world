@@ -1,14 +1,15 @@
-// One Gerstner wave term. Accumulates its tangent/bitangent contribution into `t`/`b` and
-// returns its displacement. Shared by every wave-displaced liquid surface (OpenWater,
-// StylizedWater) -- mirrors liquid_gerstner_wave.wgsl exactly. Plain GLSL ES 1.00-compatible
-// syntax so the same source serves both the WebGL2 (glsl300) and WebGL1 (glsl100) backends.
+// One Gerstner wave term with deep-water dispersion (w = sqrt(g * k)).
+// Accumulates its tangent/bitangent contribution into `t`/`b` and returns its displacement.
+// Shared by every wave-displaced liquid surface (OpenWater, StylizedWater) -- mirrors
+// liquid_gerstner_wave.wgsl exactly. Plain GLSL ES 1.00-compatible syntax.
 vec3 gerstnerWave(vec4 wave, vec3 wp, float speed, float time, inout vec3 t, inout vec3 b) {
     vec2 dir = normalize(wave.xy);
     float steepness = wave.z;
-    float wavelength = wave.w;
-    float k = 6.28318530718 / max(wavelength, 0.001);
+    float wavelength = max(wave.w, 0.001);
+    float k = 6.28318530718 / wavelength;
+    float w = sqrt(9.81 * k);
     float a = steepness / max(k, 0.001);
-    float f = k * (dot(dir, wp.xz) - speed * time);
+    float f = k * dot(dir, wp.xz) - w * speed * time;
     float cosf = cos(f);
     float sinf = sin(f);
 

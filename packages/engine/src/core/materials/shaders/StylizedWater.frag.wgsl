@@ -36,7 +36,8 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     // Screen-space Refraction (Masked strictly to depthDiff > 0.0)
     let screenRes = vec2<f32>(textureDimensions(u_opaqueDepthMap));
     let screenUv = i.pos.xy / screenRes;
-    let distortedUv = screenUv + i.n.xz * obj.shininess;
+    let refrDamping = clamp(depthDiff / 0.3, 0.0, 1.0);
+    let distortedUv = screenUv + (i.n.xz * obj.shininess * refrDamping);
     let distortedCoords = vec2<i32>(distortedUv * screenRes);
     let distortedBgDepth = textureLoad(u_opaqueDepthMap, distortedCoords, 0);
     let ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
@@ -80,7 +81,9 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     let effDepth = max(depthDiff + washNoise * 1.5, 0.0);
     let transmittance = exp(-effDepth * waterAbsorption);
     let tintedSeabed = illuminatedUnderwater * shallowColor;
-    var baseWaterColor = mix(deepColor, tintedSeabed, transmittance);
+    let inScatterCol = mix(shallowColor, deepColor, 0.35) * 0.15;
+    let underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
+    var baseWaterColor = mix(deepColor, underwaterLighting, transmittance);
 
     if (obj.styleA.x > 0.05) {
         let rampT = clamp(effDepth / 4.0, 0.0, 1.0);

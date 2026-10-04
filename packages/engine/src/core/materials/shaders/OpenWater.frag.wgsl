@@ -30,7 +30,8 @@
     // texel -- otherwise that pixel would show something that's not actually underwater.
     let screenRes = vec2<f32>(textureDimensions(u_opaqueDepthMap));
     let screenUv = i.pos.xy / screenRes;
-    let distortedUv = screenUv + i.n.xz * obj.shininess;
+    let refrDamping = clamp(depthDiff / 0.3, 0.0, 1.0);
+    let distortedUv = screenUv + (i.n.xz * obj.shininess * refrDamping);
     let distortedCoords = vec2<i32>(distortedUv * screenRes);
     let distortedBgDepth = textureLoad(u_opaqueDepthMap, distortedCoords, 0);
     let ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
@@ -40,15 +41,14 @@
     let refractedColor = sRGBToLinear(textureSample(u_opaqueMap, s, refractionUv).rgb);
 
     // Beer-Lambert absorption: light traveling through `depthDiff` units of water loses each
-    // color channel at its own exponential rate (waterAbsorption), rather than fading linearly
-    // to a single flat color -- this is what gives real water its per-channel, non-linear color
-    // falloff (e.g. red disappearing long before blue in deep water). obj.isSkinned/boneOffset/
-    // pad1 are skeletal-animation-only fields, meaningless here -- repurposed to carry the 3
-    // absorption channels (see OpenWaterMaterial.ts).
+    // color channel at its own exponential rate (waterAbsorption). Ambient in-scattering prevents
+    // unnatural blackness in deep or shaded regions.
     let waterAbsorption = vec3<f32>(obj.isSkinned, obj.boneOffset, obj.pad1);
     let transmittance = exp(-depthDiff * waterAbsorption);
     let tintedSeabed = refractedColor * waterColor;
-    var baseColor = mix(deepWaterColor, tintedSeabed, transmittance);
+    let inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
+    let underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
+    var baseColor = mix(deepWaterColor, underwaterLighting, transmittance);
 
     let edgeBlend = 1.0 - saturate(depthDiff / edgeSoftness);
 
@@ -67,11 +67,7 @@
     var finalColor = mix(baseColor, edgeColLinear, edgeBlend);
 
     // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to its own
-    // shoreline/intersection band (foamDistance) -- independent of the edge-color blend's
-    // distance above, so the foam can be wider or narrower than the color transition (matches
-    // the Unity "Simple Water" reference's separate Depth/Foam Amount distances). obj.isTerrain/
-    // metallic/roughness/useEnvMap/useReflectionMap/pad2 are repurposed for foamColor.rgb +
-    // foamCutoff/foamNoiseScale/foamNoiseSpeed (see OpenWaterMaterial.ts).
+    // shoreline/intersection band (foamDistance).
     let foamColor = sRGBToLinear(vec3<f32>(obj.isTerrain, obj.metallic, obj.roughness));
     let foamCutoff = obj.useEnvMap;
     let foamNoiseScale = obj.useReflectionMap;
@@ -81,36 +77,28 @@
     let foamCell = waterCellNoise(foamUv);
     let foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
 
-    // Splash pulse: modulates intersection foam intensity over time instead of a static band, so
-    // it reads as water repeatedly slapping the object rather than a painted-on ring. Traveling
-    // in wave1's rough direction (baked in as a constant here, not a uniform -- re-deriving the
-    // exact vertex-shader phase would mean duplicating its wave uniforms into the fragment stage).
+    // Splash pulse: modulates intersection foam intensity over time instead of a static band
     let splashPhase = dot(normalize(vec2<f32>(1.0, 0.4)), i.wp.xz) * 0.8 - obj.time * 1.6;
     let splashPulse = 0.6 + 0.4 * sin(splashPhase);
     let foamMask = foamPattern * foamBlend * splashPulse;
 
-    // Wave-crest foam: i.original_uv.x carries the vertex-shader Jacobian (wave-folding) metric, 0 on
-    // flat water -> 1 where the Gerstner crests pinch together (replaces the parked normal.y
-    // threshold, which only picked up high-frequency curvature noise). smoothstep (no step)
-    // keeps the edge soft/alias-free; the existing Worley pattern breaks it into patches, and
-    // it's gated so it never fully covers the crest line.
+    // Wave-crest foam from vertex Jacobian metric
     let crestFoam = smoothstep(0.4, 0.7, i.original_uv.x) * foamPattern * 0.9;
     let foamMaskFinal = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMaskFinal);
 
-    // Procedural caustics: a lighter second Worley-noise layer, projected using the water
-    // surface's own world position rather than the true refracted seabed position (which would
-    // need reconstructing world position from depth via new invView/invProjection uniforms --
-    // renderer-wide infrastructure this material alone doesn't warrant). Close enough at the
-    // shallow depths caustics are visible at anyway; fades out entirely in deep water.
-    let causticsUv1 = i.wp.xz * foamNoiseScale * 0.5 + obj.time * foamNoiseSpeed * 0.3;
-    let causticsUv2 = i.wp.xz * foamNoiseScale * 0.35 - obj.time * foamNoiseSpeed * 0.25;
+    // Ground-projected caustics: anchors caustic cells to the underwater pool tiles / seabed
+    let rayDir = normalize(i.wp - global.viewPos.xyz);
+    let groundWorldPos = i.wp + rayDir * depthDiff;
+    let causticsUv1 = (groundWorldPos.xz + i.n.xz * 0.25) * foamNoiseScale * 0.75 + vec2<f32>(obj.time * foamNoiseSpeed * 0.35, obj.time * foamNoiseSpeed * 0.2);
+    let causticsUv2 = (groundWorldPos.xz - i.n.xz * 0.2) * foamNoiseScale * 1.05 - vec2<f32>(obj.time * foamNoiseSpeed * 0.25, obj.time * foamNoiseSpeed * 0.4);
     let caustics1 = 1.0 - waterCellNoise(causticsUv1);
     let caustics2 = 1.0 - waterCellNoise(causticsUv2);
-    let causticsValue = caustics1 * caustics2;
-    let causticsFade = 1.0 - smoothstep(0.0, 10.0, depthDiff);
-    finalColor += causticsValue * causticsFade * 0.3;
+    let causticsValue = pow(caustics1 * caustics2, 1.6) * 3.2;
+    let causticsFade = exp(-depthDiff * 0.35) * smoothstep(0.02, 0.2, depthDiff);
+    let causticsLight = vec3<f32>(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.4;
+    finalColor += causticsLight;
 
     finalColor *= global.exposure;
     finalColor = linearToSRGB(finalColor);

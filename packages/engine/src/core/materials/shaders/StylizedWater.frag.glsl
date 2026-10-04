@@ -68,7 +68,8 @@ void main() {
     float depthDiff = max(linBgDepth - linFragDepth, 0.0);
 
     // 2. Screen-space Refraction (Masked strictly to depthDiff > 0.0)
-    vec2 distortedUv = screenUv + v_normal.xz * u_shininess;
+    float refrDamping = clamp(depthDiff / 0.3, 0.0, 1.0);
+    vec2 distortedUv = screenUv + (v_normal.xz * u_shininess * refrDamping);
     float distortedBgDepth = texture(u_opaqueDepthMap, distortedUv).r;
     float ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
     float linDistortedBgDepth = (2.0 * near * far) / (far + near - ndcDistortedBg * (far - near));
@@ -115,7 +116,9 @@ void main() {
     float effDepth = max(depthDiff + washNoise * 1.5, 0.0);
     vec3 transmittance = exp(-effDepth * waterAbsorption);
     vec3 tintedSeabed = illuminatedUnderwater * shallowColor;
-    vec3 baseWaterColor = mix(deepColor, tintedSeabed, transmittance);
+    vec3 inScatterCol = mix(shallowColor, deepColor, 0.35) * 0.15;
+    vec3 underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
+    vec3 baseWaterColor = mix(deepColor, underwaterLighting, transmittance);
 
     if (u_styleA.x > 0.05) {
         float rampT = clamp(effDepth / 4.0, 0.0, 1.0);
