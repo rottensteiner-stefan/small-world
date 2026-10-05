@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.98.0] - 2026-10-05
+
+### "A good tool improves the way you work." - Jeff Duntemann
+
+- **Features:**
+  - *Universal ingest for all tools*: [`UniversalIngestRouter`](packages/tools/src/common/io/UniversalIngestRouter.ts) routes dropped files, folders, ZIP/GZ archives, URLs, clipboard images and text into typed results (`image`, `svg`, `pbr-set`, `gltf`, `json`, `text`, `archive`, `files`); PBR map sets are matched by file name ([`PbrSlotMatcher`](packages/tools/src/common/io/PbrSlotMatcher.ts)), archives are unpacked ([`ArchiveDecompressor`](packages/tools/src/common/io/ArchiveDecompressor.ts)). Shared helpers in [`ingestResultHelpers.ts`](packages/tools/src/common/io/ingestResultHelpers.ts) (`primaryPbrTexture`, `firstImageItem`, `blobToDataUrl`).
+  - *First-class SVG input*: SVG files, SVG data URLs and pasted SVG code arrive as `kind: "svg"` with `svgText`. [`normalizeSvg()`](packages/tools/src/common/io/svgNormalize.ts) gives every SVG an explicit pixel size and `viewBox` (long edge 1024 px by default, `svgLongEdge` option, 0 keeps the intrinsic size; px/pt/mm/cm/in understood, `%` ignored, missing `xmlns` added) instead of the browser's random 300x150 / 150x150 default. Pixler sizes vectors to 64 px.
+  - *One compact upload zone, one template*: [`UniversalIngestDropzone`](packages/tools/src/common/io/ui/UniversalIngestDropzone.ts) is a single row (icon, short title, four SVG icon buttons for file, folder, URL and clipboard); formats, URL and Cmd+V live in the tooltip instead of permanent text. pbr-gen, ibl-gen, kit-inspector, xtractor, Pixler, Material Studio and the Maker background import all use it with the same short titles ("Textur ablegen", "HDR ablegen", "Kit ablegen", ...); the old per-page upload widgets and the dead `.dropzone` CSS are removed.
+  - *Undo/redo and command history*: [`CanvasUndoHistory`](packages/tools/src/common/image/CanvasUndoHistory.ts) and [`CommandHistory`](packages/tools/src/common/io/ui/CommandHistory.ts) (arrow/page navigation, optional persistence); `bindToolShortcuts` gained Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z / Y.
+- **Architecture & Bugfixes:**
+  - *Ingest API migration finished*: Xtractor, Pixler, Material Studio and the Maker import still expected a previous result shape (`kind: "zip"`, `result.items`, `pbrSet.slots`, `IngestFileItem.dataUrl`); they now use the router's `archive` / `files` results and the shared helpers, so ZIP and PBR-set drops no longer fall through at runtime. `FileAssetSource` receives `{ path, file }` entries, strict-mode guards were added across the router, decompressor and matcher, and `IngestTargetKind` now includes `"files"`. The repo typechecks cleanly again (it had 49 errors in `packages/tools`).
+  - *IBL generator*: `loadEquirectangularImage()` accepts a `Blob`, `File` or `ImageBitmap`.
+- **Housekeeping & Docs:**
+  - 13 new unit tests for `normalizeSvg`; all 226 test suites (1357 unit tests) pass, 0 lint errors, 0 type errors.
+  - Known and unchanged: Pixler and the Maker background import were not re-checked visually after the label change; the SVG size for Pixler (64 px) is an assumption.
+
 ## [0.97.1] - 2026-10-05
 
 ### "Still waters run deep." - English Proverb
@@ -780,7 +796,7 @@
 
 ## [0.77.22] - 2026-09-08
 
-### "Simplicity is prerequisite for reliability." - Edsger W. Dijkstra
+### "A good tool improves the way you work." - Jeff Duntemann
 
 - **Housekeeping & Docs:**
   - Fully removed the deprecated `neon-labyrinth` application and showcase from the repository (`src/apps/neon-labyrinth/`, `showcases/neon-labyrinth/`, `tests/apps/neon-labyrinth/`).

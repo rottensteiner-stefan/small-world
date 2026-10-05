@@ -1,6 +1,12 @@
 export type * from "./types.js";
 export * from "./Security.js";
 export * from "./KitManifestValidator.js";
+export * from "./UniversalIngestTypes.js";
+export * from "./PbrSlotMatcher.js";
+export * from "./ArchiveDecompressor.js";
+export * from "./UniversalIngestRouter.js";
+export * from "./svgNormalize.js";
+export * from "./ingestResultHelpers.js";
 export * from "./sources/HttpAssetSource.js";
 export * from "./sources/ZipAssetSource.js";
 export * from "./sinks/ZipAssetSink.js";

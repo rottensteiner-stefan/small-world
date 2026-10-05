@@ -14,23 +14,8 @@ export function buildMaterialStudioUI(container: HTMLElement): void {
       <!-- Sidebar controls -->
       <div class="sidebar">
         <div class="sidebar-scroll">
-          <!-- Dropzone / File Upload -->
-          <div id="dropzone" class="dropzone">
-            <svg
-              class="dropzone-icon"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-            </svg>
-            <div class="dropzone-text">Upload / Drag & Drop Image</div>
-            <div class="dropzone-sub">PNG, JPG, WebP up to 8MB</div>
-            <input type="file" id="file-input" class="hidden" accept="image/*" />
-          </div>
+          <!-- Dropzone / Universal Ingest -->
+          <div id="materialstudio-dropzone-container" style="margin-bottom: 0.75rem;"></div>
 
           <!-- Preset select -->
           <div class="section-title">

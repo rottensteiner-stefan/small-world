@@ -127,9 +127,12 @@ export class IBLBaker {
     );
   }
 
-  public async loadEquirectangularImage(file: File): Promise<WebGLTexture> {
+  public async loadEquirectangularImage(
+    fileOrBlob: Blob | File | ImageBitmap,
+  ): Promise<WebGLTexture> {
     const gl = this._gl;
-    const bitmap = await createImageBitmap(file);
+    const bitmap =
+      fileOrBlob instanceof ImageBitmap ? fileOrBlob : await createImageBitmap(fileOrBlob);
     const tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);

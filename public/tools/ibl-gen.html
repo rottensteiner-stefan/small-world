@@ -86,14 +86,7 @@
       <div class="panel">
         <div class="control-group">
           <label>1. Select HDR/Panorama (Equirectangular)</label>
-          <div id="dropzone" class="dropzone">
-            <svg class="dropzone-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-            </svg>
-            <div class="dropzone-text">Upload / Drag & Drop Image</div>
-            <div class="dropzone-sub">PNG, JPG, WebP up to 8MB</div>
-            <input type="file" id="skyboxInput" class="hidden" accept="image/png, image/jpeg, image/webp" />
-          </div>
+          <div id="dropzone-container"></div>
           <small style="color:#666; margin-top:0.5rem;">Note: Must be a 2:1 aspect ratio image (e.g. 2048x1024).</small>
         </div>
         
@@ -138,6 +131,138 @@
     <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script type="module" src="/packages/engine/src/tools/ibl-gen.ts"></script>
+    <script type="module">
+      import { IBLBaker } from "/packages/engine/src/tools/ibl-gen.ts";
+      import { UniversalIngestDropzone } from "/packages/tools/src/common/io/ui/UniversalIngestDropzone.ts";
+
+      let loadedBlob = null;
+      let baker = null;
+
+      try {
+        baker = new IBLBaker();
+      } catch (e) {
+        console.error(e);
+        alert("Initialization failed: " + e.message);
+      }
+
+      const generateBtn = document.getElementById("generateBtn");
+      const exportBtn = document.getElementById("exportBtn");
+      const progressText = document.getElementById("progressText");
+
+      new UniversalIngestDropzone({
+        container: document.getElementById("dropzone-container"),
+        label: "HDR ablegen",
+        supportedKinds: ["image", "pbr-set", "zip", "files", "svg", "text"],
+        enableWindowDrop: true,
+        enablePaste: true,
+        onIngest: async (result) => {
+          if (result.kind === "image" || result.kind === "svg") {
+            loadedBlob = result.blob;
+            generateBtn.disabled = false;
+          } else if (result.kind === "pbr-set") {
+            const primary =
+              result.pbrSet.albedo ||
+              result.pbrSet.diffuse ||
+              Object.values(result.pbrSet.slots)[0];
+            if (primary) {
+              loadedBlob = primary.blob;
+              generateBtn.disabled = false;
+            }
+          } else if (result.kind === "zip" || result.kind === "files") {
+            const img = result.items.find((it) => it.kind === "image");
+            if (img) {
+              loadedBlob = img.blob;
+              generateBtn.disabled = false;
+            }
+          }
+        },
+        onError: (err) => console.error("IBL Ingest Error:", err),
+      });
+
+      let generatedEnvCube = null;
+      let generatedIrradianceCube = null;
+      let generatedPrefilteredCube = null;
+
+      generateBtn.addEventListener("click", async () => {
+        if (!baker || !loadedBlob) return;
+        generateBtn.disabled = true;
+        exportBtn.disabled = true;
+        progressText.style.display = "block";
+        progressText.innerText = "Generating BRDF LUT...";
+
+        try {
+          await baker.generateBRDF("brdfCanvas");
+          progressText.innerText = "BRDF LUT Generated! Loading Panorama...";
+
+          const equiTex = await baker.loadEquirectangularImage(loadedBlob);
+          progressText.innerText = "Generating Environment CubeMap...";
+          generatedEnvCube = await baker.generateEnvironmentCubemap(equiTex, "envCanvas");
+
+          progressText.innerText = "Base CubeMap Generated! Generating Irradiance Convolution...";
+          generatedIrradianceCube = await baker.generateIrradianceCubemap(
+            generatedEnvCube,
+            "irradianceCanvas",
+          );
+
+          progressText.innerText = "Irradiance Map Generated! Generating GGX Prefilter...";
+          generatedPrefilteredCube = await baker.generatePrefilteredCubemap(
+            generatedEnvCube,
+            "prefilterCanvas",
+          );
+
+          progressText.innerText = "All Maps Generated! Ready for Export.";
+          exportBtn.disabled = false;
+        } catch (e) {
+          console.error(e);
+          progressText.innerText = "Error occurred: " + e.message;
+        }
+      });
+
+      exportBtn.addEventListener("click", async () => {
+        if (!baker || !generatedEnvCube || !generatedIrradianceCube || !generatedPrefilteredCube)
+          return;
+        exportBtn.disabled = true;
+        const originalText = exportBtn.innerText;
+        exportBtn.innerText = "Zipping...";
+
+        try {
+          // @ts-expect-error - JSZip is loaded globally
+          const zip = new JSZip();
+          zip.file("env.webp", await baker.exportCubemapToCross(generatedEnvCube, 512, 0));
+          zip.file("irradiance.webp", await baker.exportCubemapToCross(generatedIrradianceCube, 32, 0));
+
+          const prefilterFolder = zip.folder("prefilter");
+          let prefilterSize = 128;
+          for (let i = 0; i < 5; i++) {
+            prefilterFolder.file(
+              `mip${i}.png`,
+              await baker.exportCubemapToCross(generatedPrefilteredCube, prefilterSize, i),
+            );
+            prefilterSize = Math.floor(prefilterSize / 2);
+          }
+
+          zip.file("brdf_lut.webp", await baker.exportBRDFToBlob("brdfCanvas"));
+
+          const content = await zip.generateAsync({ type: "blob" });
+          const url = URL.createObjectURL(content);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "ibl_maps.zip";
+          a.click();
+          URL.revokeObjectURL(url);
+
+          exportBtn.innerText = "Export Complete!";
+          setTimeout(() => {
+            exportBtn.innerText = originalText;
+            exportBtn.disabled = false;
+          }, 2000);
+        } catch (e) {
+          console.error(e);
+          alert("Error during export.");
+          exportBtn.innerText = originalText;
+          exportBtn.disabled = false;
+        }
+      });
+    </script>
   </body>
 </html>

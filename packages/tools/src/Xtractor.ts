@@ -15,7 +15,16 @@ import {
   generateNormalMap,
   parseActionChips,
   CanvasActionChip,
+  CanvasUndoHistory,
 } from "./common/image/index.js";
+import {
+  UniversalIngestRouter,
+  UniversalIngestDropzone,
+  IngestResult,
+  CommandHistory,
+  primaryPbrTexture,
+  firstImageItem,
+} from "./common/io/index.js";
 
 export class Xtractor extends ForgeTool {
   public loadFromBase64?: (base64: string) => void;
@@ -347,16 +356,6 @@ export class Xtractor extends ForgeTool {
     <!-- WORKBENCH -->
     <div class="swf-ix-workbench">
       <div class="swf-ix-toolbar">
-        <label class="tool-btn primary">
-          Upload Image/PDF
-          <input type="file" id="file-input" style="display:none;" accept="image/*,application/pdf" />
-        </label>
-        
-        <div class="tool-tabs swf-ix-toolbar-group">
-          <input type="text" id="url-input" class="tool-input" style="width: 150px;" placeholder="https://..." />
-          <button class="tool-btn" id="btn-load-url" style="padding: 0.25rem 0.5rem; margin-left: 2px;">Load</button>
-        </div>
-        
         <div class="tool-tabs swf-ix-toolbar-group">
           <button class="tool-btn" id="btn-tool-pan" title="Hand Tool">Hand</button>
           <button class="tool-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rect</button>
@@ -371,6 +370,11 @@ export class Xtractor extends ForgeTool {
         </div>
 
         <div class="tool-tabs swf-ix-toolbar-group">
+          <button class="tool-btn" id="btn-undo" title="Rückgängig (Cmd+Z)">↩ Undo</button>
+          <button class="tool-btn" id="btn-redo" title="Wiederholen (Cmd+Shift+Z)">↪ Redo</button>
+        </div>
+
+        <div class="tool-tabs swf-ix-toolbar-group">
           <button class="tool-btn" id="btn-zoom-out">-</button>
           <span style="color: var(--tool-text-muted); padding: 0 5px; font-weight: bold; font-size: 0.9rem; align-self: center;" id="zoom-label">100%</span>
           <button class="tool-btn" id="btn-zoom-in">+</button>
@@ -381,7 +385,8 @@ export class Xtractor extends ForgeTool {
       
       <div class="swf-ix-canvas-container" id="canvas-wrapper">
         <div id="drop-overlay">Drop File Here</div>
-        <div id="canvas-stage">
+        <div id="empty-dropzone-container" style="max-width: 500px; margin: 40px auto 0;"></div>
+        <div id="canvas-stage" style="display: none;">
             <canvas id="image-canvas"></canvas>
             <div id="selection-box"></div>
         </div>
@@ -472,15 +477,14 @@ export class Xtractor extends ForgeTool {
     // Elements
     const canvas = this._container.querySelector<HTMLCanvasElement>("#image-canvas")!;
     const ctx = canvas.getContext("2d")!;
-    const fileInput = this._container.querySelector<HTMLInputElement>("#file-input")!;
     const canvasWrapper = this._container.querySelector<HTMLElement>("#canvas-wrapper")!;
     const canvasStage = this._container.querySelector<HTMLElement>("#canvas-stage")!;
+    const emptyDropzoneContainer = this._container.querySelector<HTMLElement>(
+      "#empty-dropzone-container",
+    );
     const dropOverlay = this._container.querySelector<HTMLElement>("#drop-overlay")!;
     const selectionBox = this._container.querySelector<HTMLElement>("#selection-box")!;
     const selectionProps = this._container.querySelector<HTMLElement>("#selection-props")!;
-
-    const urlInput = this._container.querySelector<HTMLInputElement>("#url-input")!;
-    const btnLoadUrl = this._container.querySelector<HTMLElement>("#btn-load-url")!;
 
     // Prop inputs
     const propX = this._container.querySelector<HTMLInputElement>("#prop-x")!;
@@ -512,6 +516,60 @@ export class Xtractor extends ForgeTool {
 
     let currentTool = "rect"; // 'rect' | 'circle' | 'pan'
 
+    const undoHistory = new CanvasUndoHistory(30);
+
+    const triggerUndo = (): void => {
+      if (!currentImage || !undoHistory.canUndo) {
+        addSimpleMessage("Nichts mehr zum Rückgängigmachen.", "ai");
+        return;
+      }
+      const snap = undoHistory.undo(canvas, ctx);
+      if (snap) {
+        const img = new Image();
+        img.onload = (): void => {
+          currentImage = img;
+          if (currentRect) {
+            if (
+              currentRect.x + currentRect.w > canvas.width ||
+              currentRect.y + currentRect.h > canvas.height
+            ) {
+              clearSelection();
+            } else {
+              captureCrop();
+            }
+          }
+        };
+        img.src = canvas.toDataURL();
+        addSimpleMessage(`↩ **Rückgängig gemacht:** ${snap.label}`, "ai");
+      }
+    };
+
+    const triggerRedo = (): void => {
+      if (!currentImage || !undoHistory.canRedo) {
+        addSimpleMessage("Nichts mehr zum Wiederholen.", "ai");
+        return;
+      }
+      const snap = undoHistory.redo(canvas, ctx);
+      if (snap) {
+        const img = new Image();
+        img.onload = (): void => {
+          currentImage = img;
+          if (currentRect) {
+            if (
+              currentRect.x + currentRect.w > canvas.width ||
+              currentRect.y + currentRect.h > canvas.height
+            ) {
+              clearSelection();
+            } else {
+              captureCrop();
+            }
+          }
+        };
+        img.src = canvas.toDataURL();
+        addSimpleMessage(`↪ **Wiederholt:** ${snap.label}`, "ai");
+      }
+    };
+
     // Tools
     const btnToolRect = this._container.querySelector<HTMLElement>("#btn-tool-rect")!;
     const btnToolCircle = this._container.querySelector<HTMLElement>("#btn-tool-circle")!;
@@ -520,7 +578,12 @@ export class Xtractor extends ForgeTool {
     const btnAutoSprites = this._container.querySelector<HTMLElement>("#btn-auto-sprites")!;
     const btnRemoveBg = this._container.querySelector<HTMLElement>("#btn-remove-bg")!;
     const btnGenNormal = this._container.querySelector<HTMLElement>("#btn-gen-normal")!;
+    const btnUndo = this._container.querySelector<HTMLElement>("#btn-undo");
+    const btnRedo = this._container.querySelector<HTMLElement>("#btn-redo");
     const zoomLabel = this._container.querySelector<HTMLElement>("#zoom-label")!;
+
+    btnUndo?.addEventListener("click", triggerUndo);
+    btnRedo?.addEventListener("click", triggerRedo);
 
     function setActiveTool(tool: string): void {
       currentTool = tool;
@@ -636,13 +699,15 @@ export class Xtractor extends ForgeTool {
         return;
       }
 
+      undoHistory.push(canvas, ctx, "Hintergrund entfernen");
+
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const cleaned = removeBackground(imgData, { tolerance: 28, feather: 2 });
       ctx.putImageData(cleaned, 0, 0);
       if (currentRect) captureCrop();
 
       addSimpleMessage(
-        "🪄 **Hintergrund entfernt!** Hintergrund wurde transparent freigestellt.",
+        "🪄 **Hintergrund entfernt!** Hintergrund wurde transparent freigestellt. (Rückgängig mit <kbd>Cmd+Z</kbd>)",
         "ai",
       );
     });
@@ -732,13 +797,57 @@ export class Xtractor extends ForgeTool {
       { passive: false },
     );
 
-    // 1. File Loading Logic
-    fileInput.addEventListener("change", (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      if (target.files && target.files.length > 0) {
-        loadFile(target.files[0]!);
+    // 1. Universal Ingest Router & Loading Logic
+    const ingestRouter = new UniversalIngestRouter();
+
+    const handleIngestResult = (result: IngestResult): void => {
+      if (result.kind === "image" || result.kind === "svg") {
+        if (this.loadFromBase64) {
+          this.loadFromBase64(result.dataUrl);
+        }
+      } else if (result.kind === "pbr-set") {
+        const main = primaryPbrTexture(result.pbrSet);
+        if (main && this.loadFromBase64) {
+          const reader = new FileReader();
+          reader.onload = (): void => {
+            if (this.loadFromBase64) this.loadFromBase64(reader.result as string);
+          };
+          reader.readAsDataURL(main);
+          addSimpleMessage(`PBR-Set '${result.name}' erkannt & geladen.`, "ai");
+        }
+      } else if (result.kind === "archive" || result.kind === "files") {
+        const firstImg = firstImageItem(result);
+        if (firstImg && this.loadFromBase64) {
+          const reader = new FileReader();
+          reader.onload = (): void => {
+            if (this.loadFromBase64) this.loadFromBase64(reader.result as string);
+          };
+          reader.readAsDataURL(firstImg.blob);
+          addSimpleMessage(
+            `Archiv '${result.name}' entpackt & Bild '${firstImg.name}' geladen.`,
+            "ai",
+          );
+        }
+      } else if (result.kind === "json") {
+        addSimpleMessage(`JSON-Datei '${result.name}' eingelesen.`, "ai");
       }
-    });
+    };
+
+    if (emptyDropzoneContainer) {
+      new UniversalIngestDropzone({
+        container: emptyDropzoneContainer,
+        label: "Bild, PDF oder ZIP ablegen",
+        supportedKinds: ["image", "pbr-set", "zip", "files", "svg", "text"],
+        enableWindowDrop: true,
+        enablePaste: true,
+        onIngest: async (result: IngestResult): Promise<void> => {
+          handleIngestResult(result);
+        },
+        onError: (err: Error): void => {
+          alert(err.message);
+        },
+      });
+    }
 
     // Drag & Drop
     canvasWrapper.addEventListener("dragover", (e) => {
@@ -752,8 +861,11 @@ export class Xtractor extends ForgeTool {
     canvasWrapper.addEventListener("drop", (e) => {
       e.preventDefault();
       dropOverlay.style.display = "none";
-      if (e.dataTransfer!.files && e.dataTransfer!.files[0]) {
-        loadFile(e.dataTransfer!.files[0]);
+      if (e.dataTransfer) {
+        ingestRouter
+          .routeDataTransfer(e.dataTransfer)
+          .then(handleIngestResult)
+          .catch((err: Error) => alert(err.message));
       }
     });
 
@@ -761,94 +873,92 @@ export class Xtractor extends ForgeTool {
       const img = new Image();
       img.onload = (): void => {
         currentImage = img;
+        if (emptyDropzoneContainer) emptyDropzoneContainer.style.display = "none";
+        canvasStage.style.display = "block";
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         clearSelection();
-        addSimpleMessage(`Bild aus Zwischenablage geladen (${img.width}x${img.height}px).`, "ai");
+        addSimpleMessage(`Bild geladen (${img.width}x${img.height}px).`, "ai");
       };
       img.src = base64;
     };
 
-    const loadFile = (file: File): void => {
-      if (file.type === "application/pdf") {
-        alert("PDF Konvertierung bauen wir in Phase 2 ein (via PDF.js). Bitte ein Bild nutzen.");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e): void => {
-        const base64 = e.target!.result as string;
-        // Call the mapped function
-        if (this.loadFromBase64) {
-          this.loadFromBase64(base64);
-        }
-      };
-      reader.readAsDataURL(file);
-    };
-
-    // Paste from Clipboard (Screenshots, Image Files, Data URLs)
+    // Paste from Clipboard (Screenshots, Image Files, Data URLs, Web Links, SVG Code)
     const onPaste = (e: ClipboardEvent): void => {
-      // If the container is not in DOM or not visible, do not intercept
       if (!this._container.isConnected) return;
-
-      const items = e.clipboardData?.items;
-      if (items) {
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          if (item && item.type.indexOf("image") !== -1) {
-            const file = item.getAsFile();
-            if (file) {
-              e.preventDefault();
-              loadFile(file);
-              return;
-            }
-          }
-        }
-      }
-
-      const files = e.clipboardData?.files;
-      if (files && files.length > 0 && files[0]?.type.startsWith("image/")) {
-        e.preventDefault();
-        loadFile(files[0]);
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
         return;
       }
 
-      const text = e.clipboardData?.getData("text");
-      if (text && text.trim().startsWith("data:image/")) {
-        e.preventDefault();
-        if (this.loadFromBase64) {
-          this.loadFromBase64(text.trim());
+      if (e.clipboardData) {
+        if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+          e.preventDefault();
+          ingestRouter
+            .routeFiles(Array.from(e.clipboardData.files))
+            .then(handleIngestResult)
+            .catch((err: Error) => alert(err.message));
+          return;
+        }
+
+        const text = e.clipboardData.getData("text");
+        if (text && text.trim()) {
+          e.preventDefault();
+          ingestRouter
+            .routeText(text.trim(), "clipboard_asset")
+            .then(handleIngestResult)
+            .catch((err: Error) => alert(err.message));
         }
       }
     };
 
     window.addEventListener("paste", onPaste, { signal: this._abortController.signal });
 
-    // URL Loading Logic
-    btnLoadUrl.addEventListener("click", () => {
-      const url = urlInput.value.trim();
-      if (!url) return;
+    // Keyboard shortcuts: Remove image with Backspace/Delete, Undo/Redo with Cmd+Z / Cmd+Shift+Z
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (!this._container.isConnected) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      ) {
+        return;
+      }
 
-      const img = new Image();
-      img.crossOrigin = "Anonymous"; // Attempt to prevent canvas tainting
-      img.onload = (): void => {
-        currentImage = img;
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        clearSelection();
-        urlInput.value = "";
-        addSimpleMessage(`Bild erfolgreich von URL geladen (${img.width}x${img.height}px).`, "ai");
-      };
-      img.onerror = (): void => {
-        addSimpleMessage(
-          `Fehler beim Laden der URL. Der fremde Server blockiert den Zugriff vermutlich durch CORS-Richtlinien. Lade das Bild am besten kurz lokal herunter und nutze den Upload-Button.`,
-          "ai",
-        );
-      };
-      img.src = url;
-    });
+      if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+        const key = e.key.toLowerCase();
+        if (key === "z" && !e.shiftKey) {
+          e.preventDefault();
+          triggerUndo();
+          return;
+        }
+        if ((key === "z" && e.shiftKey) || (key === "y" && !e.shiftKey)) {
+          e.preventDefault();
+          triggerRedo();
+          return;
+        }
+      }
+
+      if ((e.key === "Backspace" || e.key === "Delete") && currentImage) {
+        e.preventDefault();
+        const confirmed = window.confirm("Möchtest du das aktuelle Bild wirklich entfernen?");
+        if (confirmed) {
+          currentImage = null;
+          currentRect = null;
+          canvas.width = 0;
+          canvas.height = 0;
+          ctx.clearRect(0, 0, 0, 0);
+          clearSelection();
+          canvasStage.style.display = "none";
+          if (emptyDropzoneContainer) emptyDropzoneContainer.style.display = "block";
+          applyZoom(1);
+          addSimpleMessage("Bild entfernt.", "ai");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown, { signal: this._abortController.signal });
 
     // 2. Selection & Move Logic
     function isInside(
@@ -1149,6 +1259,13 @@ export class Xtractor extends ForgeTool {
     const chatInput = this._container.querySelector<HTMLInputElement>("#chat-input")!;
     const btnSend = this._container.querySelector<HTMLElement>("#btn-send")!;
     const chatHistory = this._container.querySelector<HTMLElement>("#chat-history")!;
+
+    const commandHistory = new CommandHistory({
+      maxEntries: 100,
+      storageKey: "sw_xtractor_command_history",
+      pageStep: 10,
+    });
+    commandHistory.bindInput(chatInput);
 
     function populateModelDropdown(models: string[], selectedModel: string): void {
       aiModelSelect.innerHTML = "";
@@ -1512,6 +1629,7 @@ export class Xtractor extends ForgeTool {
       const result = chip.execute(srcData);
 
       if ("data" in result && (result as ImageData).data instanceof Uint8ClampedArray) {
+        undoHistory.push(canvas, ctx, chip.label || "Bildaktion");
         const newImgData = result as ImageData;
         if (
           currentRect &&
@@ -1524,7 +1642,10 @@ export class Xtractor extends ForgeTool {
         } else {
           replaceCanvasData(newImgData);
         }
-        addSimpleMessage(`✅ **${chip.label}** angewendet!`, "ai");
+        addSimpleMessage(
+          `✅ **${chip.label}** angewendet! (Rückgängig mit <kbd>Cmd+Z</kbd>)`,
+          "ai",
+        );
       } else {
         const customRes = result as {
           normalMap?: ImageData;
@@ -1564,6 +1685,7 @@ Keep answers concise, actionable, and formatted with clean markdown bullet point
       const text = chatInput.value.trim();
       if (!text) return;
 
+      commandHistory.push(text);
       addSimpleMessage(text, "user");
       chatInput.value = "";
 
@@ -1659,7 +1781,7 @@ Keep answers concise, actionable, and formatted with clean markdown bullet point
 
     btnSend.addEventListener("click", () => void handleSend());
 
-    chatInput.addEventListener("keypress", (e: KeyboardEvent) => {
+    chatInput.addEventListener("keydown", (e: KeyboardEvent) => {
       if (e.key === "Enter") void handleSend();
     });
 

@@ -371,16 +371,6 @@
     <!-- WORKBENCH -->
     <div class="workbench">
       <div class="toolbar">
-        <label class="tool-btn primary">
-          Upload Image/PDF
-          <input type="file" id="file-input" class="hidden" accept="image/*,application/pdf" />
-        </label>
-        
-        <div class="tool-tabs toolbar-group">
-          <input type="text" id="url-input" class="tool-input" placeholder="https://... (Image URL)" />
-          <button class="tool-btn" id="btn-load-url">Load URL</button>
-        </div>
-        
         <div class="tool-tabs toolbar-group">
           <button class="tool-btn" id="btn-tool-pan" title="Hand Tool">Hand</button>
           <button class="tool-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rechteck</button>
@@ -395,6 +385,11 @@
         </div>
 
         <div class="tool-tabs toolbar-group">
+          <button class="tool-btn" id="btn-undo" title="Rückgängig (Cmd+Z)">↩ Undo</button>
+          <button class="tool-btn" id="btn-redo" title="Wiederholen (Cmd+Shift+Z)">↪ Redo</button>
+        </div>
+
+        <div class="tool-tabs toolbar-group">
           <button class="tool-btn" id="btn-zoom-out">-</button>
           <span class="zoom-label" id="zoom-label">100%</span>
           <button class="tool-btn" id="btn-zoom-in">+</button>
@@ -406,13 +401,7 @@
       <div class="canvas-container" id="canvas-wrapper">
         <div id="drop-overlay">Drop File Here</div>
         
-        <div id="empty-dropzone" class="dropzone hero">
-          <svg class="dropzone-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-          </svg>
-          <div class="dropzone-text">Upload / Drag & Drop Image or PDF</div>
-          <div class="dropzone-sub">PNG, JPG, WebP, PDF &middot; Sprite-Sheets &middot; Vorlagen</div>
-        </div>
+        <div id="empty-dropzone-container" style="max-width: 500px; margin: 40px auto 0;"></div>
 
         <!-- We wrap the canvas in a div that exactly matches the image size to position absolute elements easily -->
         <div id="canvas-stage" style="display: none;">
@@ -512,6 +501,9 @@
       bindToolShortcuts,
       ZipAssetSink,
       downloadBlob,
+      UniversalIngestRouter,
+      UniversalIngestDropzone,
+      CommandHistory,
     } from "/packages/tools/src/common/io/index.ts";
     import {
       AiConfigStorage,
@@ -526,24 +518,21 @@
       generateNormalMap,
       generateDepthMap,
       parseActionChips,
+      CanvasUndoHistory,
     } from "/packages/tools/src/common/image/index.ts";
 
     const toastManager = new ToastManager();
+    const undoHistory = new CanvasUndoHistory(30);
 
     // Elements
     const canvas = document.getElementById('image-canvas');
     const ctx = canvas.getContext('2d');
-    const fileInput = document.getElementById('file-input');
     const canvasWrapper = document.getElementById('canvas-wrapper');
     const canvasStage = document.getElementById('canvas-stage');
-    const emptyDropzone = document.getElementById('empty-dropzone');
+    const emptyDropzoneContainer = document.getElementById('empty-dropzone-container');
     const dropOverlay = document.getElementById('drop-overlay');
     const selectionBox = document.getElementById('selection-box');
     const selectionProps = document.getElementById('selection-props');
-    
-    if (emptyDropzone) {
-      emptyDropzone.addEventListener('click', () => fileInput.click());
-    }
     
     const urlInput = document.getElementById('url-input');
     const btnLoadUrl = document.getElementById('btn-load-url');
@@ -600,9 +589,66 @@
       },
     });
 
+    const triggerUndo = () => {
+      if (!currentImage || !undoHistory.canUndo) {
+        toastManager.show("Nichts mehr zum Rückgängigmachen.", "info");
+        return;
+      }
+      const snap = undoHistory.undo(canvas, ctx);
+      if (snap) {
+        const img = new Image();
+        img.onload = () => {
+          currentImage = img;
+          if (currentRect) {
+            if (
+              currentRect.x + currentRect.w > canvas.width ||
+              currentRect.y + currentRect.h > canvas.height
+            ) {
+              clearSelection();
+            } else {
+              captureCrop();
+            }
+          }
+        };
+        img.src = canvas.toDataURL();
+        toastManager.show(`Rückgängig: ${snap.label}`, "info");
+        addSimpleMessage(`↩ **Rückgängig gemacht:** ${snap.label}`, "ai");
+      }
+    };
+
+    const triggerRedo = () => {
+      if (!currentImage || !undoHistory.canRedo) {
+        toastManager.show("Nichts mehr zum Wiederholen.", "info");
+        return;
+      }
+      const snap = undoHistory.redo(canvas, ctx);
+      if (snap) {
+        const img = new Image();
+        img.onload = () => {
+          currentImage = img;
+          if (currentRect) {
+            if (
+              currentRect.x + currentRect.w > canvas.width ||
+              currentRect.y + currentRect.h > canvas.height
+            ) {
+              clearSelection();
+            } else {
+              captureCrop();
+            }
+          }
+        };
+        img.src = canvas.toDataURL();
+        toastManager.show(`Wiederholt: ${snap.label}`, "info");
+        addSimpleMessage(`↪ **Wiederholt:** ${snap.label}`, "ai");
+      }
+    };
+
     // Setup keyboard shortcuts
     bindToolShortcuts({
-      open: () => fileInput.click(),
+      open: () => {
+        const fileInput = emptyDropzoneContainer?.querySelector<HTMLInputElement>('input[type="file"]');
+        if (fileInput) fileInput.click();
+      },
       save: () => {
         if (currentRect) {
           const link = document.createElement("a");
@@ -620,6 +666,43 @@
           toastManager.show("Kein Bild oder Bereich vorhanden zum Speichern.", "warning");
         }
       },
+      undo: triggerUndo,
+      redo: triggerRedo,
+    });
+
+    const btnUndo = document.getElementById('btn-undo');
+    const btnRedo = document.getElementById('btn-redo');
+    btnUndo?.addEventListener('click', triggerUndo);
+    btnRedo?.addEventListener('click', triggerRedo);
+
+    // Remove image with Backspace/Delete after confirmation
+    window.addEventListener("keydown", (e) => {
+      const target = e.target;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if ((e.key === "Backspace" || e.key === "Delete") && currentImage) {
+        e.preventDefault();
+        const confirmed = window.confirm("Möchtest du das aktuelle Bild wirklich entfernen?");
+        if (confirmed) {
+          currentImage = null;
+          currentRect = null;
+          canvas.width = 0;
+          canvas.height = 0;
+          ctx.clearRect(0, 0, 0, 0);
+          clearSelection();
+          canvasStage.style.display = "none";
+          if (emptyDropzoneContainer) emptyDropzoneContainer.style.display = "block";
+          setZoom(1);
+          toastManager.show("Bild entfernt.", "info");
+        }
+      }
     });
     
     // Tools
@@ -730,12 +813,14 @@
             return;
         }
 
+        undoHistory.push(canvas, ctx, "Hintergrund entfernen");
+
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const cleaned = removeBackground(imgData, { tolerance: 28, feather: 2 });
         ctx.putImageData(cleaned, 0, 0);
         if (currentRect) captureCrop();
 
-        addSimpleMessage("🪄 **Hintergrund entfernt!** Hintergrund wurde transparent freigestellt.", "ai");
+        addSimpleMessage("🪄 **Hintergrund entfernt!** Hintergrund wurde transparent freigestellt. (Rückgängig mit <kbd>Cmd+Z</kbd>)", "ai");
         toastManager.show("Hintergrund transparent freigestellt!", "success");
     });
 
@@ -812,12 +897,79 @@
         }
     }, { passive: false });
 
-    // 1. File Loading Logic
-    fileInput.addEventListener('change', (e) => {
-        if(e.target.files && e.target.files[0]) {
-            loadFile(e.target.files[0]);
+    // 1. Universal Ingest Router & Loading Logic
+    const ingestRouter = new UniversalIngestRouter();
+
+    async function applyIngestResult(result) {
+        if (result.kind === 'svg') {
+            // Vector input: load the sized SVG as an image and continue like a bitmap
+            const svgImage = new Image();
+            await new Promise((resolve, reject) => {
+                svgImage.onload = resolve;
+                svgImage.onerror = () => reject(new Error('SVG konnte nicht geladen werden.'));
+                svgImage.src = result.dataUrl;
+            });
+            result = { kind: 'image', image: svgImage, blob: result.blob, dataUrl: result.dataUrl, name: result.name, width: result.width, height: result.height };
         }
-    });
+        if (result.kind === 'image') {
+            currentFileName = result.name.split('.')[0] || 'extracted';
+            currentImage = result.image;
+            if (emptyDropzoneContainer) emptyDropzoneContainer.style.display = 'none';
+            canvasStage.style.display = 'block';
+            canvas.width = result.width;
+            canvas.height = result.height;
+            ctx.drawImage(result.image, 0, 0);
+            clearSelection();
+            toastManager.show(`Bild '${result.name}' geladen (${result.width}x${result.height}px).`, 'success');
+        } else if (result.kind === 'pbr-set') {
+            const main = result.pbrSet.albedo || result.pbrSet.height || result.pbrSet.normal;
+            if (main) {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    if (emptyDropzoneContainer) emptyDropzoneContainer.style.display = 'none';
+                    canvasStage.style.display = 'block';
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    clearSelection();
+                    toastManager.show(`PBR-Set '${result.name}' erkannt & geladen.`, 'success');
+                };
+                img.src = URL.createObjectURL(main.blob || main);
+            }
+        } else if (result.kind === 'archive' || result.kind === 'zip' || result.kind === 'files') {
+            const items = result.files || result.items || [];
+            const firstImg = items.find(f => (f.mimeType && f.mimeType.startsWith('image/')) || (f.blob && f.blob.type.startsWith('image/')) || f.kind === 'image');
+            if (firstImg) {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    if (emptyDropzoneContainer) emptyDropzoneContainer.style.display = 'none';
+                    canvasStage.style.display = 'block';
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    clearSelection();
+                    toastManager.show(`Archiv '${result.name}' entpackt & Bild '${firstImg.name}' geladen.`, 'success');
+                };
+                img.src = URL.createObjectURL(firstImg.blob);
+            }
+        }
+    }
+
+    if (emptyDropzoneContainer) {
+        new UniversalIngestDropzone({
+            container: emptyDropzoneContainer,
+            label: "Bild, PDF oder ZIP ablegen",
+            supportedKinds: ["image", "pbr-set", "zip", "files", "svg", "text"],
+            enableWindowDrop: true,
+            enablePaste: true,
+            onIngest: async (result) => {
+                await applyIngestResult(result);
+            },
+            onError: (err) => toastManager.show(err.message, 'error'),
+        });
+    }
 
     // Drag & Drop
     canvasWrapper.addEventListener('dragover', (e) => {
@@ -828,105 +980,49 @@
         e.preventDefault();
         dropOverlay.style.display = 'none';
     });
-    canvasWrapper.addEventListener('drop', (e) => {
+    canvasWrapper.addEventListener('drop', async (e) => {
         e.preventDefault();
         dropOverlay.style.display = 'none';
-        if(e.dataTransfer.files && e.dataTransfer.files[0]) {
-            loadFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer) {
+            try {
+                const result = await ingestRouter.routeDataTransfer(e.dataTransfer);
+                await applyIngestResult(result);
+            } catch (err) {
+                toastManager.show(err.message, 'error');
+            }
         }
     });
 
-    function loadFile(file) {
-        if (file.type === 'application/pdf') {
-            toastManager.show('PDF-Konvertierung wird in Phase 2 unterstützt. Bitte ein Bildformat (PNG/JPG/WebP) wählen.', 'warning');
+    // Paste from Clipboard (Screenshots, Image Files, Data URLs, Web Links, SVG Code)
+    window.addEventListener('paste', async (e) => {
+        const target = e.target;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
             return;
         }
-        
-        currentFileName = file.name.split('.')[0] || 'extracted';
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                currentImage = img;
-                if (emptyDropzone) emptyDropzone.style.display = 'none';
-                canvasStage.style.display = 'block';
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                clearSelection();
-                toastManager.show(`Bild '${file.name}' geladen (${img.width}x${img.height}px).`, 'info');
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
 
-    // Paste from Clipboard (Screenshots, Image Files, Data URLs)
-    window.addEventListener('paste', (e) => {
-        const items = e.clipboardData?.items;
-        if (items) {
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                if (item && item.type.indexOf('image') !== -1) {
-                    const file = item.getAsFile();
-                    if (file) {
-                        e.preventDefault();
-                        loadFile(file);
-                        toastManager.show('Screenshot aus Zwischenablage eingefügt!', 'success');
-                        return;
-                    }
+        if (e.clipboardData) {
+            if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+                e.preventDefault();
+                try {
+                    const result = await ingestRouter.routeFiles(Array.from(e.clipboardData.files));
+                    await applyIngestResult(result);
+                } catch (err) {
+                    toastManager.show(err.message, 'error');
+                }
+                return;
+            }
+
+            const text = e.clipboardData.getData('text');
+            if (text && text.trim()) {
+                e.preventDefault();
+                try {
+                    const result = await ingestRouter.routeText(text.trim(), 'clipboard_asset');
+                    await applyIngestResult(result);
+                } catch (err) {
+                    toastManager.show(err.message, 'error');
                 }
             }
         }
-
-        const files = e.clipboardData?.files;
-        if (files && files.length > 0 && files[0].type.startsWith('image/')) {
-            e.preventDefault();
-            loadFile(files[0]);
-            toastManager.show('Bild aus Zwischenablage eingefügt!', 'success');
-            return;
-        }
-
-        const text = e.clipboardData?.getData('text');
-        if (text && text.trim().startsWith('data:image/')) {
-            e.preventDefault();
-            const img = new Image();
-            img.onload = () => {
-                currentImage = img;
-                if (emptyDropzone) emptyDropzone.style.display = 'none';
-                canvasStage.style.display = 'block';
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                clearSelection();
-                toastManager.show(`Bild aus Zwischenablage geladen (${img.width}x${img.height}px).`, 'info');
-            };
-            img.src = text.trim();
-        }
-    });
-    
-    // URL Loading Logic
-    btnLoadUrl.addEventListener('click', () => {
-        const url = urlInput.value.trim();
-        if (!url) return;
-        
-        const img = new Image();
-        img.crossOrigin = 'Anonymous'; // Attempt to prevent canvas tainting
-        img.onload = () => {
-            currentImage = img;
-            if (emptyDropzone) emptyDropzone.style.display = 'none';
-            canvasStage.style.display = 'block';
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            clearSelection();
-            urlInput.value = '';
-            addMessage(`Bild erfolgreich von URL geladen (${img.width}x${img.height}px).`, 'ai');
-        };
-        img.onerror = () => {
-            addMessage(`Fehler beim Laden der URL. Der fremde Server blockiert den Zugriff vermutlich durch CORS-Richtlinien. Lade das Bild am besten kurz lokal herunter und nutze den Upload-Button.`, 'ai');
-        };
-        img.src = url;
     });
 
     // 2. Selection & Move Logic
@@ -1172,6 +1268,13 @@
     const chatInput = document.getElementById("chat-input");
     const btnSend = document.getElementById("btn-send");
     const chatHistory = document.getElementById("chat-history");
+
+    const commandHistory = new CommandHistory({
+      maxEntries: 100,
+      storageKey: "sw_xtractor_command_history",
+      pageStep: 10,
+    });
+    commandHistory.bindInput(chatInput);
 
     function populateModelDropdown(models, selectedModel) {
       aiModelSelect.innerHTML = "";
@@ -1563,6 +1666,7 @@
       const result = chip.execute(srcData);
 
       if (result && result.data instanceof Uint8ClampedArray) {
+        undoHistory.push(canvas, ctx, chip.label || "Bildaktion");
         const newImgData = result;
         if (currentRect && cropPreviewCanvas.width > 0 && newImgData.width === currentRect.w && newImgData.height === currentRect.h) {
           ctx.putImageData(newImgData, currentRect.x, currentRect.y);
@@ -1570,7 +1674,7 @@
         } else {
           replaceCanvasData(newImgData);
         }
-        addSimpleMessage(`✅ **${chip.label}** angewendet!`, "ai");
+        addSimpleMessage(`✅ **${chip.label}** angewendet! (Rückgängig mit <kbd>Cmd+Z</kbd>)`, "ai");
       } else if (result) {
         if (result.autoSprites) {
           btnAutoSprites.click();
@@ -1604,6 +1708,7 @@ Keep answers concise, actionable, and formatted with clean markdown bullet point
       const text = chatInput.value.trim();
       if (!text) return;
 
+      commandHistory.push(text);
       addSimpleMessage(text, "user");
       chatInput.value = "";
 

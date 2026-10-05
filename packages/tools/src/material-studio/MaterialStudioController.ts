@@ -8,6 +8,13 @@ import {
   generateAOMap,
   generateEdgeMap,
 } from "../common/dsp/TextureFilters.js";
+import { UniversalIngestDropzone } from "../common/io/ui/UniversalIngestDropzone.js";
+import type { IngestResult } from "../common/io/UniversalIngestTypes.js";
+import {
+  primaryPbrTexture,
+  textureName,
+  firstImageItem,
+} from "../common/io/ingestResultHelpers.js";
 
 interface MaterialStudioPreset {
   heightBlur: number;
@@ -170,52 +177,52 @@ export class MaterialStudioController {
         });
       });
 
-      const dropzone = document.getElementById("dropzone");
-      const fileInput = document.getElementById("file-input") as HTMLInputElement | null;
+      const dropzoneContainer =
+        document.getElementById("materialstudio-dropzone-container") ||
+        document.getElementById("dropzone");
+      if (dropzoneContainer) {
+        new UniversalIngestDropzone({
+          container: dropzoneContainer,
+          label: "Textur ablegen",
+          supportedKinds: ["image", "pbr-set", "zip", "files", "svg", "text"],
+          enableWindowDrop: true,
+          enablePaste: true,
+          onIngest: async (result: IngestResult): Promise<void> => {
+            const loadingText = document.getElementById("loading-text");
+            if (loadingText) loadingText.innerText = "Lade Textur...";
+            const loadingOverlay = document.getElementById("loading-overlay");
+            if (loadingOverlay) loadingOverlay.classList.add("active");
 
-      if (dropzone && fileInput) {
-        dropzone.addEventListener("click", () => fileInput.click());
-
-        dropzone.addEventListener("dragover", (e) => {
-          e.preventDefault();
-          dropzone.classList.add("dragover");
+            if (result.kind === "image") {
+              originalFileName = result.name.split(".")[0] || "custom";
+              originalImage.src = result.dataUrl;
+            } else if (result.kind === "pbr-set") {
+              const primary = primaryPbrTexture(result.pbrSet);
+              if (primary) {
+                originalFileName = textureName(primary, result.name).split(".")[0] || "pbr_texture";
+                originalImage.src = URL.createObjectURL(primary);
+              }
+            } else if (result.kind === "archive" || result.kind === "files") {
+              const img = firstImageItem(result);
+              if (img) {
+                originalFileName = img.name.split(".")[0] || "custom";
+                originalImage.src = URL.createObjectURL(img.blob);
+              }
+            } else if (result.kind === "svg") {
+              originalFileName = "vector_texture";
+              originalImage.src = URL.createObjectURL(result.blob);
+            } else if (result.kind === "text") {
+              if (result.text.startsWith("data:image/")) {
+                originalFileName = "pasted_image";
+                originalImage.src = result.text;
+              }
+            }
+          },
+          onError: (err: Error): void => {
+            console.error("MaterialStudio Ingest Error:", err);
+            alert("Fehler beim Importieren: " + err.message);
+          },
         });
-
-        dropzone.addEventListener("dragleave", () => {
-          dropzone.classList.remove("dragover");
-        });
-
-        dropzone.addEventListener("drop", (e) => {
-          e.preventDefault();
-          dropzone.classList.remove("dragover");
-          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFile(e.dataTransfer.files[0]);
-          }
-        });
-
-        fileInput.addEventListener("change", () => {
-          if (fileInput.files && fileInput.files[0]) {
-            handleFile(fileInput.files[0]);
-          }
-        });
-      }
-
-      function handleFile(file: File): void {
-        if (!file.type.match("image.*")) {
-          alert("Please upload an image file (PNG, JPG, WebP).");
-          return;
-        }
-        originalFileName = file.name.split(".")[0] || "unknown";
-
-        const reader = new FileReader();
-        reader.onload = (e): void => {
-          const loadingText = document.getElementById("loading-text");
-          if (loadingText) loadingText.innerText = "Loading uploaded image...";
-          const loadingOverlay = document.getElementById("loading-overlay");
-          if (loadingOverlay) loadingOverlay.classList.add("active");
-          originalImage.src = e.target?.result as string;
-        };
-        reader.readAsDataURL(file);
       }
 
       this._onBase64Image = (b64: string): void => {

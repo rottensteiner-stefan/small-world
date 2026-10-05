@@ -11,6 +11,13 @@ import {
   computeTrimBounds,
   flipCanvas,
 } from "./common/dsp/CanvasOperations.js";
+import { UniversalIngestDropzone } from "./common/io/ui/UniversalIngestDropzone.js";
+import type { IngestResult } from "./common/io/UniversalIngestTypes.js";
+import {
+  primaryPbrTexture,
+  firstImageItem,
+  blobToDataUrl,
+} from "./common/io/ingestResultHelpers.js";
 
 export const PIXLER_PALETTES = {
   DEFAULT: [
@@ -143,6 +150,7 @@ export class Pixler extends ForgeTool {
   private _history: ImageData[] = [];
   private _historyIndex: number = -1;
   private _abortController: AbortController = new AbortController();
+  private _dropzone!: UniversalIngestDropzone;
 
   private _events: EventDispatcherImpl | undefined = undefined;
 
@@ -418,6 +426,21 @@ export class Pixler extends ForgeTool {
       actions.appendChild(b);
     });
     this._container.appendChild(actions);
+
+    this._dropzone = new UniversalIngestDropzone({
+      container: this._container,
+      label: "Bild ablegen",
+      supportedKinds: ["image", "svg", "pbr-set", "zip", "files", "text"],
+      svgLongEdge: 64, // pixel-art canvas: vector input is sized to a sprite-friendly resolution
+      enableWindowDrop: true,
+      enablePaste: true,
+      onIngest: async (result: IngestResult): Promise<void> => {
+        await this._handleIngestResult(result);
+      },
+      onError: (err: Error): void => {
+        console.error("Pixler Ingest Fehler:", err);
+      },
+    });
 
     this._resize(this._width, this._height);
     this._bindEvents();
@@ -1064,6 +1087,46 @@ export class Pixler extends ForgeTool {
     super.unmount();
     this._abortController.abort();
     this._abortController = new AbortController();
+    this._dropzone?.dispose();
+  }
+
+  private async _handleIngestResult(result: IngestResult): Promise<void> {
+    if (result.kind === "image") {
+      await this.loadFromBase64(result.dataUrl);
+    } else if (result.kind === "svg") {
+      const img = new Image();
+      const svgBlobUrl = URL.createObjectURL(result.blob);
+      await new Promise<void>((resolve, reject) => {
+        img.onload = (): void => {
+          this.width = img.width || 32;
+          this.height = img.height || 32;
+          this._ctx.clearRect(0, 0, this.width, this.height);
+          this._ctx.drawImage(img, 0, 0);
+          URL.revokeObjectURL(svgBlobUrl);
+          this._saveHistory();
+          resolve();
+        };
+        img.onerror = (e): void => {
+          URL.revokeObjectURL(svgBlobUrl);
+          reject(e);
+        };
+        img.src = svgBlobUrl;
+      });
+    } else if (result.kind === "pbr-set") {
+      const candidate = primaryPbrTexture(result.pbrSet);
+      if (candidate) {
+        await this.loadFromBase64(await blobToDataUrl(candidate));
+      }
+    } else if (result.kind === "archive" || result.kind === "files") {
+      const imgItem = firstImageItem(result);
+      if (imgItem) {
+        await this.loadFromBase64(await blobToDataUrl(imgItem.blob));
+      }
+    } else if (result.kind === "text") {
+      if (result.text.startsWith("data:image/")) {
+        await this.loadFromBase64(result.text);
+      }
+    }
   }
 
   public getState(): unknown {

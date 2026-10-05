@@ -99,48 +99,6 @@
         cursor: pointer;
       }
 
-      /* Dropzone */
-      .dropzone {
-        border: 1px dashed var(--tool-border-active);
-        border-radius: var(--tool-radius-md);
-        padding: 1rem 0.75rem;
-        text-align: center;
-        cursor: pointer;
-        background: var(--tool-card);
-        transition: all 0.15s ease;
-        margin-bottom: 0.75rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.35rem;
-      }
-
-      .dropzone:hover,
-      .dropzone.dragover {
-        border-color: var(--tool-accent);
-        background: var(--tool-card-active);
-      }
-
-      .dropzone-icon {
-        color: var(--tool-accent);
-        transition: transform 0.15s ease;
-      }
-
-      .dropzone:hover .dropzone-icon {
-        transform: translateY(-2px);
-      }
-
-      .dropzone-text {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--tool-text);
-      }
-
-      .dropzone-sub {
-        font-size: 0.72rem;
-        color: var(--tool-text-muted);
-      }
-
       /* Sidebar action buttons */
       .sidebar-actions {
         padding: 0.75rem;
@@ -418,23 +376,8 @@
       <!-- Sidebar controls -->
       <div class="sidebar">
         <div class="sidebar-scroll">
-          <!-- Dropzone / File Upload -->
-          <div id="dropzone" class="dropzone">
-            <svg
-              class="dropzone-icon"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-            </svg>
-            <div class="dropzone-text">Upload / Drag & Drop Image</div>
-            <div class="dropzone-sub">PNG, JPG, WebP up to 8MB</div>
-            <input type="file" id="file-input" class="hidden" accept="image/*" />
-          </div>
+          <!-- Dropzone / Universal Ingest -->
+          <div id="dropzone-container" style="margin-bottom: 0.75rem;"></div>
 
           <!-- Preset select -->
           <div class="section-title">
@@ -1026,16 +969,59 @@
         ZipAssetSink,
         downloadBlob,
         DropAssetSource,
+        UniversalIngestRouter,
+        UniversalIngestDropzone,
       } from "/packages/tools/src/common/io/index.ts";
 
       const previewApp = new MaterialStudioApp("SmallWorldPreview");
       previewApp.start().catch((err) => console.error("Failed to start preview:", err));
 
       const ioToast = new ToastManager();
+      const ingestRouter = new UniversalIngestRouter();
 
-      // Setup window-level drop overlay for images or ZIPs
+      async function applyIngestResult(result) {
+        if (result.kind === "image" || result.kind === "svg") {
+          originalFileName = result.name.split(".")[0];
+          document.getElementById("loading-text").innerText = "Loading image...";
+          document.getElementById("loading-overlay").classList.add("active");
+          originalImage.src = result.dataUrl;
+          ioToast.show(`Textur '${result.name}' erfolgreich geladen.`, "success");
+        } else if (result.kind === "pbr-set") {
+          const mainBlob = result.pbrSet.albedo || result.pbrSet.height || result.pbrSet.normal;
+          if (mainBlob) {
+            originalFileName = result.name;
+            const dataUrl = URL.createObjectURL(mainBlob);
+            document.getElementById("loading-text").innerText = "Loading PBR Set...";
+            document.getElementById("loading-overlay").classList.add("active");
+            originalImage.src = dataUrl;
+            ioToast.show(`PBR-Set '${result.name}' erkannt & geladen!`, "success");
+          }
+        } else if (result.kind === "archive") {
+          const firstImg = result.files.find((f) => f.mimeType.startsWith("image/"));
+          if (firstImg) {
+            originalFileName = firstImg.name.split(".")[0];
+            const dataUrl = URL.createObjectURL(firstImg.blob);
+            document.getElementById("loading-text").innerText = "Loading archive image...";
+            document.getElementById("loading-overlay").classList.add("active");
+            originalImage.src = dataUrl;
+            ioToast.show(`Archiv '${result.name}' entpackt & geladen!`, "success");
+          } else {
+            ioToast.show(`Keine unterstützten Bilddateien im Archiv '${result.name}' gefunden.`, "warning");
+          }
+        } else if (result.kind === "json") {
+          if (result.data && typeof result.data === "object" && ("settings" in result.data || "heightBlur" in result.data)) {
+            const settings = result.data.settings || result.data;
+            applyPreset(settings);
+            ioToast.show(`PBR-Profil '${result.name}' erfolgreich geladen!`, "success");
+          } else {
+            ioToast.show(`JSON '${result.name}' geladen.`, "info");
+          }
+        }
+      }
+
+      // Setup window-level drop overlay for images, PBR sets, or ZIPs
       new ToolDropOverlay({
-        label: "PBR-Texturbild oder ZIP hier ablegen",
+        label: "PBR-Texturbild, Ordner oder ZIP hier ablegen",
         onSource: async (source) => {
           try {
             const files = await source.list();
@@ -1047,8 +1033,8 @@
             const bytes = await source.read(imgFile);
             const mime = imgFile.endsWith(".png") ? "image/png" : "image/jpeg";
             const blob = new Blob([bytes], { type: mime });
-            handleFile(new File([blob], imgFile.split("/").pop() || "imported.png", { type: mime }));
-            ioToast.show(`Bild '${imgFile}' erfolgreich geladen!`, "success");
+            const result = await ingestRouter.routeSingleFile(new File([blob], imgFile.split("/").pop() || "imported.png", { type: mime }));
+            await applyIngestResult(result);
           } catch (err) {
             ioToast.show(`Fehler beim Import: ${err.message}`, "error");
           }
@@ -1193,52 +1179,48 @@
       });
 
       // ----------------------------------------------------
-      // Drag and Drop & Upload Files
+      // Universal Ingest DropZone
       // ----------------------------------------------------
-      const dropzone = document.getElementById("dropzone");
-      const fileInput = document.getElementById("file-input");
-
-      dropzone.addEventListener("click", () => fileInput.click());
-
-      dropzone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        dropzone.classList.add("dragover");
-      });
-
-      dropzone.addEventListener("dragleave", () => {
-        dropzone.classList.remove("dragover");
-      });
-
-      dropzone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        dropzone.classList.remove("dragover");
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-          handleFile(e.dataTransfer.files[0]);
-        }
-      });
-
-      fileInput.addEventListener("change", () => {
-        if (fileInput.files && fileInput.files[0]) {
-          handleFile(fileInput.files[0]);
-        }
-      });
-
-      function handleFile(file) {
-        if (!file.type.match("image.*")) {
-          ioToast.show("Please upload an image file (PNG, JPG, WebP).", "warning");
-          return;
-        }
-        originalFileName = file.name.split(".")[0];
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          document.getElementById("loading-text").innerText = "Loading uploaded image...";
-          document.getElementById("loading-overlay").classList.add("active");
-          originalImage.src = e.target.result;
-          ioToast.show(`Texture '${file.name}' loaded.`, "info");
-        };
-        reader.readAsDataURL(file);
+      const dropzoneContainer = document.getElementById("dropzone-container");
+      if (dropzoneContainer) {
+        new UniversalIngestDropzone({
+          container: dropzoneContainer,
+          label: "Textur ablegen",
+          supportedKinds: ["image", "pbr-set", "zip", "files", "svg", "text"],
+          enableWindowDrop: false,
+          enablePaste: false, // Handled globally below
+          onIngest: async (result) => {
+            await applyIngestResult(result);
+          },
+          onError: (err) => ioToast.show(err.message, "error"),
+        });
       }
+
+      // Global paste handler (Cmd+V / Ctrl+V for images, URLs, SVGs, JSON)
+      window.addEventListener("paste", async (e) => {
+        const target = e.target;
+        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+        if (e.clipboardData) {
+          if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+            try {
+              const result = await ingestRouter.routeFiles(Array.from(e.clipboardData.files));
+              await applyIngestResult(result);
+            } catch (err) {
+              ioToast.show(err.message, "error");
+            }
+            return;
+          }
+          const text = e.clipboardData.getData("text/plain");
+          if (text && text.trim()) {
+            try {
+              const result = await ingestRouter.routeText(text.trim(), "pasted_input");
+              await applyIngestResult(result);
+            } catch (err) {
+              ioToast.show(err.message, "error");
+            }
+          }
+        }
+      });
 
       // ----------------------------------------------------
       // Pre-load default texture
@@ -1349,11 +1331,11 @@
       document.getElementById("profile-select").addEventListener("change", (e) => {
         const profile = e.target.value;
         if (PRESETS[profile]) {
-          applyPreset(PRESETS[profile]);
+          applyPreset(PRESETS[profile], profile);
         }
       });
 
-      function applyPreset(preset) {
+      function applyPreset(preset, profile = document.getElementById("profile-select")?.value) {
         // Loop sliders and checkboxes
         document.getElementById("height-blur-slider").value = preset.heightBlur;
         document.getElementById("height-blur-val").innerText = preset.heightBlur;

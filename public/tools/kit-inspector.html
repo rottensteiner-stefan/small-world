@@ -655,13 +655,7 @@
           </div>
         </div>
 
-        <div id="kitDropzone" class="dropzone compact" style="margin: 0.5rem 0.75rem 0.25rem;">
-          <svg class="dropzone-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-          </svg>
-          <div class="dropzone-text">Custom Kit importieren</div>
-          <div class="dropzone-sub">ZIP oder Ordner hier ablegen (Cmd+O)</div>
-        </div>
+        <div id="kitDropzone" style="margin: 0.5rem 0.75rem 0.25rem;"></div>
 
         <div class="catalog-list" id="catalogList">
           <!-- Dynamically populated cards -->
@@ -764,8 +758,10 @@
       import { RendererType } from "/packages/engine/src/enums/index.ts";
       import {
         DirectoryAssetSource,
+        ZipAssetSource,
         ToastManager,
         ToolDropOverlay,
+        UniversalIngestDropzone,
         ValidationReportModal,
         bindToolShortcuts,
       } from "/packages/tools/src/common/io/index.ts";
@@ -855,8 +851,28 @@
 
       // Unified I/O: import / export entry points (button, dropzone, drop overlay, shortcuts)
       document.getElementById("btnImportKit").addEventListener("click", pickKitFolder);
-      document.getElementById("kitDropzone")?.addEventListener("click", pickKitFolder);
       document.getElementById("btnExportKit").addEventListener("click", exportKit);
+
+      const kitDropEl = document.getElementById("kitDropzone");
+      if (kitDropEl) {
+        new UniversalIngestDropzone({
+          container: kitDropEl,
+          label: "Kit ablegen",
+          supportedKinds: ["zip", "files", "gltf", "json"],
+          enableWindowDrop: false,
+          enablePaste: true,
+          onIngest: async (result) => {
+            if (result.kind === "zip") {
+              const source = await ZipAssetSource.fromBlob(result.blob, result.name);
+              await importKit(source);
+            } else if (result.kind === "files") {
+              const source = await DirectoryAssetSource.pick();
+              if (source) await importKit(source);
+            }
+          },
+          onError: (err) => ioToasts.error(`Import fehlgeschlagen: ${err.message}`),
+        });
+      }
 
       new ToolDropOverlay({
         label: "Kit-Ordner oder ZIP hier ablegen",
