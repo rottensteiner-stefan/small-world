@@ -313,6 +313,7 @@ export class UniversalIngestDropzone {
       const onWinDrop = (e: DragEvent): void => {
         // Only handle if dropped outside dropzone (dropzone handles its own)
         if (this._root.contains(e.target as Node)) return;
+        if (!this._isActiveHost()) return;
         if (e.dataTransfer && e.dataTransfer.files.length > 0) {
           e.preventDefault();
           this._handleDataTransfer(e.dataTransfer);
@@ -330,6 +331,14 @@ export class UniversalIngestDropzone {
 
     if (this._options.enablePaste !== false) {
       const onPaste = (e: ClipboardEvent): void => {
+        if (!this._isActiveHost()) return;
+        // Forge routes pasted images to its topmost window itself
+        if (
+          null !== this._root.closest(".swf-window") &&
+          Array.from(e.clipboardData?.items ?? []).some((item) => item.type.startsWith("image/"))
+        ) {
+          return;
+        }
         // If user is currently typing in an input or textarea, let it type
         const target = e.target as HTMLElement | null;
         if (
@@ -347,6 +356,22 @@ export class UniversalIngestDropzone {
       window.addEventListener("paste", onPaste);
       this._disposers.push(() => window.removeEventListener("paste", onPaste));
     }
+  }
+
+  /**
+   * Window-level drop and paste belong to one tool only: inside a Forge window that is the
+   * topmost visible one; outside a Forge window the dropzone is always the active host.
+   */
+  private _isActiveHost(): boolean {
+    const own = this._root.closest<HTMLElement>(".swf-window");
+    if (null === own) return true;
+    if (0 === own.getClientRects().length) return false; // window or Forge overlay hidden
+    const zIndexOf = (el: HTMLElement): number => parseInt(el.style.zIndex || "0", 10);
+    for (const other of document.querySelectorAll<HTMLElement>(".swf-window")) {
+      if (other === own || 0 === other.getClientRects().length) continue;
+      if (zIndexOf(other) > zIndexOf(own)) return false;
+    }
+    return true;
   }
 
   public promptUrlModal(): void {

@@ -1,4 +1,5 @@
 import { UniversalIngestDropzone } from "../common/io/ui/UniversalIngestDropzone.js";
+import { UniversalIngestRouter } from "../common/io/UniversalIngestRouter.js";
 import type { IngestResult } from "../common/io/UniversalIngestTypes.js";
 import {
   primaryPbrTexture,
@@ -6,11 +7,6 @@ import {
   firstImageItem,
 } from "../common/io/ingestResultHelpers.js";
 
-/**
- * UI for importing a reference image to trace 2.5D stage zones on top of (ADR 0016 Phase
- * 2) -- uses UniversalIngestDropzone with file picker, folder scan, URL fetch, and paste,
- * plus direct drag & drop onto the viewport canvas.
- */
 /** Draws an SVG blob onto a canvas of the given size and returns it as a PNG file. */
 async function rasterizeSvg(svg: Blob, width: number, height: number, name: string): Promise<File> {
   const url = URL.createObjectURL(svg);
@@ -32,6 +28,11 @@ async function rasterizeSvg(svg: Blob, width: number, height: number, name: stri
   }
 }
 
+/**
+ * UI for importing a reference image to trace 2.5D stage zones on top of (ADR 0016 Phase
+ * 2) -- uses UniversalIngestDropzone with file picker, folder scan, URL fetch, and paste,
+ * plus direct drag & drop onto the viewport canvas.
+ */
 export class BackgroundImportPanel {
   private readonly _dropzone: UniversalIngestDropzone;
 
@@ -94,7 +95,18 @@ export class BackgroundImportPanel {
     });
     viewportCanvas.addEventListener("drop", (e: DragEvent): void => {
       const file = e.dataTransfer?.files[0];
-      if (!file || !file.type.startsWith("image/")) return;
+      if (!file) return;
+      if ("image/svg+xml" === file.type || /\.svg$/i.test(file.name)) {
+        e.preventDefault();
+        void new UniversalIngestRouter()
+          .routeSingleFile(file)
+          .then(handleResult)
+          .catch((err: Error): void => {
+            console.error("[Maker BackgroundImport] Ingest Fehler:", err);
+          });
+        return;
+      }
+      if (!file.type.startsWith("image/")) return;
       e.preventDefault();
       onImport(file);
     });

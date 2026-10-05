@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.98.3] - 2026-10-05
+
+### "Good design is as little design as possible." - Dieter Rams
+
+- **Architecture & Bugfixes:**
+  - *One tool per drop in the Forge*: every dropzone inside a Forge window (Pixler, Xtractor, Material Studio) listened to window-wide drops and pastes, so one drop was imported into all open tools, and pasted images were additionally imported by the Forge's own paste routing. [`UniversalIngestDropzone`](packages/tools/src/common/io/ui/UniversalIngestDropzone.ts) now only reacts to window drop and paste while its window is the topmost visible one, and leaves pasted images to the Forge. Outside the Forge nothing changes.
+  - *Maker viewport*: an SVG dropped straight onto the viewport is now imported as a background reference like on the import panel.
+- **Housekeeping & Docs:**
+  - Verified in the browser: Forge with Pixler on top of Material Studio (the drop reaches only Pixler), kit-inspector ZIP import with the real bunker `kit.json` (validation report appears), Maker viewport SVG drop. 1360 tests, 0 lint errors.
+
 ## [0.98.2] - 2026-10-05
 
 ### "The proof of the pudding is in the eating." - Proverb
