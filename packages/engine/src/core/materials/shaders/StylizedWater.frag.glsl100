@@ -126,7 +126,7 @@ void main() {
     vec3 halfVector = normalize(lightDir + viewDir);
     float nDotH = clamp(dot(v_normal, halfVector), 0.0, 1.0);
     // a = specularStrength; narrow cone (wave slopes are smooth over metres)
-    float specular = smoothstep(0.9988, 0.9997, nDotH) * u_color.a;
+    float specular = smoothstep(0.9988, 0.9997, nDotH) * u_color.a * 0.5; // halved: the WebGL1 normal is smoother, the lobe grows
     baseColor += u_dirLightColor * specular;
 
     if (u_styleB.z > 0.0) {
@@ -155,13 +155,13 @@ void main() {
 
     // No depth buffer: edge colour only at grazing angles (fresnel is ~0 looking straight down, which must not flood the pool)
     float edgeBlend = smoothstep(0.04, 0.04 + 0.5 * edgeSoftness, fresnel);
-    float edgeAmount = 0.6;
+    float edgeAmount = 0.3; // grazing-angle proxy only: capped so it cannot haze the pool
     if (painterly) {
-        edgeAmount = 0.28 * (0.5 + 0.8 * waterCellNoise(v_worldPos.xz * 1.7 + vec2(u_time * 0.05, 0.0)));
+        edgeAmount = 0.2 * (0.5 + 0.8 * waterCellNoise(v_worldPos.xz * 1.7 + vec2(u_time * 0.05, 0.0)));
     }
     vec3 surfaceColor = mix(baseColor, edgeColor, edgeBlend * edgeAmount);
 
-    // Dredge murk (styleId 1.5): constant fog, no depth available
+    // Dredge murk (styleId 4): constant fog, no depth available
     if (isDredge) {
         vec3 fogColor = mix(shallowColor, deepColor, 0.6) * 0.9;
         surfaceColor = mix(surfaceColor, fogColor, 0.55);
@@ -197,7 +197,7 @@ void main() {
     }
     float finalShoreFoam = aaStepMask(foamCutoff, foamMask, foamSoftness);
     if (painterly) {
-        finalShoreFoam *= 0.4 * smoothstep(0.25, 0.65, noise1 + 0.35 * noise2);
+        finalShoreFoam *= 0.2 * smoothstep(0.25, 0.65, noise1 + 0.35 * noise2);
     }
 
     vec3 shoreFoamColor = isDredge ? mix(foamColor, surfaceColor, 0.6) : foamColor;

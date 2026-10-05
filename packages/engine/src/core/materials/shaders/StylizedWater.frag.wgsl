@@ -112,11 +112,11 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     var edgeAmount = 0.6;
     if (painterly) {
         // Painterly styles: weaker, noise-broken edge tint instead of a solid bright border
-        edgeAmount = 0.28 * (0.5 + 0.8 * waterCellNoise(i.wp.xz * 1.7 + vec2<f32>(obj.time * 0.05, 0.0)));
+        edgeAmount = 0.2 * (0.5 + 0.8 * waterCellNoise(i.wp.xz * 1.7 + vec2<f32>(obj.time * 0.05, 0.0)));
     }
     var surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * edgeAmount);
 
-    // Dredge murk: depth fog (styleId 1.5 only)
+    // Dredge murk: depth fog (styleId 4 only)
     if (isDredge) {
         let fogColor = mix(shallowColor, deepColor, 0.6) * 0.9;
         let fogAmount = (1.0 - exp(-depthDiff * 0.9)) * 0.8;
@@ -187,7 +187,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     var finalShoreFoam = aaStepMask(foamCutoff, shoreFoamMask, foamSoftness);
     if (painterly) {
         // Gentle rim: broken into tufts by noise and only partly opaque
-        finalShoreFoam = finalShoreFoam * 0.4 * smoothstep(0.25, 0.65, noise1 + 0.35 * noise2);
+        finalShoreFoam = finalShoreFoam * 0.2 * smoothstep(0.25, 0.65, noise1 + 0.35 * noise2);
     }
 
     // Dredge: murky foam that picks up the water colour instead of stark white

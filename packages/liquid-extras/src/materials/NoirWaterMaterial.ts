@@ -32,10 +32,10 @@ export class NoirWaterMaterial extends StylizedWaterMaterial {
       deepWaterColor = new Color(0.02, 0.02, 0.02),
       edgeColor = new Color(0.85, 0.85, 0.85),
       foamColor = new Color(0.85, 0.85, 0.85),
-      causticStrength = 0.15,
+      causticStrength = 0.05,
       specularStrength = 0.25,
       rampSoftness = 0.1,
-      washAmount = 0.3,
+      washAmount = 0.1,
       foamSoftness = 0.04,
       skyTint = 0.2,
       foamDistance = 0.45,
@@ -95,13 +95,12 @@ export class NoirWaterMaterial extends StylizedWaterMaterial {
     const glslSurface = `
     // Noir comic-ink desaturation, pen hatching and posterization injected via the surface hook
     float inkTone = pow(clamp(dot(finalColor, vec3(0.299, 0.587, 0.114)), 0.0, 1.0), 0.4545);
-    inkTone = pow(inkTone, 1.3);
-    float hatchW = (1.0 - inkTone) * 0.28;
-    float hatchFreq = 4.0 + 3.0 * (1.0 - inkTone);
-    float hatchWobble = 0.12 * sin((v_worldPos.x - v_worldPos.z) * 1.7);
-    float hatchA = (1.0 - smoothstep(hatchW, hatchW + 0.04, abs(fract((v_worldPos.x + v_worldPos.z + hatchWobble) * hatchFreq) - 0.5))) * smoothstep(0.1, 0.25, inkTone) * (1.0 - smoothstep(0.5, 0.8, inkTone));
-    float hatchB = (1.0 - smoothstep(hatchW, hatchW + 0.04, abs(fract((v_worldPos.x - v_worldPos.z + hatchWobble) * hatchFreq) - 0.5))) * smoothstep(0.06, 0.14, inkTone) * (1.0 - smoothstep(0.25, 0.4, inkTone));
-    inkTone = clamp(inkTone - (hatchA + hatchB) * 0.45, 0.0, 1.0);
+    inkTone = pow(inkTone, 1.0);
+    float hatchW = pow(1.0 - inkTone, 1.5) * 0.5;
+    float hatchFreq = 8.0;
+    float hatchA = (1.0 - smoothstep(hatchW, hatchW + 0.05, abs(fract((v_worldPos.x + v_worldPos.z) * hatchFreq) - 0.5))) * (1.0 - smoothstep(0.7, 0.9, inkTone));
+    float hatchB = (1.0 - smoothstep(hatchW, hatchW + 0.05, abs(fract((v_worldPos.x - v_worldPos.z) * hatchFreq) - 0.5))) * (1.0 - smoothstep(0.08, 0.14, inkTone));
+    inkTone = inkTone * (1.0 - max(hatchA, hatchB));
     float inkSteps = max(u_styleA.w - 1.0, 1.0);
     inkTone = floor(inkTone * inkSteps + 0.5) / inkSteps;
     finalColor = vec3(pow(inkTone, 2.2));
@@ -110,13 +109,12 @@ export class NoirWaterMaterial extends StylizedWaterMaterial {
     const wgslSurface = `
     // Noir comic-ink desaturation, pen hatching and posterization injected via the surface hook
     var inkTone = pow(clamp(dot(finalColor, vec3<f32>(0.299, 0.587, 0.114)), 0.0, 1.0), 0.4545);
-    inkTone = pow(inkTone, 1.3);
-    let hatchW = (1.0 - inkTone) * 0.28;
-    let hatchFreq = 4.0 + 3.0 * (1.0 - inkTone);
-    let hatchWobble = 0.12 * sin((i.wp.x - i.wp.z) * 1.7);
-    let hatchA = (1.0 - smoothstep(hatchW, hatchW + 0.04, abs(fract((i.wp.x + i.wp.z + hatchWobble) * hatchFreq) - 0.5))) * smoothstep(0.1, 0.25, inkTone) * (1.0 - smoothstep(0.5, 0.8, inkTone));
-    let hatchB = (1.0 - smoothstep(hatchW, hatchW + 0.04, abs(fract((i.wp.x - i.wp.z + hatchWobble) * hatchFreq) - 0.5))) * smoothstep(0.06, 0.14, inkTone) * (1.0 - smoothstep(0.25, 0.4, inkTone));
-    inkTone = clamp(inkTone - (hatchA + hatchB) * 0.45, 0.0, 1.0);
+    inkTone = pow(inkTone, 1.0);
+    let hatchW = pow(1.0 - inkTone, 1.5) * 0.5;
+    let hatchFreq = 8.0;
+    let hatchA = (1.0 - smoothstep(hatchW, hatchW + 0.05, abs(fract((i.wp.x + i.wp.z) * hatchFreq) - 0.5))) * (1.0 - smoothstep(0.7, 0.9, inkTone));
+    let hatchB = (1.0 - smoothstep(hatchW, hatchW + 0.05, abs(fract((i.wp.x - i.wp.z) * hatchFreq) - 0.5))) * (1.0 - smoothstep(0.08, 0.14, inkTone));
+    inkTone = inkTone * (1.0 - max(hatchA, hatchB));
     let inkSteps = max(obj.styleA.w - 1.0, 1.0);
     inkTone = floor(inkTone * inkSteps + 0.5) / inkSteps;
     finalColor = vec3<f32>(pow(inkTone, 2.2));

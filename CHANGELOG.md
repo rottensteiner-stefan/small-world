@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.97.1] - 2026-10-05
+
+### "Still waters run deep." - English Proverb
+
+> Documents the Showcase 10 quality round (analysis, fixes and cross-reviews by four collaborating agents). Parts of it already shipped inside the 0.97.0 commit `af62c5f0` without a changelog entry and are listed here so that each change appears under the right heading.
+
+- **Features:**
+  - *Showcase 10 gallery*: ten pools side by side (clear water, toon, bold, soft, sparkle, dredge, noir, lava, slime, oil). The start camera now fits the near row to the aspect ratio (FOV 64°, pitch -28°), signs stand beside their own pool, dredge/noir/lava/slime/oil get dark tile frames, the sky has a clear colour plus linear horizon fog, the subtitle lists all ten pools, and public labels carry no trademark names.
+  - *Noir ink look* (`@small-world/liquid-extras`): the hook posterises in gamma space and draws constant-frequency pen hatching (8 lines per unit) whose line thickness follows tone from hairline to solid; cross-hatching only in the darkest band; `posterizeSteps` (2..8) is wired through `u_styleA.w`; thin broken foam rim.
+  - *OilSlickMaterial* (`@small-world/liquid-extras`): dark, viscous oil with a sparse rainbow sheen (smooth domain-warped flow noise instead of cell noise, sheen tied to fresnel and the sun, `iridescenceStrength` wired, absorption 1.8/1.5/1.2). Class docs no longer claim thin-film interference.
+- **Architecture & Bugfixes:**
+  - *Bright patch root cause*: the toon specular term `aaStepMask(0.99, nDotH, ...)` is a +-8 degree cone, but wave slopes are smooth over metres, so one cone covered about 20% of a pool. The cone is now narrow for all stylized styles (`aaStepMask(0.9993, nDotH, 0.0005)`, `smoothstep(0.9988, 0.9997, ...)` in GLSL100).
+  - *WebGPU lava stripes*: `DepthPrePassGPU` drew opaque waved liquids with the flat shared `DepthMaterial` (no wave displacement), so displaced troughs failed the later less-equal depth test and the clear colour showed through. [`FluidSurfaceMaterial.getRenderManifest()`](packages/engine/src/core/materials/FluidSurfaceMaterial.ts) now sets `state.skipDepthPrePass` for opaque liquids with wave amplitude above 0 (unit test added).
+  - *Clear water* ([`OpenWater.frag.*`](packages/engine/src/core/materials/shaders/OpenWater.frag.glsl)): caustics are projected along the sun ray with gain 0.1 and their own scale, seabed tint `mix(1, waterColor, 0.6)`, narrower specular, crest foam `smoothstep(0.65, 0.95) * 0.5`; WebGL1 samples the opaque capture with a real screen UV (`v_clipPos`) instead of the mesh UV, which removes a blue sub-rectangle.
+  - *Stylized family* ([`StylizedWater.frag.*`](packages/engine/src/core/materials/shaders/StylizedWater.frag.glsl)): explicit integer style ids (0 toon, 1 soft, 2 sparkle, 3 extension, 4 dredge, 5 bold) instead of fractional ids; calmer foam rim (edge tint 0.2, foam weight 0.2) for soft/sparkle/dredge/bold; sparkle desaturation; dredge depth fog; WebGL1 edge weight capped at 0.3 and specular halved.
+  - *Pool tuning*: lava reads orange-red (emissive 2.4, colour 1/0.2/0.03), slime keeps soft bubble highlights without dark rings and no longer blows out to white at the walls on WebGPU, the oil pool uses dull dark objects.
+- **Housekeeping & Docs:**
+  - *Research notes*: [`docs/research/stylized-water/README.md`](docs/research/stylized-water/README.md) now marks the planning sections as historical and summarises the quality analysis (the analysis, before/after images and cross-review boards stay local under `.agents/collaborate/scratches/water/`).
+  - Known and unchanged: radial wall tile perspective, flat sky colour, WebGL1 water slightly milkier than WebGL2/WebGPU, no frame-time measurements.
+  - 220 test suites (1303 unit tests) passing green with 0 lint errors in the water packages; `packages/tools` was left out of this release (work in progress).
+
 ## [0.97.0] - 2026-10-04
 
 ### "The river is everywhere at the same time, at the source and at the mouth, at the waterfall, at the ferry, at the current, in the ocean and in the mountains." - Hermann Hesse

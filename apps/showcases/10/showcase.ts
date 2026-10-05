@@ -11,6 +11,8 @@ import {
   DirectionalLight,
   EngineOptions,
   FluidSurfaceMaterial,
+  Fog,
+  FogMode,
   FPSController,
   Ground,
   LavaMaterial,
@@ -160,7 +162,7 @@ class SplashDropBehavior extends Behavior {
  */
 export class Showcase10 extends AbstractShowcase {
   private readonly _moveSpeed: number = 12.0;
-  private readonly _startEyeHeight: number = 9.0;
+  private readonly _startEyeHeight: number = 8.0;
   private readonly _minEyeHeight: number = 0.1;
   private readonly _lightPulseSpeed: number = 2.1;
 
@@ -184,18 +186,36 @@ export class Showcase10 extends AbstractShowcase {
     this.onCanvasRecreated();
 
     const aspect = window.innerWidth / window.innerHeight;
+    // Start framing: as close as possible while the near pool row (outer pools + signs,     // +-23.5 m wide, with margin) still fits the horizontal field of view at this aspect ratio.
+    const startFov = MathUtils.degToRad(64);
+    const startPitch = MathUtils.degToRad(-28);
+    const framedDepth = 26 / (Math.tan(startFov / 2) * aspect);
+    const startZ = Math.min(
+      46,
+      Math.max(
+        17,
+        7.5 + (framedDepth - this._startEyeHeight * Math.sin(-startPitch)) / Math.cos(startPitch),
+      ),
+    );
     this.camera.projection = new PerspectiveProjection({
-      fov: MathUtils.degToRad(75),
+      fov: startFov,
       aspect,
       near: 0.1,
       far: 1000,
     });
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, this._startEyeHeight, 21);
+    this.camera.position.set(0, this._startEyeHeight, startZ);
     this.camera.theta = 0; // Look across both pool rows along -Z (all 10 pools in view)
-    this.camera.phi = MathUtils.degToRad(-24);
-    this.renderer.setClearColor(new Color(0.3, 0.5, 0.78, 1.0)); // Daylight sky instead of a black void
+    this.camera.phi = startPitch;
+    this.renderer.setClearColor(new Color(0.26, 0.48, 0.8, 1.0)); // Daylight sky instead of a black void
+    // Horizon haze: the far meadow fades into a pale sky tone, so the sky reads as a gradient
+    this.scene.fog = new Fog({
+      mode: FogMode.LINEAR,
+      color: new Color(0.62, 0.78, 0.92),
+      near: 70.0,
+      far: 260.0,
+    });
     this.camera.addBehavior(
       new FPSController({ input: this.input, audio: this.audio, moveSpeed: this._moveSpeed }),
     );
@@ -527,12 +547,14 @@ export class Showcase10 extends AbstractShowcase {
       noiseMap: slimeTexture,
       normalMap: slimeNormalMap,
       color: new Color(0.15, 0.95, 0.25),
-      edgeColor: new Color(0.35, 0.75, 0.2), // Softer neon rim
-      emissiveStrength: 0.4,
-      rimStrength: 0.3,
+      edgeColor: new Color(0.1, 0.42, 0.07), // Dark contact colour: a bright edge colour summed with glow and shade clipped to white at the walls
+      emissiveStrength: 0.3,
+      rimStrength: 0.12,
+      specularStrength: 0.25, // Soft bright bubble highlights instead of dark outlines
+      specularPower: 160.0,
       shade: 0.6,
       absorption: 2.2,
-      normalStrength: 1.2,
+      normalStrength: 1.5,
       viscosity: 10.0,
     });
     this._buildPool({
@@ -577,10 +599,16 @@ export class Showcase10 extends AbstractShowcase {
         [this._makeIndustrialGear(new Color(0.18, 0.19, 0.21)), 0.9, 0.6],
       ],
       floaters: [
-        [this._makeIndustrialBarrel(new Color(0.72, 0.2, 0.12)), -1.1, 1.0, 0.04, 1.0], // Industrial hazard red barrel
-        [this._makeMetallicBuoy(new Color(0.88, 0.65, 0.12)), 1.1, -1.0, 0.05, 1.2], // Yellow hazard buoy
+        [this._makeIndustrialBarrel(new Color(0.09, 0.08, 0.08)), -1.1, 1.0, 0.04, 1.0], // Black rubber-coated drum, dull in thick oil
+        [
+          this._makeMetallicBuoy(new Color(0.2, 0.15, 0.08), new Color(0.2, 0.08, 0.05)),
+          1.1,
+          -1.0,
+          0.05,
+          1.2,
+        ], // Oil-stained, rusted buoy
       ],
-      dropper: this._makeIndustrialBarrel(new Color(0.18, 0.2, 0.22)), // Dark steel oil drum
+      dropper: this._makeIndustrialBarrel(new Color(0.07, 0.075, 0.08)), // Black steel oil drum
     });
 
     // Signboards stand BESIDE the pools (in the gap on the entrance side of each pool, not in front
@@ -602,10 +630,10 @@ export class Showcase10 extends AbstractShowcase {
     const signYawA = MathUtils.degToRad(12);
     const signYawB = MathUtils.degToRad(-12);
     for (const [title, subtitle, px] of rowASigns) {
-      this._createSignboard(title, subtitle, px + 4.5, -6.0, signYawA);
+      this._createSignboard(title, subtitle, px - 3.9, -6.2, signYawA);
     }
     for (const [title, subtitle, px] of rowBSigns) {
-      this._createSignboard(title, subtitle, px + 4.5, 6.0, signYawB);
+      this._createSignboard(title, subtitle, px - 3.9, 9.0, signYawB);
     }
 
     this.scene.update();
@@ -626,6 +654,7 @@ export class Showcase10 extends AbstractShowcase {
     const sign = new Object3D(`Sign_${title.replace(/\s+/g, "_")}`);
     sign.position.set(x, 0, z);
     sign.rotation.y = rotationY;
+    sign.scale.set(0.82, 0.82, 0.82); // Compact enough to stand right beside its own pool
 
     // 1. Sleek dark metallic stand post
     const post = new Object3D("SignPost");
@@ -1168,7 +1197,10 @@ export class Showcase10 extends AbstractShowcase {
     return root;
   }
 
-  private _makeMetallicBuoy(bodyColor: Color = new Color(0.85, 0.55, 0.1)): Object3D {
+  private _makeMetallicBuoy(
+    bodyColor: Color = new Color(0.85, 0.55, 0.1),
+    mastColor: Color = new Color(0.9, 0.2, 0.1),
+  ): Object3D {
     const root = new Object3D("MetallicBuoy");
     const sphere = new Object3D("BuoySphere");
     sphere.geometry = new Sphere({
@@ -1197,7 +1229,7 @@ export class Showcase10 extends AbstractShowcase {
       radialSegments: 8,
     }).getGeometryData();
     mast.position.set(0, 0.4, 0);
-    mast.material = new BasicMaterial({ color: new Color(0.9, 0.2, 0.1) });
+    mast.material = new BasicMaterial({ color: mastColor });
     root.add(mast);
 
     return root;
@@ -1291,4 +1323,3 @@ export class Showcase10 extends AbstractShowcase {
 
 const app = new Showcase10();
 app.start().catch((err: unknown) => console.error("[Showcase10] Failed to start:", err));
-(window as unknown as Record<string, unknown>)["__app"] = app; // TMP-WATER-QA (remove when the QA session ends)
