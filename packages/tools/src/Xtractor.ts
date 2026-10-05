@@ -18,7 +18,6 @@ import {
   CanvasUndoHistory,
 } from "./common/image/index.js";
 import {
-  UniversalIngestRouter,
   UniversalIngestDropzone,
   IngestResult,
   CommandHistory,
@@ -798,8 +797,6 @@ export class Xtractor extends ForgeTool {
     );
 
     // 1. Universal Ingest Router & Loading Logic
-    const ingestRouter = new UniversalIngestRouter();
-
     const handleIngestResult = (result: IngestResult): void => {
       if (result.kind === "image" || result.kind === "svg") {
         if (this.loadFromBase64) {
@@ -858,15 +855,9 @@ export class Xtractor extends ForgeTool {
       e.preventDefault();
       dropOverlay.style.display = "none";
     });
-    canvasWrapper.addEventListener("drop", (e) => {
-      e.preventDefault();
+    // The dropzone (window drop) routes the files; here we only hide the overlay.
+    canvasWrapper.addEventListener("drop", () => {
       dropOverlay.style.display = "none";
-      if (e.dataTransfer) {
-        ingestRouter
-          .routeDataTransfer(e.dataTransfer)
-          .then(handleIngestResult)
-          .catch((err: Error) => alert(err.message));
-      }
     });
 
     this.loadFromBase64 = (base64: string): void => {
@@ -883,37 +874,6 @@ export class Xtractor extends ForgeTool {
       };
       img.src = base64;
     };
-
-    // Paste from Clipboard (Screenshots, Image Files, Data URLs, Web Links, SVG Code)
-    const onPaste = (e: ClipboardEvent): void => {
-      if (!this._container.isConnected) return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
-        return;
-      }
-
-      if (e.clipboardData) {
-        if (e.clipboardData.files && e.clipboardData.files.length > 0) {
-          e.preventDefault();
-          ingestRouter
-            .routeFiles(Array.from(e.clipboardData.files))
-            .then(handleIngestResult)
-            .catch((err: Error) => alert(err.message));
-          return;
-        }
-
-        const text = e.clipboardData.getData("text");
-        if (text && text.trim()) {
-          e.preventDefault();
-          ingestRouter
-            .routeText(text.trim(), "clipboard_asset")
-            .then(handleIngestResult)
-            .catch((err: Error) => alert(err.message));
-        }
-      }
-    };
-
-    window.addEventListener("paste", onPaste, { signal: this._abortController.signal });
 
     // Keyboard shortcuts: Remove image with Backspace/Delete, Undo/Redo with Cmd+Z / Cmd+Shift+Z
     const onKeyDown = (e: KeyboardEvent): void => {

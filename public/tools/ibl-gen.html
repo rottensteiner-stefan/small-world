@@ -134,6 +134,7 @@
     <script type="module">
       import { IBLBaker } from "/packages/engine/src/tools/ibl-gen.ts";
       import { UniversalIngestDropzone } from "/packages/tools/src/common/io/ui/UniversalIngestDropzone.ts";
+      import { primaryPbrTexture, firstImageItem } from "/packages/tools/src/common/io/ingestResultHelpers.ts";
 
       let loadedBlob = null;
       let baker = null;
@@ -160,16 +161,13 @@
             loadedBlob = result.blob;
             generateBtn.disabled = false;
           } else if (result.kind === "pbr-set") {
-            const primary =
-              result.pbrSet.albedo ||
-              result.pbrSet.diffuse ||
-              Object.values(result.pbrSet.slots)[0];
+            const primary = primaryPbrTexture(result.pbrSet);
             if (primary) {
-              loadedBlob = primary.blob;
+              loadedBlob = primary;
               generateBtn.disabled = false;
             }
-          } else if (result.kind === "zip" || result.kind === "files") {
-            const img = result.items.find((it) => it.kind === "image");
+          } else if (result.kind === "archive" || result.kind === "files") {
+            const img = firstImageItem(result);
             if (img) {
               loadedBlob = img.blob;
               generateBtn.disabled = false;

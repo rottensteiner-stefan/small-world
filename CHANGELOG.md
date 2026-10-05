@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.98.1] - 2026-10-05
+
+### "Perfection is achieved when there is nothing left to take away." - Antoine de Saint-Exupéry
+
+- **Architecture & Bugfixes:**
+  - *Double import in the tools*: Xtractor (page and class) and pbr-gen reacted to one drop with up to three handlers (dropzone, legacy `ToolDropOverlay`, own canvas/paste listeners): an SVG drop loaded twice and showed a "no compatible image" warning next to the success toast. The dropzone now stops the drop from bubbling to window handlers, owns window drop and paste in Xtractor and pbr-gen, and the redundant legacy listeners are gone.
+  - *Leftovers of the old ingest result shape in untyped pages*: ibl-gen read `pbrSet.diffuse`/`slots`/`items` (a PBR-set drop never enabled "Generate"), kit-inspector waited for `kind: "zip"` (ZIP and folder drops via the dropzone never imported). Both use the current `archive` / `files` / `gltf` / `pbr-set` results now.
+- **Housekeeping & Docs:**
+  - Verified in the browser: SVG, PNG, ZIP and PBR-set drops in Xtractor, Pixler (SVG becomes 64x32 for a 40x20 viewBox), pbr-gen and ibl-gen. Not checked: kit-inspector with a real kit, Material Studio, Maker import.
+
 ## [0.98.0] - 2026-10-05
 
 ### "A good tool improves the way you work." - Jeff Duntemann

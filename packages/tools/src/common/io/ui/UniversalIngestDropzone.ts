@@ -298,6 +298,8 @@ export class UniversalIngestDropzone {
 
     this._root.addEventListener("drop", (e) => {
       e.preventDefault();
+      // Keep window-level drop handlers of the host page from importing the same drop a second time
+      e.stopPropagation();
       this._dragDepth = 0;
       this._root.classList.remove("drag-active");
       if (e.dataTransfer) {

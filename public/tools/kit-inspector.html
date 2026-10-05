@@ -758,7 +758,7 @@
       import { RendererType } from "/packages/engine/src/enums/index.ts";
       import {
         DirectoryAssetSource,
-        ZipAssetSource,
+        FileAssetSource,
         ToastManager,
         ToolDropOverlay,
         UniversalIngestDropzone,
@@ -858,16 +858,29 @@
         new UniversalIngestDropzone({
           container: kitDropEl,
           label: "Kit ablegen",
-          supportedKinds: ["zip", "files", "gltf", "json"],
+          supportedKinds: ["archive", "gltf", "files"],
           enableWindowDrop: false,
           enablePaste: true,
           onIngest: async (result) => {
-            if (result.kind === "zip") {
-              const source = await ZipAssetSource.fromBlob(result.blob, result.name);
-              await importKit(source);
+            if (result.kind === "archive") {
+              await importKit(
+                new FileAssetSource(
+                  result.files.map((item) => ({
+                    path: item.path,
+                    file: new File([item.blob], item.name, { type: item.mimeType }),
+                  })),
+                  { name: result.name },
+                ),
+              );
+            } else if (result.kind === "gltf") {
+              await importKit(result.source);
             } else if (result.kind === "files") {
-              const source = await DirectoryAssetSource.pick();
-              if (source) await importKit(source);
+              await importKit(
+                new FileAssetSource(
+                  result.files.map((file) => ({ path: file.webkitRelativePath || file.name, file })),
+                  { name: result.name },
+                ),
+              );
             }
           },
           onError: (err) => ioToasts.error(`Import fehlgeschlagen: ${err.message}`),

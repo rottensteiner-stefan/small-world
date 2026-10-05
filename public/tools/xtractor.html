@@ -84,7 +84,7 @@
         cursor: crosshair;
         max-width: 100%;
       }
-      /* Drop overlay (own, window-level overlay stays ToolDropOverlay): only looks, behaviour unchanged */
+      /* Drop overlay: visual hint only, the dropzone routes the files */
       #drop-overlay {
         position: absolute;
         inset: 0;
@@ -497,11 +497,9 @@
     <script type="module">
     import {
       ToastManager,
-      ToolDropOverlay,
       bindToolShortcuts,
       ZipAssetSink,
       downloadBlob,
-      UniversalIngestRouter,
       UniversalIngestDropzone,
       CommandHistory,
     } from "/packages/tools/src/common/io/index.ts";
@@ -562,32 +560,6 @@
     let panStartX = 0, panStartY = 0;
     
     let currentTool = 'rect'; // 'rect' | 'circle' | 'pan' | 'wand'
-
-    // Setup window-level drop overlay
-    new ToolDropOverlay({
-      label: "Bild oder ZIP hier ablegen",
-      onSource: async (source) => {
-        try {
-          const files = await source.list();
-          const imgFile = files.find((f) => /\.(png|jpg|jpeg|webp)$/i.test(f));
-          if (!imgFile) {
-            toastManager.show("Keine kompatible Bilddatei im Import gefunden (PNG, JPG, WebP).", "warning");
-            return;
-          }
-          const bytes = await source.read(imgFile);
-          const mime = imgFile.endsWith(".png") ? "image/png" : "image/jpeg";
-          const blob = new Blob([bytes], { type: mime });
-          currentFileName = imgFile.split("/").pop().split(".")[0] || "extracted";
-          loadFile(new File([blob], imgFile.split("/").pop() || "imported.png", { type: mime }));
-          toastManager.show(`Bild '${imgFile}' erfolgreich geladen!`, "success");
-        } catch (err) {
-          toastManager.show(`Fehler beim Import: ${err.message}`, "error");
-        }
-      },
-      onError: (err) => {
-        toastManager.show(err.message, "error");
-      },
-    });
 
     const triggerUndo = () => {
       if (!currentImage || !undoHistory.canUndo) {
@@ -898,8 +870,6 @@
     }, { passive: false });
 
     // 1. Universal Ingest Router & Loading Logic
-    const ingestRouter = new UniversalIngestRouter();
-
     async function applyIngestResult(result) {
         if (result.kind === 'svg') {
             // Vector input: load the sized SVG as an image and continue like a bitmap
@@ -980,49 +950,9 @@
         e.preventDefault();
         dropOverlay.style.display = 'none';
     });
-    canvasWrapper.addEventListener('drop', async (e) => {
-        e.preventDefault();
+    // The dropzone (window drop + paste) routes the files; here we only hide the overlay.
+    canvasWrapper.addEventListener('drop', () => {
         dropOverlay.style.display = 'none';
-        if (e.dataTransfer) {
-            try {
-                const result = await ingestRouter.routeDataTransfer(e.dataTransfer);
-                await applyIngestResult(result);
-            } catch (err) {
-                toastManager.show(err.message, 'error');
-            }
-        }
-    });
-
-    // Paste from Clipboard (Screenshots, Image Files, Data URLs, Web Links, SVG Code)
-    window.addEventListener('paste', async (e) => {
-        const target = e.target;
-        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-            return;
-        }
-
-        if (e.clipboardData) {
-            if (e.clipboardData.files && e.clipboardData.files.length > 0) {
-                e.preventDefault();
-                try {
-                    const result = await ingestRouter.routeFiles(Array.from(e.clipboardData.files));
-                    await applyIngestResult(result);
-                } catch (err) {
-                    toastManager.show(err.message, 'error');
-                }
-                return;
-            }
-
-            const text = e.clipboardData.getData('text');
-            if (text && text.trim()) {
-                e.preventDefault();
-                try {
-                    const result = await ingestRouter.routeText(text.trim(), 'clipboard_asset');
-                    await applyIngestResult(result);
-                } catch (err) {
-                    toastManager.show(err.message, 'error');
-                }
-            }
-        }
     });
 
     // 2. Selection & Move Logic

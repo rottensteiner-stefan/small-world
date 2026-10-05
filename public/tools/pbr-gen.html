@@ -964,7 +964,6 @@
       import { MaterialStudioApp } from "/packages/tools/src/MaterialStudio.ts";
       import {
         ToastManager,
-        ToolDropOverlay,
         bindToolShortcuts,
         ZipAssetSink,
         downloadBlob,
@@ -1018,31 +1017,6 @@
           }
         }
       }
-
-      // Setup window-level drop overlay for images, PBR sets, or ZIPs
-      new ToolDropOverlay({
-        label: "PBR-Texturbild, Ordner oder ZIP hier ablegen",
-        onSource: async (source) => {
-          try {
-            const files = await source.list();
-            const imgFile = files.find((f) => /\.(png|jpg|jpeg|webp)$/i.test(f));
-            if (!imgFile) {
-              ioToast.show("Keine kompatible Bilddatei im Import gefunden (PNG, JPG, WebP).", "warning");
-              return;
-            }
-            const bytes = await source.read(imgFile);
-            const mime = imgFile.endsWith(".png") ? "image/png" : "image/jpeg";
-            const blob = new Blob([bytes], { type: mime });
-            const result = await ingestRouter.routeSingleFile(new File([blob], imgFile.split("/").pop() || "imported.png", { type: mime }));
-            await applyIngestResult(result);
-          } catch (err) {
-            ioToast.show(`Fehler beim Import: ${err.message}`, "error");
-          }
-        },
-        onError: (err) => {
-          ioToast.show(err.message, "error");
-        },
-      });
 
       // Bind shortcuts
       bindToolShortcuts({
@@ -1187,7 +1161,7 @@
           container: dropzoneContainer,
           label: "Textur ablegen",
           supportedKinds: ["image", "pbr-set", "zip", "files", "svg", "text"],
-          enableWindowDrop: false,
+          enableWindowDrop: true,
           enablePaste: false, // Handled globally below
           onIngest: async (result) => {
             await applyIngestResult(result);
