@@ -1,5 +1,6 @@
 export * from "./IBLShaders.js";
 export * from "./ibl-gen.js";
+export * from "./ibl-gen-core.js";
 export * from "./forge/ForgeTool.js";
 export * from "./procgen/index.js";
 

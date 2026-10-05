@@ -54,7 +54,7 @@ const quadVertices = new Float32Array([
   -1.0, 1.0, 0.0, 1.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 0.0,
 ]);
 
-class IBLBaker {
+export class IBLBaker {
   private _gl: WebGL2RenderingContext;
   private _fbo: WebGLFramebuffer;
   private _captureProjection: Float32Array;

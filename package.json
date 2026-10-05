@@ -36,7 +36,9 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "docs:api": "typedoc",
-    "docs:build-all": "npm run docs:api && npm run docs:build"
+    "docs:build-all": "npm run docs:api && npm run docs:build",
+    "ibl:bake": "tsx scripts/ibl-bake.ts",
+    "test:ibl": "tsx scripts/ibl-bake.ts --seed 11 --out .agents/scratches/ibl-bake"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -70,7 +72,8 @@
     "vitepress": "^1.6.4",
     "vitest": "^4.1.10",
     "vue": "^3.5.40",
-    "wgsl_reflect": "^1.5.0"
+    "wgsl_reflect": "^1.5.0",
+    "esbuild": "^0.28.0"
   },
   "overrides": {
     "eslint-plugin-import": {
