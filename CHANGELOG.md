@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.98.2] - 2026-10-05
+
+### "The proof of the pudding is in the eating." - Proverb
+
+- **Architecture & Bugfixes:**
+  - *PBR slot matching*: [`matchPbrSlots`](packages/tools/src/common/io/PbrSlotMatcher.ts) let single-letter abbreviations anywhere in a name win over the real suffix, so `m_albedo.png` became the metallic map and Material Studio showed the normal map as its source image. The trailing name token now decides; keywords elsewhere in the name only count when the last token names no slot. New `PbrSlotMatcher.test.ts`.
+  - *Maker background import*: dropped SVGs were silently ignored, because `createImageBitmap` cannot decode SVG blobs. They are now rasterised to PNG at their normalised size before import.
+- **Housekeeping & Docs:**
+  - Verified in the browser: Maker background import (SVG, PNG, map set, drop on the viewport) and Material Studio (PBR-set drop shows the albedo map). 227 test suites, 1360 tests, 0 lint errors.
+
 ## [0.98.1] - 2026-10-05
 
 ### "Perfection is achieved when there is nothing left to take away." - Antoine de Saint-Exupéry

@@ -11,6 +11,27 @@ import {
  * 2) -- uses UniversalIngestDropzone with file picker, folder scan, URL fetch, and paste,
  * plus direct drag & drop onto the viewport canvas.
  */
+/** Draws an SVG blob onto a canvas of the given size and returns it as a PNG file. */
+async function rasterizeSvg(svg: Blob, width: number, height: number, name: string): Promise<File> {
+  const url = URL.createObjectURL(svg);
+  try {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (null === ctx) throw new Error("2D-Kontext nicht verfügbar.");
+    ctx.drawImage(image, 0, 0, width, height);
+    const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (null === png) throw new Error("PNG-Export fehlgeschlagen.");
+    return new File([png], `${name.replace(/\.svg$/i, "")}.png`, { type: "image/png" });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export class BackgroundImportPanel {
   private readonly _dropzone: UniversalIngestDropzone;
 
@@ -28,7 +49,14 @@ export class BackgroundImportPanel {
       blob instanceof File ? blob : new File([blob], name, { type: blob.type || "image/png" });
 
     const handleResult = (result: IngestResult): void => {
-      if (result.kind === "image" || result.kind === "svg") {
+      if ("svg" === result.kind) {
+        // createImageBitmap cannot decode SVG blobs, so rasterise to PNG first
+        void rasterizeSvg(result.blob, result.width, result.height, result.name)
+          .then(onImport)
+          .catch((err: Error): void => {
+            console.error("[Maker BackgroundImport] SVG-Rasterisierung fehlgeschlagen:", err);
+          });
+      } else if ("image" === result.kind) {
         const file =
           result.blob instanceof File
             ? result.blob

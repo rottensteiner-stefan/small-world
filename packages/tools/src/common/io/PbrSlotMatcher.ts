@@ -13,6 +13,31 @@ const MAP_PATTERNS = {
   emissive: /(?:_|\b)(?:emissive|emission|emit|glow|e)(?:_|\.|$)/i,
 };
 
+type PbrSlot = keyof typeof MAP_PATTERNS;
+
+const SLOT_ORDER: readonly PbrSlot[] = [
+  "normal",
+  "roughness",
+  "metallic",
+  "ao",
+  "height",
+  "emissive",
+  "albedo",
+];
+
+/**
+ * Finds the slot a file name belongs to. The trailing token wins (`m_albedo.png` is albedo, not
+ * metallic); only if it names no slot, a keyword anywhere in the name decides.
+ */
+function detectSlot(filename: string): PbrSlot | undefined {
+  const base = filename.replace(/\.[^/.]+$/, "");
+  const lastToken = base.split(/[_\-. ]+/).pop() ?? "";
+  for (const slot of SLOT_ORDER) {
+    if (MAP_PATTERNS[slot].test(`_${lastToken}.`)) return slot;
+  }
+  return SLOT_ORDER.find((slot) => MAP_PATTERNS[slot].test(filename));
+}
+
 export interface MatchableFile {
   name: string;
   blob: Blob | File;
@@ -39,28 +64,11 @@ export function matchPbrSlots(files: MatchableFile[]): PbrSetMatch | null {
       continue;
     }
 
-    if (!result.normal && MAP_PATTERNS.normal.test(filename)) {
-      result.normal = file.blob;
+    const slot = detectSlot(filename);
+    if (undefined !== slot && undefined === result[slot]) {
+      result[slot] = file.blob;
       matchedSlotsCount++;
-    } else if (!result.roughness && MAP_PATTERNS.roughness.test(filename)) {
-      result.roughness = file.blob;
-      matchedSlotsCount++;
-    } else if (!result.metallic && MAP_PATTERNS.metallic.test(filename)) {
-      result.metallic = file.blob;
-      matchedSlotsCount++;
-    } else if (!result.ao && MAP_PATTERNS.ao.test(filename)) {
-      result.ao = file.blob;
-      matchedSlotsCount++;
-    } else if (!result.height && MAP_PATTERNS.height.test(filename)) {
-      result.height = file.blob;
-      matchedSlotsCount++;
-    } else if (!result.emissive && MAP_PATTERNS.emissive.test(filename)) {
-      result.emissive = file.blob;
-      matchedSlotsCount++;
-    } else if (!result.albedo && MAP_PATTERNS.albedo.test(filename)) {
-      result.albedo = file.blob;
-      matchedSlotsCount++;
-    } else if (!result.albedo) {
+    } else if (undefined === slot && undefined === result.albedo) {
       // Fallback: first unassigned image becomes albedo if no explicit pattern matched
       result.albedo = file.blob;
       matchedSlotsCount++;
