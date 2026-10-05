@@ -1,12 +1,36 @@
 import { ForgeTool, ForgeToolOptions, ToolEvents, EventDispatcherImpl } from "@small-world/engine";
+import {
+  AiConfigStorage,
+  createVisionAiProvider,
+  sortModelsDescending,
+  AiConfig,
+  AiProviderType,
+  DEFAULT_AI_CONFIGS,
+  VisionAiMessage,
+} from "./common/ai/index.js";
+import {
+  detectSpriteBounds,
+  magicWand,
+  removeBackground,
+  generateNormalMap,
+  parseActionChips,
+  CanvasActionChip,
+} from "./common/image/index.js";
 
 export class Xtractor extends ForgeTool {
   public loadFromBase64?: (base64: string) => void;
+  private _abortController = new AbortController();
 
   public override onPasteImage(base64: string): void {
     if (this.loadFromBase64) {
       this.loadFromBase64(base64);
     }
+  }
+
+  public override unmount(): void {
+    super.unmount();
+    this._abortController.abort();
+    this._abortController = new AbortController();
   }
 
   constructor(
@@ -116,6 +140,52 @@ export class Xtractor extends ForgeTool {
       flex-direction: column;
       background: var(--tool-panel);
     }
+    .swf-ix-chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      background: var(--tool-panel-solid);
+      border-bottom: 1px solid var(--tool-border);
+      gap: 10px;
+    }
+    .swf-ix-chat-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .swf-ix-provider-badge {
+      font-size: 0.72rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--tool-card);
+      border: 1px solid var(--tool-border);
+      color: var(--tool-accent);
+      font-family: monospace;
+    }
+    .swf-ix-ai-settings {
+      padding: 1rem;
+      background: var(--tool-panel);
+      border-bottom: 2px solid var(--tool-border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+    }
+    .swf-ix-settings-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .swf-ix-settings-row label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--tool-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
     .swf-ix-chat-history {
       flex: 1;
       overflow-y: auto;
@@ -125,9 +195,95 @@ export class Xtractor extends ForgeTool {
       gap: 1rem;
     }
     .swf-ix-message {
-      padding: 1rem;
+      padding: 0.85rem 1rem;
       border-radius: var(--tool-radius-md);
-      max-width: 85%;
+      max-width: 90%;
+      line-height: 1.45;
+      font-size: 0.9rem;
+      word-break: break-word;
+    }
+    .swf-ix-message p {
+      margin: 0 0 0.5rem 0;
+    }
+    .swf-ix-message p:last-child {
+      margin-bottom: 0;
+    }
+    .swf-ix-message pre {
+      background: var(--tool-panel-solid);
+      border: 1px solid var(--tool-border);
+      padding: 0.5rem;
+      border-radius: var(--tool-radius-sm);
+      overflow-x: auto;
+      font-family: monospace;
+      font-size: 0.82rem;
+      margin: 0.4rem 0;
+    }
+    .swf-ix-message code {
+      font-family: monospace;
+      font-size: 0.85em;
+      background: rgba(127, 127, 127, 0.2);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .swf-ix-chip-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .swf-ix-action-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      background: var(--tool-card);
+      border: 1px solid var(--tool-accent);
+      color: var(--tool-text);
+      border-radius: var(--tool-radius-sm);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .swf-ix-action-chip:hover {
+      background: var(--tool-accent-glow);
+      transform: translateY(-1px);
+    }
+    .swf-ix-color-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--tool-panel-solid);
+      border: 1px solid var(--tool-border);
+      font-family: monospace;
+      font-size: 0.78rem;
+    }
+    .swf-ix-color-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid rgba(255,255,255,0.3);
+      display: inline-block;
+    }
+    .swf-ix-thinking {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--tool-accent);
+      font-style: italic;
+    }
+    .swf-ix-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--tool-accent);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: swf-ix-spin 0.8s linear infinite;
+    }
+    @keyframes swf-ix-spin {
+      to { transform: rotate(360deg); }
     }
     .msg-ai {
       background: var(--tool-panel);
@@ -205,8 +361,15 @@ export class Xtractor extends ForgeTool {
           <button class="tool-btn" id="btn-tool-pan" title="Hand Tool">Hand</button>
           <button class="tool-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rect</button>
           <button class="tool-btn" id="btn-tool-circle" title="Kreis Auswahl">Circle</button>
+          <button class="tool-btn" id="btn-tool-wand" title="Magic Wand (Smart-Masking)">Wand</button>
         </div>
         
+        <div class="tool-tabs swf-ix-toolbar-group">
+          <button class="tool-btn" id="btn-auto-sprites" title="Automatisch alle Sprites auf dem Sheet erkennen">✨ Auto-Sprites</button>
+          <button class="tool-btn" id="btn-remove-bg" title="Hintergrund entfernen (Smart Alpha Matting)">🪄 RemBG</button>
+          <button class="tool-btn" id="btn-gen-normal" title="Normal Map erzeugen">🏔️ Normal</button>
+        </div>
+
         <div class="tool-tabs swf-ix-toolbar-group">
           <button class="tool-btn" id="btn-zoom-out">-</button>
           <span style="color: var(--tool-text-muted); padding: 0 5px; font-weight: bold; font-size: 0.9rem; align-self: center;" id="zoom-label">100%</span>
@@ -237,21 +400,68 @@ export class Xtractor extends ForgeTool {
 
     <!-- CHAT & AI INTERFACE -->
     <div class="swf-ix-sidebar" id="sidebar">
+      <div class="swf-ix-chat-header">
+        <div class="swf-ix-chat-title">
+          <span>Vision AI Assistant</span>
+          <span class="swf-ix-provider-badge" id="ai-badge">Gemini</span>
+        </div>
+        <button class="tool-btn" id="btn-toggle-ai-settings" title="KI Einstellungen (Provider & API Keys)" style="padding: 0.25rem 0.5rem; font-size: 0.85rem;">⚙️ Settings</button>
+      </div>
+
+      <!-- Collapsible AI Settings Drawer -->
+      <div class="swf-ix-ai-settings" id="ai-settings-panel" style="display: none;">
+        <div class="swf-ix-settings-row">
+          <label>AI Provider</label>
+          <select id="ai-provider-select" class="tool-input" style="padding: 4px 8px;">
+            <option value="gemini">Google Gemini (Flash / Pro)</option>
+            <option value="openai">OpenAI (GPT-4o, Mini)</option>
+            <option value="claude">Anthropic Claude (3.5 Sonnet / Haiku)</option>
+            <option value="ollama">Ollama (Lokal / llama3.2-vision)</option>
+            <option value="custom">Custom Endpoint (OpenAI-compatible)</option>
+          </select>
+        </div>
+        <div class="swf-ix-settings-row" id="ai-apikey-row">
+          <label id="ai-apikey-label">API Key</label>
+          <input type="password" id="ai-api-key" class="tool-input" placeholder="AIzaSy... oder sk-..." autocomplete="off" />
+        </div>
+        <div class="swf-ix-settings-row">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label>Modell</label>
+            <button class="tool-btn" id="btn-fetch-models" title="Verfügbare Modelle von API abrufen" style="padding: 1px 6px; font-size: 0.75rem;">🔄 Modelle laden</button>
+          </div>
+          <select id="ai-model-select" class="tool-input" style="padding: 4px 8px;">
+            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+            <option value="__custom__">Manuelle Eingabe...</option>
+          </select>
+          <input type="text" id="ai-model-name" class="tool-input" style="display: none; margin-top: 4px;" placeholder="Modellname eingeben..." />
+        </div>
+        <div class="swf-ix-settings-row" id="ai-endpoint-row" style="display: none;">
+          <label>Endpoint URL</label>
+          <input type="text" id="ai-endpoint" class="tool-input" placeholder="http://localhost:11434/api/chat" />
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 4px; align-items: center;">
+          <button class="tool-btn primary" id="btn-save-ai-settings" style="flex: 1; padding: 0.35rem 0.6rem;">Speichern & Testen</button>
+          <button class="tool-btn" id="btn-close-ai-settings" style="padding: 0.35rem 0.6rem;">Schließen</button>
+        </div>
+        <div id="ai-settings-status" style="font-size: 0.78rem; display: none;"></div>
+      </div>
+
       <div class="swf-ix-chat-history" id="chat-history">
         <div class="swf-ix-message msg-ai">
-          Willkommen beim Xtractor! Lade ein Bild hoch (oder ziehe es per Drag & Drop rein) und markiere einen Bereich, den ich für dich analysieren oder zuschneiden soll.
+          Willkommen beim <strong>Xtractor Vision AI</strong>!<br/>
+          Lade ein Bild hoch und ziehe bei Bedarf einen Auswahlrahmen auf. Du kannst mir freie Fragen zum Bild stellen (z.B. <em>"Welche Farbpalette passt zu diesem Sprite?"</em>, <em>"Schneide in 4 Segmente"</em> oder <em>"Schätze Roughness/Metallic für diese Textur"</em>).
         </div>
       </div>
       
       <div class="swf-ix-chat-input-area">
         <div class="tool-card swf-ix-context-pill" id="context-pill">
           <canvas id="crop-preview-canvas"></canvas>
-          <div style="font-size: 0.8rem; color: var(--tool-text-muted);">Ausschnitt markiert.</div>
+          <div style="font-size: 0.8rem; color: var(--tool-text-muted);">Ausschnitt aktiv</div>
           <button class="tool-btn" style="padding: 0.2rem 0.5rem; margin-left: auto; margin-right: 5px;" id="btn-send-pixler">An Pixler</button>
           <button class="tool-btn" style="padding: 0.2rem 0.5rem;" id="btn-cancel-crop">✖</button>
         </div>
         <div class="swf-ix-chat-input-row">
-          <input type="text" id="chat-input" class="tool-input" style="flex:1;" placeholder="Z. B. 'Extrahiere alle Zahlen...'" />
+          <input type="text" id="chat-input" class="tool-input" style="flex:1;" placeholder="Frage oder Befehl eingeben..." />
           <button class="tool-btn primary" id="btn-send">Senden</button>
         </div>
       </div>
@@ -306,6 +516,10 @@ export class Xtractor extends ForgeTool {
     const btnToolRect = this._container.querySelector<HTMLElement>("#btn-tool-rect")!;
     const btnToolCircle = this._container.querySelector<HTMLElement>("#btn-tool-circle")!;
     const btnToolPan = this._container.querySelector<HTMLElement>("#btn-tool-pan")!;
+    const btnToolWand = this._container.querySelector<HTMLElement>("#btn-tool-wand")!;
+    const btnAutoSprites = this._container.querySelector<HTMLElement>("#btn-auto-sprites")!;
+    const btnRemoveBg = this._container.querySelector<HTMLElement>("#btn-remove-bg")!;
+    const btnGenNormal = this._container.querySelector<HTMLElement>("#btn-gen-normal")!;
     const zoomLabel = this._container.querySelector<HTMLElement>("#zoom-label")!;
 
     function setActiveTool(tool: string): void {
@@ -313,9 +527,12 @@ export class Xtractor extends ForgeTool {
       btnToolRect.classList.toggle("active", tool === "rect");
       btnToolCircle.classList.toggle("active", tool === "circle");
       btnToolPan.classList.toggle("active", tool === "pan");
+      btnToolWand.classList.toggle("active", tool === "wand");
 
       if (tool === "pan") {
         canvas.style.cursor = "grab";
+      } else if (tool === "wand") {
+        canvas.style.cursor = "cell";
       } else {
         canvas.style.cursor = "crosshair";
       }
@@ -338,6 +555,141 @@ export class Xtractor extends ForgeTool {
     });
 
     btnToolPan.addEventListener("click", () => setActiveTool("pan"));
+    btnToolWand.addEventListener("click", () => setActiveTool("wand"));
+
+    // Stage 2 Power Tool Listeners
+    btnAutoSprites.addEventListener("click", () => {
+      if (!currentImage || canvas.width === 0) {
+        addSimpleMessage(
+          "Bitte lade zuerst ein Bild hoch, um Sprites automatisch zu erkennen.",
+          "ai",
+        );
+        return;
+      }
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const boxes = detectSpriteBounds(imgData, { minWidth: 8, minHeight: 8, padding: 2 });
+
+      if (boxes.length === 0) {
+        addSimpleMessage(
+          "Keine isolierten Sprites auf transparentem Grund erkannt. (Tipp: Vorher 🪄 RemBG nutzen!).",
+          "ai",
+        );
+        return;
+      }
+
+      addSimpleMessage(`✨ **${boxes.length} Sprites** automatisch auf dem Sheet erkannt:`, "ai");
+
+      const gallery = document.createElement("div");
+      gallery.style.display = "flex";
+      gallery.style.gap = "6px";
+      gallery.style.flexWrap = "wrap";
+      gallery.style.marginTop = "10px";
+
+      boxes.forEach((box, i) => {
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = box.w;
+        sliceCanvas.height = box.h;
+        sliceCanvas.style.border = "1px solid var(--tool-accent)";
+        sliceCanvas.style.background = "var(--tool-panel-solid)";
+        sliceCanvas.style.borderRadius = "4px";
+        sliceCanvas.title = `Sprite ${i + 1} (${box.w}x${box.h}px)`;
+
+        const sCtx = sliceCanvas.getContext("2d")!;
+        sCtx.drawImage(canvas, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+
+        sliceCanvas.style.cursor = "pointer";
+        sliceCanvas.addEventListener("click", () => {
+          const link = document.createElement("a");
+          link.download = `sprite_${i + 1}.png`;
+          link.href = sliceCanvas.toDataURL("image/png");
+          link.click();
+        });
+
+        gallery.appendChild(sliceCanvas);
+      });
+
+      chatHistory.lastChild!.appendChild(gallery);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+
+      // Highlight first detected box on canvas
+      const firstBox = boxes[0];
+      if (firstBox) {
+        currentRect = firstBox;
+        const rect = canvas.getBoundingClientRect();
+        updateSelectionBox(
+          firstBox.x,
+          firstBox.y,
+          firstBox.w,
+          firstBox.h,
+          canvas.width / rect.width,
+          canvas.height / rect.height,
+        );
+        updatePropsUI();
+        captureCrop();
+      }
+    });
+
+    btnRemoveBg.addEventListener("click", () => {
+      if (!currentImage || canvas.width === 0) {
+        addSimpleMessage("Bitte lade zuerst ein Bild hoch, um den Hintergrund zu entfernen.", "ai");
+        return;
+      }
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const cleaned = removeBackground(imgData, { tolerance: 28, feather: 2 });
+      ctx.putImageData(cleaned, 0, 0);
+      if (currentRect) captureCrop();
+
+      addSimpleMessage(
+        "🪄 **Hintergrund entfernt!** Hintergrund wurde transparent freigestellt.",
+        "ai",
+      );
+    });
+
+    btnGenNormal.addEventListener("click", () => {
+      if (!currentImage || canvas.width === 0) {
+        addSimpleMessage("Bitte lade zuerst ein Bild hoch, um eine Normal Map zu berechnen.", "ai");
+        return;
+      }
+
+      const srcData =
+        currentRect && cropPreviewCanvas.width > 0
+          ? cropCtx.getImageData(0, 0, cropPreviewCanvas.width, cropPreviewCanvas.height)
+          : ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const normalData = generateNormalMap(srcData, 2.5);
+      const nCanvas = document.createElement("canvas");
+      nCanvas.width = normalData.width;
+      nCanvas.height = normalData.height;
+      nCanvas.getContext("2d")!.putImageData(normalData, 0, 0);
+
+      addSimpleMessage("🏔️ **Tangent-Space Normal Map** berechnet:", "ai");
+
+      const previewDiv = document.createElement("div");
+      previewDiv.style.marginTop = "8px";
+      nCanvas.style.maxWidth = "100%";
+      nCanvas.style.border = "1px solid var(--tool-border)";
+      nCanvas.style.borderRadius = "4px";
+      previewDiv.appendChild(nCanvas);
+
+      const btnDl = document.createElement("button");
+      btnDl.className = "tool-btn primary";
+      btnDl.style.marginTop = "6px";
+      btnDl.style.fontSize = "0.8rem";
+      btnDl.style.padding = "4px 8px";
+      btnDl.innerText = "📥 Normal Map herunterladen";
+      btnDl.addEventListener("click", () => {
+        const link = document.createElement("a");
+        link.download = "normal_map.png";
+        link.href = nCanvas.toDataURL("image/png");
+        link.click();
+      });
+      previewDiv.appendChild(btnDl);
+
+      chatHistory.lastChild!.appendChild(previewDiv);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    });
 
     // Zoom Logic
     function applyZoom(
@@ -413,7 +765,7 @@ export class Xtractor extends ForgeTool {
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         clearSelection();
-        addMessage(`Bild aus Zwischenablage geladen (${img.width}x${img.height}px).`, "ai");
+        addSimpleMessage(`Bild aus Zwischenablage geladen (${img.width}x${img.height}px).`, "ai");
       };
       img.src = base64;
     };
@@ -435,6 +787,44 @@ export class Xtractor extends ForgeTool {
       reader.readAsDataURL(file);
     };
 
+    // Paste from Clipboard (Screenshots, Image Files, Data URLs)
+    const onPaste = (e: ClipboardEvent): void => {
+      // If the container is not in DOM or not visible, do not intercept
+      if (!this._container.isConnected) return;
+
+      const items = e.clipboardData?.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item && item.type.indexOf("image") !== -1) {
+            const file = item.getAsFile();
+            if (file) {
+              e.preventDefault();
+              loadFile(file);
+              return;
+            }
+          }
+        }
+      }
+
+      const files = e.clipboardData?.files;
+      if (files && files.length > 0 && files[0]?.type.startsWith("image/")) {
+        e.preventDefault();
+        loadFile(files[0]);
+        return;
+      }
+
+      const text = e.clipboardData?.getData("text");
+      if (text && text.trim().startsWith("data:image/")) {
+        e.preventDefault();
+        if (this.loadFromBase64) {
+          this.loadFromBase64(text.trim());
+        }
+      }
+    };
+
+    window.addEventListener("paste", onPaste, { signal: this._abortController.signal });
+
     // URL Loading Logic
     btnLoadUrl.addEventListener("click", () => {
       const url = urlInput.value.trim();
@@ -449,10 +839,10 @@ export class Xtractor extends ForgeTool {
         ctx.drawImage(img, 0, 0);
         clearSelection();
         urlInput.value = "";
-        addMessage(`Bild erfolgreich von URL geladen (${img.width}x${img.height}px).`, "ai");
+        addSimpleMessage(`Bild erfolgreich von URL geladen (${img.width}x${img.height}px).`, "ai");
       };
       img.onerror = (): void => {
-        addMessage(
+        addSimpleMessage(
           `Fehler beim Laden der URL. Der fremde Server blockiert den Zugriff vermutlich durch CORS-Richtlinien. Lade das Bild am besten kurz lokal herunter und nutze den Upload-Button.`,
           "ai",
         );
@@ -487,6 +877,25 @@ export class Xtractor extends ForgeTool {
 
       const pointerX = (e.clientX - rect.left) * scaleX;
       const pointerY = (e.clientY - rect.top) * scaleY;
+
+      if (currentTool === "wand") {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const wandRes = magicWand(imgData, Math.round(pointerX), Math.round(pointerY), 32);
+        if (wandRes && wandRes.box.w > 4 && wandRes.box.h > 4) {
+          currentRect = wandRes.box;
+          updateSelectionBox(
+            currentRect.x,
+            currentRect.y,
+            currentRect.w,
+            currentRect.h,
+            scaleX,
+            scaleY,
+          );
+          updatePropsUI();
+          captureCrop();
+        }
+        return;
+      }
 
       if (currentRect && isInside(pointerX, pointerY, currentRect)) {
         // Start moving
@@ -716,92 +1125,542 @@ export class Xtractor extends ForgeTool {
       }
     });
 
-    // 3. Mock Chat Logic
+    // 3. Multi-Provider Vision AI Chat & Settings Logic
+    let aiConfig = AiConfigStorage.load();
+
+    const aiBadge = this._container.querySelector<HTMLElement>("#ai-badge")!;
+    const btnToggleSettings =
+      this._container.querySelector<HTMLElement>("#btn-toggle-ai-settings")!;
+    const aiSettingsPanel = this._container.querySelector<HTMLElement>("#ai-settings-panel")!;
+    const aiProviderSelect =
+      this._container.querySelector<HTMLSelectElement>("#ai-provider-select")!;
+    const aiApiKey = this._container.querySelector<HTMLInputElement>("#ai-api-key")!;
+    const aiApiKeyRow = this._container.querySelector<HTMLElement>("#ai-apikey-row")!;
+    const aiModelSelect = this._container.querySelector<HTMLSelectElement>("#ai-model-select")!;
+    const aiModelName = this._container.querySelector<HTMLInputElement>("#ai-model-name")!;
+    const btnFetchModels = this._container.querySelector<HTMLElement>("#btn-fetch-models")!;
+    const aiEndpoint = this._container.querySelector<HTMLInputElement>("#ai-endpoint")!;
+    const aiEndpointRow = this._container.querySelector<HTMLElement>("#ai-endpoint-row")!;
+    const btnSaveAiSettings = this._container.querySelector<HTMLElement>("#btn-save-ai-settings")!;
+    const btnCloseAiSettings =
+      this._container.querySelector<HTMLElement>("#btn-close-ai-settings")!;
+    const aiSettingsStatus = this._container.querySelector<HTMLElement>("#ai-settings-status")!;
+
     const chatInput = this._container.querySelector<HTMLInputElement>("#chat-input")!;
     const btnSend = this._container.querySelector<HTMLElement>("#btn-send")!;
     const chatHistory = this._container.querySelector<HTMLElement>("#chat-history")!;
 
-    function addMessage(text: string, type: "user" | "ai"): void {
-      const msg = document.createElement("div");
-      msg.className = `swf-ix-message msg-${type}`;
-      msg.innerText = text;
-      chatHistory.appendChild(msg);
-      chatHistory.scrollTop = chatHistory.scrollHeight;
+    function populateModelDropdown(models: string[], selectedModel: string): void {
+      aiModelSelect.innerHTML = "";
+      const sorted = sortModelsDescending(models);
+      let found = false;
+      for (const m of sorted) {
+        const opt = document.createElement("option");
+        opt.value = m;
+        opt.innerText = m;
+        if (m === selectedModel) {
+          opt.selected = true;
+          found = true;
+        }
+        aiModelSelect.appendChild(opt);
+      }
+      const customOpt = document.createElement("option");
+      customOpt.value = "__custom__";
+      customOpt.innerText = "Manuelle Eingabe...";
+      if (!found && selectedModel) {
+        customOpt.selected = true;
+        aiModelName.style.display = "block";
+      } else {
+        aiModelName.style.display = "none";
+      }
+      aiModelSelect.appendChild(customOpt);
     }
 
-    btnSend.addEventListener("click", () => {
-      const text = chatInput.value.trim();
-      if (!text) return;
+    async function refreshModelsForProvider(cfg: AiConfig): Promise<void> {
+      btnFetchModels.innerText = "⏳...";
+      try {
+        const provider = createVisionAiProvider(cfg);
+        if (provider.listModels) {
+          const models = await provider.listModels();
+          populateModelDropdown(models, cfg.model);
+        }
+      } catch {
+        // Fallback
+      } finally {
+        btnFetchModels.innerText = "🔄 Modelle laden";
+      }
+    }
 
-      addMessage(text, "user");
-      chatInput.value = "";
+    function syncAiUI(cfg: AiConfig): void {
+      const providerNames: Record<AiProviderType, string> = {
+        gemini: "Gemini",
+        openai: "OpenAI",
+        claude: "Claude",
+        ollama: "Ollama",
+        custom: "Custom",
+      };
+      const name = providerNames[cfg.provider] || cfg.provider;
+      const modelShort = cfg.model ? ` (${cfg.model.split("/").pop()})` : "";
+      aiBadge.innerText = `${name}${modelShort}`;
 
+      aiProviderSelect.value = cfg.provider;
+      aiApiKey.value = cfg.apiKey || "";
+      aiModelName.value = cfg.model || "";
+      aiEndpoint.value = cfg.endpoint || "";
+
+      // Visibility of fields
+      if (cfg.provider === "ollama") {
+        aiApiKeyRow.style.display = "none";
+        aiEndpointRow.style.display = "flex";
+      } else if (cfg.provider === "custom") {
+        aiApiKeyRow.style.display = "flex";
+        aiEndpointRow.style.display = "flex";
+      } else {
+        aiApiKeyRow.style.display = "flex";
+        aiEndpointRow.style.display = "none";
+      }
+
+      void refreshModelsForProvider(cfg);
+    }
+
+    syncAiUI(aiConfig);
+
+    aiModelSelect.addEventListener("change", () => {
+      if (aiModelSelect.value === "__custom__") {
+        aiModelName.style.display = "block";
+        aiModelName.focus();
+      } else {
+        aiModelName.style.display = "none";
+        aiModelName.value = aiModelSelect.value;
+      }
+    });
+
+    btnFetchModels.addEventListener("click", () => {
+      const tempCfg: AiConfig = {
+        provider: aiProviderSelect.value as AiProviderType,
+        apiKey: aiApiKey.value.trim(),
+        model: aiModelName.value.trim(),
+        endpoint: aiEndpoint.value.trim() || undefined,
+      };
+      void refreshModelsForProvider(tempCfg);
+    });
+
+    aiProviderSelect.addEventListener("change", () => {
+      const selected = aiProviderSelect.value as AiProviderType;
+      const defaults = DEFAULT_AI_CONFIGS[selected] || DEFAULT_AI_CONFIGS.gemini;
+      aiModelName.value = defaults.model;
+      aiEndpoint.value = defaults.endpoint || "";
+      if (selected === "ollama") {
+        aiApiKeyRow.style.display = "none";
+        aiEndpointRow.style.display = "flex";
+      } else if (selected === "custom") {
+        aiApiKeyRow.style.display = "flex";
+        aiEndpointRow.style.display = "flex";
+      } else {
+        aiApiKeyRow.style.display = "flex";
+        aiEndpointRow.style.display = "none";
+      }
+
+      void refreshModelsForProvider({
+        provider: selected,
+        apiKey: aiApiKey.value.trim(),
+        model: defaults.model,
+        endpoint: aiEndpoint.value.trim() || undefined,
+      });
+    });
+
+    btnToggleSettings.addEventListener("click", () => {
+      const isVisible = aiSettingsPanel.style.display !== "none";
+      aiSettingsPanel.style.display = isVisible ? "none" : "flex";
+      aiSettingsStatus.style.display = "none";
+    });
+
+    btnCloseAiSettings.addEventListener("click", () => {
+      aiSettingsPanel.style.display = "none";
+      aiSettingsStatus.style.display = "none";
+    });
+
+    btnSaveAiSettings.addEventListener("click", async () => {
+      aiSettingsStatus.style.display = "block";
+      aiSettingsStatus.style.color = "var(--tool-text-muted)";
+      aiSettingsStatus.innerText = "⏳ Verbindung wird getestet...";
+
+      const selectedModel =
+        aiModelSelect.value === "__custom__"
+          ? aiModelName.value.trim()
+          : aiModelSelect.value || aiModelName.value.trim();
+
+      const newConfig: AiConfig = {
+        provider: aiProviderSelect.value as AiProviderType,
+        apiKey: aiApiKey.value.trim(),
+        model: selectedModel,
+        endpoint: aiEndpoint.value.trim() || undefined,
+      };
+
+      try {
+        const provider = createVisionAiProvider(newConfig);
+        await provider.testConnection();
+        aiConfig = newConfig;
+        AiConfigStorage.save(newConfig);
+        syncAiUI(newConfig);
+        aiSettingsStatus.style.color = "#4ade80";
+        aiSettingsStatus.innerText = "✓ Verbindung erfolgreich! Gespeichert.";
+        setTimeout(() => {
+          aiSettingsPanel.style.display = "none";
+        }, 1200);
+      } catch (err) {
+        aiSettingsStatus.style.color = "#f87171";
+        const msg = err instanceof Error ? err.message : String(err);
+        aiSettingsStatus.innerText = `Fehler: ${msg}`;
+      }
+    });
+
+    function executeSlice(numSlices: number): void {
       if (!currentRect) {
-        addMessage(
-          "Kein Bereich ausgewählt. Bitte ziehe zuerst ein Auswahl-Rechteck auf der Arbeitsfläche auf.",
+        addSimpleMessage(
+          "Bitte wähle zuerst einen Bereich auf der Canvas aus, um ihn zu zerteilen.",
           "ai",
         );
         return;
       }
+      const count = Math.max(1, Math.min(64, numSlices));
+      const sliceWidth = currentRect.w / count;
 
-      const sliceMatch = text.match(/(?:slice|teile|schneide|segmente?)\s*(\d+)?/i);
-      if (sliceMatch) {
-        const numSlices = sliceMatch[1]
-          ? Math.max(1, Math.min(64, parseInt(sliceMatch[1], 10)))
-          : 4;
-        const sliceWidth = currentRect.w / numSlices;
+      addSimpleMessage(`Bereich in ${count} gleichmäßige Segmente unterteilt:`, "ai");
 
-        addMessage(`Bereich in ${numSlices} gleichmäßige Segmente unterteilt:`, "ai");
+      const gallery = document.createElement("div");
+      gallery.style.display = "flex";
+      gallery.style.gap = "6px";
+      gallery.style.flexWrap = "wrap";
+      gallery.style.marginTop = "10px";
 
-        const gallery = document.createElement("div");
-        gallery.style.display = "flex";
-        gallery.style.gap = "5px";
-        gallery.style.flexWrap = "wrap";
-        gallery.style.marginTop = "10px";
+      for (let i = 0; i < count; i++) {
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = sliceWidth;
+        sliceCanvas.height = currentRect.h;
+        sliceCanvas.style.border = "1px solid var(--tool-accent2)";
+        sliceCanvas.style.background = "var(--tool-panel-solid)";
+        sliceCanvas.style.borderRadius = "4px";
+        sliceCanvas.title = `Sprite ${i + 1} (Klicken zum Download)`;
 
-        for (let i = 0; i < numSlices; i++) {
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = sliceWidth;
-          sliceCanvas.height = currentRect.h;
-          sliceCanvas.style.border = "1px solid var(--tool-accent2)";
-          sliceCanvas.style.background = "var(--tool-panel-solid)";
-          sliceCanvas.title = `Sprite ${i + 1} (Klicken zum Speichern)`;
+        const sCtx = sliceCanvas.getContext("2d")!;
+        sCtx.drawImage(
+          canvas,
+          currentRect.x + i * sliceWidth,
+          currentRect.y,
+          sliceWidth,
+          currentRect.h,
+          0,
+          0,
+          sliceWidth,
+          currentRect.h,
+        );
 
-          const sCtx = sliceCanvas.getContext("2d")!;
-          sCtx.drawImage(
-            canvas,
-            currentRect.x + i * sliceWidth,
-            currentRect.y,
-            sliceWidth,
-            currentRect.h,
-            0,
-            0,
-            sliceWidth,
-            currentRect.h,
-          );
+        sliceCanvas.style.cursor = "pointer";
+        sliceCanvas.addEventListener("click", () => {
+          const link = document.createElement("a");
+          link.download = `sprite_slice_${i + 1}.png`;
+          link.href = sliceCanvas.toDataURL("image/png");
+          link.click();
+        });
 
-          sliceCanvas.style.cursor = "pointer";
-          sliceCanvas.addEventListener("click", () => {
-            const link = document.createElement("a");
-            link.download = `sprite_slice_${i + 1}.png`;
-            link.href = sliceCanvas.toDataURL();
-            link.click();
-          });
+        gallery.appendChild(sliceCanvas);
+      }
 
-          gallery.appendChild(sliceCanvas);
+      chatHistory.lastChild!.appendChild(gallery);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function addSimpleMessage(text: string, type: "user" | "ai"): HTMLElement {
+      const msg = document.createElement("div");
+      msg.className = `swf-ix-message msg-${type}`;
+      msg.innerHTML = text.replace(/\n/g, "<br/>");
+      chatHistory.appendChild(msg);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      return msg;
+    }
+
+    function formatAiResponse(rawText: string): HTMLElement {
+      const msg = document.createElement("div");
+      msg.className = "swf-ix-message msg-ai";
+
+      // Parse code blocks, bold, list items, and action tags
+      let html = rawText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+      // Code blocks
+      html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+        return `<pre><code>${code}</code></pre>`;
+      });
+
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+      // Bold
+      html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+
+      // Linebreaks
+      html = html.replace(/\n/g, "<br/>");
+
+      msg.innerHTML = html;
+
+      // Extract Color codes (#RRGGBB) to add visual swatches
+      const colorMatches = Array.from(rawText.matchAll(/#([0-9a-fA-F]{6})\b/g));
+      if (colorMatches.length > 0) {
+        const uniqueColors = Array.from(new Set(colorMatches.map((m) => m[0])));
+        const chipContainer = document.createElement("div");
+        chipContainer.className = "swf-ix-chip-container";
+        for (const hex of uniqueColors) {
+          const chip = document.createElement("span");
+          chip.className = "swf-ix-color-chip";
+          chip.innerHTML = `<span class="swf-ix-color-swatch" style="background:${hex};"></span>${hex}`;
+          chipContainer.appendChild(chip);
+        }
+        msg.appendChild(chipContainer);
+      }
+
+      // Parse all action chips
+      const chips = parseActionChips(rawText);
+      if (chips.length > 0) {
+        const chipContainer = document.createElement("div");
+        chipContainer.className = "swf-ix-chip-container";
+
+        for (const chip of chips) {
+          const btnChip = document.createElement("button");
+          btnChip.className = "swf-ix-action-chip";
+          btnChip.innerHTML = `${chip.icon} ${chip.label}`;
+          btnChip.addEventListener("click", () => applyActionChip(chip));
+          chipContainer.appendChild(btnChip);
         }
 
-        chatHistory.lastChild!.appendChild(gallery);
-      } else {
-        addMessage(
-          `Auswahl: ${Math.round(currentRect.w)}x${Math.round(currentRect.h)}px. Verfügbare Befehle: 'slice <N>' (z.B. 'slice 8') zum Zerschneiden in Segmente.`,
-          "ai",
-        );
+        if (chips.length > 1) {
+          const btnAll = document.createElement("button");
+          btnAll.className = "swf-ix-action-chip";
+          btnAll.style.background = "var(--tool-accent, #3b82f6)";
+          btnAll.style.color = "#ffffff";
+          btnAll.style.fontWeight = "600";
+          btnAll.innerHTML = "⚡ Alle Aktionen anwenden";
+          btnAll.addEventListener("click", () => {
+            for (const chip of chips) {
+              applyActionChip(chip);
+            }
+          });
+          chipContainer.appendChild(btnAll);
+        }
+
+        msg.appendChild(chipContainer);
       }
-    });
+
+      chatHistory.appendChild(msg);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      return msg;
+    }
+
+    function replaceCanvasData(newImgData: ImageData): void {
+      canvas.width = newImgData.width;
+      canvas.height = newImgData.height;
+      ctx.putImageData(newImgData, 0, 0);
+      const img = new Image();
+      img.onload = (): void => {
+        currentImage = img;
+        clearSelection();
+      };
+      img.src = canvas.toDataURL();
+    }
+
+    function showMapPreview(title: string, mapData: ImageData, defaultFilename: string): void {
+      const mCanvas = document.createElement("canvas");
+      mCanvas.width = mapData.width;
+      mCanvas.height = mapData.height;
+      mCanvas.getContext("2d")!.putImageData(mapData, 0, 0);
+
+      const previewDiv = document.createElement("div");
+      previewDiv.style.marginTop = "8px";
+      mCanvas.style.maxWidth = "100%";
+      mCanvas.style.border = "1px solid var(--tool-border)";
+      mCanvas.style.borderRadius = "4px";
+      previewDiv.appendChild(mCanvas);
+
+      const btnDl = document.createElement("button");
+      btnDl.className = "tool-btn primary";
+      btnDl.style.marginTop = "6px";
+      btnDl.style.fontSize = "0.8rem";
+      btnDl.style.padding = "4px 8px";
+      btnDl.innerText = `📥 ${title} herunterladen`;
+      btnDl.addEventListener("click", () => {
+        const a = document.createElement("a");
+        a.href = mCanvas.toDataURL("image/png");
+        a.download = defaultFilename;
+        a.click();
+      });
+      previewDiv.appendChild(btnDl);
+
+      const msg = addSimpleMessage(`✨ **${title}** berechnet:`, "ai");
+      msg.appendChild(previewDiv);
+    }
+
+    function applyActionChip(chip: CanvasActionChip): void {
+      if (!currentImage || canvas.width === 0) {
+        addSimpleMessage("Bitte lade zuerst ein Bild hoch, um eine Aktion auszuführen.", "ai");
+        return;
+      }
+
+      const srcData =
+        currentRect && cropPreviewCanvas.width > 0 && cropPreviewCanvas.height > 0
+          ? cropCtx.getImageData(0, 0, cropPreviewCanvas.width, cropPreviewCanvas.height)
+          : ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const result = chip.execute(srcData);
+
+      if ("data" in result && (result as ImageData).data instanceof Uint8ClampedArray) {
+        const newImgData = result as ImageData;
+        if (
+          currentRect &&
+          cropPreviewCanvas.width > 0 &&
+          newImgData.width === currentRect.w &&
+          newImgData.height === currentRect.h
+        ) {
+          ctx.putImageData(newImgData, currentRect.x, currentRect.y);
+          captureCrop();
+        } else {
+          replaceCanvasData(newImgData);
+        }
+        addSimpleMessage(`✅ **${chip.label}** angewendet!`, "ai");
+      } else {
+        const customRes = result as {
+          normalMap?: ImageData;
+          depthMap?: ImageData;
+          sliceCount?: number;
+          autoSprites?: boolean;
+        };
+        if (customRes.autoSprites) {
+          btnAutoSprites.click();
+        } else if (customRes.sliceCount) {
+          executeSlice(customRes.sliceCount);
+        } else if (customRes.normalMap) {
+          showMapPreview("Tangent-Space Normal Map", customRes.normalMap, "normal_map.png");
+        } else if (customRes.depthMap) {
+          showMapPreview("Depth / Height Map", customRes.depthMap, "depth_map.png");
+        }
+      }
+    }
+
+    const conversationHistory: VisionAiMessage[] = [];
+
+    const SYSTEM_PROMPT = `You are the Small World Vision AI Assistant for 2D/3D game art, texture extraction, sprite sheets, pixel art, and material authoring.
+When analyzing images, recommend and emit deterministic action chips using square brackets so the user can apply them with 1 click:
+- Background Removal & Chroma: '[REMBG]' or '[CHROMA_KEY: #hex, tolerance]'
+- Trimming & Cropping: '[AUTOCROP]' (trim transparent padding), '[CROP: x, y, w, h]'
+- Geometry & Transforms: '[FLIP_H]', '[FLIP_V]', '[ROTATE: 90|-90|180|270]', '[SCALE: 2x|4x|0.5x]', '[PAD_POT]' (power of 2)
+- Color & Palette: '[RECOLOR: #fromHex -> #toHex]', '[POSTERIZE: 4]' (retro palette quantization), '[GRAYSCALE]', '[INVERT]', '[SEPIA]', '[AUTO_LEVELS]'
+- Tone Adjustments: '[ADJUST: brightness=1.2, contrast=1.1, hue=45, saturation=1.2]'
+- Game Art & Pixel Cleanup: '[OUTLINE: #000000, 1]' (add crisp pixel outline), '[DESPECKLE]' (remove orphan noise pixels)
+- Sprite Slicing: '[AUTO_SPRITES]' (auto connected-component detection), '[SLICE: N]' (uniform N frame slice)
+- 3D Texture Maps: '[NORMAL_MAP]' (tangent-space normal vectors), '[DEPTH_MAP]' (height/depth), '[EMISSIVE_MAP]' (glow mask), '[AO_MAP]' (ambient occlusion)
+
+When colors or palettes are mentioned, output HEX values (e.g. #ff3366).
+Keep answers concise, actionable, and formatted with clean markdown bullet points.`;
+
+    async function handleSend(): Promise<void> {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      addSimpleMessage(text, "user");
+      chatInput.value = "";
+
+      // Quick local fallback for commands if typed directly
+      const directChips = parseActionChips(text);
+      if (directChips.length > 0) {
+        for (const chip of directChips) {
+          applyActionChip(chip);
+        }
+        return;
+      }
+
+      // Prepare image payload
+      let imageBase64: string | undefined;
+      if (currentRect && cropPreviewCanvas.width > 0 && cropPreviewCanvas.height > 0) {
+        imageBase64 = cropPreviewCanvas.toDataURL("image/png");
+      } else if (currentImage && canvas.width > 0 && canvas.height > 0) {
+        // Downscale large canvas to max 1024px for fast vision transmission
+        const maxDim = 1024;
+        if (canvas.width > maxDim || canvas.height > maxDim) {
+          const scale = Math.min(maxDim / canvas.width, maxDim / canvas.height);
+          const thumb = document.createElement("canvas");
+          thumb.width = Math.round(canvas.width * scale);
+          thumb.height = Math.round(canvas.height * scale);
+          const tCtx = thumb.getContext("2d")!;
+          tCtx.drawImage(canvas, 0, 0, thumb.width, thumb.height);
+          imageBase64 = thumb.toDataURL("image/jpeg", 0.85);
+        } else {
+          imageBase64 = canvas.toDataURL("image/png");
+        }
+      }
+
+      // Check if API key / provider is configured
+      const hasKey = !!aiConfig.apiKey?.trim() || aiConfig.provider === "ollama";
+      if (!hasKey) {
+        const fallbackMsg = document.createElement("div");
+        fallbackMsg.className = "swf-ix-message msg-ai";
+        fallbackMsg.innerHTML = `
+          <strong>Noch kein KI-Provider eingerichtet.</strong><br/>
+          Um die echte Multimodal-Vision-KI zu nutzen (Gemini, OpenAI, Claude oder lokales Ollama), trage bitte deinen API-Key in den Einstellungen ein.<br/>
+          <button class="tool-btn primary" style="margin-top: 8px; font-size: 0.82rem; padding: 4px 8px;">⚙️ Jetzt Provider konfigurieren</button>
+        `;
+        const btnOpen = fallbackMsg.querySelector("button")!;
+        btnOpen.addEventListener("click", () => {
+          aiSettingsPanel.style.display = "flex";
+        });
+        chatHistory.appendChild(fallbackMsg);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+        return;
+      }
+
+      // Render thinking indicator
+      const thinkingMsg = document.createElement("div");
+      thinkingMsg.className = "swf-ix-message msg-ai swf-ix-thinking";
+      thinkingMsg.innerHTML = `<span class="swf-ix-spinner"></span> <span>Vision AI analysiert...</span>`;
+      chatHistory.appendChild(thinkingMsg);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+
+      conversationHistory.push({
+        role: "user",
+        content: text,
+        imageBase64,
+      });
+
+      try {
+        const provider = createVisionAiProvider(aiConfig);
+        const response = await provider.sendMessage({
+          messages: conversationHistory,
+          systemInstruction: SYSTEM_PROMPT,
+        });
+
+        thinkingMsg.remove();
+        conversationHistory.push({
+          role: "assistant",
+          content: response.text,
+        });
+
+        formatAiResponse(response.text);
+      } catch (err) {
+        thinkingMsg.remove();
+        const errStr = err instanceof Error ? err.message : String(err);
+        const errMsg = document.createElement("div");
+        errMsg.className = "swf-ix-message msg-ai";
+        errMsg.style.borderColor = "#f87171";
+        errMsg.innerHTML = `<strong>⚠️ KI-Fehler:</strong> ${errStr}<br/><button class="tool-btn" style="margin-top:6px;font-size:0.8rem;">⚙️ Einstellungen überprüfen</button>`;
+        errMsg.querySelector("button")!.addEventListener("click", () => {
+          aiSettingsPanel.style.display = "flex";
+        });
+        chatHistory.appendChild(errMsg);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      }
+    }
+
+    btnSend.addEventListener("click", () => void handleSend());
 
     chatInput.addEventListener("keypress", (e: KeyboardEvent) => {
-      if (e.key === "Enter") btnSend.click();
+      if (e.key === "Enter") void handleSend();
     });
 
     // 4. Splitter Logic

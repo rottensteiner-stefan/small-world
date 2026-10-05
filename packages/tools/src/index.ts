@@ -10,3 +10,5 @@ export * from "./maker/ContentDrawer.js";
 export * from "./kit-inspector/KitInspectorApp.js";
 export * from "./attachDevTools.js";
 export * from "./common/io/index.js";
+export * from "./common/ai/index.js";
+export * from "./common/image/index.js";
