@@ -72,7 +72,6 @@ uniform float u_reflectivity; // speed multiplier
 out vec3 v_worldPos;
 out vec3 v_normal;
 out vec2 v_uv;
-out float v_displacementY;
 
 [LIQUID_GERSTNER_WAVE]
 
@@ -105,7 +104,6 @@ void main() {
 
     wp += displacement;
     v_worldPos = wp;
-    v_displacementY = displacement.y;
     gl_Position = u_vp * vec4(wp, 1.0);
 
     v_uv = a_uv;

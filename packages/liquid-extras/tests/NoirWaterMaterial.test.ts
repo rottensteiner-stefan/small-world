@@ -49,4 +49,20 @@ describe("NoirWaterMaterial Hook-Based Extension", () => {
     expect((manifest.properties["u_styleB"] as number[])[2]).toBe(0);
     expect(mat.causticStrength).toBeLessThanOrEqual(0.2);
   });
+
+  it("mirrors the +0.5 top-bucket rounding on the real default posterize mat", () => {
+    // Art-bucket audit against the exact shader rule (T3): floor(v*inkSteps+0.5)/inkSteps
+    // with inkSteps = max(posterizeSteps - 1, 1). The default is 4, i.e. 3 ink steps, 4 levels.
+    const mat = new NoirWaterMaterial();
+    expect(mat.posterizeSteps).toBe(4);
+    const inkSteps = Math.max(mat.posterizeSteps - 1, 1);
+    expect(inkSteps).toBe(3);
+    for (let i = 0; i <= 4096; i++) {
+      const v = i / 4096;
+      const out = Math.floor(v * inkSteps + 0.5) / inkSteps;
+      expect(out).toBeGreaterThanOrEqual(0);
+      expect(out).toBeLessThanOrEqual(1);
+    }
+    expect(Math.floor(1 * inkSteps + 0.5) / inkSteps).toBe(1);
+  });
 });

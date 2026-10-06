@@ -65,3 +65,12 @@ Jede Aufgabe hat eigene Dateien; Reihenfolge B0 → B1 → (B2 ‖ B3 ‖ B4 ‖
 ## Offene Fragen und Verifikationsstand
 - **Stand 2026-10-03 (historisch): Nichts davon war in der Engine kompiliert oder gerendert.** Alle Budgets und die „passt in 256 Byte"-Aussage stammen aus Quelltext-Lektüre, die Looks aus CPU-Nachbildungen und Palettenseiten.
 - Offen: Freigabe Phase B; GLSL100-Präzision (`highp`/`mediump`) — Erin (F29) und Bob widersprechen sich, V0/Kompilierung klärt es; ob die Dredge-Stimmung ein Preset reicht (H1); Aufräumen der lokalen Download-Dateien (Video, `.blend`, `venv`).
+
+## WebGL1-Degradation Stylized/OpenWater (technische Notiz, T2 2026-10-06)
+
+**Dokumentierte, akzeptierte Degradation — kein Defekt, kein Disclaimer.** WebGL1 hat keinen realen Opaque-Depth-Capture-Pfad (`WebGL1Renderer.copyToOpaqueDepthTexture` ist ein No-op-Bind des Default-Far-Depth). Die Wasser-Shader ersetzen die Tiefe daher durch eine **Fresnel-Approximation** (nur streifender Blick hat „Deepness"), explizit kommentiert im Code:
+
+- `OpenWater.frag.glsl100` Z. 88–91: „No depth buffer on WebGL1 … turned the whole pool into a white blob field. Fresnel is the only 'far shore' proxy … shore foam now fades in only at grazing angles".
+- `StylizedWater.frag.glsl100` Z. 184–185: „No depth buffer on WebGL1: grazing angle proxy" für `foamBlend`.
+
+Sichtbare Konsequenz im GL1-Tier (gemessen in Session 1, Board F16/F22): **Shore-Foam wirkt top-down flächendeckend bzw. wird über Fresnel quasi ausgeblendet**, und **Crest-Foam/Kräusel lesen als runde Flocken statt linearer Streifen** — von Erin als akzeptiert protokolliert („acceptable, noted", F22). Das ist eine technische Eigenschaft der GL1-Fallback-Ebene, keine offene P1-Arbeit. Anker: `[VERIFIED: packages/engine/src/core/materials/shaders/OpenWater.frag.glsl100:88; test=OpenWaterMaterial.test.ts]` und `[VERIFIED: packages/engine/src/core/materials/shaders/StylizedWater.frag.glsl100:184; test=StylizedWaterMaterial.test.ts]`.

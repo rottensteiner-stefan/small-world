@@ -4,7 +4,6 @@ precision highp float;
 in vec3 v_worldPos;
 in vec3 v_normal;
 in vec2 v_uv;
-in float v_displacementY;
 
 [LIGHT_DEFS]
 
@@ -205,7 +204,7 @@ void main() {
         surfaceColor = surfaceColor * 1.1 / (1.0 + 0.3 * surfaceColor);
     }
 
-    // 7. Advanced Procedural Foam (Intersection Foam + Crest Foam)
+    // 7. Advanced Procedural Foam (Intersection/Shoreline Foam)
     vec3 foamColor = sRGBToLinear(vec3(u_isTerrain, u_metallic, u_roughness));
     float foamCutoff = u_useEnvMap;
     float foamScale = u_useReflectionMap;

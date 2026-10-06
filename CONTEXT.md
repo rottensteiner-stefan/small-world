@@ -5,7 +5,7 @@ The foundational domain model for the Small World 3D engine. It defines the core
 ## Language
 
 **Anime Fluid Family**:
-The unified stylized liquid and fluid pipeline within Small World (`StylizedWaterMaterial` / `UniversalFluidMaterial`) covering toon, Ghibli-soft, painterly sparkle, dredge, and other stylized looks via parameter vectors and compile-time extension hooks.
+The unified stylized liquid and fluid pipeline within Small World (`StylizedWaterMaterial`) covering toon, Ghibli-soft, painterly sparkle, dredge, and other stylized looks via parameter vectors and compile-time extension hooks.
 _Avoid_: Ghibli Water Subsystem, Liquid Fork — Ghibli is one preset on the continuous Anime continuum; non-water fluids (lava, slime, dark oil) reuse the identical shader core.
 
 **Asset Kit**:

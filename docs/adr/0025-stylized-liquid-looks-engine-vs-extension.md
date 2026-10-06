@@ -17,7 +17,7 @@ Belegte Randbedingungen:
 
 1. **2-Familien-System:**
    - `OpenWaterMaterial`: Spezialisiert auf realistisches PBR-Wasser und Ozeane.
-   - `UniversalFluidMaterial` / `StylizedWaterMaterial`: Ein modularer Kern für alle stilisierten Flüssigkeiten (Anime, Toon, Magma, Slime, Noir).
+   - `StylizedWaterMaterial`: Ein modularer Kern für alle stilisierten Flüssigkeiten (Anime, Toon, Magma, Slime, Noir).
 2. **Nomenklatur & Presets:**
    - **`Anime`** ist die offizielle Stilfamilie.
    - *Ghibli-Soft*, *Painterly-Sparkle*, *Toon Classic*, *Noir* und *Dredge* sind reine **Parameter-Vektoren** auf dem Kern.
