@@ -328,78 +328,15 @@ export abstract class SmallWorld {
   }
 
   /**
-   * Stops the application loop.
+   * Advances the engine by exactly one simulated frame, running the same per-frame body that the
+   * realtime loop executes (input, gameplay update, physics, scene, camera, culling, rendering).
+   * Decoupled from the wall clock and the run state: it steps with the exact `deltaTime` passed
+   * in, keeps working after `stop()`, never calls `requestAnimationFrame`, and never reads or
+   * writes `_isRunning`. This is the deterministic fixed-timestep hook for golden baselines and
+   * test harnesses, where animated scenes must be reproducible independent of real elapsed time.
+   * @param deltaTime Simulated elapsed seconds for this step (e.g. `1/60` for 60 Hz); forwarded to `update()`.
    */
-  public stop(): void {
-    this._isRunning = false;
-  }
-
-  /**
-   * Briefly slows down gameplay (app update, physics, scene behaviors) to sell the impact of a
-   * hit, while the camera and its effects (e.g. shake) keep running in real time. Rendering and
-   * input are unaffected. Global, not per-entity -- see `docs/adr/0003-hit-stop-is-global-not-per-entity.md`.
-   * @param duration Real-time seconds the slowdown lasts.
-   * @param timeScale Multiplier applied to deltaTime for gameplay systems while active. Default 0.05 (near-freeze).
-   */
-  public triggerHitStop(duration: number, timeScale: number = 0.05): void {
-    this._hitStopRemaining = duration;
-    this._hitStopScale = timeScale;
-  }
-
-  /**
-   * Destroys the engine instance, freeing memory and removing all global event listeners.
-   */
-  public destroy(): void {
-    this.stop();
-    this._isInitialized = false;
-
-    window.removeEventListener("resize", this._onResize);
-    window.removeEventListener("pagehide", this._onPageHide);
-
-    if (this.input && this.input.destroy) {
-      this.input.destroy();
-    }
-    if (this.renderer && this.renderer.destroy) {
-      this.renderer.destroy();
-    }
-    this.audio.dispose();
-  }
-
-  private _onPageHide = (): void => {
-    this.destroy();
-  };
-
-  private _onResize = (): void => {
-    if (!this.canvas) return;
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
-    this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-    this.camera.updateProjectionMatrix();
-    if (this.renderer) {
-      this.renderer.setSize(this.canvas.width, this.canvas.height);
-    }
-  };
-
-  private readonly _onFrame = (time: number): void => this._loop(time);
-
-  /**
-   * The main application loop.
-   * @param currentTime The current timestamp.
-   */
-  private _loop(currentTime: number): void {
-    if (!this._isRunning) {
-      return;
-    }
-
-    if (this.canvas && !document.body.contains(this.canvas)) {
-      console.warn("[SmallWorld] Canvas removed from DOM. Auto-destroying engine.");
-      this.destroy();
-      return;
-    }
-
-    const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
-    this._lastTime = currentTime;
-
+  public step(deltaTime: number): void {
     let gameplayDeltaTime: number = deltaTime;
     if (0 < this._hitStopRemaining) {
       gameplayDeltaTime = deltaTime * this._hitStopScale;
@@ -491,6 +428,82 @@ export abstract class SmallWorld {
     this.input.mouse.wheelX = 0;
     this.input.mouse.wheelY = 0;
     this.input.mouse.zoom = 0;
+  }
+
+  /**
+   * Stops the application loop.
+   */
+  public stop(): void {
+    this._isRunning = false;
+  }
+
+  /**
+   * Briefly slows down gameplay (app update, physics, scene behaviors) to sell the impact of a
+   * hit, while the camera and its effects (e.g. shake) keep running in real time. Rendering and
+   * input are unaffected. Global, not per-entity -- see `docs/adr/0003-hit-stop-is-global-not-per-entity.md`.
+   * @param duration Real-time seconds the slowdown lasts.
+   * @param timeScale Multiplier applied to deltaTime for gameplay systems while active. Default 0.05 (near-freeze).
+   */
+  public triggerHitStop(duration: number, timeScale: number = 0.05): void {
+    this._hitStopRemaining = duration;
+    this._hitStopScale = timeScale;
+  }
+
+  /**
+   * Destroys the engine instance, freeing memory and removing all global event listeners.
+   */
+  public destroy(): void {
+    this.stop();
+    this._isInitialized = false;
+
+    window.removeEventListener("resize", this._onResize);
+    window.removeEventListener("pagehide", this._onPageHide);
+
+    if (this.input && this.input.destroy) {
+      this.input.destroy();
+    }
+    if (this.renderer && this.renderer.destroy) {
+      this.renderer.destroy();
+    }
+    this.audio.dispose();
+  }
+
+  private _onPageHide = (): void => {
+    this.destroy();
+  };
+
+  private _onResize = (): void => {
+    if (!this.canvas) return;
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+    this.camera.updateProjectionMatrix();
+    if (this.renderer) {
+      this.renderer.setSize(this.canvas.width, this.canvas.height);
+    }
+  };
+
+  private readonly _onFrame = (time: number): void => this._loop(time);
+
+  /**
+   * The main application loop.
+   * @param currentTime The current timestamp.
+   */
+  private _loop(currentTime: number): void {
+    if (!this._isRunning) {
+      return;
+    }
+
+    if (this.canvas && !document.body.contains(this.canvas)) {
+      console.warn("[SmallWorld] Canvas removed from DOM. Auto-destroying engine.");
+      this.destroy();
+      return;
+    }
+
+    const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
+    this._lastTime = currentTime;
+
+    this.step(deltaTime);
 
     requestAnimationFrame(this._onFrame);
   }

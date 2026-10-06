@@ -41,6 +41,106 @@ const WALL_CENTER_Y = -0.6; // top face at +0.15 (a small curb above the ground)
 const FLOOR_Y = -1.35;
 const LIQUID_Y = 0.0; // flush with the ground, just below the curb top
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Golden-capture mode: a deterministic query-parameter baseline so external capture tooling
+// (scripts/goldens/**) can snapshot exactly one pool from exactly one camera view and get an
+// identical frame on every run. Shared query contract (do not change):
+//   ?rendererType=WEB_GL2&__golden=<poolKey>&__goldenView=<view>&__goldenFrames=<N>
+// Aquatic determinism is enforced by resetting the scene clock (this._time) and then advancing
+// it through the engine's deterministic `step()` primitive at a fixed delta time.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+const GOLDEN_WIDTH = 1024;
+const GOLDEN_HEIGHT = 576;
+const GOLDEN_FRAMES_DEFAULT = 600;
+const GOLDEN_FRAME_TIME = 1 / 60;
+const GOLDEN_SOAK_MS = 700;
+const GOLDEN_TOP_HEIGHT = 5.0;
+const GOLDEN_TOP_TILT = 0.12; // keep the view a hair off vertical so lookAt never hits its pole
+const GOLDEN_OBLIQUE_HEIGHT = 2.0;
+const GOLDEN_OBLIQUE_OFFSET = 5.5;
+const GOLDEN_OBLIQUE_TARGET_RAISE = 0.5;
+const GOLDEN_TEXTURE_SEED = 0xc0ffee;
+
+type GoldenPoolKey =
+  | "clear-water"
+  | "toon-water"
+  | "bold-anime"
+  | "soft-watercolor"
+  | "painterly-sparkle"
+  | "dredge"
+  | "noir-graphic"
+  | "molten-lava"
+  | "toxic-slime"
+  | "petroleum-oil";
+
+type GoldenView = "top" | "oblique";
+
+type GoldenPoolLayout = { x: number; z: number };
+
+interface GoldenSpec {
+  poolKeyRaw: string;
+  view: GoldenView;
+  frames: number;
+}
+
+/** Readiness signal for the external capture tool; see the golden mode query contract above. */
+interface GoldenMeta {
+  poolKey: string;
+  view: GoldenView;
+  frames: number;
+  rendererType?: string;
+  error?: string;
+}
+
+interface GoldenWindowFlags {
+  __goldenReady?: boolean;
+  __goldenMeta?: GoldenMeta;
+}
+
+/** World-space pool center for every golden pool key, mirroring the `_buildPool` calls below. */
+const GOLDEN_POOL_LAYOUT: Readonly<Record<GoldenPoolKey, GoldenPoolLayout>> = {
+  "clear-water": { x: -18, z: -7.5 },
+  "toon-water": { x: -9, z: -7.5 },
+  "bold-anime": { x: 0, z: -7.5 },
+  "soft-watercolor": { x: 9, z: -7.5 },
+  "painterly-sparkle": { x: 18, z: -7.5 },
+  dredge: { x: -18, z: 7.5 },
+  "noir-graphic": { x: -9, z: 7.5 },
+  "molten-lava": { x: 0, z: 7.5 },
+  "toxic-slime": { x: 9, z: 7.5 },
+  "petroleum-oil": { x: 18, z: 7.5 },
+};
+
+/**
+ * Parses the golden-mode query parameters. Returns `undefined` when no `__golden` parameter is
+ * present, i.e. the showcase runs in its regular interactive mode unchanged.
+ */
+function parseGoldenSpec(): GoldenSpec | undefined {
+  if (typeof window === "undefined" || !window.location) return undefined;
+  const params = new URLSearchParams(window.location.search);
+  const poolKeyRaw = params.get("__golden");
+  if (!poolKeyRaw) return undefined;
+  const rawView = params.get("__goldenView");
+  const view: GoldenView = rawView === "oblique" ? "oblique" : "top";
+  const rawFrames = Number.parseInt(params.get("__goldenFrames") ?? "", 10);
+  const frames = Number.isInteger(rawFrames) && rawFrames > 0 ? rawFrames : GOLDEN_FRAMES_DEFAULT;
+  return { poolKeyRaw, view, frames };
+}
+
+/**
+ * Replaces `Math.random` with a seeded LCG so the procedural grass / tile / sign textures that
+ * scene setup generates are identical on every golden run. Normal interactive mode keeps the
+ * browser RNG untouched.
+ */
+function seedMathRandom(seed: number): void {
+  let state = seed >>> 0;
+  Math.random = (): number => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
 interface TilePalette {
   grout: string;
   groutSpeckle: string;
@@ -172,6 +272,8 @@ export class Showcase10 extends AbstractShowcase {
   private _lavaLight: PointLight | undefined;
   private _slimeLight: PointLight | undefined;
   private _time: number = 0;
+  private _golden: GoldenSpec | undefined;
+  private readonly _goldenResizeHandler: () => void = (): void => this._applyGoldenSurface();
 
   constructor(options: EngineOptions = {}) {
     super({
@@ -180,6 +282,24 @@ export class Showcase10 extends AbstractShowcase {
       fullscreen: true,
       ...options,
     });
+  }
+
+  /**
+   * Runs the regular showcase boot, then -- only when the golden query parameters are present --
+   * the deterministic single-pool capture on top of the fully-ready scene.
+   */
+  public override async start(): Promise<void> {
+    const golden = parseGoldenSpec();
+    this._golden = golden;
+    // Golden mode must be pixel-reproducible: lock the procedural texture RNG *before* the
+    // engine boots the scene, or every run would generate a different meadow/tile pattern.
+    if (golden) {
+      seedMathRandom(GOLDEN_TEXTURE_SEED);
+    }
+    await super.start();
+    if (golden) {
+      await this._runGoldenCapture(golden);
+    }
   }
 
   protected override async setupScene(): Promise<void> {
@@ -1105,8 +1225,8 @@ export class Showcase10 extends AbstractShowcase {
       for (const [obj, ox, oz, amplitude, frequency] of floaters) {
         obj.position.set(ox, LIQUID_Y, oz);
         obj.castShadow = true;
-        obj.addBehavior(new BobbingBehavior(amplitude, frequency));
-        obj.addBehavior(new RotatorBehavior());
+        this._attachPoolBehavior(obj, new BobbingBehavior(amplitude, frequency));
+        this._attachPoolBehavior(obj, new RotatorBehavior());
         pool.add(obj);
       }
     }
@@ -1115,7 +1235,10 @@ export class Showcase10 extends AbstractShowcase {
     const dropObj = dropper ?? this._makeCrate();
     dropObj.position.set(0.3, LIQUID_Y, 0.2);
     dropObj.castShadow = true;
-    dropObj.addBehavior(new SplashDropBehavior(LIQUID_Y, WALL_HEIGHT + 3.0, spawnDelay));
+    this._attachPoolBehavior(
+      dropObj,
+      new SplashDropBehavior(LIQUID_Y, WALL_HEIGHT + 3.0, spawnDelay),
+    );
     pool.add(dropObj);
   }
 
@@ -1318,6 +1441,157 @@ export class Showcase10 extends AbstractShowcase {
       const pulse = Math.cos(this._time * 1.8) * 0.5 + 0.5;
       this._slimeLight.intensity = 2.5 + pulse * 2.5;
     }
+  }
+
+  /**
+   * Runs one golden capture: freezes the realtime loop, pins a deterministic render surface, soaks
+   * async GPU texture uploads, frames the camera deterministically, then advances a fixed number of
+   * engine `step()` frames at a fixed delta time so identical URLs always yield identical state.
+   * On success sets `window.__goldenReady`; on any failure writes `error` into `__goldenMeta`
+   * while leaving `__goldenReady` unset, so the capture tool can never mistake a broken capture
+   * for a valid baseline.
+   */
+  private async _runGoldenCapture(spec: GoldenSpec): Promise<void> {
+    const layout = GOLDEN_POOL_LAYOUT[spec.poolKeyRaw as GoldenPoolKey];
+    const meta: GoldenMeta = {
+      poolKey: spec.poolKeyRaw,
+      view: spec.view,
+      frames: spec.frames,
+      rendererType: this.renderer?.type,
+    };
+    if (!layout) {
+      meta.error = `Unknown __golden pool '${spec.poolKeyRaw}'`;
+      (window as unknown as GoldenWindowFlags).__goldenMeta = meta;
+      return;
+    }
+
+    try {
+      this.stop();
+      window.addEventListener("resize", this._goldenResizeHandler);
+      this._applyGoldenSurface();
+      this._hideGoldenUi();
+      await this._sleep(GOLDEN_SOAK_MS);
+      this._applyGoldenCamera(layout, spec.view);
+      this._time = 0;
+      // Pool behaviors were attached frozen (see `_attachPoolBehavior`) so the pre-golden
+      // realtime frames could not advance them by an unknown amount. Wake them now: they are
+      // still in their pristine constructor state, so the fixed-timestep simulation below is
+      // fully reproducible.
+      this._setGoldenSceneBehaviors(true);
+      for (let i = 0; i < spec.frames; i++) {
+        this.step(GOLDEN_FRAME_TIME);
+      }
+      this._setGoldenSceneBehaviors(false);
+      // The realtime loop is stopped, so nothing else would ever present the frame the steps above
+      // rendered into the drawing buffer -- with preserveDrawingBuffer false the browser clears it
+      // after one composite and the screener would see an empty canvas. Replay the frozen final
+      // frame forever via `step(0)`: a delta of zero leaves every time-driven system (scene clock,
+      // behaviors, liquids, lights, camera) untouched, so each presented frame is pixel-identical
+      // to the last deterministic step, but the buffer always carries content.
+      this._startGoldenRepaint();
+      const flags = window as unknown as GoldenWindowFlags;
+      flags.__goldenReady = true;
+      flags.__goldenMeta = meta;
+    } catch (err) {
+      meta.error = err instanceof Error ? err.message : String(err);
+      (window as unknown as GoldenWindowFlags).__goldenMeta = meta;
+    }
+  }
+
+  /**
+   * Pins the canvas and camera to the deterministic 1024x576 golden surface, independent of the
+   * actual window/viewport size. Re-applied on every resize so the engine's own `_onResize`
+   * handler can never break the baseline dimensions mid-capture.
+   */
+  private _applyGoldenSurface(): void {
+    const canvas = this.canvas;
+    canvas.width = GOLDEN_WIDTH;
+    canvas.height = GOLDEN_HEIGHT;
+    canvas.style.width = `${GOLDEN_WIDTH}px`;
+    canvas.style.height = `${GOLDEN_HEIGHT}px`;
+    this.renderer.setSize(GOLDEN_WIDTH, GOLDEN_HEIGHT);
+    this.camera.aspect = GOLDEN_WIDTH / GOLDEN_HEIGHT;
+    this.camera.updateProjectionMatrix();
+  }
+
+  /**
+   * Removes every showcase-overlay UI element from the captured baseline: the PREV/NEXT nav
+   * buttons injected by AbstractShowcase, the page title header and the copyright footer.
+   */
+  private _hideGoldenUi(): void {
+    for (const btn of document.querySelectorAll("button")) {
+      btn.style.display = "none";
+    }
+    const header = document.querySelector("header#info");
+    if (header instanceof HTMLElement) {
+      header.style.display = "none";
+    }
+    const footer = document.querySelector(".app-footer");
+    if (footer instanceof HTMLElement) {
+      footer.style.display = "none";
+    }
+  }
+
+  /**
+   * Frames the camera deterministically for one (pool, view) pair. FPS/zoom controllers are
+   * deactivated -- with no input they would keep re-deriving the pose from the same fixed angles
+   * anyway, this just makes it airtight. Theta/phi are derived from the exact FPS look-direction
+   * formula so the strategy re-computes the identical target every stepped frame.
+   */
+  private _applyGoldenCamera(layout: GoldenPoolLayout, view: GoldenView): void {
+    const cam = this.camera;
+    for (const behavior of cam.behaviors) {
+      behavior.isActive = false;
+    }
+    if ("top" === view) {
+      cam.position.set(layout.x, GOLDEN_TOP_HEIGHT, layout.z);
+      cam.target.set(layout.x - GOLDEN_TOP_TILT, LIQUID_Y, layout.z);
+    } else {
+      const towardZ: 1 | -1 = 0 < layout.z ? 1 : -1;
+      cam.position.set(layout.x, GOLDEN_OBLIQUE_HEIGHT, layout.z + towardZ * GOLDEN_OBLIQUE_OFFSET);
+      cam.target.set(layout.x, LIQUID_Y + GOLDEN_OBLIQUE_TARGET_RAISE, layout.z);
+    }
+    const dir = cam.target.clone().sub(cam.position).normalize();
+    cam.phi = Math.asin(Math.max(-0.9999, Math.min(0.9999, dir.y)));
+    cam.theta = Math.atan2(dir.x, -dir.z);
+    cam.updateViewMatrix();
+  }
+
+  private _sleep(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  /**
+   * Attaches one pool behavior, created frozen when golden mode is active so no pre-golden
+   * realtime frame can advance its internal timer by an unknown amount.
+   */
+  private _attachPoolBehavior(obj: Object3D, behavior: Behavior): void {
+    obj.addBehavior(behavior);
+    if (this._golden) {
+      behavior.isActive = false;
+    }
+  }
+
+  /** Flips `isActive` on every scene behavior (pool floaters/splash droppers); camera is excluded. */
+  private _setGoldenSceneBehaviors(active: boolean): void {
+    const walk = (obj: Object3D): void => {
+      for (const behavior of obj.behaviors) {
+        behavior.isActive = active;
+      }
+      for (const child of obj.children) {
+        walk(child);
+      }
+    };
+    walk(this.scene.root);
+  }
+
+  /** Keeps presenting the frozen golden frame by re-rendering it (delta 0) on every rAF. */
+  private _startGoldenRepaint(): void {
+    const replay = (): void => {
+      this.step(0);
+      window.requestAnimationFrame(replay);
+    };
+    window.requestAnimationFrame(replay);
   }
 }
 

@@ -1,0 +1,382 @@
+[
+  {
+    "poolKey": "clear-water",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "clear-water__top.png",
+    "meta": {
+      "poolKey": "clear-water",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 26.297,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "308dfda12423fb2db65fe562c33529ef85f4751d7b6bf2bac6f1ef0adf7ad612",
+    "ok": true
+  },
+  {
+    "poolKey": "clear-water",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "clear-water__oblique.png",
+    "meta": {
+      "poolKey": "clear-water",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 32.6846,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "faf778e8051a1c7227fd8d3828f4794475745f58d2645b24e78922b89302be0b",
+    "ok": true
+  },
+  {
+    "poolKey": "toon-water",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "toon-water__top.png",
+    "meta": {
+      "poolKey": "toon-water",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 32.6781,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "67321e6fc9cc11c030e90ba32409482c0243e2caba21f4d25b98fcb928381b20",
+    "ok": true
+  },
+  {
+    "poolKey": "toon-water",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "toon-water__oblique.png",
+    "meta": {
+      "poolKey": "toon-water",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 33.8614,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "5c21d56f3d279cd881df9f2ce4ab18fc63ca1905e9fdfa2a40706b4cb78d0100",
+    "ok": true
+  },
+  {
+    "poolKey": "bold-anime",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "bold-anime__top.png",
+    "meta": {
+      "poolKey": "bold-anime",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 35.9668,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "7fbe7ce2b6ef49b9c4fb2d238cc4f0bbce857bbff2426d18da9db96b64997351",
+    "ok": true
+  },
+  {
+    "poolKey": "bold-anime",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "bold-anime__oblique.png",
+    "meta": {
+      "poolKey": "bold-anime",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 33.3667,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "3d6654b80a4e46d97ecf727c1e53a43b41665fd5369f8b4d3c682bf980351696",
+    "ok": true
+  },
+  {
+    "poolKey": "soft-watercolor",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "soft-watercolor__top.png",
+    "meta": {
+      "poolKey": "soft-watercolor",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 21.8532,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "e39351db4a10af04fbcd1ef404ee338ca0e0e63d1ef52d1394c218b3d6a4ecb0",
+    "ok": true
+  },
+  {
+    "poolKey": "soft-watercolor",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "soft-watercolor__oblique.png",
+    "meta": {
+      "poolKey": "soft-watercolor",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 35.1901,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "2331668443353b9d5cdc88728c8a9610983c475e3dea5e06e91d398327a08d7a",
+    "ok": true
+  },
+  {
+    "poolKey": "painterly-sparkle",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "painterly-sparkle__top.png",
+    "meta": {
+      "poolKey": "painterly-sparkle",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 26.4086,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "d35d71c2146051bb7ef54acc832a72860ab2b6460ebec33f6dc8f8c6df04e93a",
+    "ok": true
+  },
+  {
+    "poolKey": "painterly-sparkle",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "painterly-sparkle__oblique.png",
+    "meta": {
+      "poolKey": "painterly-sparkle",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 35.9259,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "4052a06939e4525125557a855c0bdc2e0bcbd82ba2c1834c281af7524b337a78",
+    "ok": true
+  },
+  {
+    "poolKey": "dredge",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "dredge__top.png",
+    "meta": {
+      "poolKey": "dredge",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 26.254,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "315150cc5f28e23568aec9d15e8282554e85f7939363675b0503ef7a53286270",
+    "ok": true
+  },
+  {
+    "poolKey": "dredge",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "dredge__oblique.png",
+    "meta": {
+      "poolKey": "dredge",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 31.3514,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "3d3e5dfe9cc45da6efc60a3a696afbe951f7f9d68e003b2a5323d4ea15c1a6f9",
+    "ok": true
+  },
+  {
+    "poolKey": "noir-graphic",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "noir-graphic__top.png",
+    "meta": {
+      "poolKey": "noir-graphic",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 61.5519,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "8a9eac175b19956c7bb67760d43350416962c8e40558e3ce05f0fb8aea1659f7",
+    "ok": true
+  },
+  {
+    "poolKey": "noir-graphic",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "noir-graphic__oblique.png",
+    "meta": {
+      "poolKey": "noir-graphic",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 51.0898,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "d5a2b1cfdb86ae88e0bb91bd9f18bd38c0121f91b7fbeafc3c5e0f7613c5843d",
+    "ok": true
+  },
+  {
+    "poolKey": "molten-lava",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "molten-lava__top.png",
+    "meta": {
+      "poolKey": "molten-lava",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 39.8813,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "769bcc127d9a9d28fe13b9fb42803b9e9f4c4adc403efe6b95c9f774e90170ae",
+    "ok": true
+  },
+  {
+    "poolKey": "molten-lava",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "molten-lava__oblique.png",
+    "meta": {
+      "poolKey": "molten-lava",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 41.2147,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "af14ce4a7e30c6a50b94fc61f1f5262e5f5d1021e3dbe79f48cd6e65898147d9",
+    "ok": true
+  },
+  {
+    "poolKey": "toxic-slime",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "toxic-slime__top.png",
+    "meta": {
+      "poolKey": "toxic-slime",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 30.2977,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "a95e93cf5ac10b355dc04d6aa8022564590c7e03b3d676a0648cfdd4c0bbbeff",
+    "ok": true
+  },
+  {
+    "poolKey": "toxic-slime",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "toxic-slime__oblique.png",
+    "meta": {
+      "poolKey": "toxic-slime",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 28.6498,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "9d0c702b3902193d7274dac2dbb2fcb0c601af88e238ceb2b3b2710c51fe67ee",
+    "ok": true
+  },
+  {
+    "poolKey": "petroleum-oil",
+    "view": "top",
+    "backend": "WEB_GL2",
+    "file": "petroleum-oil__top.png",
+    "meta": {
+      "poolKey": "petroleum-oil",
+      "view": "top",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 24.5,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "7da6526ac7eb7b0e9d47d67e408be5eee24850fd9b3e89701977c436175619f7",
+    "ok": true
+  },
+  {
+    "poolKey": "petroleum-oil",
+    "view": "oblique",
+    "backend": "WEB_GL2",
+    "file": "petroleum-oil__oblique.png",
+    "meta": {
+      "poolKey": "petroleum-oil",
+      "view": "oblique",
+      "frames": 600,
+      "rendererType": "WEB_GL2"
+    },
+    "stddev": 34.25,
+    "blank": false,
+    "consoleErrors": [],
+    "width": 1024,
+    "height": 576,
+    "sha256": "fa857dd4fb3bf521330601b5253e141f4c80fbb509d277b51167a1d06cad5fbe",
+    "ok": true
+  }
+]

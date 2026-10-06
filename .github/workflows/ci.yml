@@ -66,3 +66,87 @@ jobs:
 
       - name: Showcase visual smoke test
         run: npm run test:showcases
+
+  # M1 core gate ("Blocking-Comparator"): deterministic Liquid goldens.
+  # Engine stepping is driven by the fixed-step `SmallWorld.step(dt)` hook, so the
+  # GL2 captures are fully reproducible and this job is BLOCKING for merges.
+  liquid-goldens:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Capture the authoritative GL2 matrix: 10 pools x 2 views = 20 deterministic
+      # screenshots. GL2 is the binding comparison backend. Should a single run still
+      # flake on the SwiftShader software-GL2 up-load despite the deterministic
+      # fixed-step, a rescue option is to re-run only that pool via a single
+      # `--pool <key>` retry -- deliberately NOT implemented here (keep it minimal).
+      - name: Capture Liquid GL2 goldens
+        run: npm run goldens:capture -- --matrix gl2 --out "${{ runner.temp }}/liquid-goldens/current"
+
+      # Compare against the committed baseline. No continue-on-error: any cell above
+      # the drift threshold, or a technical/blank error, fails the build.
+      - name: Compare Liquid GL2 goldens against baseline
+        run: npm run goldens:compare -- --baseline .agents/goldens/liquid/baseline --current "${{ runner.temp }}/liquid-goldens/current"
+
+      # Diagnostic artifact (current captures + manifest/summary), kept even on failure.
+      - name: Upload Liquid goldens diagnostic artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: liquid-goldens
+          path: ${{ runner.temp }}/liquid-goldens
+          if-no-files-found: warn
+
+  # Informational only: WebGPU software-rendering (SwiftShader) is environment-flaky,
+  # so GPU goldens never block merges. No GPU baseline is committed or compared here --
+  # we only capture, log a summary and upload as diagnostics.
+  liquid-goldens-gpu:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Capture Liquid WebGPU goldens (informational)
+        run: npm run goldens:capture -- --matrix gpu --out "${{ runner.temp }}/liquid-goldens-gpu/current"
+
+      - name: Log capture summary
+        shell: bash
+        run: cat "${{ runner.temp }}/liquid-goldens-gpu/current/summary.json"
+
+      - name: Upload Liquid GPU goldens diagnostic artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: liquid-goldens-gpu
+          path: ${{ runner.temp }}/liquid-goldens-gpu
+          if-no-files-found: warn

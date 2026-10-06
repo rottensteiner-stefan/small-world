@@ -28,6 +28,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "test:showcases": "node scripts/check-showcases.js",
+    "goldens:capture": "node scripts/goldens/capture.js",
+    "goldens:compare": "node scripts/goldens/compare.js",
     "sync-templates": "node scripts/sync-templates.js",
     "sync-tools": "node scripts/sync-tools.js",
     "start": "npm run build && npx serve dist",
@@ -48,6 +50,7 @@
     "@vitest/ui": "^4.1.10",
     "@webgpu/types": "^0.1.71",
     "ajv": "^8.20.0",
+    "esbuild": "^0.28.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -56,6 +59,7 @@
     "jsdom": "^30.0.1",
     "lint-staged": "^17.3.0",
     "npm-run-all": "^4.1.5",
+    "pixelmatch": "^7.2.0",
     "prettier": "^3.9.6",
     "puppeteer": "^25.4.0",
     "serve": "^14.2.6",
@@ -72,8 +76,7 @@
     "vitepress": "^1.6.4",
     "vitest": "^4.1.10",
     "vue": "^3.5.40",
-    "wgsl_reflect": "^1.5.0",
-    "esbuild": "^0.28.0"
+    "wgsl_reflect": "^1.5.0"
   },
   "overrides": {
     "eslint-plugin-import": {

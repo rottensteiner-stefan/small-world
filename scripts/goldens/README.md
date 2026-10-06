@@ -1,0 +1,70 @@
+# Liquid Goldens (M1)
+
+Deterministischer Rendering-Baseline-Schutz für Showcase 10 („Waterworld & Liquid Gallery“) —
+Teil von **M1** der Flüssigkeits-Roadmap (`/Users/srottensteiner/PhpstormProjects/small-world/.agents/collaborate/liquid-roadmap.md` §8.2).
+
+Jede ausgabeändernde Shader-Änderung darf das Wasserbild nicht unbemerkt verändern. Diese Tools
+fangen beides ab: **sichtbare Regressionen** (Bild weicht von der committeten Baseline ab) und
+**stille Regressionen** (Canvas bleibt leer). Die Capture ist deterministisch: Showcase 10 läuft
+im Golden-Mode (`?__golden=…`), der die Engine mit festem Timestep (`SmallWorld.step(1/60)`)
+schrittweise rendert und den letzten Frame einfriert — derselbe Zustand ergibt zweimal exakt
+dieselben Pixel (kein WallClock-`performance.now()`-Drift).
+
+## Was wird geprüft
+
+| Matrix | Umfang | Verbindlichkeit |
+| --- | --- | --- |
+| GL2 | 10 Pools × top/oblique = 20 Baseline-Bilder | **blockierend** (Merges halten an) |
+| GPU | gleiche 20 Zellen | nur informational (SwiftShader-Flakyness) |
+| GL1 | gleiche 20 Zellen als Smoke (lädt, 0 Konsolenfehler, nicht leer) | kein Bildvergleich |
+
+Die committete Baseline liegt unter `.agents/goldens/liquid/baseline/` (GL2-Bilder + `manifest.json`).
+
+## Workflow
+
+```bash
+npm run build                  # lib + Showcases bauen (nötig, Preview bedient /dist)
+npm run goldens:capture -- --matrix gl2 --out .agents/goldens/liquid/baseline
+npm run goldens:compare -- --baseline .agents/goldens/liquid/baseline \
+  --current .agents/goldens/liquid/baseline
+```
+
+CI ruft Capture+Compare als blockierenden Job `liquid-goldens` auf (`ref: .github/workflows/ci.yml`).
+
+## Regelmäßiger Ablauf
+
+1. **Nach jeder ausgabeändernden Shader-Änderung** lokal gegen die Baseline prüfen:
+   `npm run goldens:capture -- --matrix gl2 --out .agents/scratches/goldens/current` →
+   `npm run goldens:compare -- --baseline .agents/goldens/liquid/baseline --current .agents/scratches/goldens/current`.
+2. **Bei gewollter Baseline-Änderung** (absichtliches Re-Design): Prüfung fährt auf FAIL → nach
+   Review die neuen Bilder nach `.agents/goldens/liquid/baseline/` kopieren und die
+   `manifest.json` aktualisieren (Capture schreibt sie mit), committen.
+3. **Regeneration der Baseline:** `npm run goldens:capture -- --matrix gl2 --out .agents/goldens/liquid/baseline`.
+
+## CLI
+
+- `goldens:capture -- --matrix <gl2|gpu|gl1> --out <dir> [--pool <key>] [--view <view>] [--frames <n>] [--skip-spawn] [--allow-no-golden]`
+  - Startet `npm run preview`, besucht jede Zelle mit den Golden-Query-Params, wartet auf `window.__goldenReady`, screentshot das `<canvas>`.
+  - Schreibt `<dir>/<poolKey>__<view>.png` + `manifest.json` (Metadaten, Blank-Flag, sha256) + `summary.json`.
+  - `gl1` = Smoke (`<dir>/smoke/*.png`, nur Load/Fehler/Blank-Asserts).
+  - Exit 0 nur wenn alle Zellen ok.
+- `goldens:compare -- --baseline <dir> --current <dir> [--max-diff-ratio <f>] [--pixelmatch-threshold <f>] [--report <path>]`
+  - Vergleicht jede Zelle per `pixelmatch`, `diffRatio` = abweichende Pixel / Gesamtpixel.
+  - Exit **0** = alles ok, **1** = technischer Fehler (Bild fehlt/unlesbar/blank), **2** = Drift-Verletzung.
+
+## Konfiguration
+
+`scripts/goldens/config.json`: Pools, Views, Backends, Viewport (1024×576), Framecount,
+Blank-Schwelle (Luminanz-Stddev), `maxDiffRatio` (Standard 0.5 %), `pixelmatchThreshold`, sowie
+per-Pool-Toleranzen in `poolOverrides` (z.B. bei bekannten Rauschartefakten einer Wasserart).
+
+## Troubleshooting
+
+- **`window.__goldenReady` kommt nie** → Showcase-Build zu alt: `npm run build`, dann erneut.
+- **Weißer/leerer Canvas trotz Exit 0** → Blank-Detection greift nur im Manifest; diffiert,
+  siehe `manifest.json`-`blank`-Flag. Kappe: `blankStddevThreshold`.
+- **Port 4173 belegt** → bestehender `vite preview` läuft; mit `--skip-spawn` gegen diesen
+  arbeiten oder Prozess beenden.
+- **SwiftShader-Flakiness** → deterministisches Stepping minimiert das; falls eine einzelne
+  Zelle abweicht, im CI log nach `--pool`-Zelle und Diff-Größe suchen (keine automatische
+  Retry-Schleife — bewusst simpel gehalten).
