@@ -44,6 +44,7 @@
       
       const container = document.getElementById("tool-container");
       const mapGen = new MapGenerator({ parent: container });
+      window.mapGenInstance = mapGen;
       
       // Load a default test map
       mapGen.loadMapString(

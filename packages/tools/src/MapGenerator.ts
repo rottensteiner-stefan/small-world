@@ -1,11 +1,13 @@
 import { ForgeTool, ForgeToolOptions } from "@small-world/engine";
-import { UnifiedIngestPanel } from "./common/io/ui/UnifiedIngestPanel.js";
+import { UniversalIngestDropzone } from "./common/io/ui/UniversalIngestDropzone.js";
+import type { IngestResult } from "./common/io/UniversalIngestTypes.js";
 
 export class MapGenerator extends ForgeTool {
   private _gridWidth = 40;
   private _gridHeight = 25;
   private _cellSize = 16;
   private _grid: string[][] = [];
+  private _dropzone?: UniversalIngestDropzone;
 
   private _canvas!: HTMLCanvasElement;
   private _ctx!: CanvasRenderingContext2D;
@@ -191,7 +193,7 @@ export class MapGenerator extends ForgeTool {
           <button class="swf-btn" id="mapgen-btn-fill">Bucket Fill (Empty)</button>
           <button class="swf-btn" id="mapgen-btn-clear" style="background:#ef4444; color:white; border-color:#b91c1c;">Clear Map</button>
 
-          <h3 class="mapgen-header" style="margin-top:10px;">Import (Datei / URL / Text)</h3>
+          <h3 class="mapgen-header" style="margin-top:10px;">Universal IO Import</h3>
           <div id="mapgen-ingest-slot"></div>
           
           <h3 class="mapgen-header" style="margin-top:10px;">Export</h3>
@@ -210,33 +212,21 @@ export class MapGenerator extends ForgeTool {
     this._inputW = this._container.querySelector<HTMLInputElement>("#mapgen-w")!;
     this._inputH = this._container.querySelector<HTMLInputElement>("#mapgen-h")!;
 
-    // Mount unified ingest panel
+    // Mount Universal Ingest Dropzone
     const ingestSlot = this._container.querySelector<HTMLElement>("#mapgen-ingest-slot");
     if (ingestSlot) {
-      new UnifiedIngestPanel({
+      this._dropzone = new UniversalIngestDropzone({
         container: ingestSlot,
-        modes: ["text", "file", "url"],
-        defaultMode: "text",
-        variant: "compact",
-        fileLabel: "Map Datei ablegen",
-        fileSub: ".txt, .map oder .json",
-        fileAccept: ".txt,.map,.json",
-        urlPlaceholder: "https://.../map.txt",
-        textPlaceholder: "ASCII-Map oder Leveldaten einfügen…",
-        textButtonLabel: "Map Laden",
+        label: "Map, Level, Bild oder Text ablegen",
+        sublabel: ".txt, .map, .json, .png, .zip, URL oder Cmd+V",
+        supportedKinds: ["text", "json", "image", "svg", "archive", "files", "any"],
+        enableWindowDrop: true,
         enablePaste: true,
-        onFile: async (file: File): Promise<void> => {
-          const text = await file.text();
-          this.loadMapString(text);
+        onIngest: async (result: IngestResult): Promise<void> => {
+          await this._handleIngestResult(result);
         },
-        onUrl: async (url: string): Promise<void> => {
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`HTTP ${res.status} beim Laden der URL`);
-          const text = await res.text();
-          this.loadMapString(text);
-        },
-        onText: (text: string): void => {
-          this.loadMapString(text);
+        onError: (err: Error): void => {
+          console.error("MapGenerator Ingest Fehler:", err);
         },
       });
     }
@@ -384,6 +374,7 @@ export class MapGenerator extends ForgeTool {
   }
 
   private _render(): void {
+    if (!this._ctx) return;
     this._canvas.width = this._gridWidth * this._cellSize;
     this._canvas.height = this._gridHeight * this._cellSize;
 
@@ -482,5 +473,183 @@ export class MapGenerator extends ForgeTool {
     if (typeof state === "string") {
       this.loadMapString(state);
     }
+  }
+
+  private async _handleIngestResult(result: IngestResult): Promise<void> {
+    switch (result.kind) {
+      case "text": {
+        this.loadMapString(result.text);
+        break;
+      }
+      case "json": {
+        if (Array.isArray(result.data)) {
+          if (result.data.every((r) => typeof r === "string")) {
+            this.loadMapString((result.data as string[]).join("\n"));
+          } else {
+            this.loadMapString(result.rawText);
+          }
+        } else if (result.data && typeof result.data === "object") {
+          const obj = result.data as Record<string, unknown>;
+          if (typeof obj["map"] === "string") {
+            this.loadMapString(obj["map"]);
+          } else if (typeof obj["ascii"] === "string") {
+            this.loadMapString(obj["ascii"]);
+          } else if (
+            Array.isArray(obj["grid"]) &&
+            obj["grid"].every((r) => typeof r === "string")
+          ) {
+            this.loadMapString((obj["grid"] as string[]).join("\n"));
+          } else {
+            this.loadMapString(result.rawText);
+          }
+        } else {
+          this.loadMapString(result.rawText);
+        }
+        break;
+      }
+      case "archive": {
+        const textFile = result.files.find((f) => /\.(?:map|txt|json)$/i.test(f.name));
+        if (textFile) {
+          const text = new TextDecoder().decode(textFile.data);
+          this.loadMapString(text);
+        } else {
+          const imgFile = result.files.find((f) => f.mimeType.startsWith("image/"));
+          if (imgFile) {
+            const blobUrl = URL.createObjectURL(imgFile.blob);
+            try {
+              await this.loadFromImage(blobUrl);
+            } finally {
+              URL.revokeObjectURL(blobUrl);
+            }
+          }
+        }
+        break;
+      }
+      case "files": {
+        const textFile = result.files.find((f) => /\.(?:map|txt|json)$/i.test(f.name));
+        if (textFile) {
+          const text = await textFile.text();
+          this.loadMapString(text);
+        } else {
+          const imgFile = result.files.find((f) => f.type.startsWith("image/"));
+          if (imgFile) {
+            const blobUrl = URL.createObjectURL(imgFile);
+            try {
+              await this.loadFromImage(blobUrl);
+            } finally {
+              URL.revokeObjectURL(blobUrl);
+            }
+          }
+        }
+        break;
+      }
+      case "image": {
+        await this.loadFromImage(result.image);
+        break;
+      }
+      case "svg": {
+        await this.loadFromImage(result.dataUrl);
+        break;
+      }
+    }
+  }
+
+  public async loadFromImage(source: HTMLImageElement | string): Promise<void> {
+    let img: HTMLImageElement;
+    if (typeof source === "string") {
+      img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = (): void => resolve();
+        img.onerror = (): void => reject(new Error("Bild konnte nicht geladen werden"));
+        img.src = source;
+      });
+    } else {
+      img = source;
+    }
+
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (w <= 0 || h <= 0) return;
+
+    let targetW = this._gridWidth;
+    let targetH = this._gridHeight;
+    if (w <= 128 && h <= 128) {
+      targetW = w;
+      targetH = h;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(img, 0, 0, targetW, targetH);
+    const imgData = ctx.getImageData(0, 0, targetW, targetH);
+    const data = imgData.data;
+
+    this._gridWidth = targetW;
+    this._gridHeight = targetH;
+    this._inputW.value = targetW.toString();
+    this._inputH.value = targetH.toString();
+    this._grid = [];
+
+    const paletteRgb: Array<{ char: string; r: number; g: number; b: number }> = [];
+    for (const [char, meta] of Object.entries(this._palette)) {
+      if (char === ".") continue;
+      const hex = meta.color.replace("#", "");
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      if (hex.length === 6) {
+        r = parseInt(hex.substring(0, 2), 16);
+        g = parseInt(hex.substring(2, 4), 16);
+        b = parseInt(hex.substring(4, 6), 16);
+      }
+      paletteRgb.push({ char, r, g, b });
+    }
+
+    for (let y = 0; y < targetH; y++) {
+      const row: string[] = [];
+      for (let x = 0; x < targetW; x++) {
+        const idx = (y * targetW + x) * 4;
+        const r = data[idx] ?? 0;
+        const g = data[idx + 1] ?? 0;
+        const b = data[idx + 2] ?? 0;
+        const a = data[idx + 3] ?? 0;
+
+        if (a < 64) {
+          row.push(".");
+          continue;
+        }
+
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        let bestChar = lum < 120 ? "W" : ".";
+        let bestDist = Infinity;
+        for (const p of paletteRgb) {
+          const dr = r - p.r;
+          const dg = g - p.g;
+          const db = b - p.b;
+          const dist = dr * dr + dg * dg + db * db;
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestChar = p.char;
+          }
+        }
+
+        if (lum > 200 && bestDist > 2000) {
+          row.push(".");
+        } else {
+          row.push(bestChar);
+        }
+      }
+      this._grid.push(row);
+    }
+
+    this._render();
+  }
+
+  public dispose(): void {
+    this._dropzone?.dispose();
   }
 }
