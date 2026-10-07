@@ -31,8 +31,20 @@ erzeugen.
   Buffer. **Lösung:** `WebGPURenderer.globalResourcesVersion` wird beim Ersetzen hochgezählt, die Passes bauen ihr Bind Group
   bei geänderter Version neu; alle Ersatz-Ressourcen werden über `deferDestroyBuffer()` und `deferDestroyTexture()` nach dem
   `queue.submit()` zerstört. Gegenprobe: Ohne die Versionsprüfung kommen die Fehler zurück, und der neue Test in
-  `CascadedShadowPassGPUCulling.test.ts` wird rot. **Offen:** `SpotShadowPassGPU` hat dieselbe Korrektur, aber keinen eigenen
-  Test.
+  `CascadedShadowPassGPUCulling.test.ts` wird rot. **Abgesichert** durch Tests, jeweils per Gegenprobe rot ohne die Korrektur: `CascadedShadowPassGPUCulling.test.ts` und
+  `SpotShadowPassGPUCasterBindGroup.test.ts` (Neuaufbau nur bei geänderter Version, Zeichnen nie mit der veralteten Gruppe),
+  `WebGPUClusterBufferReplacement.test.ts` (Zähler und verzögerte Freigabe), dazu das Skript `npm run webgpu:resize-stress`.
+  **Prüfung auf vergleichbare Fälle (2026-10-07):** Außer den beiden Shadow-Passes legt kein Pass eine Kopie des globalen
+  Bind Groups an (`DepthPrePassGPU` und `ClusterCullPassGPU` lesen `renderer.globalBindGroup` bei jedem Aufruf). Alle anderen
+  zwischengespeicherten Gruppen vergleichen die Identität ihrer Quell-Views und bauen bei Abweichung neu: `AOPassGPU`
+  (`_builtDepthView`), `BloomPassGPU` (`_builtSourceView`), `HistoryBlendPassGPU` (`_builtCurrentView`), `PostProcessPass`
+  (drei Views), die Material-Bind-Groups (`_getMaterialBindGroup`, Identität aller Ressourcen); die HZB-Gruppen werden in
+  `setSize()` direkt nach dem Ersetzen neu gebaut; die Buffer von Global-, View- und Licht-Gruppen entstehen einmal beim Start;
+  das Ring-Buffer-Bind-Group wird bei jedem Draw über den Getter gelesen. **Latent, nicht reproduziert:** Die Kopien der
+  Shadow-Passes halten auch die IBL-Views (Irradiance, Prefilter, BRDF) der Szene vom Zeitpunkt ihrer Erzeugung. Wechselt
+  `scene.irradianceMap`, `prefilterMap` oder `brdfLUT`, baut der Renderer sein eigenes Bind Group neu, die Kopien nicht. Zum Fehler führte das
+  nur, wenn die alte IBL-Textur zerstört wird (der Textur-Cache zerstört per Referenzzähler sofort). Korrektur wäre ein
+  `globalResourcesVersion++` im IBL-Wechsel von `_updateGlobalBuffers()`.
 
 - ✅ **Showcase 10: 3×4-Raster mit zwei neuen Buoyancy-Pools (`wave-rider`, `dead-sea`), schließt die Abnahme
   „`FluidVolume` in einem Showcase verdrahtet" (G6).** Ein Raster (`POOL_CELLS`) ist die einzige Quelle für Pool-Positionen,

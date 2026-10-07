@@ -151,29 +151,62 @@ describe("CascadedShadowPassGPU: per-cascade frustum culling", () => {
 });
 
 describe("CascadedShadowPassGPU: cached caster bind group", () => {
-  it("rebuilds it only when the renderer replaced a buffer of its global bind group", () => {
+  function setup(): {
+    renderer: Internals;
+    run: () => void;
+    drawnGroups: () => unknown[];
+    lastCreatedGroup: () => unknown;
+    createdCount: () => number;
+  } {
     const caster = makeCaster("caster", new BoundingSphere(new Vector3D(0, 0, 0), 0.1));
     const renderer = makeMockRenderer([caster]);
+    let nextId = 0;
+    // Every call returns a distinct object so the test can tell a rebuilt group from a stale one.
+    renderer._createGlobalBindGroup = vi.fn(() => ({ id: ++nextId }));
     const scene = makeMockScene([caster]);
-    const ce = { beginRenderPass: vi.fn(() => ({ setBindGroup: vi.fn(), end: vi.fn() })) };
+    const renderPass = { setBindGroup: vi.fn(), end: vi.fn() };
+    const ce = { beginRenderPass: vi.fn(() => renderPass) };
     const pass = new CascadedShadowPassGPU() as Internals;
-    const run = (): void =>
-      pass.execute(renderer, scene, ce, {}, new Float32Array(16), new Vector3D(0, 0, 0));
-    const createdBindGroups = (): number =>
-      (renderer._createGlobalBindGroup as ReturnType<typeof vi.fn>).mock.calls.length;
+    return {
+      renderer,
+      run: (): void =>
+        pass.execute(renderer, scene, ce, {}, new Float32Array(16), new Vector3D(0, 0, 0)),
+      drawnGroups: (): unknown[] => renderPass.setBindGroup.mock.calls.map((call) => call[1]),
+      lastCreatedGroup: (): unknown =>
+        (renderer._createGlobalBindGroup as ReturnType<typeof vi.fn>).mock.results.at(-1)?.value,
+      createdCount: (): number =>
+        (renderer._createGlobalBindGroup as ReturnType<typeof vi.fn>).mock.calls.length,
+    };
+  }
+
+  it("rebuilds it only when the renderer replaced a buffer of its global bind group", () => {
+    const { renderer, run, createdCount } = setup();
+    run();
+    const afterFirstFrame = createdCount();
 
     run();
-    const afterFirstFrame = createdBindGroups();
-
-    run();
-    expect(createdBindGroups()).toBe(afterFirstFrame);
+    expect(createdCount()).toBe(afterFirstFrame);
 
     // A resize replaces the cluster buffers: a stale cached group would reference destroyed buffers.
     renderer.globalResourcesVersion = 1;
     run();
-    expect(createdBindGroups()).toBe(afterFirstFrame + 1);
+    expect(createdCount()).toBe(afterFirstFrame + 1);
 
     run();
-    expect(createdBindGroups()).toBe(afterFirstFrame + 1);
+    expect(createdCount()).toBe(afterFirstFrame + 1);
+  });
+
+  it("draws with the rebuilt group after a resize, never with the stale one", () => {
+    const { renderer, run, drawnGroups, lastCreatedGroup } = setup();
+    run();
+    run();
+    const [firstFrame, secondFrame] = drawnGroups();
+    expect(secondFrame).toBe(firstFrame);
+
+    renderer.globalResourcesVersion = 1;
+    run();
+    const afterResize = drawnGroups().at(-1);
+    expect(afterResize).not.toBe(firstFrame);
+    expect(afterResize).toBe(lastCreatedGroup());
   });
 });
