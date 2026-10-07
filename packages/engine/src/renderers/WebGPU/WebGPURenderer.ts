@@ -1167,10 +1167,7 @@ export class WebGPURenderer extends AbstractRenderer {
       );
     }
 
-    this._pointClusterGridBuffer?.destroy();
-    this._pointClusterIndexBuffer?.destroy();
-    this._spotClusterGridBuffer?.destroy();
-    this._spotClusterIndexBuffer?.destroy();
+    // Replaced cluster buffers are dropped for browser GC cleanup once in-flight GPU execution completes
 
     this._pointClusterGridBuffer = this._device!.createBuffer({
       size: gridByteLength,
@@ -1660,7 +1657,6 @@ export class WebGPURenderer extends AbstractRenderer {
         const matrixByteLength = instMesh.instanceMatrices.byteLength;
 
         if (!instanceBuf || instanceBuf.size < matrixByteLength) {
-          if (instanceBuf) instanceBuf.destroy();
           instanceBuf = this._device!.createBuffer({
             size: matrixByteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -1682,7 +1678,6 @@ export class WebGPURenderer extends AbstractRenderer {
           const dataByteLength = instMesh.instanceData.byteLength;
 
           if (!instanceDataBuf || instanceDataBuf.size < dataByteLength) {
-            if (instanceDataBuf) instanceDataBuf.destroy();
             instanceDataBuf = this._device!.createBuffer({
               size: dataByteLength,
               usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -2114,9 +2109,7 @@ export class WebGPURenderer extends AbstractRenderer {
     const d = Math.min(devicePixelRatio, maxRatio);
     this._context.canvas.width = width * d;
     this._context.canvas.height = height * d;
-    if (this._depthTexture) {
-      this._depthTexture.destroy();
-    }
+    // Replaced depth texture is dropped for browser GC cleanup once in-flight GPU execution completes
     this._depthTexture = this._device.createTexture({
       size: [this._context.canvas.width, this._context.canvas.height],
       format: "depth32float",
@@ -2127,7 +2120,6 @@ export class WebGPURenderer extends AbstractRenderer {
     });
 
     if (this._occlusionCullingEnabled) {
-      if (this._hzbTexture) this._hzbTexture.destroy();
       this._hzbMipLevelCount = this._textures.computeMipLevelCount(
         this._context.canvas.width,
         this._context.canvas.height,

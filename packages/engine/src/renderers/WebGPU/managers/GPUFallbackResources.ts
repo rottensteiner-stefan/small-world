@@ -244,8 +244,6 @@ export class GPUFallbackResources {
     this._texturesPendingDestroy.push(t);
   }
 
-  /** Destroys buffers and textures replaced mid-frame or during dynamic resize -- call once
-   * per frame, right after `queue.submit()`, once nothing can still reference them. */
   public drainPendingDestroy(): void {
     if (this._dummyBuffersPendingDestroy.length > 0) {
       for (const b of this._dummyBuffersPendingDestroy) b.destroy();

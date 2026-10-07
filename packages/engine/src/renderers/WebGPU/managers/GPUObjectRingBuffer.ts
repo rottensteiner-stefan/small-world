@@ -30,7 +30,7 @@ export class GPUObjectRingBuffer {
    * referenced the old buffer's slots has actually been recorded and submitted. */
   private _pendingDestroy?: GPUBuffer | undefined;
 
-  constructor(device: GPUDevice, objectBGL: GPUBindGroupLayout, initialCapacity: number = 1024) {
+  constructor(device: GPUDevice, objectBGL: GPUBindGroupLayout, initialCapacity: number = 4096) {
     this._device = device;
     this._objectBGL = objectBGL;
     // Slot stride must respect the device's dynamic-offset alignment (commonly 256, but not
@@ -95,9 +95,6 @@ export class GPUObjectRingBuffer {
     this.ensureCapacity(Math.max(1024, Math.ceil(this._lastFrameSlotCount * 1.5)));
   }
 
-  /** Remembers this frame's usage for next frame's capacity guess, and destroys a buffer replaced
-   * by a mid-init `ensureCapacity()` growth call. Call once per frame, right after
-   * `queue.submit()`, once nothing can still reference the old buffer. */
   public endFrame(): void {
     this._lastFrameSlotCount = this._slotCount;
     if (this._pendingDestroy) {
