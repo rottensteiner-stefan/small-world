@@ -41,7 +41,7 @@ export class GPUFallbackResources {
    * in the same not-yet-submitted command encoder may already have recorded a `setVertexBuffer`
    * call referencing the old buffer. The caller drains (destroys) this list right after
    * `queue.submit()`, once nothing can reference the stale buffers anymore. */
-  private _dummyBuffersPendingDestroy: GPUBuffer[] = [];
+  private _buffersPendingDestroy: GPUBuffer[] = [];
   private _texturesPendingDestroy: GPUTexture[] = [];
 
   constructor(device: GPUDevice) {
@@ -195,11 +195,11 @@ export class GPUFallbackResources {
   public ensureDummyBufferSize(vertexCount: number): void {
     if (this._dummyBufferSize >= vertexCount * 4 && this._dummyNormalBuffer) return;
     const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 4, 3000);
-    if (this._dummyNormalBuffer) this._dummyBuffersPendingDestroy.push(this._dummyNormalBuffer);
-    if (this._dummyUvBuffer) this._dummyBuffersPendingDestroy.push(this._dummyUvBuffer);
-    if (this._dummyTangentBuffer) this._dummyBuffersPendingDestroy.push(this._dummyTangentBuffer);
-    if (this._dummyJointsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyJointsBuffer);
-    if (this._dummyWeightsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyWeightsBuffer);
+    if (this._dummyNormalBuffer) this._buffersPendingDestroy.push(this._dummyNormalBuffer);
+    if (this._dummyUvBuffer) this._buffersPendingDestroy.push(this._dummyUvBuffer);
+    if (this._dummyTangentBuffer) this._buffersPendingDestroy.push(this._dummyTangentBuffer);
+    if (this._dummyJointsBuffer) this._buffersPendingDestroy.push(this._dummyJointsBuffer);
+    if (this._dummyWeightsBuffer) this._buffersPendingDestroy.push(this._dummyWeightsBuffer);
     const normalData = new Float32Array(newSize).fill(0);
     for (let i = 0; i < newSize; i += 3) normalData[i + 1] = 1.0;
 
@@ -244,12 +244,18 @@ export class GPUFallbackResources {
     this._texturesPendingDestroy.push(t);
   }
 
+  /** Queues a replaced buffer for `drainPendingDestroy()`; use instead of `destroy()` when commands
+   * recorded earlier in the same frame might still reference it. */
+  public deferDestroyBuffer(b: GPUBuffer): void {
+    this._buffersPendingDestroy.push(b);
+  }
+
   /** Destroys buffers and textures replaced mid-frame or during dynamic resize -- call once
    * per frame, right after `queue.submit()`, once nothing can still reference them. */
   public drainPendingDestroy(): void {
-    if (this._dummyBuffersPendingDestroy.length > 0) {
-      for (const b of this._dummyBuffersPendingDestroy) b.destroy();
-      this._dummyBuffersPendingDestroy.length = 0;
+    if (this._buffersPendingDestroy.length > 0) {
+      for (const b of this._buffersPendingDestroy) b.destroy();
+      this._buffersPendingDestroy.length = 0;
     }
     if (this._texturesPendingDestroy.length > 0) {
       for (const t of this._texturesPendingDestroy) t.destroy();
@@ -261,8 +267,8 @@ export class GPUFallbackResources {
     this._dummyNormalBuffer?.destroy();
     this._dummyUvBuffer?.destroy();
     this._dummyTangentBuffer?.destroy();
-    for (const b of this._dummyBuffersPendingDestroy) b.destroy();
-    this._dummyBuffersPendingDestroy.length = 0;
+    for (const b of this._buffersPendingDestroy) b.destroy();
+    this._buffersPendingDestroy.length = 0;
     for (const t of this._texturesPendingDestroy) t.destroy();
     this._texturesPendingDestroy.length = 0;
   }

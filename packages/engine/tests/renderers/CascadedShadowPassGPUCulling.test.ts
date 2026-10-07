@@ -61,6 +61,7 @@ function makeMockRenderer(objects: Object3D[]): Internals {
     scratchGlobalBufferData,
     globalUniformBuffer: {},
     globalBindGroup: undefined,
+    globalResourcesVersion: 0,
     __objects: objects,
   };
 }
@@ -146,5 +147,33 @@ describe("CascadedShadowPassGPU: per-cascade frustum culling", () => {
     expect(data).toBe(renderer.scratchGlobalBufferData);
     expect(dataOffset).toBe(128);
     expect(size).toBe(72); // cascadeMatrices(64) + cascadeSplits(4) + dirShadowInfo(4)
+  });
+});
+
+describe("CascadedShadowPassGPU: cached caster bind group", () => {
+  it("rebuilds it only when the renderer replaced a buffer of its global bind group", () => {
+    const caster = makeCaster("caster", new BoundingSphere(new Vector3D(0, 0, 0), 0.1));
+    const renderer = makeMockRenderer([caster]);
+    const scene = makeMockScene([caster]);
+    const ce = { beginRenderPass: vi.fn(() => ({ setBindGroup: vi.fn(), end: vi.fn() })) };
+    const pass = new CascadedShadowPassGPU() as Internals;
+    const run = (): void =>
+      pass.execute(renderer, scene, ce, {}, new Float32Array(16), new Vector3D(0, 0, 0));
+    const createdBindGroups = (): number =>
+      (renderer._createGlobalBindGroup as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    run();
+    const afterFirstFrame = createdBindGroups();
+
+    run();
+    expect(createdBindGroups()).toBe(afterFirstFrame);
+
+    // A resize replaces the cluster buffers: a stale cached group would reference destroyed buffers.
+    renderer.globalResourcesVersion = 1;
+    run();
+    expect(createdBindGroups()).toBe(afterFirstFrame + 1);
+
+    run();
+    expect(createdBindGroups()).toBe(afterFirstFrame + 1);
   });
 });

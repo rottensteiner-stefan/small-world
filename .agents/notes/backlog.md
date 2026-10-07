@@ -22,14 +22,17 @@ erzeugen.
 
 ## 2026-10-07 — Liquid-Roadmap: S1 Wellen-Sonde und Golden-Baseline
 
-- 📋 **WebGPU: ersetzte Ressourcen werden bewusst nicht zerstört, Ursache offen.** `WebGPURenderer` zerstört beim Resize
-  und Wachsen weder die Cluster-Buffer, die Instanz-Buffer noch die Depth- und HZB-Textur, sie bleiben dem Garbage Collector
-  überlassen (Commit `242390b7`). Gemessen mit `npm run webgpu:resize-stress` (Showcase 10, 24 Resizes): **0 Fehler ohne
-  `destroy()`, 2099 Meldungen „Buffer used in submit while destroyed" mit `destroy()`**, auch wenn die Zerstörung über die
-  vorhandene verzögerte Freigabe (`drainPendingDestroy()` nach `queue.submit()`) erst nach dem Submit läuft. Also zeigt noch
-  etwas über das Frame hinaus auf die ersetzten Ressourcen, vermutlich zwischengespeicherte Bind Groups. Nächster Schritt:
-  den Verursacher finden und neu bauen, dann über `deferDestroy*()` freigeben. Folge bis dahin: Nach vielen Resizes bleibt
-  GPU-Speicher (Depth32 bei 4K ≈ 33 MB, HZB, Cluster-Buffer) bis zur Garbage Collection liegen.
+- ✅ **WebGPU: ersetzte Ressourcen werden wieder zerstört, Ursache gefunden und behoben (2026-10-07).** Commit `242390b7`
+  hatte die `destroy()`-Aufrufe für Cluster-Buffer, Instanz-Buffer sowie Depth- und HZB-Textur entfernt, weil sonst „Buffer used in
+  submit while destroyed" auftrat (gemessen mit `npm run webgpu:resize-stress`: 2099 Meldungen mit `destroy()`, 0 ohne).
+  **Ursache:** `CascadedShadowPassGPU` und `SpotShadowPassGPU` halten je ein eigenes `_shadowCasterBindGroup`, eine Kopie des
+  globalen Bind Groups, die nur beim Anlegen der Shadow-Map neu gebaut wurde. Ersetzt der Renderer beim Resize die Cluster-Buffer
+  (`_allocateClusterBuffers()`), baute er sein eigenes Bind Group neu, die Kopien der Passes zeigten weiter auf die alten
+  Buffer. **Lösung:** `WebGPURenderer.globalResourcesVersion` wird beim Ersetzen hochgezählt, die Passes bauen ihr Bind Group
+  bei geänderter Version neu; alle Ersatz-Ressourcen werden über `deferDestroyBuffer()` und `deferDestroyTexture()` nach dem
+  `queue.submit()` zerstört. Gegenprobe: Ohne die Versionsprüfung kommen die Fehler zurück, und der neue Test in
+  `CascadedShadowPassGPUCulling.test.ts` wird rot. **Offen:** `SpotShadowPassGPU` hat dieselbe Korrektur, aber keinen eigenen
+  Test.
 
 - ✅ **Showcase 10: 3×4-Raster mit zwei neuen Buoyancy-Pools (`wave-rider`, `dead-sea`), schließt die Abnahme
   „`FluidVolume` in einem Showcase verdrahtet" (G6).** Ein Raster (`POOL_CELLS`) ist die einzige Quelle für Pool-Positionen,

@@ -23,6 +23,7 @@ export class SpotShadowPassGPU implements RenderPass {
    * (main scene pass vs. a `PlanarReflectionNode` sub-render) didn't match that first one. */
   private _dummyTargetViews = new Map<GPUTextureFormat, GPUTextureView>();
   private _bindGroupNeedsShadowRebuild = true;
+  private _shadowCasterBindGroupVersion = -1;
   private _depthMaterial?: DepthMaterial;
   private _shadowCasterBindGroup?: GPUBindGroup;
   private _spotShadowTexView?: GPUTextureView;
@@ -85,12 +86,17 @@ export class SpotShadowPassGPU implements RenderPass {
 
     // Temporarily swap back default fallback shadow views so the shadow caster bind group
     // does not reference this._fbo (which would create a WebGPU write/read usage conflict).
-    if (!this._shadowCasterBindGroup || this._bindGroupNeedsShadowRebuild) {
+    if (
+      !this._shadowCasterBindGroup ||
+      this._bindGroupNeedsShadowRebuild ||
+      this._shadowCasterBindGroupVersion !== renderer.globalResourcesVersion
+    ) {
       const realDirShadow = renderer.defaultDirShadowTextureView;
       const realSpotShadow = renderer.defaultSpotShadowTextureView;
       renderer.defaultDirShadowTextureView = renderer.dummyDirShadowTextureView;
       renderer.defaultSpotShadowTextureView = renderer.dummySpotShadowTextureView;
       this._shadowCasterBindGroup = renderer._createGlobalBindGroup(scene);
+      this._shadowCasterBindGroupVersion = renderer.globalResourcesVersion;
       renderer.defaultDirShadowTextureView = realDirShadow;
       renderer.defaultSpotShadowTextureView = realSpotShadow;
     }

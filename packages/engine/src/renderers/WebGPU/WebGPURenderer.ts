@@ -350,6 +350,13 @@ export class WebGPURenderer extends AbstractRenderer {
   private _spotLightBuffer!: GPUBuffer;
   private _areaLightBuffer!: GPUBuffer;
   private _globalBindGroup!: GPUBindGroup;
+  private _globalResourcesVersion = 0;
+
+  /** Bumped whenever a buffer bound by the global bind group is replaced; passes that cache their
+   * own copy of that bind group must rebuild it when this changes. */
+  public get globalResourcesVersion(): number {
+    return this._globalResourcesVersion;
+  }
   /** Rebuilt once (not per-frame) by a shadow pass, the first time a real shadow map for that
    * light type exists -- see `CascadedShadowPassGPU`/`SpotShadowPassGPU`. */
   public get globalBindGroup(): GPUBindGroup {
@@ -1167,10 +1174,17 @@ export class WebGPURenderer extends AbstractRenderer {
       );
     }
 
-    // Not destroyed on purpose: destroying a replaced resource here made later submits fail with
-    // "used in submit while destroyed" (2099 validation errors in `npm run webgpu:resize-stress`, 0 without
-    // the destroy), so something still references it after the frame -- the stale reference is not
-    // located yet (backlog 2026-10-07). The old resource is released by garbage collection until then.
+    // Commands recorded earlier this frame may still reference the replaced buffers, so they are
+    // destroyed after the frame's `queue.submit()` (see `drainPendingDestroy()`). Bind groups that
+    // copied the old buffers (the shadow passes' caster groups) rebuild on `globalResourcesVersion`.
+    for (const old of [
+      this._pointClusterGridBuffer,
+      this._pointClusterIndexBuffer,
+      this._spotClusterGridBuffer,
+      this._spotClusterIndexBuffer,
+    ]) {
+      if (old) this._fallback.deferDestroyBuffer(old);
+    }
 
     this._pointClusterGridBuffer = this._device!.createBuffer({
       size: gridByteLength,
@@ -1191,6 +1205,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._clusterDims = dims;
     this._clusterMaxLightsPerCluster = safeMaxLights;
+    this._globalResourcesVersion++;
 
     if (this._globalBGL) {
       this._globalBindGroup = this._createGlobalBindGroup();
@@ -1660,7 +1675,8 @@ export class WebGPURenderer extends AbstractRenderer {
         const matrixByteLength = instMesh.instanceMatrices.byteLength;
 
         if (!instanceBuf || instanceBuf.size < matrixByteLength) {
-          // Replaced instance buffers are not destroyed either, see `_allocateClusterBuffers()`.
+          // Shadow and depth passes recorded earlier this frame may still use the old buffer.
+          if (instanceBuf) this._fallback.deferDestroyBuffer(instanceBuf);
           instanceBuf = this._device!.createBuffer({
             size: matrixByteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -1682,6 +1698,7 @@ export class WebGPURenderer extends AbstractRenderer {
           const dataByteLength = instMesh.instanceData.byteLength;
 
           if (!instanceDataBuf || instanceDataBuf.size < dataByteLength) {
+            if (instanceDataBuf) this._fallback.deferDestroyBuffer(instanceDataBuf);
             instanceDataBuf = this._device!.createBuffer({
               size: dataByteLength,
               usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -2113,7 +2130,7 @@ export class WebGPURenderer extends AbstractRenderer {
     const d = Math.min(devicePixelRatio, maxRatio);
     this._context.canvas.width = width * d;
     this._context.canvas.height = height * d;
-    // Replaced depth and HZB textures are not destroyed, see `_allocateClusterBuffers()`.
+    if (this._depthTexture) this._fallback.deferDestroyTexture(this._depthTexture);
     this._depthTexture = this._device.createTexture({
       size: [this._context.canvas.width, this._context.canvas.height],
       format: "depth32float",
@@ -2124,6 +2141,7 @@ export class WebGPURenderer extends AbstractRenderer {
     });
 
     if (this._occlusionCullingEnabled) {
+      if (this._hzbTexture) this._fallback.deferDestroyTexture(this._hzbTexture);
       this._hzbMipLevelCount = this._textures.computeMipLevelCount(
         this._context.canvas.width,
         this._context.canvas.height,

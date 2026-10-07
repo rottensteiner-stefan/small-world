@@ -29,6 +29,7 @@ export class CascadedShadowPassGPU implements RenderPass {
   private _cascadeLayerViews: GPUTextureView[] = [];
   private _cachedFbo?: GPUTexture;
   private _bindGroupNeedsShadowRebuild = true;
+  private _shadowCasterBindGroupVersion = -1;
   private _depthMaterial?: DepthMaterial;
   /**
    * A snapshot of the global bind group taken BEFORE it ever gets rebuilt to
@@ -95,12 +96,17 @@ export class CascadedShadowPassGPU implements RenderPass {
 
     // Temporarily swap back default fallback shadow views so the shadow caster bind group
     // does not reference fbo (which would create a WebGPU write/read usage conflict).
-    if (!this._shadowCasterBindGroup || this._bindGroupNeedsShadowRebuild) {
+    if (
+      !this._shadowCasterBindGroup ||
+      this._bindGroupNeedsShadowRebuild ||
+      this._shadowCasterBindGroupVersion !== renderer.globalResourcesVersion
+    ) {
       const realDirShadow = renderer.defaultDirShadowTextureView;
       const realSpotShadow = renderer.defaultSpotShadowTextureView;
       renderer.defaultDirShadowTextureView = renderer.dummyDirShadowTextureView;
       renderer.defaultSpotShadowTextureView = renderer.dummySpotShadowTextureView;
       this._shadowCasterBindGroup = renderer._createGlobalBindGroup(scene);
+      this._shadowCasterBindGroupVersion = renderer.globalResourcesVersion;
       renderer.defaultDirShadowTextureView = realDirShadow;
       renderer.defaultSpotShadowTextureView = realSpotShadow;
     }
