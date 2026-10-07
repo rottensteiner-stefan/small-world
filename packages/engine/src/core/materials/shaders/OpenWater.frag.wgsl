@@ -101,7 +101,9 @@
     let caustics2 = 1.0 - waterCellNoise(causticsUv2);
     let causticsValue = pow(caustics1 * caustics2, 1.6) * 3.2;
     let causticsFade = exp(-depthDiff * 0.7) * smoothstep(0.05, 0.4, depthDiff);
-    let causticsLight = vec3<f32>(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.1;
+    let underwaterLuma = dot(refractedColor, vec3<f32>(0.299, 0.587, 0.114));
+    let shadowMask = smoothstep(0.05, 0.22, underwaterLuma);
+    let causticsLight = vec3<f32>(1.0, 0.98, 0.88) * causticsValue * causticsFade * shadowMask * 0.1;
     finalColor += causticsLight;
 
     finalColor *= global.exposure;

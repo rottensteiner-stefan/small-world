@@ -128,7 +128,9 @@ void main() {
     float caustics2 = 1.0 - waterCellNoise(causticsUv2);
     float causticsValue = pow(caustics1 * caustics2, 1.6) * 3.2;
     float causticsFade = exp(-depthDiff * 0.7) * smoothstep(0.05, 0.4, depthDiff);
-    vec3 causticsLight = vec3(1.0, 0.98, 0.88) * causticsValue * causticsFade * 0.1;
+    float underwaterLuma = dot(refractedColor, vec3(0.299, 0.587, 0.114));
+    float shadowMask = smoothstep(0.05, 0.22, underwaterLuma);
+    vec3 causticsLight = vec3(1.0, 0.98, 0.88) * causticsValue * causticsFade * shadowMask * 0.1;
     finalColor += causticsLight;
 
     finalColor *= u_exposure;

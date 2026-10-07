@@ -111,8 +111,10 @@ void main() {
 
         // Compressed gain: a strong causticStrength brightens the net without clipping to flat cyan
         float causticGain = u_specColor.a / (1.0 + 0.5 * u_specColor.a);
-        finalCaustics = causticRgb * causticsFade * causticGain;
-        illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3(0.82, 0.92, 0.98), vec3(1.0), 1.0 - causticCore * 0.45) + finalCaustics;
+        float underwaterLuma = dot(opaqueUnderwaterColor, vec3(0.299, 0.587, 0.114));
+        float shadowMask = smoothstep(0.06, 0.24, underwaterLuma);
+        finalCaustics = causticRgb * causticsFade * causticGain * shadowMask;
+        illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3(0.82, 0.92, 0.98), vec3(1.0), 1.0 - causticCore * 0.45 * shadowMask) + finalCaustics;
     } else {
         // Legacy Dual-Chromatic Panning Voronoi noise
         vec2 causticsUv1 = uvCaustics * (u_useReflectionMap * 0.85) + vec2(u_time * causticsSpeed, u_time * causticsSpeed * 0.5);
@@ -120,7 +122,9 @@ void main() {
         float causticsNoise1 = 1.0 - waterCellNoise(causticsUv1);
         float causticsNoise2 = 1.0 - waterCellNoise(causticsUv2);
         float causticsThreshold = 0.42;
-        finalCaustics = vec3(aaStepMask(causticsThreshold, causticsNoise1 * causticsNoise2, 0.08)) * causticsFade * causticsColor * u_specColor.a;
+        float underwaterLuma = dot(opaqueUnderwaterColor, vec3(0.299, 0.587, 0.114));
+        float shadowMask = smoothstep(0.06, 0.24, underwaterLuma);
+        finalCaustics = vec3(aaStepMask(causticsThreshold, causticsNoise1 * causticsNoise2, 0.08)) * causticsFade * causticsColor * u_specColor.a * shadowMask;
         illuminatedUnderwater = opaqueUnderwaterColor + finalCaustics;
     }
 

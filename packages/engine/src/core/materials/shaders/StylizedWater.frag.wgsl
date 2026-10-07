@@ -79,15 +79,19 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
 
         // Compressed gain: a strong causticStrength brightens the net without clipping to flat cyan
         let causticGain = obj.specColor.a / (1.0 + 0.5 * obj.specColor.a);
-        finalCaustics = causticRgb * causticsFade * causticGain;
-        illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3<f32>(0.82, 0.92, 0.98), vec3<f32>(1.0), 1.0 - causticCore * 0.45) + finalCaustics;
+        let underwaterLuma = dot(opaqueUnderwaterColor, vec3<f32>(0.299, 0.587, 0.114));
+        let shadowMask = smoothstep(0.06, 0.24, underwaterLuma);
+        finalCaustics = causticRgb * causticsFade * causticGain * shadowMask;
+        illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3<f32>(0.82, 0.92, 0.98), vec3<f32>(1.0), 1.0 - causticCore * 0.45 * shadowMask) + finalCaustics;
     } else {
         let causticsUv1 = uvCaustics * (obj.useReflectionMap * 0.85) + vec2<f32>(obj.time * causticsSpeed, obj.time * causticsSpeed * 0.5);
         let causticsUv2 = uvCaustics * (obj.useReflectionMap * 1.1) - vec2<f32>(obj.time * causticsSpeed * 0.6, obj.time * causticsSpeed * 0.8);
         let causticsNoise1 = 1.0 - waterCellNoise(causticsUv1);
         let causticsNoise2 = 1.0 - waterCellNoise(causticsUv2);
         let causticsThreshold = 0.42;
-        finalCaustics = vec3<f32>(aaStepMask(causticsThreshold, causticsNoise1 * causticsNoise2, 0.08)) * causticsFade * causticsColor * obj.specColor.a;
+        let underwaterLuma = dot(opaqueUnderwaterColor, vec3<f32>(0.299, 0.587, 0.114));
+        let shadowMask = smoothstep(0.06, 0.24, underwaterLuma);
+        finalCaustics = vec3<f32>(aaStepMask(causticsThreshold, causticsNoise1 * causticsNoise2, 0.08)) * causticsFade * causticsColor * obj.specColor.a * shadowMask;
         illuminatedUnderwater = opaqueUnderwaterColor + finalCaustics;
     }
 
