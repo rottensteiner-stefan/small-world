@@ -56,13 +56,19 @@ export class OpenWaterSurfaceProbe {
     this._f32 = options.f32Precision ?? true;
   }
 
-  public static fromMaterial(material: OpenWaterMaterial): OpenWaterSurfaceProbe {
-    return new OpenWaterSurfaceProbe({
-      wave1: material.wave1,
-      wave2: material.wave2,
-      wave3: material.wave3,
-      speed: material.speed,
-    });
+  public static fromMaterial(
+    material: OpenWaterMaterial,
+    options: OpenWaterSurfaceProbeOptions = {},
+  ): OpenWaterSurfaceProbe {
+    return new OpenWaterSurfaceProbe(
+      {
+        wave1: material.wave1,
+        wave2: material.wave2,
+        wave3: material.wave3,
+        speed: material.speed,
+      },
+      options,
+    );
   }
 
   /**

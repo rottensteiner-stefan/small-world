@@ -4,6 +4,8 @@ import {
   BasicMaterial,
   Behavior,
   BobbingBehavior,
+  BoundingBox,
+  BoundingSphere,
   CameraStrategyType,
   Color,
   Cube,
@@ -11,6 +13,7 @@ import {
   DirectionalLight,
   EngineOptions,
   FluidSurfaceMaterial,
+  FluidVolume,
   Fog,
   FogMode,
   FPSController,
@@ -21,16 +24,19 @@ import {
   MathUtils,
   Object3D,
   OpenWaterMaterial,
+  OpenWaterSurfaceProbe,
   Octahedron,
   PerspectiveProjection,
   Plane,
   PointLight,
   RendererType,
+  RigidBody,
   RotatorBehavior,
   Sphere,
   SlimeMaterial,
   StylizedWaterMaterial,
   Texture,
+  Vector3D,
   WorldMaterial,
   ZoomController,
 } from "../../../packages/engine/src/index.js";
@@ -81,7 +87,9 @@ type GoldenPoolKey =
   | "noir-graphic"
   | "molten-lava"
   | "toxic-slime"
-  | "petroleum-oil";
+  | "petroleum-oil"
+  | "wave-rider"
+  | "dead-sea";
 
 type GoldenView = "top" | "oblique";
 
@@ -107,19 +115,44 @@ interface GoldenWindowFlags {
   __goldenMeta?: GoldenMeta;
 }
 
-/** World-space pool center for every golden pool key, mirroring the `_buildPool` calls below. */
-const GOLDEN_POOL_LAYOUT: Readonly<Record<GoldenPoolKey, GoldenPoolLayout>> = {
-  "clear-water": { x: -18, z: -7.5 },
-  "toon-water": { x: -9, z: -7.5 },
-  "bold-anime": { x: 0, z: -7.5 },
-  "soft-watercolor": { x: 9, z: -7.5 },
-  "painterly-sparkle": { x: 18, z: -7.5 },
-  dredge: { x: -18, z: 7.5 },
-  "noir-graphic": { x: -9, z: 7.5 },
-  "molten-lava": { x: 0, z: 7.5 },
-  "toxic-slime": { x: 9, z: 7.5 },
-  "petroleum-oil": { x: 18, z: 7.5 },
+/**
+ * The pool gallery is a 3 x 4 grid, one pool per cell. This table is the single source of truth:
+ * pool positions, meadow cutouts, signboards and the golden cameras are all derived from it.
+ * Row 0 (north): realistic water and the buoyancy pools; row 1: stylized anime/painterly water;
+ * row 2 (south): dark and exotic fluids.
+ */
+const POOL_GRID_COLUMNS = 4;
+const POOL_GRID_ROWS = 3;
+const POOL_PITCH_X = 9;
+const POOL_PITCH_Z = 15;
+const POOL_CELLS: Readonly<Record<GoldenPoolKey, { col: number; row: number }>> = {
+  "clear-water": { col: 0, row: 0 },
+  "wave-rider": { col: 1, row: 0 },
+  "dead-sea": { col: 2, row: 0 },
+  "toon-water": { col: 3, row: 0 },
+  "bold-anime": { col: 0, row: 1 },
+  "soft-watercolor": { col: 1, row: 1 },
+  "painterly-sparkle": { col: 2, row: 1 },
+  dredge: { col: 3, row: 1 },
+  "noir-graphic": { col: 0, row: 2 },
+  "molten-lava": { col: 1, row: 2 },
+  "toxic-slime": { col: 2, row: 2 },
+  "petroleum-oil": { col: 3, row: 2 },
 };
+
+/** World-space pool center of a grid cell (the grid is centered on the world origin). */
+function poolWorldPosition(key: GoldenPoolKey): GoldenPoolLayout {
+  const cell = POOL_CELLS[key];
+  return {
+    x: (cell.col - (POOL_GRID_COLUMNS - 1) / 2) * POOL_PITCH_X,
+    z: (cell.row - (POOL_GRID_ROWS - 1) / 2) * POOL_PITCH_Z,
+  };
+}
+
+/** World-space pool center for every golden pool key. */
+const GOLDEN_POOL_LAYOUT = Object.fromEntries(
+  (Object.keys(POOL_CELLS) as GoldenPoolKey[]).map((key) => [key, poolWorldPosition(key)]),
+) as Readonly<Record<GoldenPoolKey, GoldenPoolLayout>>;
 
 /**
  * Parses the golden-mode query parameters. Returns `undefined` when no `__golden` parameter is
@@ -161,7 +194,7 @@ interface TilePalette {
 
 /** Pool frame palettes: 5 harmonious subtle shade variations per palette scattered organically across tiles. */
 const TILE_PALETTES: Record<
-  "pool" | "murk" | "noir" | "basalt" | "toxic" | "graphite",
+  "pool" | "murk" | "noir" | "basalt" | "toxic" | "graphite" | "salt",
   TilePalette
 > = {
   pool: {
@@ -236,7 +269,73 @@ const TILE_PALETTES: Record<
     ],
     shine: 0.25,
   },
+  salt: {
+    grout: "#d9d2c3",
+    groutSpeckle: "#e6e0d3",
+    variants: [
+      ["#f1ece0", "#e6dfd0", "#dbd3c1", "#cfc6b2"],
+      ["#ece5d6", "#e1d9c7", "#d6cdb9", "#cac0aa"],
+      ["#e6dfcf", "#dbd3c1", "#d0c7b3", "#c4baa4"],
+      ["#f4efe5", "#e9e3d5", "#ded6c5", "#d2c9b6"],
+      ["#e9e2d2", "#ded6c4", "#d3cab6", "#c7bda8"],
+    ],
+    shine: 0.5,
+  },
 };
+
+const HOME_STIFFNESS = 3.0; // 1/s^2, soft spring back to the pool column
+const HOME_DAMPING = 1.6; // 1/s, calms horizontal drift
+const BODY_YAW_SPEED = 0.25; // rad/s
+// FluidVolume drag is a per-step velocity factor. The default 0.95 leaves the bodies nearly in
+// resonance with the swell and they overshoot the surface; 0.88 makes them ride it.
+const BUOYANCY_POOL_DRAG = 0.88;
+
+/** Volume of a physics body's bounds, the same measure the buoyancy solver displaces. */
+function boundsVolume(bounds: BoundingBox | BoundingSphere | object): number {
+  if (bounds instanceof BoundingBox) {
+    return (
+      (bounds.max.x - bounds.min.x) * (bounds.max.y - bounds.min.y) * (bounds.max.z - bounds.min.z)
+    );
+  }
+  if (bounds instanceof BoundingSphere) {
+    return (4 / 3) * Math.PI * bounds.radius ** 3;
+  }
+  return 0;
+}
+
+/**
+ * Keeps a floating physics body inside its pool: a soft spring pulls it back towards its home
+ * column and light damping calms the drift, while the vertical motion stays purely buoyancy.
+ * The mass is derived from the body's volume once its bounds exist, so `submersion` is the
+ * fraction of the volume that sits below the surface at rest in fluid of density 1.
+ */
+class PoolHomeBehavior extends Behavior {
+  private _massAssigned = false;
+
+  constructor(
+    private readonly _homeX: number,
+    private readonly _homeZ: number,
+    private readonly _submersion: number,
+  ) {
+    super();
+  }
+
+  public override update(): void {
+    const target = this.target;
+    if (!(target instanceof Object3D) || !target.rigidBody || !target.bounds) return;
+    const body = target.rigidBody;
+    if (!this._massAssigned) {
+      body.mass = this._submersion * boundsVolume(target.bounds);
+      this._massAssigned = true;
+    }
+    body.angularVelocity.y = BODY_YAW_SPEED;
+    const mass = body.mass;
+    body.forces.x +=
+      mass * (-HOME_STIFFNESS * (target.position.x - this._homeX) - HOME_DAMPING * body.velocity.x);
+    body.forces.z +=
+      mass * (-HOME_STIFFNESS * (target.position.z - this._homeZ) - HOME_DAMPING * body.velocity.z);
+  }
+}
 
 /**
  * Periodically drops the attached object into the pool from above, lets it splash (impact +
@@ -307,7 +406,7 @@ class SplashDropBehavior extends Behavior {
  */
 export class Showcase10 extends AbstractShowcase {
   private readonly _moveSpeed: number = 12.0;
-  private readonly _startEyeHeight: number = 8.0;
+  private readonly _startEyeHeight: number = 18.0;
   private readonly _minEyeHeight: number = 0.1;
   private readonly _lightPulseSpeed: number = 2.1;
 
@@ -322,6 +421,11 @@ export class Showcase10 extends AbstractShowcase {
   private _barrelOil: Object3D | undefined;
   private _barrelChemical: Object3D | undefined;
   private _time: number = 0;
+  private readonly _buoyancyBodies: Array<{
+    body: Object3D;
+    position: Vector3D;
+    rotation: Vector3D;
+  }> = [];
   private _golden: GoldenSpec | undefined;
   private readonly _goldenResizeHandler: () => void = (): void => this._applyGoldenSurface();
 
@@ -330,6 +434,7 @@ export class Showcase10 extends AbstractShowcase {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
+      enablePhysics: true, // the buoyancy pools (FluidVolume) need the physics step
       ...options,
     });
   }
@@ -356,15 +461,18 @@ export class Showcase10 extends AbstractShowcase {
     this.onCanvasRecreated();
 
     const aspect = window.innerWidth / window.innerHeight;
-    // Start framing: as close as possible while the near pool row (outer pools + signs,     // +-23.5 m wide, with margin) still fits the horizontal field of view at this aspect ratio.
+    // Start framing: as close as possible while the near pool row (outer pools + signs, +-21 m
+    // wide, with margin) still fits the horizontal field of view at this aspect ratio.
     const startFov = MathUtils.degToRad(64);
-    const startPitch = MathUtils.degToRad(-28);
-    const framedDepth = 26 / (Math.tan(startFov / 2) * aspect);
+    const startPitch = MathUtils.degToRad(-42);
+    const nearRowZ = poolWorldPosition("petroleum-oil").z;
+    const framedDepth = 21 / (Math.tan(startFov / 2) * aspect);
     const startZ = Math.min(
-      46,
+      60,
       Math.max(
-        17,
-        7.5 + (framedDepth - this._startEyeHeight * Math.sin(-startPitch)) / Math.cos(startPitch),
+        24,
+        nearRowZ +
+          (framedDepth - this._startEyeHeight * Math.sin(-startPitch)) / Math.cos(startPitch),
       ),
     );
     this.camera.projection = new PerspectiveProjection({
@@ -376,7 +484,7 @@ export class Showcase10 extends AbstractShowcase {
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.position.set(0, this._startEyeHeight, startZ);
-    this.camera.theta = 0; // Look across both pool rows along -Z (all 10 pools in view)
+    this.camera.theta = 0; // Look across all pool rows along -Z (the whole gallery in view)
     this.camera.phi = startPitch;
     this.renderer.setClearColor(new Color(0.26, 0.48, 0.8, 1.0)); // Daylight sky instead of a black void
     // Horizon haze: the far meadow fades into a pale sky tone, so the sky reads as a gradient
@@ -489,8 +597,7 @@ export class Showcase10 extends AbstractShowcase {
     });
     this._buildPool({
       name: "ClearWaterPool",
-      x: -18,
-      z: -7.5,
+      ...poolWorldPosition("clear-water"),
       liquid: clearWater,
       needsTangents: true,
       tileMaterial,
@@ -521,8 +628,7 @@ export class Showcase10 extends AbstractShowcase {
     });
     this._buildPool({
       name: "ToonWaterPool",
-      x: -9,
-      z: -7.5,
+      ...poolWorldPosition("toon-water"),
       liquid: toonWater,
       needsTangents: true,
       tileMaterial,
@@ -553,8 +659,7 @@ export class Showcase10 extends AbstractShowcase {
     });
     this._buildPool({
       name: "BoldAnimePool",
-      x: 0,
-      z: -7.5,
+      ...poolWorldPosition("bold-anime"),
       liquid: boldWater,
       needsTangents: true,
       tileMaterial,
@@ -586,8 +691,7 @@ export class Showcase10 extends AbstractShowcase {
     });
     this._buildPool({
       name: "SoftWatercolorPool",
-      x: 9,
-      z: -7.5,
+      ...poolWorldPosition("soft-watercolor"),
       liquid: softWatercolorWater,
       needsTangents: true,
       tileMaterial,
@@ -627,8 +731,7 @@ export class Showcase10 extends AbstractShowcase {
     });
     this._buildPool({
       name: "PainterlySparklePool",
-      x: 18,
-      z: -7.5,
+      ...poolWorldPosition("painterly-sparkle"),
       liquid: sparkleWater,
       needsTangents: true,
       tileMaterial,
@@ -667,8 +770,7 @@ export class Showcase10 extends AbstractShowcase {
     });
     this._buildPool({
       name: "DredgePool",
-      x: -18,
-      z: 7.5,
+      ...poolWorldPosition("dredge"),
       liquid: dredgeWater,
       needsTangents: true,
       tileMaterial: murkTileMaterial,
@@ -688,8 +790,7 @@ export class Showcase10 extends AbstractShowcase {
     const noirWater = new NoirWaterMaterial();
     this._buildPool({
       name: "NoirGraphicPool",
-      x: -9,
-      z: 7.5,
+      ...poolWorldPosition("noir-graphic"),
       liquid: noirWater,
       needsTangents: true,
       tileMaterial: noirTileMaterial,
@@ -722,8 +823,7 @@ export class Showcase10 extends AbstractShowcase {
     });
     this._buildPool({
       name: "MoltenLavaPool",
-      x: 0,
-      z: 7.5,
+      ...poolWorldPosition("molten-lava"),
       liquid: lava,
       needsTangents: false,
       tileMaterial: basaltTileMaterial,
@@ -743,7 +843,8 @@ export class Showcase10 extends AbstractShowcase {
       intensity: 8.5,
       distance: 14,
     });
-    this._lavaLight.position.set(0, 0.45, 7.5); // Low over the surface: the orange light bleeds onto the frame and floaters
+    const lavaCenter = poolWorldPosition("molten-lava");
+    this._lavaLight.position.set(lavaCenter.x, 0.45, lavaCenter.z); // Low over the surface: the orange light bleeds onto the frame and floaters
     this.scene.add(this._lavaLight);
 
     // 9. Toxic Slime (Bioluminescent Green Acid with Bubbles)
@@ -763,8 +864,7 @@ export class Showcase10 extends AbstractShowcase {
     });
     this._buildPool({
       name: "ToxicSlimePool",
-      x: 9,
-      z: 7.5,
+      ...poolWorldPosition("toxic-slime"),
       liquid: slime,
       needsTangents: false,
       tileMaterial: toxicTileMaterial,
@@ -784,7 +884,8 @@ export class Showcase10 extends AbstractShowcase {
       intensity: 6.5,
       distance: 14,
     });
-    this._slimeLight.position.set(9, 0.55, 7.5);
+    const slimeCenter = poolWorldPosition("toxic-slime");
+    this._slimeLight.position.set(slimeCenter.x, 0.55, slimeCenter.z);
     this.scene.add(this._slimeLight);
 
     // 10. Petroleum Oil (Dark Viscous Hydrocarbon with a slick sheen). Colours, specular and
@@ -792,8 +893,7 @@ export class Showcase10 extends AbstractShowcase {
     const darkOil = new OilSlickMaterial();
     this._buildPool({
       name: "PetroleumOilPool",
-      x: 18,
-      z: 7.5,
+      ...poolWorldPosition("petroleum-oil"),
       liquid: darkOil,
       needsTangents: true,
       tileMaterial: oilTileMaterial,
@@ -815,29 +915,89 @@ export class Showcase10 extends AbstractShowcase {
       dropper: this._makeBarrel("oil"), // Black steel oil drum
     });
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // BUOYANCY POOLS: rigid bodies ride the REAL wave surface (FluidVolume + OpenWaterSurfaceProbe)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // 11. Wave Rider: a swell large enough to see the bodies heave with it
+    const waveRiderWater = new OpenWaterMaterial({
+      waterColor: new Color(0.04, 0.42, 0.58),
+      deepWaterColor: new Color(0.0, 0.1, 0.2),
+      edgeColor: new Color(0.85, 0.98, 1.0),
+      edgeSoftness: 0.8,
+      foamDistance: 0.75,
+      speed: 0.8,
+      wave1: [1.0, 0.3, 0.22, 4.5],
+      wave2: [0.3, 1.0, 0.16, 3.0],
+      wave3: [-0.6, 0.5, 0.1, 2.2],
+      refractionStrength: 0.03,
+      waterAbsorption: [0.18, 0.045, 0.015],
+      foamColor: new Color(1.0, 1.0, 1.0),
+      foamCutoff: 0.45,
+      foamNoiseScale: 4.5,
+      foamNoiseSpeed: 0.7,
+    });
+    this._buildPool({
+      name: "WaveRiderPool",
+      ...poolWorldPosition("wave-rider"),
+      liquid: waveRiderWater,
+      needsTangents: true,
+      tileMaterial,
+      spawnDelay: 0,
+      splashDropper: false,
+    });
+    this._installBuoyancyPool("wave-rider", waveRiderWater, 1.0);
+
+    // 12. Dead Sea: the same bodies in brine of density 1.24 sit visibly higher
+    const deadSeaWater = new OpenWaterMaterial({
+      waterColor: new Color(0.3, 0.72, 0.7),
+      deepWaterColor: new Color(0.05, 0.32, 0.36),
+      edgeColor: new Color(0.95, 0.98, 0.92),
+      edgeSoftness: 0.9,
+      foamDistance: 0.5,
+      speed: 0.5,
+      wave1: [1.0, 0.25, 0.12, 5.0],
+      wave2: [0.3, 1.0, 0.09, 3.2],
+      wave3: [-0.5, 0.6, 0.06, 2.4],
+      refractionStrength: 0.02,
+      waterAbsorption: [0.35, 0.1, 0.06],
+      foamColor: new Color(0.97, 0.97, 0.93),
+      foamCutoff: 0.55,
+      foamNoiseScale: 3.5,
+      foamNoiseSpeed: 0.4,
+    });
+    this._buildPool({
+      name: "DeadSeaPool",
+      ...poolWorldPosition("dead-sea"),
+      liquid: deadSeaWater,
+      needsTangents: true,
+      tileMaterial: this._createTileMaterial(TILE_PALETTES.salt),
+      spawnDelay: 0,
+      splashDropper: false,
+    });
+    this._installBuoyancyPool("dead-sea", deadSeaWater, 1.24);
+
     // Signboards stand BESIDE the pools (in the gap on the entrance side of each pool, not in front
     // of the edges), angled towards the avenue so they read from the start view.
-    const rowASigns: Array<[string, string, number]> = [
-      ["Clear Water", "PBR Ocean • Gerstner & Foam", -18],
-      ["Classic Toon Water", "Cel Shader • Stepped Foam Bands", -9],
-      ["Bold Anime Water", "High-Contrast • Saturated Waves", 0],
-      ["Soft Anime Watercolor", "Smooth-Min Voronoi Caustics", 9],
-      ["Painterly Sparkle", "12 FPS Astroid Star Glints", 18],
-    ];
-    const rowBSigns: Array<[string, string, number]> = [
-      ["Dredge Abyssal Fog", "Eerie Murk • Jade Subsurface", -18],
-      ["Noir Graphic Novel", "Monochrome Ink • Posterized Tones", -9],
-      ["Molten Lava", "Viscous Magma • Emissive Crust Glow", 0],
-      ["Toxic Slime", "Bioluminescent Acid • Bubbles", 9],
-      ["Petroleum Dark Oil", "Dark Hydrocarbon • Oil Slick Sheen", 18],
-    ];
-    const signYawA = MathUtils.degToRad(12);
-    const signYawB = MathUtils.degToRad(-12);
-    for (const [title, subtitle, px] of rowASigns) {
-      this._createSignboard(title, subtitle, px - 3.9, -6.2, signYawA);
-    }
-    for (const [title, subtitle, px] of rowBSigns) {
-      this._createSignboard(title, subtitle, px - 3.9, 9.0, signYawB);
+    const signTexts: Readonly<Record<GoldenPoolKey, readonly [string, string]>> = {
+      "clear-water": ["Clear Water", "PBR Ocean • Gerstner & Foam"],
+      "wave-rider": ["Wave Rider", "Bodies ride the real wave surface"],
+      "dead-sea": ["Dead Sea", "Denser brine • Floats higher"],
+      "toon-water": ["Classic Toon Water", "Cel Shader • Stepped Foam Bands"],
+      "bold-anime": ["Bold Anime Water", "High-Contrast • Saturated Waves"],
+      "soft-watercolor": ["Soft Anime Watercolor", "Smooth-Min Voronoi Caustics"],
+      "painterly-sparkle": ["Painterly Sparkle", "12 FPS Astroid Star Glints"],
+      dredge: ["Dredge Abyssal Fog", "Eerie Murk • Jade Subsurface"],
+      "noir-graphic": ["Noir Graphic Novel", "Monochrome Ink • Posterized Tones"],
+      "molten-lava": ["Molten Lava", "Viscous Magma • Emissive Crust Glow"],
+      "toxic-slime": ["Toxic Slime", "Bioluminescent Acid • Bubbles"],
+      "petroleum-oil": ["Petroleum Dark Oil", "Dark Hydrocarbon • Oil Slick Sheen"],
+    };
+    for (const key of Object.keys(POOL_CELLS) as GoldenPoolKey[]) {
+      const { x, z } = poolWorldPosition(key);
+      const [title, subtitle] = signTexts[key];
+      const yaw = MathUtils.degToRad(POOL_CELLS[key].row === POOL_GRID_ROWS - 1 ? -12 : 12);
+      this._createSignboard(title, subtitle, x - 3.9, z + 1.4, yaw);
     }
 
     this.scene.update();
@@ -1106,7 +1266,7 @@ export class Showcase10 extends AbstractShowcase {
   }
 
   /**
-   * Builds the world meadow ground with seamless cutouts for all 10 pools,
+   * Builds the world meadow ground with seamless cutouts for all pools of the grid,
    * mapping UVs in world space so the grass tiles continuously across all chunks.
    */
   private _buildGroundWithPoolHoles(groundMaterial: WorldMaterial): void {
@@ -1133,26 +1293,32 @@ export class Showcase10 extends AbstractShowcase {
     };
 
     // Total area: 600 x 600 (X/Z [-300, +300]) so the meadow edge never shows in the gallery views.
-    // 1. Large surrounding perimeter slabs:
-    addGroundChunk("Ground_North", 600, 290, 0, -155); // Z: [-300, -10]
-    addGroundChunk("Ground_South", 600, 290, 0, 155); // Z: [+10, +300]
-    addGroundChunk("Ground_West", 279.5, 20, -160.25, 0); // X: [-300, -20.5], Z: [-10, +10]
-    addGroundChunk("Ground_East", 279.5, 20, 160.25, 0); // X: [+20.5, +300], Z: [-10, +10]
-
-    // 2. Central Plaza walkway between Row 1 and Row 2:
-    addGroundChunk("Ground_Center_Plaza", 41, 10, 0, 0); // X: [-20.5, +20.5], Z: [-5, +5]
-
-    // 3. Walkway strips between Row 1 pools (Z: [-10, -5], depth 5, center Z = -7.5):
-    addGroundChunk("Ground_R1_Gap1", 4, 5, -13.5, -7.5);
-    addGroundChunk("Ground_R1_Gap2", 4, 5, -4.5, -7.5);
-    addGroundChunk("Ground_R1_Gap3", 4, 5, 4.5, -7.5);
-    addGroundChunk("Ground_R1_Gap4", 4, 5, 13.5, -7.5);
-
-    // 4. Walkway strips between Row 2 pools (Z: [+5, +10], depth 5, center Z = +7.5):
-    addGroundChunk("Ground_R2_Gap1", 4, 5, -13.5, 7.5);
-    addGroundChunk("Ground_R2_Gap2", 4, 5, -4.5, 7.5);
-    addGroundChunk("Ground_R2_Gap3", 4, 5, 4.5, 7.5);
-    addGroundChunk("Ground_R2_Gap4", 4, 5, 13.5, 7.5);
+    // The plane is cut along every pool edge; the cells that fall inside a pool footprint are left
+    // out, everything else (walkways, plaza, surrounding meadow) becomes one chunk per cell.
+    const halfPool = POOL_SIZE / 2;
+    const edgesAround = (centers: number[]): number[] => [
+      -300,
+      ...centers.flatMap((c) => [c - halfPool, c + halfPool]),
+      300,
+    ];
+    const poolCenters = (Object.keys(POOL_CELLS) as GoldenPoolKey[]).map(poolWorldPosition);
+    const xEdges = edgesAround([...new Set(poolCenters.map((c) => c.x))].sort((a, b) => a - b));
+    const zEdges = edgesAround([...new Set(poolCenters.map((c) => c.z))].sort((a, b) => a - b));
+    for (let i = 0; i < xEdges.length - 1; i++) {
+      for (let j = 0; j < zEdges.length - 1; j++) {
+        // Intervals alternate outside / pool: odd indices are pool footprints.
+        if (i % 2 === 1 && j % 2 === 1) continue;
+        const w = xEdges[i + 1]! - xEdges[i]!;
+        const d = zEdges[j + 1]! - zEdges[j]!;
+        addGroundChunk(
+          `Ground_${i}_${j}`,
+          w,
+          d,
+          (xEdges[i]! + xEdges[i + 1]!) / 2,
+          (zEdges[j]! + zEdges[j + 1]!) / 2,
+        );
+      }
+    }
   }
 
   /**
@@ -1170,6 +1336,8 @@ export class Showcase10 extends AbstractShowcase {
     sunkObjects?: Array<[Object3D, number, number]>;
     floaters?: Array<[Object3D, number, number, number, number]>;
     dropper?: Object3D;
+    /** Set to false for pools whose bodies come from the physics system instead. */
+    splashDropper?: boolean;
   }): void {
     const {
       name,
@@ -1182,6 +1350,7 @@ export class Showcase10 extends AbstractShowcase {
       sunkObjects,
       floaters,
       dropper,
+      splashDropper = true,
     } = config;
     const inner = POOL_SIZE - 2 * WALL_THICKNESS; // 4.4
     const wallOffset = (POOL_SIZE - WALL_THICKNESS) / 2; // 2.35
@@ -1269,6 +1438,8 @@ export class Showcase10 extends AbstractShowcase {
       }
     }
 
+    if (!splashDropper) return;
+
     // The periodic "splash" dropper
     const dropObj = dropper ?? this._makeCrate();
     dropObj.position.set(0.3, LIQUID_Y, 0.2);
@@ -1278,6 +1449,52 @@ export class Showcase10 extends AbstractShowcase {
       new SplashDropBehavior(LIQUID_Y, WALL_HEIGHT + 3.0, spawnDelay),
     );
     pool.add(dropObj);
+  }
+
+  /**
+   * Turns a finished OpenWater pool into a buoyancy pool: a `FluidVolume` of the given density
+   * whose surface height is the CPU mirror of the shader's wave field, plus three physics bodies
+   * of different density (about 35 %, 50 % and 75 % submerged in plain water) that ride it.
+   */
+  private _installBuoyancyPool(
+    key: GoldenPoolKey,
+    liquid: OpenWaterMaterial,
+    density: number,
+  ): void {
+    const { x, z } = poolWorldPosition(key);
+    const half = (POOL_SIZE - 2 * WALL_THICKNESS) / 2;
+    const probe = OpenWaterSurfaceProbe.fromMaterial(liquid, { restHeight: LIQUID_Y });
+    const water = new FluidVolume(
+      new BoundingBox(
+        new Vector3D(x - half, FLOOR_Y, z - half),
+        new Vector3D(x + half, LIQUID_Y + 1.5, z + half),
+      ),
+      density,
+      BUOYANCY_POOL_DRAG,
+    );
+    water.surfaceHeightAt = (worldX: number, worldZ: number): number =>
+      probe.surfaceHeightAt(worldX, worldZ, this._time);
+    this.physics.addFluidVolume(water);
+
+    const bodies: Array<[Object3D, number, number, number]> = [
+      [this._makeBall(new Color(0.9, 0.2, 0.15), 0.35), 0.35, -1.2, 0.9],
+      [this._makeCrate(new Color(0.55, 0.38, 0.22)), 0.5, 0.4, -0.5],
+      [this._makeCrate(new Color(0.2, 0.2, 0.24)), 0.75, 1.2, 0.9],
+    ];
+    for (const [body, submersion, offsetX, offsetZ] of bodies) {
+      const homeX = x + offsetX;
+      const homeZ = z + offsetZ;
+      body.position.set(homeX, LIQUID_Y + 0.8, homeZ);
+      body.rigidBody = new RigidBody(1.0);
+      body.castShadow = true;
+      this._buoyancyBodies.push({
+        body,
+        position: body.position.clone(),
+        rotation: body.rotation.clone(),
+      });
+      this._attachPoolBehavior(body, new PoolHomeBehavior(homeX, homeZ, submersion));
+      this.scene.add(body);
+    }
   }
 
   private _getBuoyTexture(
@@ -1636,6 +1853,7 @@ export class Showcase10 extends AbstractShowcase {
       await this._sleep(GOLDEN_SOAK_MS);
       this._applyGoldenCamera(layout, spec.view);
       this._time = 0;
+      this._resetBuoyancyBodies();
       // Pool behaviors were attached frozen (see `_attachPoolBehavior`) so the pre-golden
       // realtime frames could not advance them by an unknown amount. Wake them now: they are
       // still in their pristine constructor state, so the fixed-timestep simulation below is
@@ -1739,6 +1957,28 @@ export class Showcase10 extends AbstractShowcase {
     obj.addBehavior(behavior);
     if (this._golden) {
       behavior.isActive = false;
+    }
+  }
+
+  /**
+   * Puts the physics side of the buoyancy pools back to the pristine state: the realtime frames
+   * before golden mode took over dropped, bounced and half-settled the bodies by an unknown
+   * amount and left an unknown remainder in the fixed-timestep accumulator (which drives the
+   * render interpolation). Without this the golden frames of those pools would not reproduce.
+   */
+  private _resetBuoyancyBodies(): void {
+    this.physics.clear();
+    for (const { body, position, rotation } of this._buoyancyBodies) {
+      const rigidBody = body.rigidBody;
+      if (!rigidBody) continue;
+      body.position.copyFrom(position);
+      body.rotation.copyFrom(rotation);
+      rigidBody.velocity.set(0, 0, 0);
+      rigidBody.angularVelocity.set(0, 0, 0);
+      rigidBody.clearForces();
+      rigidBody.prevPosition.copyFrom(position);
+      rigidBody.prevRotation.copyFrom(rotation);
+      rigidBody.wakeUp();
     }
   }
 

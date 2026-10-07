@@ -9,7 +9,9 @@
     "noir-graphic",
     "molten-lava",
     "toxic-slime",
-    "petroleum-oil"
+    "petroleum-oil",
+    "wave-rider",
+    "dead-sea"
   ],
   "views": ["top", "oblique"],
   "backends": {
