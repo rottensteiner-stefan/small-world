@@ -22,6 +22,17 @@ erzeugen.
 
 ## 2026-10-07 — Liquid-Roadmap: S1 Wellen-Sonde und Golden-Baseline
 
+- ✅ **Showcase 10: 3×4-Raster mit zwei neuen Buoyancy-Pools (`wave-rider`, `dead-sea`), schließt die Abnahme
+  „`FluidVolume` in einem Showcase verdrahtet" (G6).** Ein Raster (`POOL_CELLS`) ist die einzige Quelle für Pool-Positionen,
+  Wiesen-Ausschnitte, Schilder und Golden-Kameras. Beide Pools nutzen `OpenWaterMaterial` und je ein `FluidVolume`, dessen
+  `surfaceHeightAt` die Probe (`surfaceHeightAt`, Weltpunkt) mit der Showcase-Uhr aufruft; drei Körper mit 35/50/75 %
+  Eintauchtiefe (Pokéball, zwei Kisten) reiten die Fläche, ein weiches Heimat-Federverhalten hält sie im Becken.
+  Dead Sea hat Dichte 1,24, dort liegen dieselben Körper sichtbar höher. Golden-Modus setzt `physics.clear()` und die
+  Körper zurück (sonst war die Aufnahme nicht reproduzierbar; zwei frische Captures sind jetzt byte-identisch).
+  **Offen:** nur Hub-Bewegung, kein Nicken/Rollen (Auftrieb greift am Schwerpunkt an); Nachlauf von rund 10 cm bei 35 cm
+  Seegang gemessen (mit der ersten, steileren Einstellung); `goldens/config.json` hat jetzt 12 Pools, die Baseline kennt die
+  zwei neuen Zellen nicht, und alle Positionen haben sich verschoben, also ist eine Neuaufnahme nötig.
+
 - 📋 **S1 Wellen-Sonde CPU ↔ Auftriebswahrheit** (Roadmap §8.2 Block S, Entscheidung D5 = Pflicht; Bob: Math-Mirror +
   Paritäts-Test, Dave: Ingestion-Vertrag + Integrationstest). Code liegt vor, ist aber noch nicht committet:
   `OpenWaterSurfaceProbe` (alle 6 Wellen als f32-Spiegel), Hook `FluidVolume.surfaceHeightAt`, Sampling im
@@ -896,3 +907,10 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
   mit Noir-Paket als erste Extension, `sparkle` in der Engine, „Ghibli" nur intern. Erster Schritt der
   Umsetzung: V0-Baseline aller drei Backends vor jeder Shader-Änderung. Nichts davon ist in der Engine
   gerendert; Budgets sind aus Quelltext geschätzt.
+
+- ✅ **Entscheidung: Copyright ist im ganzen Projekt irrelevant (2026-10-05, Moderator-Vorgabe, auf alles ausgeweitet):**
+  Der User trägt am Ende die Verantwortung für das, was er in seine lokalen Tools füttert, nicht der Agent.
+  Gilt für das ganze Projekt, nicht nur für einzelne Tools (Xtractor, PBR-Gen, Pixler, Ingest-Dropzone sind
+  nur Beispiele): Engine, Tools, Apps, Pipelines. Dort gehören keine Copyright-Hinweise, Consent-Dialoge,
+  Inhaltsfilter oder „darfst du das nutzen?"-Rückfragen hin, auch nicht für SVG, URLs oder Clipboard-Bilder.
+  Gilt für die Gestaltung der Software, nicht für Texte oder Bilder, die der Agent selbst erzeugt.

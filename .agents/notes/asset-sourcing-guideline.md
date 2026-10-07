@@ -5,6 +5,7 @@
 - **Pragmatismus vor Neuerfindung:** Wann immer 3D-Meshes oder Basismaterialien benötigt werden, dürfen und sollen freie, hochwertige Quellen im Internet angezapft werden (Poly Haven, ambientCG, Kenney, Sketchfab CC0/CC-BY, OpenGameArt).
 - **Die „Handvoll“-Regel (3–5 Varianten testen):** Bevor ein Modell von Grund auf selbst modelliert oder eine endgültige Entscheidung getroffen wird, werden stets **3 bis 5 Kandidaten/Varianten** ausprobiert, verglichen und auf Stilkonsistenz, Polycount und Textur-Mapping geprüft.
 - **Tripo3D API & AI-Ingest:** Steht jederzeit zur Verfügung, um schnell maßgeschneiderte Low-Poly-Props (`.glb` mit optimiertem PBR-Atlas) nach 2D-Konzeptvorlagen zu generieren.
+- **Benutzerverantwortung:** Die Verantwortung für Inhalte, Prompts, Lizenzen und Quellen liegt vollständig beim Benutzer. Im Code und den Entwickler-Tools gibt es keine bevormundenden Sperren oder künstliche Copyright-Prüfungen.
 
 ---
 
