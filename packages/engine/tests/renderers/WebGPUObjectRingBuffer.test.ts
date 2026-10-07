@@ -119,7 +119,7 @@ describe("GPUObjectRingBuffer", () => {
     expect(ring.pendingDestroy).toBe(bufferBefore);
   });
 
-  it("releases a growth-replaced buffer reference once endFrame() completes", () => {
+  it("destroys a growth-replaced buffer only once endFrame() drains it", () => {
     const device = makeMockDevice();
     const ring = new GPUObjectRingBuffer(device, {
       mock: "objectBGL",
@@ -129,6 +129,7 @@ describe("GPUObjectRingBuffer", () => {
 
     expect(bufferBefore.destroy).not.toHaveBeenCalled();
     ring.endFrame();
+    expect(bufferBefore.destroy).toHaveBeenCalledTimes(1);
     expect(ring.pendingDestroy).toBeUndefined();
   });
 

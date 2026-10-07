@@ -1167,7 +1167,10 @@ export class WebGPURenderer extends AbstractRenderer {
       );
     }
 
-    // Replaced cluster buffers are dropped for browser GC cleanup once in-flight GPU execution completes
+    // Not destroyed on purpose: destroying a replaced resource here made later submits fail with
+    // "used in submit while destroyed" (2099 validation errors in `npm run webgpu:resize-stress`, 0 without
+    // the destroy), so something still references it after the frame -- the stale reference is not
+    // located yet (backlog 2026-10-07). The old resource is released by garbage collection until then.
 
     this._pointClusterGridBuffer = this._device!.createBuffer({
       size: gridByteLength,
@@ -1657,6 +1660,7 @@ export class WebGPURenderer extends AbstractRenderer {
         const matrixByteLength = instMesh.instanceMatrices.byteLength;
 
         if (!instanceBuf || instanceBuf.size < matrixByteLength) {
+          // Replaced instance buffers are not destroyed either, see `_allocateClusterBuffers()`.
           instanceBuf = this._device!.createBuffer({
             size: matrixByteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -2109,7 +2113,7 @@ export class WebGPURenderer extends AbstractRenderer {
     const d = Math.min(devicePixelRatio, maxRatio);
     this._context.canvas.width = width * d;
     this._context.canvas.height = height * d;
-    // Replaced depth texture is dropped for browser GC cleanup once in-flight GPU execution completes
+    // Replaced depth and HZB textures are not destroyed, see `_allocateClusterBuffers()`.
     this._depthTexture = this._device.createTexture({
       size: [this._context.canvas.width, this._context.canvas.height],
       format: "depth32float",

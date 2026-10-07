@@ -95,6 +95,9 @@ export class GPUObjectRingBuffer {
     this.ensureCapacity(Math.max(1024, Math.ceil(this._lastFrameSlotCount * 1.5)));
   }
 
+  /** Remembers this frame's usage for next frame's capacity guess, and destroys a buffer replaced
+   * by a mid-init `ensureCapacity()` growth call. Call once per frame, right after
+   * `queue.submit()`, once nothing can still reference the old buffer. */
   public endFrame(): void {
     this._lastFrameSlotCount = this._slotCount;
     if (this._pendingDestroy) {
