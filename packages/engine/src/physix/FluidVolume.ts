@@ -14,6 +14,12 @@ export class FluidVolume {
   public drag: number;
   /** The velocity of the fluid flow, which pushes objects inside it. */
   public currentVelocity: Vector3D;
+  /**
+   * World-space surface height at a horizontal position (x, z). When set, this overrides the
+   * flat `bounds.max.y` fallback used by the buoyancy solver, letting bodies ride the real
+   * wave surface instead of the AABB's upper bound.
+   */
+  public surfaceHeightAt?: (x: number, z: number) => number;
 
   constructor(
     bounds: BoundingBox,

@@ -20,6 +20,26 @@ erzeugen.
 
 ---
 
+## 2026-10-07 — Liquid-Roadmap: S1 Wellen-Sonde und Golden-Baseline
+
+- 📋 **S1 Wellen-Sonde CPU ↔ Auftriebswahrheit** (Roadmap §8.2 Block S, Entscheidung D5 = Pflicht; Bob: Math-Mirror +
+  Paritäts-Test, Dave: Ingestion-Vertrag + Integrationstest). Code liegt vor, ist aber noch nicht committet:
+  `OpenWaterSurfaceProbe` (alle 6 Wellen als f32-Spiegel), Hook `FluidVolume.surfaceHeightAt`, Sampling im
+  `BuoyancySolver`. **Abnahme offen:** (1) Probe == Shader-Feld auf GL2/GPU in Toleranz (bisher nur Konstantengleichheit
+  und Selbstkonsistenz, kein Vergleich gegen echte Shader-Ausgabe), (2) `FluidVolume` in mindestens einem Showcase
+  verdrahtet + Integrationstest (schließt G6; bisher nur Unit-Test), (3) Auswertung an der verschobenen Position statt
+  an der Ruheposition (Gerstner verschiebt horizontal). Fallback laut D5, falls (1) nicht ehrlich konstruierbar:
+  Probe als Debug-Hilfe neutral führen und G6 neu zuschneiden.
+- 📋 **Golden-Baseline M1 ist veraltet — Drift ist Inhalt, nicht Chrome:** Die Baseline (6.10., 12:19) zeigt die Szene
+  vor dem Showcase-10-Umbau (Kachelraster, Texturen, lit `WorldMaterial`, Schatten, Pokéball-Kugeln). Nachweis
+  (2026-10-07): Der Baseline-Commit `9223d305`, mit der heutigen Pipeline gerendert (Chrome for Testing 152,
+  SwiftShader), ist für `clear-water` top und oblique byte-identisch zur Baseline. Das Capture-Skript nutzt den
+  Puppeteer-Chrome, nicht das installierte Chrome 154/155. Erledigt: `summary.json` speichert die Browser-Version,
+  `compare` warnt bei Abweichung, Vorgehen steht in `scripts/goldens/README.md`. **Offen:** die Baseline im selben
+  Commit wie die gewollte Bildänderung neu aufnehmen, nach Durchsicht der Bilder (Entscheidung beim User).
+
+---
+
 ## 2026-09-29 — Asset-First-Refactor Koje 42/Kältekammer
 
 - ✅ **Prozeduralen Greybox-Fallback in der Whisper-Pro-Log-Szene entfernt** (−197 Zeilen in

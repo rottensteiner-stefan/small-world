@@ -150,6 +150,19 @@ async function main() {
     console.log(`${r.status.padEnd(5)} ${r.label.padEnd(width)} ${detail}`);
   }
 
+  const readBrowser = (dir) => {
+    const summaryPath = path.join(dir, "summary.json");
+    if (!fs.existsSync(summaryPath)) return undefined;
+    return JSON.parse(fs.readFileSync(summaryPath, "utf8")).browser;
+  };
+  const baselineBrowser = readBrowser(args.baseline);
+  const currentBrowser = readBrowser(args.current);
+  if (baselineBrowser === undefined) {
+    console.log("NOTE  baseline has no recorded browser version; drift cannot be attributed to a browser change.");
+  } else if (currentBrowser !== undefined && baselineBrowser !== currentBrowser) {
+    console.log(`WARN  browser differs: baseline ${baselineBrowser}, current ${currentBrowser} -- drift may be browser-induced.`);
+  }
+
   const okRows = rows.filter((r) => r.status === "OK" || r.status === "DIFF").length;
   console.log(`\n${okRows}/${rows.length} cells within tolerance (threshold=${(maxDiffRatio * 100).toFixed(2)}%)`);
 

@@ -41,6 +41,33 @@ CI ruft Capture+Compare als blockierenden Job `liquid-goldens` auf (`ref: .githu
    `manifest.json` aktualisieren (Capture schreibt sie mit), committen.
 3. **Regeneration der Baseline:** `npm run goldens:capture -- --matrix gl2 --out .agents/goldens/liquid/baseline`.
 
+## Drift zuordnen, bevor die Baseline neu aufgenommen wird
+
+Weicht ein Capture von der Baseline ab, ist die Ursache zuerst zu klären. Capture und Compare
+speichern bzw. prüfen die Browser-Version (`summary.json` → `browser`); `compare` warnt bei
+einer Abweichung. Zwei Ursachen sind zu trennen:
+
+- **Inhalt:** Showcase, Shader oder Material haben sich seit dem Baseline-Commit geändert.
+- **Umgebung:** anderer Browser, andere Software-GL-Version.
+
+Test: den Baseline-Commit mit der heutigen Pipeline rendern. Ist das Ergebnis byte-identisch zur
+Baseline, ist die Umgebung ausgeschlossen und die Drift ist Inhalt.
+
+```bash
+git worktree add --detach <dir> <baseline-commit>
+# node_modules im Worktree: Einträge des Hauptbaums verlinken, aber node_modules/@small-world/*
+# auf die Pakete des WORKTREES zeigen lassen -- sonst lädt die Seite zwei Engine-Kopien.
+(cd <dir> && npx vite --host --port 4173 --strictPort) &
+(cd <dir> && node scripts/goldens/capture.js --matrix gl2 --out <out> --skip-spawn --pool clear-water)
+npm run goldens:compare -- --baseline .agents/goldens/liquid/baseline --current <out>
+```
+
+Beispiel (2026-10-07): `9223d305` mit Chrome for Testing 152 → `clear-water` top und oblique
+byte-identisch (0,0000 %). Die Drift der 20 Zellen stammte aus dem Showcase-10-Umbau.
+
+**Baseline neu aufnehmen** nur, wenn die Bildänderung gewollt ist und die Bilder angesehen
+wurden: im selben Commit wie die Änderung, mit der neuen Browser-Version im `summary.json`.
+
 ## CLI
 
 - `goldens:capture -- --matrix <gl2|gpu|gl1> --out <dir> [--pool <key>] [--view <view>] [--frames <n>] [--skip-spawn] [--allow-no-golden]`

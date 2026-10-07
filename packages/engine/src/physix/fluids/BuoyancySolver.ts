@@ -73,7 +73,9 @@ export class BuoyancySolver {
           aabbMaxY = boundsA.center.y + br;
         }
 
-        const waterTop = fv.bounds.max.y;
+        const waterTop = fv.surfaceHeightAt
+          ? fv.surfaceHeightAt(boundsA.center.x, boundsA.center.z)
+          : fv.bounds.max.y;
         if (aabbMinY < waterTop) {
           const objectHeight = Math.max(0.001, aabbMaxY - aabbMinY);
           const submergedDepth = Math.max(0, waterTop - aabbMinY);

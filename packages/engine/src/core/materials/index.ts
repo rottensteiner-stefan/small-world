@@ -17,6 +17,7 @@ export * from "./CustomShaderMaterial.js";
 export * from "./importers/index.js";
 export * from "./LiquidWaveMaterial.js";
 export * from "./OpenWaterMaterial.js";
+export * from "./OpenWaterSurfaceProbe.js";
 export * from "./StylizedWaterMaterial.js";
 export * from "./LavaMaterial.js";
 export * from "./SlimeMaterial.js";

@@ -93,6 +93,13 @@
       "status": "reserved",
       "purpose": "S3 Clapotis wall contract: wall normal + half-extent + amplitude-trap-range; consumed by OpenWater vertex shaders.",
       "note": "Must pass T3 registry before landing."
+    },
+    {
+      "id": "s1-surface-probe",
+      "status": "active",
+      "owner": "bob-s1",
+      "purpose": "S1 Wellen-Sonde: OpenWaterSurfaceProbe is the CPU 'same-field' surface-truth probe -- reads the exact u_extraParams/u_liquidParams/u_thresholds/u_reflectivity lanes the OpenWater shader consumes, no re-derived constants; feeds Auftriebswahrheit in the buoyancy solver.",
+      "note": "Mirror audited op-for-op against OpenWater.vert.glsl + liquid_gerstner_wave.glsl; golden-vector + G2 constants-equality manifest live in packages/engine/tests/core/materials/OpenWaterSurfaceProbe.test.ts."
     }
   ],
   "rules": [

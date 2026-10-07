@@ -143,7 +143,14 @@ const isInformational = args.matrix === "gpu";
  */
 async function captureCell(browser, { poolKey, view }) {
   const entry = { poolKey, view, backend, file: `${poolKey}__${view}.png` };
-  const page = await browser.newPage();
+  let page;
+  try {
+    page = await browser.newPage();
+  } catch (err) {
+    entry.ok = false;
+    entry.error = `newPage failed: ${err.message}`;
+    return entry;
+  }
   const errors = [];
   page.on("console", (msg) => {
     if (msg.type() !== "error") return;
@@ -233,7 +240,13 @@ async function captureCell(browser, { poolKey, view }) {
     entry.ok = false;
     entry.error = err.message;
   } finally {
-    await page.close();
+    try {
+      await page.close();
+    } catch {
+      // The renderer target may already be gone (e.g. page crashed during capture).
+      // The page's real error is recorded in the catch above; a close failure must
+      // never abort the remaining matrix cells.
+    }
   }
   return entry;
 }
@@ -298,6 +311,7 @@ async function main() {
       cellsOk: okCount,
       ok: okCount === manifest.length,
       isoformational: isInformational,
+      browser: await browser.version(),
       generatedAt: new Date().toISOString(),
     };
     fs.writeFileSync(path.join(args.out, "summary.json"), JSON.stringify(summary, null, 2));
