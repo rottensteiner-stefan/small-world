@@ -42,6 +42,7 @@ unter WebGL1 dauerhaft die Fragment-Zusicherung.
 
 + WebGL1-Fragment-Garantie bleibt unverändert gültig; kein Renderer-/Struct-/Ring-Buffer-Risiko.
 + Lane-Mehrdeutigkeiten sind test-/CI-transparent (Scanner + T4-Dispatch-Test).
++ Route (a) hat einen ersten Konsumenten: `StylizedWaterMaterial.rampMap` (256×1-`RampLUT`, Flag `USE_RAMP_LUT`, WebGPU-Binding 18) — null Uniform-Lanes, kein Eintrag in der Lane-Registry nötig.
 + S2-Splat-Lane und S3-Wall-Contract sind als `reserved`-Einträge in der Registry deklariert und
   müssen diesen Pass erneut bestehen, bevor sie implementiert werden.
 − Parameter dicht am Fragment-Shader sind nicht „einfach da“, sondern brauchen eine der Routen

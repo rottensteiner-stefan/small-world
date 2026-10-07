@@ -4,6 +4,7 @@ import {
   composeStylizedWaterSources,
 } from "../../src/core/materials/StylizedWaterMaterial.js";
 import { Color } from "../../src/core/colors/Color.js";
+import { Texture } from "../../src/core/textures/index.js";
 
 describe("StylizedWaterMaterial Anime Style Ladder & Preset Vectors", () => {
   it("defaults to toon preset with backward-compatible styleId 0", () => {
@@ -74,5 +75,32 @@ describe("StylizedWaterMaterial Anime Style Ladder & Preset Vectors", () => {
       const mat = new StylizedWaterMaterial({ style: style as "toon" });
       expect(mat.styleId).toBe(id);
     }
+  });
+});
+
+describe("StylizedWaterMaterial rampMap (P2 verification, A2)", () => {
+  it("does not set the flag or bind the texture while rampMap is unset", () => {
+    const manifest = new StylizedWaterMaterial().getRenderManifest();
+    expect(manifest.flags).toBeUndefined();
+    expect(manifest.textures["u_rampMap"]).toBeUndefined();
+  });
+
+  it("sets USE_RAMP_LUT and binds the texture while rampMap is present", () => {
+    const mat = new StylizedWaterMaterial();
+    mat.rampMap = Texture.empty();
+    const manifest = mat.getRenderManifest();
+    expect(manifest.flags).toEqual(["USE_RAMP_LUT"]);
+    expect(manifest.textures["u_rampMap"]).toBe(mat.rampMap);
+  });
+
+  it("clears the flag and the texture when rampMap is unset again on the same instance", () => {
+    const mat = new StylizedWaterMaterial();
+    mat.rampMap = Texture.empty();
+    expect(mat.getRenderManifest().flags).toEqual(["USE_RAMP_LUT"]);
+
+    mat.rampMap = undefined;
+    const manifest = mat.getRenderManifest();
+    expect(manifest.flags).toBeUndefined();
+    expect(manifest.textures["u_rampMap"]).toBeUndefined();
   });
 });

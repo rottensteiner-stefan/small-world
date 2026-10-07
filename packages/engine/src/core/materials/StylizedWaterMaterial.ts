@@ -8,6 +8,7 @@ import { LiquidWaveMaterial } from "./LiquidWaveMaterial.js";
 import { Color } from "../colors/index.js";
 import { MaterialType } from "../../enums/index.js";
 import { RenderManifest, ShaderDefinition } from "../renderers/shaders/index.js";
+import { Texture } from "../textures/index.js";
 
 export interface StylizedWaterExtensionHooks {
   decl?: string;
@@ -80,6 +81,11 @@ export interface StylizedWaterMaterialOptions {
   styleId?: number;
   /** Style-ladder preset; explicit options override its values. Default "toon". */
   style?: StylizedWaterStyle;
+  /**
+   * Optional 256x1 depth-to-colour ramp (see `RampLUT`). While set, it replaces the shallow/mid/deep
+   * blend at a constant weight and `rampSoftness` is ignored (ADR 0026 route (a)).
+   */
+  rampMap?: Texture;
 }
 
 /** Style ladder across the anime/stylized spectrum. */
@@ -194,6 +200,8 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
   public skyTint: number;
   public glitterStrength: number;
   public styleId: number;
+  /** Optional depth-to-colour ramp LUT; `undefined` keeps the built-in 3-colour ramp (default). */
+  public rampMap: Texture | undefined;
 
   private readonly _colorWithSpecular: number[] = [0, 0, 0, 0];
   private readonly _deepWithCaustic: number[] = [0, 0, 0, 0];
@@ -265,6 +273,7 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
     this.skyTint = skyTint;
     this.glitterStrength = glitterStrength;
     this.styleId = styleId;
+    this.rampMap = options.rampMap;
   }
 
   public override getRenderManifest(): RenderManifest {
@@ -298,6 +307,14 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
     sB[2] = this.glitterStrength;
     sB[3] = this.styleId;
     props["u_styleB"] = sB;
+
+    // Re-assigned on every call (the manifest is cached) so unsetting `rampMap` really clears the flag.
+    manifest.textures["u_rampMap"] = this.rampMap;
+    if (undefined === this.rampMap) {
+      delete manifest.flags;
+    } else {
+      manifest.flags = ["USE_RAMP_LUT"];
+    }
 
     return manifest;
   }

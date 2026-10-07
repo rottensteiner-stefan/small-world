@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.99.0] - 2026-10-07
+
+### "Colors are the smiles of nature." - Leigh Hunt
+
+- **Features:**
+  - *Ramp LUT for stylized water* (ADR 0026, route (a)): `StylizedWaterMaterial.rampMap` takes a 256x1 colour ramp texture that replaces the hard-coded shallow/mid/deep blend, built from artist-style colour stops with the new `RampLUT` (`bakeRamp` is the pure, unit-tested baking function; `setStops()` re-bakes in place). It costs no uniform lane and leaves the 256-byte `ObjectUniforms` slot untouched. Without a ramp the output is unchanged.
+- **Architecture & Bugfixes:**
+  - *Three-backend plumbing*: shader flag `USE_RAMP_LUT` in GLSL100, GLSL300 and WGSL (texel-centre sampling, constant blend weight 0.6, `rampSoftness` ignored while a ramp is bound); WebGPU gets optional material texture binding 18 (`u_rampMap`, white fallback). WebGL1 indexes the ramp by a view-angle term, WebGL2 and WebGPU by water depth.
+  - *Known limits*: a bound ramp reaches about 79-89 % of its end colours at the constant weight; `quality.disableTextures` renders it white.
+- **Housekeeping & Docs:**
+  - ADR 0026 and the liquid guide (section 5.1) document the first route-(a) consumer; showcase 10 has an opt-in `?__rampVerify=1` debug hook.
+  - Verified: GL2 golden cells byte-identical to the pre-change capture with the flag off (24/24); flag-on checks (red/blue extremes, hue flip, toggle off, re-bake) pass on WebGL1, WebGL2 and WebGPU for toon-water. 244 test files, 1491 tests, lane scan clean. Not covered: flag-on for the other four stylized pools; the committed golden baseline was already red on HEAD (4 cells) independent of this change.
+
 ## [0.98.3] - 2026-10-05
 
 ### "Good design is as little design as possible." - Dieter Rams

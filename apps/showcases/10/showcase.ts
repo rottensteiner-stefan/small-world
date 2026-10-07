@@ -39,6 +39,8 @@ import {
   Texture,
   Vector3D,
   WorldMaterial,
+  RampLUT,
+  RampStop,
   ZoomController,
 } from "../../../packages/engine/src/index.js";
 import { GltfLoader } from "../../../packages/engine/src/loaders/index.js";
@@ -115,6 +117,25 @@ interface GoldenMeta {
 interface GoldenWindowFlags {
   __goldenReady?: boolean;
   __goldenMeta?: GoldenMeta;
+  __rampVerify?: RampVerifyHook;
+}
+
+/** Colour stop as passed over the verification hook: RGB 0..255. */
+interface RampVerifyStop {
+  t: number;
+  color: [number, number, number];
+}
+
+/**
+ * Debug hook for scratch verification of `StylizedWaterMaterial.rampMap` (P2 item 8, `?__rampVerify=1`
+ * only; never installed in normal runs).
+ */
+interface RampVerifyHook {
+  poolKeys: string[];
+  /** Assigns a freshly baked RampLUT to the pool's material, or `null` to clear `rampMap`. */
+  setRamp(poolKey: string, stops: RampVerifyStop[] | null): void;
+  /** Re-bakes the pool's existing RampLUT in place (exercises the `needsUpdate` re-upload path). */
+  updateStops(poolKey: string, stops: RampVerifyStop[]): void;
 }
 
 /**
@@ -799,6 +820,14 @@ export class Showcase10 extends AbstractShowcase {
       dropper: this._makeCrate(new Color(0.2, 0.22, 0.2)),
     });
 
+    this._installRampVerifyHook({
+      "toon-water": toonWater,
+      "bold-anime": boldWater,
+      "soft-watercolor": softWatercolorWater,
+      "painterly-sparkle": sparkleWater,
+      dredge: dredgeWater,
+    });
+
     // 7. Noir Graphic Novel (Black-and-White Comic Ink Posterization)
     const noirWater = new NoirWaterMaterial();
     this._buildPool({
@@ -1338,6 +1367,43 @@ export class Showcase10 extends AbstractShowcase {
    * Builds one square, half-sunk pool basin: ceramic rim walls, floor plate, liquid surface,
    * sunk objects on the floor, floating bobbing objects, and one periodic splash dropper.
    */
+  /** Installs `window.__rampVerify` when the URL carries `?__rampVerify=1` (see {@link RampVerifyHook}). */
+  private _installRampVerifyHook(targets: Record<string, StylizedWaterMaterial>): void {
+    if ("1" !== new URLSearchParams(window.location.search).get("__rampVerify")) return;
+
+    const luts = new Map<string, RampLUT>();
+    const toStops = (stops: RampVerifyStop[]): RampStop[] =>
+      stops.map((s: RampVerifyStop) => ({
+        t: s.t,
+        color: new Color(s.color[0] / 255, s.color[1] / 255, s.color[2] / 255),
+      }));
+    const material = (poolKey: string): StylizedWaterMaterial => {
+      const m = targets[poolKey];
+      if (undefined === m) throw new Error(`[__rampVerify] Unknown pool '${poolKey}'`);
+      return m;
+    };
+
+    (window as unknown as GoldenWindowFlags).__rampVerify = {
+      poolKeys: Object.keys(targets),
+      setRamp: (poolKey: string, stops: RampVerifyStop[] | null): void => {
+        const m = material(poolKey);
+        if (null === stops) {
+          m.rampMap = undefined;
+          luts.delete(poolKey);
+          return;
+        }
+        const lut = new RampLUT(toStops(stops));
+        luts.set(poolKey, lut);
+        m.rampMap = lut.texture;
+      },
+      updateStops: (poolKey: string, stops: RampVerifyStop[]): void => {
+        const lut = luts.get(poolKey);
+        if (undefined === lut) throw new Error(`[__rampVerify] No ramp set for '${poolKey}'`);
+        lut.setStops(toStops(stops));
+      },
+    };
+  }
+
   private _buildPool(config: {
     name: string;
     x: number;

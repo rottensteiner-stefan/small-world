@@ -28,6 +28,9 @@ uniform vec4 u_styleB;         // [foamSoftness, skyTint, glitterStrength, style
 uniform float u_time;
 uniform sampler2D u_opaqueDepthMap;
 uniform sampler2D u_opaqueMap;
+#ifdef USE_RAMP_LUT
+uniform sampler2D u_rampMap;
+#endif
 
 out vec4 fragColor;
 
@@ -140,6 +143,15 @@ void main() {
     vec3 underwaterLighting = tintedSeabed * transmittance + inScatterCol * (1.0 - transmittance);
     vec3 baseWaterColor = mix(deepColor, underwaterLighting, transmittance);
 
+#ifdef USE_RAMP_LUT
+    {
+        // Ramp LUT (ADR 0026 route a): artist gradient replaces the hard-coded ramp, constant weight, no rampSoftness gate.
+        const float RAMP_LUT_WEIGHT = 0.6;
+        float rampT = clamp(effDepth / 4.0, 0.0, 1.0);
+        vec3 lutColor = sRGBToLinear(texture(u_rampMap, vec2((rampT * 255.0 + 0.5) / 256.0, 0.5)).rgb);
+        baseWaterColor = mix(baseWaterColor, lutColor, RAMP_LUT_WEIGHT);
+    }
+#else
     if (u_styleA.x > 0.05) {
         float rampT = clamp(effDepth / 4.0, 0.0, 1.0);
         vec3 midColor = mix(shallowColor, deepColor, 0.5) * vec3(0.9, 1.1, 1.05);
@@ -147,6 +159,7 @@ void main() {
         softRamp = mix(softRamp, deepColor, smoothstep(0.4, 1.0, rampT));
         baseWaterColor = mix(baseWaterColor, softRamp, u_styleA.x * 0.6);
     }
+#endif
 
     // 5. Stylized Edge color transition
     float edgeBlend = 1.0 - clamp(depthDiff / edgeSoftness, 0.0, 1.0);

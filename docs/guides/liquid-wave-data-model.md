@@ -156,6 +156,16 @@ In compliance with **ADR 0026**, the per-object uniform buffer (`ObjectUniforms`
 | `14` | `224..239` | `u_styleA` | `vec4` | `[splatX, splatZ, spawnTime, splatEnergy]` | `[rampSoft, washAmt, lineDensity, lineWidth/splat]` | `[emissive.r, time, flowSpeed, noiseScale]` |
 | `15` | `240..255` | `u_styleB` | `vec4` | `[pad0, pad1, pad2, pad3]` | `[foamSoft, skyTint, glitterStr, styleId]` | `[pad0, pad1, emissive.g, emissive.b]` |
 
+### 5.1 Ramp LUT (`StylizedWaterMaterial.rampMap`)
+
+Route (a) of ADR 0026: a 256×1 colour ramp texture instead of more uniforms. Build it with `new RampLUT(stops)` (sRGB stops, baked by the pure function `bakeRamp`) and assign `material.rampMap = lut.texture`; `lut.setStops(...)` re-bakes in place. Notes:
+
+- While a ramp is bound (`USE_RAMP_LUT`), it replaces the shallow/mid/deep blend at a constant weight of 0.6 and `rampSoftness` is ignored. Without a ramp the shader output is unchanged.
+- Sampled at texel centres; filtering is always linear, wrapping always clamp (WebGPU shares one sampler per material).
+- WebGL1 indexes the ramp by a view-angle (Fresnel) term, WebGL2/WebGPU by water depth, so the look differs between WebGL1 and the others by design.
+- `quality.disableTextures` turns every texture white, so a bound ramp renders bleached there.
+- WebGPU: `u_rampMap` always occupies binding 18 (white fallback when unset); OpenWater ignores it.
+
 ---
 
 ## 6. Architectural Guardrails & Invariants

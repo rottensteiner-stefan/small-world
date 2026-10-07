@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { StandardMaterial } from "../../src/core/materials/StandardMaterial.js";
+import { getOptionalMaterialTextureBindings } from "../../src/renderers/WebGPU/managers/GPUPipelineCache.js";
 import * as fs from "fs";
 import * as path from "path";
+
+(globalThis as unknown as { GPUShaderStage: Record<string, number> }).GPUShaderStage ??= {
+  VERTEX: 0x1,
+  FRAGMENT: 0x2,
+  COMPUTE: 0x4,
+};
 
 describe("WebGPU Shader Bindings & Layouts", () => {
   it("should ensure StandardMaterial and StandardWebGPULayout declare u_emissiveMap and u_opaqueMap in their WebGPU layout", () => {
@@ -34,6 +41,19 @@ describe("WebGPU Shader Bindings & Layouts", () => {
     // 12: Emissive Map
     expect(wgslContent).toContain("@group(1) @binding(12) var u_emissiveMap: texture_2d<f32>;");
     expect(wgslContent).toContain("@group(1) @binding(14) var u_opaqueMap: texture_2d<f32>;");
+  });
+
+  it("should have matching @binding(18) for u_rampMap in structs.wgsl and the optional texture table", () => {
+    const wgslPath = path.resolve(
+      __dirname,
+      "../../src/core/renderers/shaders/source/web_gpu/chunks/structs.wgsl",
+    );
+    const wgslContent = fs.readFileSync(wgslPath, "utf-8");
+    expect(wgslContent).toContain("@group(1) @binding(18) var u_rampMap: texture_2d<f32>;");
+
+    const table = getOptionalMaterialTextureBindings();
+    expect(table["u_rampMap"]).toBeDefined();
+    expect(table["u_rampMap"]!.binding).toBe(18);
   });
 
   it("should correctly rewrite base.vert.wgsl for instanced rendering without corrupting parameters", () => {

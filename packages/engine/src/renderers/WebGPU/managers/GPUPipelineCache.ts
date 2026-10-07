@@ -142,6 +142,14 @@ export function getOptionalMaterialTextureBindings(): Record<
           texture: { viewDimension: "2d", sampleType: "float" },
         },
       },
+      u_rampMap: {
+        binding: 18,
+        layoutEntry: {
+          binding: 18,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+      },
     };
   }
   return _optionalMaterialTextureBindings;
@@ -478,6 +486,11 @@ export class GPUPipelineCache {
         wgslConstants += "const USE_NORMAL_MAP: bool = true;\n";
       } else {
         wgslConstants += "const USE_NORMAL_MAP: bool = false;\n";
+      }
+      if (flags.includes("USE_RAMP_LUT")) {
+        wgslConstants += "const USE_RAMP_LUT: bool = true;\n";
+      } else {
+        wgslConstants += "const USE_RAMP_LUT: bool = false;\n";
       }
       code = wgslConstants + "\n" + code;
 

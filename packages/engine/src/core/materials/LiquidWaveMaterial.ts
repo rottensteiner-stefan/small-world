@@ -206,6 +206,9 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
         textures: {
           u_opaqueDepthMap: { type: ShaderPropertyType.TEXTURE },
           u_opaqueMap: { type: ShaderPropertyType.TEXTURE },
+          // Optional ramp LUT (StylizedWater only; OpenWater ignores it). Must be declared unconditionally:
+          // WGSL counts bindings syntactically, so the layout entry cannot depend on the flag.
+          u_rampMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     };
