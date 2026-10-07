@@ -498,6 +498,21 @@ export class GPUTextureResourceCache {
     }
   }
 
+  /**
+   * Holds a reference on a texture that is bound outside any object's material -- the scene's IBL
+   * maps inside the global bind group. Without it, the last object that also uses the same texture
+   * (say a skybox sharing the prefilter cube) drops the count to zero when it is removed, the
+   * texture is destroyed, and every later submit fails with "Destroyed texture used in a submit".
+   */
+  public retainTexture(tex: Texture | CubeTexture): void {
+    this._acquireTexture(tex);
+  }
+
+  /** Releases a reference taken with `retainTexture()`; destroys the texture if it was the last. */
+  public releaseRetainedTexture(tex: Texture | CubeTexture): void {
+    this._releaseTexture(tex);
+  }
+
   public releaseObjectTextures(obj: Object3D): void {
     const textures = this._lastKnownTextures.get(obj);
     if (!textures) return;

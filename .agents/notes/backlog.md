@@ -40,11 +40,14 @@ erzeugen.
   (`_builtDepthView`), `BloomPassGPU` (`_builtSourceView`), `HistoryBlendPassGPU` (`_builtCurrentView`), `PostProcessPass`
   (drei Views), die Material-Bind-Groups (`_getMaterialBindGroup`, Identität aller Ressourcen); die HZB-Gruppen werden in
   `setSize()` direkt nach dem Ersetzen neu gebaut; die Buffer von Global-, View- und Licht-Gruppen entstehen einmal beim Start;
-  das Ring-Buffer-Bind-Group wird bei jedem Draw über den Getter gelesen. **Latent, nicht reproduziert:** Die Kopien der
-  Shadow-Passes halten auch die IBL-Views (Irradiance, Prefilter, BRDF) der Szene vom Zeitpunkt ihrer Erzeugung. Wechselt
-  `scene.irradianceMap`, `prefilterMap` oder `brdfLUT`, baut der Renderer sein eigenes Bind Group neu, die Kopien nicht. Zum Fehler führte das
-  nur, wenn die alte IBL-Textur zerstört wird (der Textur-Cache zerstört per Referenzzähler sofort). Korrektur wäre ein
-  `globalResourcesVersion++` im IBL-Wechsel von `_updateGlobalBuffers()`.
+  das Ring-Buffer-Bind-Group wird bei jedem Draw über den Getter gelesen. **Latenter IBL-Fall, später reproduziert und
+  behoben:** Die Kopien der Shadow-Passes halten auch die IBL-Views (Irradiance, Prefilter, BRDF) der Szene. Wechselt
+  `scene.irradianceMap`, `prefilterMap` oder `brdfLUT` und wird die alte Textur zerstört (der Textur-Cache zerstört per
+  Referenzzähler sofort), blieb eine Kopie auf einer zerstörten View. Reproduktion: Showcase 16, WebGPU, Objekt mit
+  Skybox-Material entfernen → 2415 Validierungsfehler. Korrektur: der Renderer hält die gebundenen IBL-Texturen
+  (`retainTexture`/`releaseRetainedTexture`, neu vor alt freigeben) und zählt beim Neuaufbau
+  `globalResourcesVersion` hoch (`_rebuildGlobalBindGroupForScene`). Danach 0 Fehler (Varianten Freigeben und Tauschen);
+  ohne Versionsbump Fehler (Gegenprobe). Tests: `GPUTextureRetain.test.ts`, `WebGPUSceneIblLifetime.test.ts`.
 
 - ✅ **Showcase 10: 3×4-Raster mit zwei neuen Buoyancy-Pools (`wave-rider`, `dead-sea`), schließt die Abnahme
   „`FluidVolume` in einem Showcase verdrahtet" (G6).** Ein Raster (`POOL_CELLS`) ist die einzige Quelle für Pool-Positionen,

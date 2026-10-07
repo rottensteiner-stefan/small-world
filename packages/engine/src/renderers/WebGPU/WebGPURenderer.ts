@@ -351,6 +351,8 @@ export class WebGPURenderer extends AbstractRenderer {
   private _areaLightBuffer!: GPUBuffer;
   private _globalBindGroup!: GPUBindGroup;
   private _globalResourcesVersion = 0;
+  /** The scene IBL textures currently held through `retainTexture()` for the global bind group. */
+  private _pinnedIblTextures: (Texture | CubeTexture)[] = [];
 
   /** Bumped whenever a buffer bound by the global bind group is replaced; passes that cache their
    * own copy of that bind group must rebuild it when this changes. */
@@ -1924,6 +1926,25 @@ export class WebGPURenderer extends AbstractRenderer {
     return bg;
   }
 
+  /**
+   * Rebuilds the global bind group for the scene's current IBL maps. The GPU textures behind those
+   * maps are reference-counted per object, so this takes its own reference first (the new set,
+   * then drops the old one) -- otherwise removing an object that shares a map destroys it under
+   * the bind group. Passes that copied the old bind group rebuild on the version bump.
+   */
+  private _rebuildGlobalBindGroupForScene(scene: Scene): void {
+    const next: (Texture | CubeTexture)[] = [];
+    for (const tex of [scene.irradianceMap, scene.prefilterMap, scene.brdfLUT]) {
+      if (tex) next.push(tex);
+    }
+    for (const tex of next) this._textures.retainTexture(tex);
+    for (const tex of this._pinnedIblTextures) this._textures.releaseRetainedTexture(tex);
+    this._pinnedIblTextures = next;
+
+    this._globalBindGroup = this._createGlobalBindGroup(scene);
+    this._globalResourcesVersion++;
+  }
+
   public _updateGlobalBuffers(
     vp: Float32Array,
     camPos: Vector3D,
@@ -1941,7 +1962,7 @@ export class WebGPURenderer extends AbstractRenderer {
       this._currentIrradianceMap = scene.irradianceMap;
       this._currentPrefilterMap = scene.prefilterMap;
       this._currentBrdfLUT = scene.brdfLUT;
-      this._globalBindGroup = this._createGlobalBindGroup(scene);
+      this._rebuildGlobalBindGroupForScene(scene);
     }
 
     const correctedVp = MathPool.acquireMatrix();
