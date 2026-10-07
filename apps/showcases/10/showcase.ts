@@ -14,7 +14,9 @@ import {
   Fog,
   FogMode,
   FPSController,
+  GeometryDataInterface,
   Ground,
+  LambertMaterial,
   LavaMaterial,
   MathUtils,
   Object3D,
@@ -32,14 +34,21 @@ import {
   WorldMaterial,
   ZoomController,
 } from "../../../packages/engine/src/index.js";
+import { GltfLoader } from "../../../packages/engine/src/loaders/index.js";
 import { NoirWaterMaterial, OilSlickMaterial } from "../../../packages/liquid-extras/src/index.js";
 
-const WALL_THICKNESS = 0.3;
-const POOL_SIZE = 5;
+const GROUT_THICKNESS_PX = 5.5; // half-grout drawn per tile cell -> 11px full grout line
+const TILE_CELL_PX = 128; // 8x8 tiles in 1024x1024 texture
+const GROUT_RATIO = (GROUT_THICKNESS_PX * 2) / TILE_CELL_PX; // 11 / 128 ≈ 0.0859
+const TILE_UNIT_SIZE = 0.142; // ~14.2cm per tile unit (tile + center grout)
+const GROUT_METERS = TILE_UNIT_SIZE * GROUT_RATIO; // ~0.0122m full grout line in world units
+const WALL_THICKNESS = 2 * TILE_UNIT_SIZE + GROUT_METERS; // exactly 2 tiles + 1 extra grout line = ~0.296m
+const POOL_TILES_OUTER = 35; // 35 tiles along outer edge
+const POOL_SIZE = POOL_TILES_OUTER * TILE_UNIT_SIZE + GROUT_METERS; // ~4.982m
 const WALL_HEIGHT = 1.5;
-const WALL_CENTER_Y = -0.6; // top face at +0.15 (a small curb above the ground), bottom at -1.35
+const WALL_CENTER_Y = -0.65; // top curb face at +0.10 (subtle 5cm curb above ground)
 const FLOOR_Y = -1.35;
-const LIQUID_Y = 0.0; // flush with the ground, just below the curb top
+const LIQUID_Y = 0.05; // flush just below the +0.10 curb top
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // Golden-capture mode: a deterministic query-parameter baseline so external capture tooling
@@ -55,8 +64,8 @@ const GOLDEN_HEIGHT = 576;
 const GOLDEN_FRAMES_DEFAULT = 600;
 const GOLDEN_FRAME_TIME = 1 / 60;
 const GOLDEN_SOAK_MS = 700;
-const GOLDEN_TOP_HEIGHT = 5.0;
-const GOLDEN_TOP_TILT = 0.12; // keep the view a hair off vertical so lookAt never hits its pole
+const GOLDEN_TOP_HEIGHT = 7.2;
+const GOLDEN_TOP_TILT = 0.001; // keep the view a hair off vertical so lookAt never hits its pole
 const GOLDEN_OBLIQUE_HEIGHT = 2.0;
 const GOLDEN_OBLIQUE_OFFSET = 5.5;
 const GOLDEN_OBLIQUE_TARGET_RAISE = 0.5;
@@ -144,51 +153,87 @@ function seedMathRandom(seed: number): void {
 interface TilePalette {
   grout: string;
   groutSpeckle: string;
-  /** Four glaze gradient stops, top-left to bottom-right. */
-  glaze: [string, string, string, string];
+  /** Five subtle glaze gradient variants (4 stops each) scattered randomly across tiles. */
+  variants: Array<[string, string, string, string]>;
   /** Alpha of the white glaze reflection and top/left bevel (dark tiles get less). */
   shine: number;
 }
 
-/** Pool frame palettes: bright cyan for the water family, dark ceramics for the dark / special liquids. */
+/** Pool frame palettes: 5 harmonious subtle shade variations per palette scattered organically across tiles. */
 const TILE_PALETTES: Record<
   "pool" | "murk" | "noir" | "basalt" | "toxic" | "graphite",
   TilePalette
 > = {
   pool: {
     grout: "#ffffff",
-    groutSpeckle: "#f0f6fa",
-    glaze: ["#48c8ec", "#34b4dc", "#209ec8", "#1486b0"],
+    groutSpeckle: "#edf5fa",
+    variants: [
+      ["#6de6f8", "#50d6f0", "#36c3e6", "#20b0d8"], // Variant 1: Pale aqua-cyan highlight
+      ["#4ecbec", "#36b7de", "#20a3ca", "#1290bb"], // Variant 2: Sky pool cyan
+      ["#38bee8", "#24a7d4", "#1294c0", "#0880aa"], // Variant 3: Vibrant aqua-blue
+      ["#2aaedc", "#1898c6", "#0c83b0", "#047098"], // Variant 4: Deep ocean cyan
+      ["#5cecf0", "#3edee4", "#26c9d0", "#14b3ba"], // Variant 5: Cool minty cyan
+    ],
     shine: 1.0,
   },
   murk: {
-    grout: "#2e3a38",
-    groutSpeckle: "#26302e",
-    glaze: ["#3d5e58", "#34524c", "#2b4540", "#233a36"],
+    grout: "#2a3432",
+    groutSpeckle: "#222c2a",
+    variants: [
+      ["#4a726b", "#3f635c", "#34544d", "#2a4640"],
+      ["#3d5e58", "#34524c", "#2b4540", "#233a36"],
+      ["#324e49", "#29423d", "#213632", "#1a2c28"],
+      ["#436961", "#385b54", "#2e4d46", "#253f39"],
+      ["#395650", "#2f4843", "#253b37", "#1d2f2b"],
+    ],
     shine: 0.35,
   },
   noir: {
-    grout: "#101010",
-    groutSpeckle: "#1a1a1a",
-    glaze: ["#6a6a6a", "#5a5a5a", "#484848", "#383838"],
+    grout: "#0d0d0d",
+    groutSpeckle: "#171717",
+    variants: [
+      ["#787878", "#666666", "#545454", "#424242"],
+      ["#686868", "#585858", "#484848", "#383838"],
+      ["#555555", "#474747", "#393939", "#2c2c2c"],
+      ["#484848", "#3c3c3c", "#303030", "#242424"],
+      ["#606060", "#505050", "#404040", "#323232"],
+    ],
     shine: 0.35,
   },
   basalt: {
-    grout: "#14100e",
-    groutSpeckle: "#1d1814",
-    glaze: ["#4a403a", "#3c332e", "#2e2723", "#231e1b"],
+    grout: "#120e0c",
+    groutSpeckle: "#1b1612",
+    variants: [
+      ["#584c45", "#483e37", "#39302a", "#2b231d"],
+      ["#4a403a", "#3c332e", "#2e2723", "#231e1b"],
+      ["#3d342e", "#312923", "#251e19", "#1c1511"],
+      ["#52453e", "#433730", "#352a23", "#281e18"],
+      ["#443a34", "#372e28", "#2a221c", "#1f1813"],
+    ],
     shine: 0.2,
   },
   toxic: {
-    grout: "#1a2214",
-    groutSpeckle: "#222c1a",
-    glaze: ["#5d6b3a", "#4f5c32", "#404b2a", "#333c22"],
+    grout: "#172012",
+    groutSpeckle: "#202a18",
+    variants: [
+      ["#6e7f45", "#5e6e39", "#4f5d2d", "#404d22"],
+      ["#5d6b3a", "#4f5c32", "#404b2a", "#333c22"],
+      ["#4d5a2d", "#404c23", "#333e1b", "#273014"],
+      ["#667640", "#576634", "#485628", "#3a461e"],
+      ["#546233", "#465329", "#38441f", "#2b3517"],
+    ],
     shine: 0.3,
   },
   graphite: {
-    grout: "#0c0d0f",
-    groutSpeckle: "#16181b",
-    glaze: ["#3a3f46", "#31353b", "#272a30", "#1e2126"],
+    grout: "#0a0b0d",
+    groutSpeckle: "#141618",
+    variants: [
+      ["#484e57", "#3d434c", "#32373f", "#262b32"],
+      ["#3a3f46", "#31353b", "#272a30", "#1e2126"],
+      ["#2f3339", "#262a2f", "#1e2125", "#16181c"],
+      ["#424750", "#373c44", "#2c3137", "#21252b"],
+      ["#353940", "#2c3036", "#23262b", "#1a1d21"],
+    ],
     shine: 0.25,
   },
 };
@@ -271,6 +316,11 @@ export class Showcase10 extends AbstractShowcase {
   )[] = [];
   private _lavaLight: PointLight | undefined;
   private _slimeLight: PointLight | undefined;
+  private _crateMaterial: WorldMaterial | undefined;
+  private _buoyTextures: Map<string, Texture> = new Map();
+  private _barrelHazard: Object3D | undefined;
+  private _barrelOil: Object3D | undefined;
+  private _barrelChemical: Object3D | undefined;
   private _time: number = 0;
   private _golden: GoldenSpec | undefined;
   private readonly _goldenResizeHandler: () => void = (): void => this._applyGoldenSurface();
@@ -341,9 +391,17 @@ export class Showcase10 extends AbstractShowcase {
     );
     this.camera.addBehavior(new ZoomController({ input: this.input, audio: this.audio }));
 
-    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.4 }));
-    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 1.1 });
-    sun.direction.set(-0.5, -1, -0.4).normalize();
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.35 }));
+    const sun = new DirectionalLight({
+      color: Color.WHITE,
+      intensity: 1.15,
+      castShadow: true,
+      numCascades: 4,
+      shadowResolution: 2048,
+      shadowBias: 0.0005,
+      shadowNormalBias: 0.002,
+    });
+    sun.direction.set(-0.65, -0.95, 0.55).normalize();
     this.scene.add(sun);
 
     // Swimming pool ceramic tile texture: classic cyan/water-blue tiles with clean white grout lines
@@ -356,7 +414,11 @@ export class Showcase10 extends AbstractShowcase {
     const oilTileMaterial = this._createTileMaterial(TILE_PALETTES.graphite);
 
     // Meadow grass texture for the surrounding terrain
-    const grassTexture = this._createGrassTexture();
+    const grassTexture = await Texture.fromUrl("./assets/grass.webp", {
+      generateMipmaps: true,
+      flipY: true,
+      anisotropy: 16,
+    });
     const groundMaterial = new WorldMaterial({ diffuseMap: grassTexture });
     groundMaterial.color = Color.WHITE;
 
@@ -380,6 +442,28 @@ export class Showcase10 extends AbstractShowcase {
       generateMipmaps: true,
       flipY: true,
     });
+
+    // Load wooden crate textures (Underwater Hideout asset)
+    const crateDiffuse = await Texture.fromUrl("./assets/crate_diffuse.webp", {
+      generateMipmaps: true,
+      flipY: true,
+      anisotropy: 16,
+    });
+    this._crateMaterial = new WorldMaterial({
+      diffuseMap: crateDiffuse,
+    });
+    this._crateMaterial.color = Color.WHITE;
+
+    // Load Industrial Kit Barrels (GLB models)
+    const gltfLoader = new GltfLoader();
+    const [barrelHazard, barrelOil, barrelChemical] = await Promise.all([
+      gltfLoader.load("./assets/barrel_hazard_yellow.glb"),
+      gltfLoader.load("./assets/barrel_oil_black.glb"),
+      gltfLoader.load("./assets/barrel_chemical_blue.glb"),
+    ]);
+    this._barrelHazard = barrelHazard;
+    this._barrelOil = barrelOil;
+    this._barrelChemical = barrelChemical;
 
     // ─────────────────────────────────────────────────────────────────────────
     // ROW 1 (North, Z = -7.5): Water & Anime Styles
@@ -417,7 +501,7 @@ export class Showcase10 extends AbstractShowcase {
       ],
       floaters: [
         [this._makeBall(new Color(0.9, 0.2, 0.15), 0.35), -1.3, 1.2, 0.12, 1.8],
-        [this._makeBarrel(new Color(0.65, 0.45, 0.25)), 1.2, -1.1, 0.09, 2.2],
+        [this._makeBarrel("chemical"), 1.2, -1.1, 0.09, 2.2],
       ],
       dropper: this._makeCrate(new Color(0.55, 0.38, 0.22)),
     });
@@ -594,7 +678,7 @@ export class Showcase10 extends AbstractShowcase {
         [this._makeDebris(new Color(0.12, 0.25, 0.2), 0.4), 0.8, 0.5],
       ],
       floaters: [
-        [this._makeBarrel(new Color(0.28, 0.25, 0.2)), -1.2, 1.0, 0.08, 1.4],
+        [this._makeBarrel("oil"), -1.2, 1.0, 0.08, 1.4],
         [this._makeDebris(new Color(0.2, 0.35, 0.3), 0.35), 1.1, -1.0, 0.06, 1.7],
       ],
       dropper: this._makeCrate(new Color(0.2, 0.22, 0.2)),
@@ -655,11 +739,11 @@ export class Showcase10 extends AbstractShowcase {
       dropper: this._makeDebris(new Color(0.15, 0.09, 0.08), 0.4),
     });
     this._lavaLight = new PointLight({
-      color: new Color(1.0, 0.5, 0.15),
-      intensity: 6.0,
-      distance: 12,
+      color: new Color(1.0, 0.45, 0.1),
+      intensity: 8.5,
+      distance: 14,
     });
-    this._lavaLight.position.set(0, 0.9, 7.5); // Low over the surface: the orange light bleeds onto the frame and floaters
+    this._lavaLight.position.set(0, 0.45, 7.5); // Low over the surface: the orange light bleeds onto the frame and floaters
     this.scene.add(this._lavaLight);
 
     // 9. Toxic Slime (Bioluminescent Green Acid with Bubbles)
@@ -668,9 +752,9 @@ export class Showcase10 extends AbstractShowcase {
       normalMap: slimeNormalMap,
       color: new Color(0.15, 0.95, 0.25),
       edgeColor: new Color(0.1, 0.42, 0.07), // Dark contact colour: a bright edge colour summed with glow and shade clipped to white at the walls
-      emissiveStrength: 0.3,
-      rimStrength: 0.12,
-      specularStrength: 0.25, // Soft bright bubble highlights instead of dark outlines
+      emissiveStrength: 0.35,
+      rimStrength: 0.15,
+      specularStrength: 0.3, // Soft bright bubble highlights instead of dark outlines
       specularPower: 160.0,
       shade: 0.6,
       absorption: 2.2,
@@ -690,17 +774,17 @@ export class Showcase10 extends AbstractShowcase {
         [this._makeBall(new Color(0.8, 0.9, 0.1), 0.3), 0.9, 0.5],
       ],
       floaters: [
-        [this._makeBarrel(new Color(0.85, 0.75, 0.1)), -1.1, 1.1, 0.08, 1.4], // Toxic yellow barrel
+        [this._makeBarrel("hazard"), -1.1, 1.1, 0.08, 1.4], // Toxic yellow hazard barrel
         [this._makeBall(new Color(0.2, 0.9, 0.3), 0.35), 1.0, -1.1, 0.07, 1.7],
       ],
-      dropper: this._makeBarrel(new Color(0.85, 0.75, 0.1)),
+      dropper: this._makeBarrel("hazard"),
     });
     this._slimeLight = new PointLight({
-      color: new Color(0.25, 1.0, 0.35),
-      intensity: 3.5,
+      color: new Color(0.2, 1.0, 0.3),
+      intensity: 6.5,
       distance: 14,
     });
-    this._slimeLight.position.set(9, 1.6, 7.5);
+    this._slimeLight.position.set(9, 0.55, 7.5);
     this.scene.add(this._slimeLight);
 
     // 10. Petroleum Oil (Dark Viscous Hydrocarbon with a slick sheen). Colours, specular and
@@ -719,7 +803,7 @@ export class Showcase10 extends AbstractShowcase {
         [this._makeIndustrialGear(new Color(0.18, 0.19, 0.21)), 0.9, 0.6],
       ],
       floaters: [
-        [this._makeIndustrialBarrel(new Color(0.09, 0.08, 0.08)), -1.1, 1.0, 0.04, 1.0], // Black rubber-coated drum, dull in thick oil
+        [this._makeBarrel("oil"), -1.1, 1.0, 0.04, 1.0], // Black steel industrial oil drum
         [
           this._makeMetallicBuoy(new Color(0.2, 0.15, 0.08), new Color(0.2, 0.08, 0.05)),
           1.1,
@@ -728,7 +812,7 @@ export class Showcase10 extends AbstractShowcase {
           1.2,
         ], // Oil-stained, rusted buoy
       ],
-      dropper: this._makeIndustrialBarrel(new Color(0.07, 0.075, 0.08)), // Black steel oil drum
+      dropper: this._makeBarrel("oil"), // Black steel oil drum
     });
 
     // Signboards stand BESIDE the pools (in the gap on the entrance side of each pool, not in front
@@ -892,22 +976,22 @@ export class Showcase10 extends AbstractShowcase {
     const ctx = canvas.getContext("2d");
     if (!ctx) return Texture.empty();
 
-    const tilesPerAxis = 4;
-    const tileSize = size / tilesPerAxis;
-    const groutSize = 6;
+    const tilesPerAxis = 8;
+    const tileSize = size / tilesPerAxis; // 128px
+    const groutSize = 5.5; // Double-thickness grout (11px between tiles)
 
     ctx.fillStyle = palette.grout;
     ctx.fillRect(0, 0, size, size);
 
     // Subtle fine grout texture
     ctx.fillStyle = palette.groutSpeckle;
-    for (let i = 0; i < 400; i++) {
+    for (let i = 0; i < 900; i++) {
       const gx = Math.random() * size;
       const gy = Math.random() * size;
-      ctx.fillRect(gx, gy, 2, 2);
+      ctx.fillRect(gx, gy, 2.0, 2.0);
     }
 
-    // Draw glossy ceramic tiles
+    // Draw glossy ceramic tiles with randomized shade variants
     for (let y = 0; y < tilesPerAxis; y++) {
       for (let x = 0; x < tilesPerAxis; x++) {
         const tx = x * tileSize + groutSize;
@@ -915,11 +999,12 @@ export class Showcase10 extends AbstractShowcase {
         const tw = tileSize - groutSize * 2;
         const th = tileSize - groutSize * 2;
 
+        const variant = palette.variants[Math.floor(Math.random() * palette.variants.length)]!;
         const grad = ctx.createLinearGradient(tx, ty, tx + tw, ty + th);
-        grad.addColorStop(0.0, palette.glaze[0]);
-        grad.addColorStop(0.35, palette.glaze[1]);
-        grad.addColorStop(0.7, palette.glaze[2]);
-        grad.addColorStop(1.0, palette.glaze[3]);
+        grad.addColorStop(0.0, variant[0]);
+        grad.addColorStop(0.35, variant[1]);
+        grad.addColorStop(0.7, variant[2]);
+        grad.addColorStop(1.0, variant[3]);
 
         ctx.fillStyle = grad;
         ctx.fillRect(tx, ty, tw, th);
@@ -931,7 +1016,7 @@ export class Showcase10 extends AbstractShowcase {
           2,
           tx + tw * 0.3,
           ty + th * 0.3,
-          tw * 0.7,
+          tw * 0.65,
         );
         radialGrad.addColorStop(0.0, `rgba(255, 255, 255, ${0.45 * palette.shine})`);
         radialGrad.addColorStop(0.5, `rgba(255, 255, 255, ${0.12 * palette.shine})`);
@@ -940,8 +1025,8 @@ export class Showcase10 extends AbstractShowcase {
         ctx.fillRect(tx, ty, tw, th);
 
         // 3D Inner Bevel Highlight (Top & Left edges)
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.85 * palette.shine})`;
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * palette.shine})`;
+        ctx.lineWidth = 2.2;
         ctx.beginPath();
         ctx.moveTo(tx, ty + th);
         ctx.lineTo(tx, ty);
@@ -949,8 +1034,8 @@ export class Showcase10 extends AbstractShowcase {
         ctx.stroke();
 
         // 3D Inner Bevel Shadow (Bottom & Right edges)
-        ctx.strokeStyle = "rgba(10, 48, 75, 0.45)";
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "rgba(10, 48, 75, 0.4)";
+        ctx.lineWidth = 2.2;
         ctx.beginPath();
         ctx.moveTo(tx + tw, ty);
         ctx.lineTo(tx + tw, ty + th);
@@ -966,100 +1051,58 @@ export class Showcase10 extends AbstractShowcase {
   }
 
   /**
-   * Generates a lush, organic meadow grass texture: rich greens with fine grass blade flecks,
-   * subtle clover clusters, and delicate wild blossoms.
+   * Creates a box geometry with UV coordinates scaled and offset so that the top rim face
+   * maps to exactly 2 tiles and 3 full grout lines (outer, center, inner) with equal thickness.
    */
-  private _createGrassTexture(): Texture {
-    const size = 1024;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return Texture.empty();
+  private _createTiledBoxGeometry(
+    width: number,
+    height: number,
+    depth: number,
+    tileUnitSize: number = TILE_UNIT_SIZE,
+  ): GeometryDataInterface {
+    const geom = new Cube({ size: 1 }).getGeometryData();
+    const uvs = geom.uvs;
+    const vertices = geom.vertices;
+    if (uvs && vertices) {
+      for (let i = 0; i < vertices.length; i += 3) {
+        vertices[i] = vertices[i]! * width;
+        vertices[i + 1] = vertices[i + 1]! * height;
+        vertices[i + 2] = vertices[i + 2]! * depth;
+      }
 
-    // Base lush meadow green
-    ctx.fillStyle = "#488a24";
-    ctx.fillRect(0, 0, size, size);
+      const gUV = GROUT_THICKNESS_PX / 1024;
+      const faceDims: Array<[number, number]> = [
+        [depth, height], // Face 0: Right (+X)
+        [depth, height], // Face 1: Left (-X)
+        [width, depth], // Face 2: Top (+Y)
+        [width, depth], // Face 3: Bottom (-Y)
+        [width, height], // Face 4: Front (+Z)
+        [width, height], // Face 5: Back (-Z)
+      ];
 
-    // Organic color modulation patches
-    const patches = [
-      { x: 200, y: 300, r: 280, color: "#3d7a1e" },
-      { x: 800, y: 250, r: 320, color: "#549c2a" },
-      { x: 450, y: 750, r: 350, color: "#5ea830" },
-      { x: 850, y: 800, r: 260, color: "#428220" },
-      { x: 150, y: 850, r: 240, color: "#569e2c" },
-    ];
-    for (const p of patches) {
-      const rg = ctx.createRadialGradient(p.x, p.y, 10, p.x, p.y, p.r);
-      rg.addColorStop(0, p.color);
-      rg.addColorStop(1, "rgba(72, 138, 36, 0)");
-      ctx.fillStyle = rg;
-      ctx.fillRect(0, 0, size, size);
-    }
+      for (let f = 0; f < 6; f++) {
+        const [spanU, spanV] = faceDims[f]!;
+        const numTilesU = Math.max(1, Math.round((spanU - GROUT_METERS) / tileUnitSize));
+        const numTilesV = Math.max(1, Math.round((spanV - GROUT_METERS) / tileUnitSize));
+        const u0 = -gUV;
+        const u1 = (numTilesU * TILE_CELL_PX + GROUT_THICKNESS_PX) / 1024;
+        const v0 = -gUV;
+        const v1 = (numTilesV * TILE_CELL_PX + GROUT_THICKNESS_PX) / 1024;
 
-    // Thousands of multi-toned grass blades
-    const bladeColors = [
-      "#386e1a",
-      "#438222",
-      "#4f9228",
-      "#5ca430",
-      "#6db838",
-      "#7cc842",
-      "#8cd84c",
-    ];
-    for (let i = 0; i < 9000; i++) {
-      const x = Math.random() * size;
-      const y = Math.random() * size;
-      const len = 4 + Math.random() * 8;
-      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8;
-      const col = bladeColors[Math.floor(Math.random() * bladeColors.length)]!;
-
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 1.0 + Math.random() * 1.2;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
-      ctx.stroke();
-    }
-
-    // Scattered wild clover patches
-    for (let c = 0; c < 120; c++) {
-      const cx = Math.random() * size;
-      const cy = Math.random() * size;
-      ctx.fillStyle = Math.random() > 0.5 ? "#326616" : "#62ad33";
-      for (let leaf = 0; leaf < 3; leaf++) {
-        const a = (leaf * Math.PI * 2) / 3;
-        ctx.beginPath();
-        ctx.arc(cx + Math.cos(a) * 3, cy + Math.sin(a) * 3, 2.5, 0, Math.PI * 2);
-        ctx.fill();
+        const offset = f * 8;
+        // Vertices order from Cube.buildPlane:
+        // Vertex 0: (u0, v1), Vertex 1: (u1, v1), Vertex 2: (u0, v0), Vertex 3: (u1, v0)
+        uvs[offset + 0] = u0;
+        uvs[offset + 1] = v1;
+        uvs[offset + 2] = u1;
+        uvs[offset + 3] = v1;
+        uvs[offset + 4] = u0;
+        uvs[offset + 5] = v0;
+        uvs[offset + 6] = u1;
+        uvs[offset + 7] = v0;
       }
     }
-
-    // Delicate white daisy & golden dandelion blossoms
-    for (let f = 0; f < 90; f++) {
-      const fx = Math.random() * size;
-      const fy = Math.random() * size;
-      if (Math.random() > 0.4) {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.beginPath();
-        ctx.arc(fx, fy, 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#ffcc00";
-        ctx.beginPath();
-        ctx.arc(fx, fy, 1, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.fillStyle = "#f8dc38";
-        ctx.beginPath();
-        ctx.arc(fx, fy, 1.8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    return Texture.fromCanvas(canvas, {
-      anisotropy: 16,
-      generateMipmaps: true,
-    });
+    return geom;
   }
 
   /**
@@ -1150,8 +1193,7 @@ export class Showcase10 extends AbstractShowcase {
     // 4 non-overlapping rim walls forming a crisp, seamless rectangle with perfect 90-degree corners:
     // North wall spans full POOL_SIZE along X at +Z
     const wallN = new Object3D(`${name}_WallN`);
-    wallN.geometry = new Cube({ size: 1 }).getGeometryData();
-    wallN.scale.set(POOL_SIZE, WALL_HEIGHT, WALL_THICKNESS);
+    wallN.geometry = this._createTiledBoxGeometry(POOL_SIZE, WALL_HEIGHT, WALL_THICKNESS);
     wallN.position.set(0, WALL_CENTER_Y, wallOffset);
     wallN.material = tileMaterial;
     wallN.castShadow = true;
@@ -1160,8 +1202,7 @@ export class Showcase10 extends AbstractShowcase {
 
     // South wall spans full POOL_SIZE along X at -Z
     const wallS = new Object3D(`${name}_WallS`);
-    wallS.geometry = new Cube({ size: 1 }).getGeometryData();
-    wallS.scale.set(POOL_SIZE, WALL_HEIGHT, WALL_THICKNESS);
+    wallS.geometry = this._createTiledBoxGeometry(POOL_SIZE, WALL_HEIGHT, WALL_THICKNESS);
     wallS.position.set(0, WALL_CENTER_Y, -wallOffset);
     wallS.material = tileMaterial;
     wallS.castShadow = true;
@@ -1170,8 +1211,7 @@ export class Showcase10 extends AbstractShowcase {
 
     // East wall fits snugly between North and South walls along Z at +X
     const wallE = new Object3D(`${name}_WallE`);
-    wallE.geometry = new Cube({ size: 1 }).getGeometryData();
-    wallE.scale.set(WALL_THICKNESS, WALL_HEIGHT, inner);
+    wallE.geometry = this._createTiledBoxGeometry(WALL_THICKNESS, WALL_HEIGHT, inner);
     wallE.position.set(wallOffset, WALL_CENTER_Y, 0);
     wallE.material = tileMaterial;
     wallE.castShadow = true;
@@ -1180,8 +1220,7 @@ export class Showcase10 extends AbstractShowcase {
 
     // West wall fits snugly between North and South walls along Z at -X
     const wallW = new Object3D(`${name}_WallW`);
-    wallW.geometry = new Cube({ size: 1 }).getGeometryData();
-    wallW.scale.set(WALL_THICKNESS, WALL_HEIGHT, inner);
+    wallW.geometry = this._createTiledBoxGeometry(WALL_THICKNESS, WALL_HEIGHT, inner);
     wallW.position.set(-wallOffset, WALL_CENTER_Y, 0);
     wallW.material = tileMaterial;
     wallW.castShadow = true;
@@ -1189,8 +1228,7 @@ export class Showcase10 extends AbstractShowcase {
     pool.add(wallW);
 
     const floorPlate = new Object3D(`${name}_Floor`);
-    floorPlate.geometry = new Cube({ size: 1 }).getGeometryData();
-    floorPlate.scale.set(inner, 0.2, inner);
+    floorPlate.geometry = this._createTiledBoxGeometry(inner, 0.2, inner);
     floorPlate.position.set(0, FLOOR_Y, 0);
     floorPlate.material = tileMaterial;
     floorPlate.receiveShadow = true;
@@ -1242,82 +1280,165 @@ export class Showcase10 extends AbstractShowcase {
     pool.add(dropObj);
   }
 
-  private _makeCrate(color: Color = new Color(0.55, 0.4, 0.25)): Object3D {
+  private _getBuoyTexture(
+    topColor: string = "#d82222",
+    bottomColor: string = "#ffffff",
+    beltColor: string = "#141416",
+  ): Texture {
+    const key = `${topColor}_${bottomColor}_${beltColor}`;
+    let tex = this._buoyTextures.get(key);
+    if (tex) return tex;
+
+    const size = 512;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return Texture.empty();
+
+    const beltThickness = size * 0.14;
+    const beltTop = (size - beltThickness) / 2;
+    const beltBottom = (size + beltThickness) / 2;
+
+    // 1. Upper Hemisphere (Red / topColor)
+    ctx.fillStyle = topColor;
+    ctx.fillRect(0, 0, size, beltTop);
+
+    // Subtle curvature highlight on upper hemisphere
+    const topGrad = ctx.createLinearGradient(0, 0, 0, beltTop);
+    topGrad.addColorStop(0.0, "rgba(255, 255, 255, 0.18)");
+    topGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.0)");
+    topGrad.addColorStop(1.0, "rgba(0, 0, 0, 0.12)");
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, size, beltTop);
+
+    // 2. Lower Hemisphere (White / bottomColor)
+    ctx.fillStyle = bottomColor;
+    ctx.fillRect(0, beltBottom, size, size - beltBottom);
+
+    // Subtle curvature shading on lower hemisphere
+    const botGrad = ctx.createLinearGradient(0, beltBottom, 0, size);
+    botGrad.addColorStop(0.0, "rgba(0, 0, 0, 0.08)");
+    botGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.0)");
+    botGrad.addColorStop(1.0, "rgba(200, 215, 230, 0.25)");
+    ctx.fillStyle = botGrad;
+    ctx.fillRect(0, beltBottom, size, size - beltBottom);
+
+    // 3. Equator Belt (Black / beltColor)
+    ctx.fillStyle = beltColor;
+    ctx.fillRect(0, beltTop, size, beltThickness);
+
+    // Center button: the canvas maps 2:1 onto the sphere (360 x 180 degrees), so the ellipse is
+    // squeezed horizontally to read as a circle on the surface.
+    const buttonX = size * 0.5;
+    const buttonY = size * 0.5;
+    const buttonRadius = beltThickness * 0.95;
+    const drawButton = (radius: number, color: string): void => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(buttonX, buttonY, radius * 0.5, radius, 0, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    drawButton(buttonRadius, beltColor);
+    drawButton(buttonRadius * 0.78, bottomColor);
+    drawButton(buttonRadius * 0.5, beltColor);
+    drawButton(buttonRadius * 0.38, bottomColor);
+
+    tex = Texture.fromCanvas(canvas, {
+      anisotropy: 16,
+      generateMipmaps: true,
+    });
+    this._buoyTextures.set(key, tex);
+    return tex;
+  }
+
+  private _makeCrate(color?: Color): Object3D {
     const crate = new Object3D("Crate");
     crate.geometry = new Cube({ size: 0.6 }).getGeometryData();
-    crate.material = new BasicMaterial({ color });
+    crate.castShadow = true;
+    crate.receiveShadow = true;
+    if (this._crateMaterial) {
+      if (color && (color.r !== 1 || color.g !== 1 || color.b !== 1)) {
+        const mat = new WorldMaterial(
+          this._crateMaterial.diffuseMap
+            ? { diffuseMap: this._crateMaterial.diffuseMap, color }
+            : { color },
+        );
+        crate.material = mat;
+      } else {
+        crate.material = this._crateMaterial;
+      }
+    } else {
+      crate.material = new WorldMaterial({
+        color: color ?? new Color(0.55, 0.4, 0.25),
+      });
+    }
     return crate;
   }
 
-  private _makeBall(color: Color = new Color(0.8, 0.15, 0.15), radius: number = 0.35): Object3D {
+  private _makeBall(color: Color = new Color(0.88, 0.15, 0.15), radius: number = 0.35): Object3D {
     const ball = new Object3D("Ball");
     ball.geometry = new Sphere({
       radius,
-      widthSegments: 16,
-      heightSegments: 12,
+      widthSegments: 24,
+      heightSegments: 16,
     }).getGeometryData();
-    ball.material = new BasicMaterial({ color });
+    ball.castShadow = true;
+    ball.receiveShadow = true;
+    const r = Math.round(color.r * 255);
+    const g = Math.round(color.g * 255);
+    const b = Math.round(color.b * 255);
+    const topHex = `rgb(${r},${g},${b})`;
+    const buoyTex = this._getBuoyTexture(topHex, "#ffffff", "#141416");
+    ball.material = new LambertMaterial({
+      diffuseMap: buoyTex,
+    });
+    // Tilted so the equator belt stays visible from the top-down camera instead of hiding at the silhouette.
+    ball.rotation.set(1.0, -Math.PI / 2, 0.5);
     return ball;
   }
 
   private _makeDebris(color: Color = new Color(0.4, 0.4, 0.42), radius: number = 0.4): Object3D {
     const debris = new Object3D("Debris");
     debris.geometry = new Octahedron({ radius }).getGeometryData();
-    debris.material = new BasicMaterial({ color });
+    debris.castShadow = true;
+    debris.receiveShadow = true;
+    debris.material = new WorldMaterial({
+      color,
+    });
     return debris;
   }
 
-  private _makeBarrel(color: Color = new Color(0.6, 0.4, 0.25)): Object3D {
-    const barrel = new Object3D("Barrel");
-    barrel.geometry = new Cylinder({
+  private _makeBarrel(
+    type: "hazard" | "oil" | "chemical" = "hazard",
+    scale: number = 0.82,
+  ): Object3D {
+    const template =
+      type === "oil"
+        ? this._barrelOil
+        : type === "chemical"
+          ? this._barrelChemical
+          : this._barrelHazard;
+    if (template) {
+      const barrel = template.clone();
+      barrel.scale.set(scale, scale, scale);
+      barrel.castShadow = true;
+      barrel.receiveShadow = true;
+      return barrel;
+    }
+    const fallback = new Object3D("BarrelFallback");
+    fallback.geometry = new Cylinder({
       radiusTop: 0.28,
       radiusBottom: 0.28,
       height: 0.7,
       radialSegments: 16,
     }).getGeometryData();
-    barrel.material = new BasicMaterial({ color });
-    return barrel;
-  }
-
-  private _makeIndustrialBarrel(
-    color: Color = new Color(0.18, 0.2, 0.22),
-    stripeColor?: Color,
-  ): Object3D {
-    const root = new Object3D("IndustrialBarrel");
-    const body = new Object3D("BarrelBody");
-    body.geometry = new Cylinder({
-      radiusTop: 0.28,
-      radiusBottom: 0.28,
-      height: 0.72,
-      radialSegments: 16,
-    }).getGeometryData();
-    body.material = new BasicMaterial({ color });
-    root.add(body);
-
-    const ringMat = new BasicMaterial({ color: stripeColor ?? new Color(0.1, 0.1, 0.12) });
-    const topRing = new Object3D("TopRing");
-    topRing.geometry = new Cylinder({
-      radiusTop: 0.295,
-      radiusBottom: 0.295,
-      height: 0.06,
-      radialSegments: 16,
-    }).getGeometryData();
-    topRing.position.set(0, 0.2, 0);
-    topRing.material = ringMat;
-    root.add(topRing);
-
-    const bottomRing = new Object3D("BottomRing");
-    bottomRing.geometry = new Cylinder({
-      radiusTop: 0.295,
-      radiusBottom: 0.295,
-      height: 0.06,
-      radialSegments: 16,
-    }).getGeometryData();
-    bottomRing.position.set(0, -0.2, 0);
-    bottomRing.material = ringMat;
-    root.add(bottomRing);
-
-    return root;
+    fallback.castShadow = true;
+    fallback.receiveShadow = true;
+    fallback.material = new WorldMaterial({
+      color: new Color(0.85, 0.75, 0.1),
+    });
+    return fallback;
   }
 
   private _makeMetallicBuoy(
@@ -1325,13 +1446,20 @@ export class Showcase10 extends AbstractShowcase {
     mastColor: Color = new Color(0.9, 0.2, 0.1),
   ): Object3D {
     const root = new Object3D("MetallicBuoy");
+    root.castShadow = true;
+    root.receiveShadow = true;
+
     const sphere = new Object3D("BuoySphere");
     sphere.geometry = new Sphere({
       radius: 0.34,
       widthSegments: 16,
       heightSegments: 12,
     }).getGeometryData();
-    sphere.material = new BasicMaterial({ color: bodyColor });
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+    sphere.material = new WorldMaterial({
+      color: bodyColor,
+    });
     root.add(sphere);
 
     const ring = new Object3D("BuoyRing");
@@ -1341,7 +1469,11 @@ export class Showcase10 extends AbstractShowcase {
       height: 0.08,
       radialSegments: 16,
     }).getGeometryData();
-    ring.material = new BasicMaterial({ color: new Color(0.12, 0.12, 0.15) });
+    ring.castShadow = true;
+    ring.receiveShadow = true;
+    ring.material = new WorldMaterial({
+      color: new Color(0.12, 0.12, 0.15),
+    });
     root.add(ring);
 
     const mast = new Object3D("BuoyMast");
@@ -1352,7 +1484,11 @@ export class Showcase10 extends AbstractShowcase {
       radialSegments: 8,
     }).getGeometryData();
     mast.position.set(0, 0.4, 0);
-    mast.material = new BasicMaterial({ color: mastColor });
+    mast.castShadow = true;
+    mast.receiveShadow = true;
+    mast.material = new WorldMaterial({
+      color: mastColor,
+    });
     root.add(mast);
 
     return root;
@@ -1360,6 +1496,13 @@ export class Showcase10 extends AbstractShowcase {
 
   private _makeIndustrialGear(color: Color = new Color(0.2, 0.22, 0.25)): Object3D {
     const root = new Object3D("IndustrialGear");
+    root.castShadow = true;
+    root.receiveShadow = true;
+
+    const gearMat = new WorldMaterial({
+      color,
+    });
+
     const hub = new Object3D("GearHub");
     hub.geometry = new Cylinder({
       radiusTop: 0.4,
@@ -1367,7 +1510,9 @@ export class Showcase10 extends AbstractShowcase {
       height: 0.12,
       radialSegments: 12,
     }).getGeometryData();
-    hub.material = new BasicMaterial({ color });
+    hub.castShadow = true;
+    hub.receiveShadow = true;
+    hub.material = gearMat;
     root.add(hub);
 
     for (let i = 0; i < 6; i++) {
@@ -1377,7 +1522,9 @@ export class Showcase10 extends AbstractShowcase {
       const angle = (i / 6) * Math.PI * 2;
       tooth.position.set(Math.cos(angle) * 0.42, 0, Math.sin(angle) * 0.42);
       tooth.rotation.y = -angle;
-      tooth.material = new BasicMaterial({ color });
+      tooth.castShadow = true;
+      tooth.receiveShadow = true;
+      tooth.material = gearMat;
       root.add(tooth);
     }
     return root;
@@ -1385,6 +1532,16 @@ export class Showcase10 extends AbstractShowcase {
 
   private _makeIndustrialPipe(color: Color = new Color(0.28, 0.3, 0.33)): Object3D {
     const root = new Object3D("IndustrialPipe");
+    root.castShadow = true;
+    root.receiveShadow = true;
+
+    const pipeMat = new WorldMaterial({
+      color,
+    });
+    const flangeMat = new WorldMaterial({
+      color: new Color(0.18, 0.2, 0.22),
+    });
+
     const pipe = new Object3D("PipeMain");
     pipe.geometry = new Cylinder({
       radiusTop: 0.2,
@@ -1393,7 +1550,9 @@ export class Showcase10 extends AbstractShowcase {
       radialSegments: 14,
     }).getGeometryData();
     pipe.rotation.z = Math.PI * 0.5;
-    pipe.material = new BasicMaterial({ color });
+    pipe.castShadow = true;
+    pipe.receiveShadow = true;
+    pipe.material = pipeMat;
     root.add(pipe);
 
     const flange1 = new Object3D("Flange1");
@@ -1405,7 +1564,9 @@ export class Showcase10 extends AbstractShowcase {
     }).getGeometryData();
     flange1.position.set(-0.5, 0, 0);
     flange1.rotation.z = Math.PI * 0.5;
-    flange1.material = new BasicMaterial({ color: new Color(0.18, 0.2, 0.22) });
+    flange1.castShadow = true;
+    flange1.receiveShadow = true;
+    flange1.material = flangeMat;
     root.add(flange1);
 
     const flange2 = new Object3D("Flange2");
@@ -1417,7 +1578,9 @@ export class Showcase10 extends AbstractShowcase {
     }).getGeometryData();
     flange2.position.set(0.5, 0, 0);
     flange2.rotation.z = Math.PI * 0.5;
-    flange2.material = new BasicMaterial({ color: new Color(0.18, 0.2, 0.22) });
+    flange2.castShadow = true;
+    flange2.receiveShadow = true;
+    flange2.material = flangeMat;
     root.add(flange2);
 
     return root;
@@ -1546,6 +1709,13 @@ export class Showcase10 extends AbstractShowcase {
     if ("top" === view) {
       cam.position.set(layout.x, GOLDEN_TOP_HEIGHT, layout.z);
       cam.target.set(layout.x - GOLDEN_TOP_TILT, LIQUID_Y, layout.z);
+      cam.projection = new PerspectiveProjection({
+        fov: MathUtils.degToRad(42),
+        aspect: GOLDEN_WIDTH / GOLDEN_HEIGHT,
+        near: 0.1,
+        far: 1000,
+      });
+      cam.updateProjectionMatrix();
     } else {
       const towardZ: 1 | -1 = 0 < layout.z ? 1 : -1;
       cam.position.set(layout.x, GOLDEN_OBLIQUE_HEIGHT, layout.z + towardZ * GOLDEN_OBLIQUE_OFFSET);
