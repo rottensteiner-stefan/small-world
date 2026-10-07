@@ -20,6 +20,10 @@ erzeugen.
 
 ---
 
+## 2026-10-07 — Map Generator: Universal IO Input Integration
+
+- ✅ **Map Generator (`public/tools/map-gen.html`, `packages/tools/src/MapGenerator.ts`):** Auf den kanonischen `UniversalIngestDropzone` Standard umgestellt. Unterstützt nun Drag & Drop (inkl. Ghost Overlay), Datei- und Ordnerauswahl, URL-Import-Modal, Zwischenablage-Paste (`Cmd+V`) sowie automatisches Ingest-Routing für ASCII-Dateien (`.map`, `.txt`), JSON Level-Beschreibungen, ZIP-Archive und Bild-/Sprite-Rasterisierung mit Farb-Palette-Matching. Unit-Tests in `packages/tools/tests/MapGenerator.test.ts` abgesichert.
+
 ## 2026-10-07 — Liquid-Roadmap: S1 Wellen-Sonde und Golden-Baseline
 
 - ✅ **WebGPU: ersetzte Ressourcen werden wieder zerstört, Ursache gefunden und behoben (2026-10-07).** Commit `242390b7`
@@ -946,3 +950,14 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
 ## 2026-10-07 — Headless WebGPU/WebGL2 in CI/Containern
 
 - ✅ **Headless-WebGPU/WebGL2-Fakt gespeichert (2026-10-07):** Chrome headless mit `--enable-unsafe-webgpu`, `--enable-features=Vulkan` und dem SwiftShader/Vulkan-Software-Backend kann WebGPU **und** WebGL2 vollständig headless in CI-/Container-Umgebungen betreiben — kein Xvfb/Display nötig. Relevant für echte GPU-Pipeline-Tests (WebGL2-+WebGPU-Pfad) in CI. Abgelegt in `.agents/notes/headless-webgpu-ci.md`.
+
+## 2026-10-07 — Collaborate: `next`-Session „StylizedWater ramp LUT V1“ abgeschlossen
+
+- ✅ **Collaborate-Session `.agents/collaborate/next.md` formal beendet (2026-10-07, `/collaborate --stop`):**
+  Vorschlag P2 (Ramp LUT für StylizedWater, Konstanten-LUT zur Kaustik-/Farbkurve, enginenahe Farbe)
+  einstimmig (Charly/Alice + Sub-Agent-Audits), Umsetzung committet unter `5e374b0e` „Colors are the smiles of
+  nature.“ Laufzeit-/Paritätsbelege: `.agents/scratches/ramp-lut/results.json`, `.agents/scratches/goldens/`
+  (`p2-off` 24/24 Zellen byte-identisch zu `pre-p2`), Tests A1–A4 grün, Docs ADR 0026 + Guide §5.1 ergänzt.
+  Abschluss-Block im Topic-Dokument, pid auf `terminated` (rev 34). Offen ist nur die separate, weiterlaufende
+  Session `liquid-roadmap` (consensus_reached, plan) mit offener formaler Abnahme/G6 im CI-Verbund — kein
+  Handlungsbedarf durch mich; liegt beim Moderator.
