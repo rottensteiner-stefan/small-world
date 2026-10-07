@@ -1,4 +1,6 @@
 [BASE_FS_HEADER]
+[LIGHT_DEFS]
+[FOG_DEFS]
 uniform vec2 u_texRepeat;
 void main() {
   vec3 blendWeights = abs(v_normal);
@@ -14,5 +16,8 @@ void main() {
   vec4 colY = texture2D(u_diffuseMap, coordY);
   vec4 colZ = texture2D(u_diffuseMap, coordZ);
   vec4 finalTexColor = colX * blendWeights.x + colY * blendWeights.y + colZ * blendWeights.z;
-  gl_FragColor = u_color * finalTexColor;
+  vec3 N = normalize(v_normal);
+  [LIGHT_CALC]
+  gl_FragColor = vec4(finalLight * u_color.rgb * finalTexColor.rgb, u_color.a * finalTexColor.a);
+  [FOG_CALC]
 }

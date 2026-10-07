@@ -269,7 +269,7 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
           vs: vertGLSL100,
           fs: fragGLSL100,
         },
-        wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n${fragWGSL}`,
+        wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n[WGSL_DIR_SHADOW]\n${fragWGSL}`,
       },
       layout: {
         ...StandardWebGPULayout,

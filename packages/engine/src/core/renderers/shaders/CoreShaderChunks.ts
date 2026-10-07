@@ -1,5 +1,8 @@
 import FOG_DEFS from "../../materials/shaders/chunks/fog_defs.glsl?raw";
 import FOG_CALC from "../../materials/shaders/chunks/fog_calc.glsl?raw";
+import DIR_SHADOW_GLSL from "../../materials/shaders/chunks/dir_shadow.glsl?raw";
+import DIR_SHADOW_WEBGL1_GLSL from "../../materials/shaders/chunks/dir_shadow_webgl1.glsl?raw";
+import DIR_SHADOW_WGSL from "../../materials/shaders/chunks/dir_shadow.wgsl?raw";
 import LIQUID_GERSTNER_WAVE_GLSL from "../../materials/shaders/chunks/liquid_gerstner_wave.glsl?raw";
 import LIQUID_GERSTNER_WAVE_WGSL from "../../materials/shaders/chunks/liquid_gerstner_wave.wgsl?raw";
 import LIQUID_WORLEY_NOISE_GLSL from "../../materials/shaders/chunks/liquid_worley_noise.glsl?raw";
@@ -83,6 +86,7 @@ export class CoreShaderChunks {
     registry.registerChunk("PBR_MATH", gl2PbrMath, "glsl300");
     registry.registerChunk("LIGHT_CALC_PBR", gl2LightCalcPbr, "glsl300");
     registry.registerChunk("SDF_MATH", gl2SdfMath, "glsl300");
+    registry.registerChunk("DIR_SHADOW", DIR_SHADOW_GLSL, "glsl300");
     registry.registerChunk("FOG_DEFS", FOG_DEFS, "glsl300");
     registry.registerChunk("FOG_CALC", FOG_CALC, "glsl300");
     registry.registerChunk("LIQUID_GERSTNER_WAVE", LIQUID_GERSTNER_WAVE_GLSL, "glsl300");
@@ -100,6 +104,7 @@ export class CoreShaderChunks {
     registry.registerChunk("PBR_MATH", gl1PbrMath, "glsl100");
     registry.registerChunk("LIGHT_CALC_PBR", gl1LightCalcPbr, "glsl100");
     registry.registerChunk("SDF_MATH", gl2SdfMath, "glsl100");
+    registry.registerChunk("DIR_SHADOW", DIR_SHADOW_WEBGL1_GLSL, "glsl100");
     registry.registerChunk("FOG_DEFS", FOG_DEFS, "glsl100");
     registry.registerChunk("FOG_CALC", FOG_CALC, "glsl100");
     registry.registerChunk("LIQUID_GERSTNER_WAVE", LIQUID_GERSTNER_WAVE_GLSL, "glsl100");
@@ -114,6 +119,7 @@ export class CoreShaderChunks {
     registry.registerChunk("WGSL_LIGHTING", wgslLighting, "wgsl");
     registry.registerChunk("WGSL_PBR_MATH", wgslPbrMath, "wgsl");
     registry.registerChunk("WGSL_PBR_LIGHTING", wgslPbrLighting, "wgsl");
+    registry.registerChunk("WGSL_DIR_SHADOW", DIR_SHADOW_WGSL, "wgsl");
     registry.registerChunk("WGSL_FOG_CALC", wgslFogCalc, "wgsl");
     registry.registerChunk("WGSL_SDF_MATH", wgslSdfMath, "wgsl");
     registry.registerChunk("WGSL_SCREEN_FOOTPRINT", wgslScreenFootprint, "wgsl");

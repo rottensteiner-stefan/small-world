@@ -13,5 +13,9 @@
   let colY = textureSample(u_diffuseMap, s, coordY);
   let colZ = textureSample(u_diffuseMap, s, coordZ);
   let finalTexColor = colX * blendWeights.x + colY * blendWeights.y + colZ * blendWeights.z;
-  return obj.color * finalTexColor;
+  [WGSL_LIGHTING]
+  let albedo = sRGBToLinear(finalTexColor.rgb) * sRGBToLinear(obj.color.rgb);
+  var color = linearToSRGB(fL * albedo * global.exposure);
+  [WGSL_FOG_CALC]
+  return vec4f(color, obj.color.a * finalTexColor.a);
 }

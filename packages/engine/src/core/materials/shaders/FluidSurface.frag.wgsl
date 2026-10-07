@@ -59,13 +59,14 @@
 
     // Optional lighting: wrapped diffuse shade (obj.pad1), Fresnel rim, specular (obj.thresholds).
     let L = normalize(global.dirLightDir.xyz);
+    let dirShadow = sampleDirShadow(i.wp, N);
     let ndl = dot(N, L) * 0.5 + 0.5;
-    color *= mix(1.0, ndl * ndl * 1.6, obj.pad1);
+    color *= mix(1.0, ndl * ndl * 1.6 * mix(0.35, 1.0, dirShadow), obj.pad1);
     let ndv = clamp(dot(N, V), 0.0, 1.0);
     let rim = pow(1.0 - ndv, 3.0) * obj.thresholds.x;
     color += edgeCol * rim;
     let ndh = clamp(dot(N, normalize(L + V)), 0.0, 1.0);
-    color += global.dirLightColor.rgb * pow(ndh, max(obj.shininess, 1.0)) * obj.thresholds.y;
+    color += global.dirLightColor.rgb * pow(ndh, max(obj.shininess, 1.0)) * obj.thresholds.y * dirShadow;
 
     // Beer-Lambert thickness from the opaque depth capture (see the GLSL version).
     let thickness = 1.0 - exp(-obj.thresholds.w * max(depthDiff, 0.0));

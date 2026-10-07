@@ -1,4 +1,6 @@
 [BASE_FRAGMENT_HEADER]
+[LIGHT_DEFS]
+[FOG_DEFS]
 uniform vec2 u_texRepeat;
 void main() {
   vec3 blendWeights = abs(v_normal);
@@ -14,5 +16,10 @@ void main() {
   vec4 colY = texture(u_diffuseMap, coordY);
   vec4 colZ = texture(u_diffuseMap, coordZ);
   vec4 finalTexColor = colX * blendWeights.x + colY * blendWeights.y + colZ * blendWeights.z;
-  fragColor = u_color * finalTexColor;
+  vec3 N = normalize(v_normal);
+  [LIGHT_CALC]
+  vec3 albedo = sRGBToLinear(finalTexColor.rgb) * sRGBToLinear(u_color.rgb);
+  vec3 finalColor = linearToSRGB(finalLight * albedo * u_exposure);
+  fragColor = vec4(finalColor, u_color.a * finalTexColor.a);
+  [FOG_CALC]
 }

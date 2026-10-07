@@ -100,6 +100,7 @@ export class OilSlickMaterial extends StylizedWaterMaterial {
 
   protected override _getLiquidWaveShaderSources(): ShaderDefinition["sources"] {
     const glslDecl = `
+    [DIR_SHADOW]
     // Cosine rainbow palette used for the oil film sheen
     vec3 thinFilmRainbow(float phase) {
         vec3 c1 = vec3(1.0, 1.0, 1.0);
@@ -126,13 +127,16 @@ export class OilSlickMaterial extends StylizedWaterMaterial {
     vec3 oilView = normalize(u_viewPos - v_worldPos);
     float oilCos = clamp(dot(v_normal, oilView), 0.0, 1.0);
     float oilFlow = oilFlowNoise(v_worldPos.xz * 0.6, u_time);
-    float oilSun = pow(clamp(dot(reflect(-oilView, v_normal), normalize(u_dirLightDir)), 0.0, 1.0), 6.0);
+    float oilShadow = sampleDirShadow(v_worldPos, v_normal);
+    float oilSun = pow(clamp(dot(reflect(-oilView, v_normal), normalize(u_dirLightDir)), 0.0, 1.0), 6.0) * oilShadow;
     vec3 oilRainbow = thinFilmRainbow(oilFlow * 1.6 + (1.0 - oilCos) * 0.8);
     float oilMask = smoothstep(0.45, 0.8, oilFlow) * (0.2 + 0.8 * pow(1.0 - oilCos, 2.0) + 0.6 * oilSun);
     finalColor = mix(finalColor, oilRainbow * 0.5, clamp(oilMask, 0.0, 1.0) * u_styleA.w * 0.7 * (1.0 - finalShoreFoam));
+    finalColor *= mix(0.5, 1.0, oilShadow);
     `;
 
     const wgslDecl = `
+    [WGSL_DIR_SHADOW]
     fn thinFilmRainbow(phase: f32) -> vec3<f32> {
         let c1 = vec3<f32>(1.0, 1.0, 1.0);
         let c2 = vec3<f32>(0.0, 0.333, 0.667);
@@ -156,10 +160,12 @@ export class OilSlickMaterial extends StylizedWaterMaterial {
     let oilView = normalize(global.viewPos.xyz - i.wp);
     let oilCos = clamp(dot(i.n, oilView), 0.0, 1.0);
     let oilFlow = oilFlowNoise(i.wp.xz * 0.6, obj.time);
-    let oilSun = pow(clamp(dot(reflect(-oilView, i.n), normalize(global.dirLightDir.xyz)), 0.0, 1.0), 6.0);
+    let oilShadow = sampleDirShadow(i.wp, i.n);
+    let oilSun = pow(clamp(dot(reflect(-oilView, i.n), normalize(global.dirLightDir.xyz)), 0.0, 1.0), 6.0) * oilShadow;
     let oilRainbow = thinFilmRainbow(oilFlow * 1.6 + (1.0 - oilCos) * 0.8);
     let oilMask = smoothstep(0.45, 0.8, oilFlow) * (0.2 + 0.8 * pow(1.0 - oilCos, 2.0) + 0.6 * oilSun);
     finalColor = mix(finalColor, oilRainbow * 0.5, clamp(oilMask, 0.0, 1.0) * obj.styleA.w * 0.7 * (1.0 - finalShoreFoam));
+    finalColor = finalColor * mix(0.5, 1.0, oilShadow);
     `;
     const baseSources = composeStylizedWaterSources({
       decl: glslDecl,

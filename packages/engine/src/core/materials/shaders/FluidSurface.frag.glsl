@@ -6,6 +6,7 @@ in vec3 v_worldPos;
 in vec3 v_normal;
 
 [LIGHT_DEFS]
+[DIR_SHADOW]
 
 uniform vec4 u_color;
 uniform vec4 u_specColor;
@@ -84,13 +85,14 @@ void main() {
 
     // Optional lighting: wrapped diffuse shade, Fresnel rim (translucent edge glow), specular.
     vec3 L = normalize(u_dirLightDir);
+    float dirShadow = sampleDirShadow(v_worldPos, N);
     float ndl = dot(N, L) * 0.5 + 0.5;
-    finalColor *= mix(1.0, ndl * ndl * 1.6, u_pad1);
+    finalColor *= mix(1.0, ndl * ndl * 1.6 * mix(0.35, 1.0, dirShadow), u_pad1);
     float ndv = clamp(dot(N, V), 0.0, 1.0);
     float rim = pow(1.0 - ndv, 3.0) * u_thresholds.x;
     finalColor += edgeColor * rim;
     float ndh = clamp(dot(N, normalize(L + V)), 0.0, 1.0);
-    finalColor += u_dirLightColor * pow(ndh, max(u_shininess, 1.0)) * u_thresholds.y;
+    finalColor += u_dirLightColor * pow(ndh, max(u_shininess, 1.0)) * u_thresholds.y * dirShadow;
 
     // Beer-Lambert thickness from the opaque depth capture: thin slime (shallow depthDiff) turns
     // see-through, thick slime stays dense. absorption 0 (default) keeps alpha at 1.

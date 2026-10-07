@@ -17,7 +17,8 @@ export type WorldMaterialOptions = {
 };
 
 /**
- * A material that uses triplanar mapping to render seamless textures across world space coordinates.
+ * A lit, matte material that uses triplanar mapping to render seamless textures across world space
+ * coordinates. Receives directional/point lights and cascaded shadows.
  * Ideal for terrain, rocks, walls, and architectural structures.
  */
 export class WorldMaterial extends AbstractMaterial {
@@ -38,7 +39,7 @@ export class WorldMaterial extends AbstractMaterial {
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
       this._renderManifest = this._createBaseManifest();
-      this._renderManifest.properties["u_specColor"] = new Float32Array([1, 1, 1, 1]);
+      this._renderManifest.properties["u_specColor"] = new Float32Array([0, 0, 0, 1]);
       this._renderManifest.properties["u_extraParams"] = [1.0, 0, 0, 0];
       this._renderManifest.textures["u_diffuseMap"] = this.diffuseMap;
     }
@@ -74,7 +75,7 @@ export class WorldMaterial extends AbstractMaterial {
           vs: "[BASE_VS]",
           fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${fragWGSL}`,
+        wgsl: `[WGSL_STRUCTS]\n[WGSL_PBR_MATH]\n[WGSL_VS]\n${fragWGSL}`,
       },
       layout: {
         ...StandardWebGPULayout,
