@@ -4,20 +4,26 @@ import {
   LambertMaterial,
   PhongMaterial,
   FluidSurfaceMaterial,
+  LavaMaterial,
+  SlimeMaterial,
   OpenWaterMaterial,
+  StylizedWaterMaterial,
   SpriteMaterial,
   TerrainMaterial,
   WorldMaterial,
   GlassMaterial,
+  FrostglassMaterial,
+  SkyboxMaterial,
+  WireframeMaterial,
   RetroScreenMaterial,
   DepthMaterial,
   ShaderRegistry,
 } from "../../src/index.js";
-import { CoreShaderChunks } from "../../src/core/renderers/shaders/CoreShaderChunks.js";
+import { ShaderBootstrap } from "../../src/core/renderers/shaders/ShaderBootstrap.js";
 
 describe("Shader Assembly & Linter", () => {
   beforeAll(async () => {
-    await CoreShaderChunks.init();
+    await ShaderBootstrap.init();
   });
 
   const checkDuplicates = (shaderCode: string, materialName: string, shaderType: string): void => {
@@ -78,11 +84,17 @@ describe("Shader Assembly & Linter", () => {
     new PhongMaterial(),
     new StandardMaterial(),
     new FluidSurfaceMaterial(),
+    new LavaMaterial(),
+    new SlimeMaterial(),
     new OpenWaterMaterial(),
+    new StylizedWaterMaterial(),
     new SpriteMaterial(),
     new TerrainMaterial(),
     new WorldMaterial(),
     new GlassMaterial(),
+    new FrostglassMaterial(),
+    new SkyboxMaterial(),
+    new WireframeMaterial(),
     new RetroScreenMaterial(),
     new DepthMaterial(),
   ];
@@ -139,29 +151,9 @@ describe("Shader Assembly & Linter", () => {
         return; // Skip materials without glsl300
       }
 
-      // The material returns chunks and defines. Let's assemble a basic mock of the final shader
-      // For a real engine, we might call a mock renderer's assembleShader method.
-      // Here we just use the registry to replace chunks.
-      const assemble = (code: string): string => {
-        let assembled = code;
-        const registry = ShaderRegistry.instance;
-        // simplistic replacement for testing
-        const chunkRegex = /\[([A-Z_]+)\]/g;
-        let match;
-        while ((match = chunkRegex.exec(assembled)) !== null) {
-          const chunkName = match[1];
-          if (!chunkName) continue;
-          const chunkCode = registry.getChunk(chunkName, "glsl300");
-          if (chunkCode) {
-            assembled = assembled.replace(match[0], chunkCode);
-            // reset regex index since string changed
-            chunkRegex.lastIndex = 0;
-          }
-        }
-        return assembled;
-      };
-
-      const finalFs = assemble(fs);
+      const finalVs = ShaderRegistry.instance.assemble(vs, "glsl300");
+      const finalFs = ShaderRegistry.instance.assemble(fs, "glsl300");
+      checkDuplicates(finalVs, matName, "Vertex Shader");
       checkDuplicates(finalFs, matName, "Fragment Shader");
     });
 
@@ -174,24 +166,7 @@ describe("Shader Assembly & Linter", () => {
         return;
       }
 
-      const assemble = (code: string): string => {
-        let assembled = code;
-        const registry = ShaderRegistry.instance;
-        const chunkRegex = /\[([A-Z_]+)\]/g;
-        let match;
-        while ((match = chunkRegex.exec(assembled)) !== null) {
-          if (match[1]) {
-            const chunkCode = registry.getChunk(match[1], "wgsl");
-            if (chunkCode) {
-              assembled = assembled.replace(match[0], chunkCode);
-              chunkRegex.lastIndex = 0;
-            }
-          }
-        }
-        return assembled;
-      };
-
-      const finalWgsl = assemble(wgsl);
+      const finalWgsl = ShaderRegistry.instance.assemble(wgsl, "wgsl");
       checkDuplicatesWGSL(finalWgsl, matName, "Combined Shader");
     });
   }

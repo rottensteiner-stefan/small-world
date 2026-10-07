@@ -56,6 +56,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     // Ground Position Reconstruction for Directional Caustics Projection
     let viewDir = normalize(i.wp - global.viewPos.xyz);
     let groundWorldPos = i.wp + viewDir * depthDiff;
+    let groundShadow = sampleDirShadow(groundWorldPos, vec3f(0.0, 1.0, 0.0));
 
     let causticsDistortionStrength = 0.45;
     let uvCaustics = groundWorldPos.xz + (i.n.xz * causticsDistortionStrength);
@@ -80,7 +81,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
         // Compressed gain: a strong causticStrength brightens the net without clipping to flat cyan
         let causticGain = obj.specColor.a / (1.0 + 0.5 * obj.specColor.a);
         let underwaterLuma = dot(opaqueUnderwaterColor, vec3<f32>(0.299, 0.587, 0.114));
-        let shadowMask = smoothstep(0.06, 0.24, underwaterLuma);
+        let shadowMask = smoothstep(0.06, 0.24, underwaterLuma) * groundShadow;
         finalCaustics = causticRgb * causticsFade * causticGain * shadowMask;
         illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3<f32>(0.82, 0.92, 0.98), vec3<f32>(1.0), 1.0 - causticCore * 0.45 * shadowMask) + finalCaustics;
     } else {
@@ -90,7 +91,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
         let causticsNoise2 = 1.0 - waterCellNoise(causticsUv2);
         let causticsThreshold = 0.42;
         let underwaterLuma = dot(opaqueUnderwaterColor, vec3<f32>(0.299, 0.587, 0.114));
-        let shadowMask = smoothstep(0.06, 0.24, underwaterLuma);
+        let shadowMask = smoothstep(0.06, 0.24, underwaterLuma) * groundShadow;
         finalCaustics = vec3<f32>(aaStepMask(causticsThreshold, causticsNoise1 * causticsNoise2, 0.08)) * causticsFade * causticsColor * obj.specColor.a * shadowMask;
         illuminatedUnderwater = opaqueUnderwaterColor + finalCaustics;
     }
@@ -121,10 +122,11 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     var surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * edgeAmount);
 
     // Dredge murk: depth fog (styleId 4 only)
+    let surfaceShadow = sampleDirShadow(i.wp, i.n);
     if (isDredge) {
         let fogColor = mix(shallowColor, deepColor, 0.6) * 0.9;
         let fogAmount = (1.0 - exp(-depthDiff * 0.9)) * 0.8;
-        surfaceColor = mix(surfaceColor, fogColor, fogAmount);
+        surfaceColor = mix(surfaceColor, fogColor, fogAmount) * mix(0.7, 1.0, surfaceShadow);
     }
 
     let camDir = normalize(global.viewPos.xyz - i.wp);
@@ -137,12 +139,12 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     let halfVector = normalize(lightDir + camDir);
     let nDotH = saturate(dot(i.n, halfVector));
     // Narrow cone: wave slopes are smooth over metres, a wide cone covers ~20 percent of the pool
-    let specular = aaStepMask(0.9993, nDotH, 0.0005) * obj.color.a;
+    let specular = aaStepMask(0.9993, nDotH, 0.0005) * obj.color.a * surfaceShadow;
     surfaceColor += global.dirLightColor.rgb * specular;
 
     if (obj.styleB.z > 0.0) {
         let stepFps = select(12.0, 8.0, isSparkle);
-        let glint = waterGlintStar(i.wp.xz * 2.6, obj.time * stepFps, nDotH) * obj.styleB.z;
+        let glint = waterGlintStar(i.wp.xz * 2.6, obj.time * stepFps, nDotH) * obj.styleB.z * surfaceShadow;
         surfaceColor += vec3<f32>(1.0, 0.92, 0.7) * glint * obj.color.a;
     }
 

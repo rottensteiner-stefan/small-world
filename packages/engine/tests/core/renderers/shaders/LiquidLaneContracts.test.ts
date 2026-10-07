@@ -87,7 +87,7 @@ describe("Lane-Contract-Registry (T3)", () => {
     for (const id of [0, 1, 2, 3, 4, 5]) expect(ids).toContain(id);
   });
 
-  it("registers the future S2 splat lane and S3 wall contract as reserved", () => {
+  it("registers the S2 splat lane and S3 wall contract", () => {
     const reg = registry.registration ?? [];
     const ids = new Set(reg.map((r: { id: string }) => r.id));
     expect(ids.has("s2-splat-lane")).toBe(true);
@@ -95,7 +95,7 @@ describe("Lane-Contract-Registry (T3)", () => {
     for (const r of reg.filter((x: { id: string }) =>
       ["s2-splat-lane", "s3-wall-contract"].includes(x.id),
     )) {
-      expect(r.status).toBe("reserved");
+      expect(["reserved", "active"]).toContain(r.status);
     }
   });
 

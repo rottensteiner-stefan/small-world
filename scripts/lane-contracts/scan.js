@@ -142,11 +142,11 @@ function main() {
     }
   }
 
-  // 3. Future registrations must exist (S2 splat lane, S3 wall contract).
+  // 3. Future/Active registrations must exist (S2 splat lane, S3 wall contract).
   const registrations = registry.registration ?? [];
   for (const expected of ["s2-splat-lane", "s3-wall-contract"]) {
-    if (!registrations.some((r) => r.id === expected && r.status === "reserved")) {
-      violations.push(`required future registration missing: ${expected} (status 'reserved')`);
+    if (!registrations.some((r) => r.id === expected && (r.status === "reserved" || r.status === "active"))) {
+      violations.push(`required registration missing: ${expected} (status 'reserved' or 'active')`);
     }
   }
 

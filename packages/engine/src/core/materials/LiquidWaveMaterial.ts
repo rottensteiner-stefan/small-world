@@ -59,6 +59,16 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
   public foamCutoff: number;
   public foamNoiseScale: number;
   public foamNoiseSpeed: number;
+  /** S2 Splat-Lane: [x, z, spawnTime, energy] */
+  public splat: [number, number, number, number] = [0, 0, -9999, 0];
+
+  /** Emits an impact ring wave at position (x, z) at spawnTime with given energy. */
+  public emitSplat(x: number, z: number, spawnTime: number, energy: number = 1.0): void {
+    this.splat[0] = x;
+    this.splat[1] = z;
+    this.splat[2] = spawnTime;
+    this.splat[3] = energy;
+  }
 
   protected constructor(type: string, init: LiquidWaveMaterialInit) {
     super(type);
@@ -128,12 +138,21 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
       // u_pad3 is the last remaining free named slot (see structs.wgsl/StandardWebGPULayout.ts)
       // -- repurposed to carry foamDistance, decoupled from edgeSoftness.
       this._renderManifest.properties["u_pad3"] = this.foamDistance;
+      this._renderManifest.properties["u_styleA"] = [...this.splat];
     }
 
     this._syncBaseManifestState();
 
     const props = this._renderManifest.properties as Record<string, unknown>;
     props["u_specColor"] = this.deepWaterColor.toFloat32Array();
+
+    const sA = props["u_styleA"] as number[] | undefined;
+    if (sA && !("rampSoftness" in this)) {
+      sA[0] = this.splat[0];
+      sA[1] = this.splat[1];
+      sA[2] = this.splat[2];
+      sA[3] = this.splat[3];
+    }
 
     const offset = props["u_texOffset"] as number[];
     offset[0] = this.edgeColor.r;

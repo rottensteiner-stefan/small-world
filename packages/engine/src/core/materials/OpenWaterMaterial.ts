@@ -90,7 +90,7 @@ export class OpenWaterMaterial extends LiquidWaveMaterial {
         vs: vertGLSL100,
         fs: fragGLSL100,
       },
-      wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n${fragWGSL}`,
+      wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n[WGSL_DIR_SHADOW]\n${fragWGSL}`,
     };
   }
 }

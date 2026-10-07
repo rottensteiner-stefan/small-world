@@ -6,6 +6,7 @@ varying vec2 v_uv;
 varying vec4 v_clipPos;
 
 [LIGHT_DEFS]
+[DIR_SHADOW]
 
 uniform vec3 u_viewPos;
 uniform vec4 u_color;

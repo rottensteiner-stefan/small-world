@@ -6,6 +6,7 @@ in vec3 v_normal;
 in vec2 v_uv;
 
 [LIGHT_DEFS]
+[DIR_SHADOW]
 
 uniform vec4 u_color;          // Shallow water color (RGBA)
 uniform vec4 u_specColor;      // Deep water color (RGBA)
@@ -86,6 +87,7 @@ void main() {
     // 3. Ground Position Reconstruction for Directional Caustics Projection
     vec3 viewDir = normalize(v_worldPos - u_viewPos);
     vec3 groundWorldPos = v_worldPos + viewDir * depthDiff;
+    float groundShadow = sampleDirShadow(groundWorldPos, vec3(0.0, 1.0, 0.0));
 
     // Distorted Caustics UVs mapped to underwater ground
     float causticsDistortionStrength = 0.45;
@@ -112,7 +114,7 @@ void main() {
         // Compressed gain: a strong causticStrength brightens the net without clipping to flat cyan
         float causticGain = u_specColor.a / (1.0 + 0.5 * u_specColor.a);
         float underwaterLuma = dot(opaqueUnderwaterColor, vec3(0.299, 0.587, 0.114));
-        float shadowMask = smoothstep(0.06, 0.24, underwaterLuma);
+        float shadowMask = smoothstep(0.06, 0.24, underwaterLuma) * groundShadow;
         finalCaustics = causticRgb * causticsFade * causticGain * shadowMask;
         illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3(0.82, 0.92, 0.98), vec3(1.0), 1.0 - causticCore * 0.45 * shadowMask) + finalCaustics;
     } else {
@@ -123,7 +125,7 @@ void main() {
         float causticsNoise2 = 1.0 - waterCellNoise(causticsUv2);
         float causticsThreshold = 0.42;
         float underwaterLuma = dot(opaqueUnderwaterColor, vec3(0.299, 0.587, 0.114));
-        float shadowMask = smoothstep(0.06, 0.24, underwaterLuma);
+        float shadowMask = smoothstep(0.06, 0.24, underwaterLuma) * groundShadow;
         finalCaustics = vec3(aaStepMask(causticsThreshold, causticsNoise1 * causticsNoise2, 0.08)) * causticsFade * causticsColor * u_specColor.a * shadowMask;
         illuminatedUnderwater = opaqueUnderwaterColor + finalCaustics;
     }
@@ -156,10 +158,11 @@ void main() {
     vec3 surfaceColor = mix(baseWaterColor, edgeColor, smoothstep(0.0, 1.0, edgeBlend) * edgeAmount);
 
     // 5b. Dredge murk: depth fog (styleId 4 only)
+    float surfaceShadow = sampleDirShadow(v_worldPos, v_normal);
     if (isDredge) {
         vec3 fogColor = mix(shallowColor, deepColor, 0.6) * 0.9;
         float fogAmount = (1.0 - exp(-depthDiff * 0.9)) * 0.8;
-        surfaceColor = mix(surfaceColor, fogColor, fogAmount);
+        surfaceColor = mix(surfaceColor, fogColor, fogAmount) * mix(0.7, 1.0, surfaceShadow);
     }
 
     // 6. Fresnel & Specular + Star Glints
@@ -173,12 +176,12 @@ void main() {
     vec3 halfVector = normalize(lightDir + camDir);
     float nDotH = clamp(dot(v_normal, halfVector), 0.0, 1.0);
     // Toon-specular, a = specularStrength. Narrow cone: wave slopes are smooth over metres, a wide cone covers ~20 percent of the pool
-    float specular = aaStepMask(0.9993, nDotH, 0.0005) * u_color.a;
+    float specular = aaStepMask(0.9993, nDotH, 0.0005) * u_color.a * surfaceShadow;
     surfaceColor += u_dirLightColor * specular;
 
     if (u_styleB.z > 0.0) {
         float stepFps = isSparkle ? 8.0 : 12.0;
-        float glint = waterGlintStar(v_worldPos.xz * 2.6, u_time * stepFps, nDotH) * u_styleB.z;
+        float glint = waterGlintStar(v_worldPos.xz * 2.6, u_time * stepFps, nDotH) * u_styleB.z * surfaceShadow;
         surfaceColor += vec3(1.0, 0.92, 0.7) * glint * u_color.a;
     }
 

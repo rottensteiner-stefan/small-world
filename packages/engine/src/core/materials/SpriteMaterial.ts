@@ -12,6 +12,18 @@ import {
 } from "../renderers/shaders/index.js";
 
 /**
+ * Configuration options for SpriteMaterial.
+ */
+export interface SpriteMaterialOptions {
+  /** The texture to display on the sprite. */
+  texture?: Texture | undefined;
+  /** The tint color of the sprite. */
+  color?: Color | undefined;
+  /** Whether the sprite is transparent. Defaults to true. */
+  transparent?: boolean | undefined;
+}
+
+/**
  * Material for rendering 2D sprites.
  */
 export class SpriteMaterial extends AbstractMaterial {
@@ -25,15 +37,7 @@ export class SpriteMaterial extends AbstractMaterial {
    * Creates a new SpriteMaterial.
    * @param options The texture for the sprite or a configuration object.
    */
-  constructor(
-    options?:
-      | Texture
-      | {
-          texture?: Texture | undefined;
-          color?: Color | undefined;
-          transparent?: boolean | undefined;
-        },
-  ) {
+  constructor(options?: Texture | SpriteMaterialOptions) {
     super(MaterialType.SPRITE);
     if (options instanceof Texture) {
       this.texture = options;

@@ -35,7 +35,7 @@ export function composeStylizedWaterSources(
       vs: vertGLSL100,
       fs: replaceHooks(fragGLSL100),
     },
-    wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n${replaceHooks(fragWGSL, true)}`,
+    wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n[WGSL_DIR_SHADOW]\n${replaceHooks(fragWGSL, true)}`,
   };
 }
 

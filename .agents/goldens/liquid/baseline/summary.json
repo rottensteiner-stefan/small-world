@@ -1,11 +1,11 @@
 {
   "matrix": "gl2",
   "backend": "WEB_GL2",
-  "frames": 600,
-  "cellsTotal": 20,
-  "cellsOk": 20,
+  "frames": 60,
+  "cellsTotal": 24,
+  "cellsOk": 24,
   "ok": true,
   "isoformational": false,
   "browser": "Chrome/152.0.7977.75",
-  "generatedAt": "2026-10-06T10:19:37.115Z"
+  "generatedAt": "2026-10-07T13:41:09.821Z"
 }

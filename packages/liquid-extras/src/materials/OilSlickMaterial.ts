@@ -100,7 +100,6 @@ export class OilSlickMaterial extends StylizedWaterMaterial {
 
   protected override _getLiquidWaveShaderSources(): ShaderDefinition["sources"] {
     const glslDecl = `
-    [DIR_SHADOW]
     // Cosine rainbow palette used for the oil film sheen
     vec3 thinFilmRainbow(float phase) {
         vec3 c1 = vec3(1.0, 1.0, 1.0);
@@ -136,7 +135,6 @@ export class OilSlickMaterial extends StylizedWaterMaterial {
     `;
 
     const wgslDecl = `
-    [WGSL_DIR_SHADOW]
     fn thinFilmRainbow(phase: f32) -> vec3<f32> {
         let c1 = vec3<f32>(1.0, 1.0, 1.0);
         let c2 = vec3<f32>(0.0, 0.333, 0.667);

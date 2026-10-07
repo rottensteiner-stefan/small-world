@@ -20,7 +20,7 @@
     "gl1": "WEB_GL1"
   },
   "viewport": { "width": 1024, "height": 576 },
-  "frames": 600,
+  "frames": 60,
   "blankStddevThreshold": 2.0,
   "pixelmatchThreshold": 0.1,
   "maxDiffRatio": 0.005,

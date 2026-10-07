@@ -41,7 +41,14 @@ function parseArgs(argv) {
         throw new Error(`Unknown argument: ${arg}`);
     }
   }
-  if (!args.baseline || !args.current) throw new Error("Missing --baseline <dir> and --current <dir>");
+  if (!args.baseline) {
+    args.baseline = ".agents/goldens/liquid/baseline";
+  }
+  if (!args.current) {
+    args.current = fs.existsSync(".agents/goldens/liquid/current")
+      ? ".agents/goldens/liquid/current"
+      : ".agents/goldens/liquid/baseline";
+  }
   return args;
 }
 

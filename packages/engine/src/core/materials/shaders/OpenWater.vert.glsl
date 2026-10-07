@@ -71,6 +71,7 @@ uniform mat4 u_model;
 uniform vec4 u_extraParams;
 uniform vec4 u_liquidParams;
 uniform vec4 u_thresholds;
+uniform vec4 u_styleA;
 uniform float u_time;
 uniform float u_reflectivity;
 
@@ -105,6 +106,42 @@ void main() {
     displacement += gerstnerWave(w4, wp, speed, time, t, b);
     displacement += gerstnerWave(w5, wp, speed, time, t, b);
     displacement += gerstnerWave(w6, wp, speed, time, t, b);
+
+    // S2 SurfaceRippleField (Splat-Lane): single active impact ring wave
+    float splatAge = time - u_styleA.z;
+    if (splatAge >= 0.0 && splatAge < 4.0 && u_styleA.w > 0.0) {
+        vec2 splatCenter = u_styleA.xy;
+        float splatDist = length(wp.xz - splatCenter);
+        float rippleRadius = splatAge * 3.5;
+        float ringDist = splatDist - rippleRadius;
+        float ringWidth = 0.8;
+        float ringMask = exp(-ringDist * ringDist / (ringWidth * ringWidth));
+        float ringDecay = exp(-splatAge * 1.2) * u_styleA.w;
+        float rippleDisp = sin(ringDist * 8.0) * ringMask * ringDecay * 0.15;
+        displacement.y += rippleDisp;
+        vec2 dir = (splatDist > 0.001) ? (wp.xz - splatCenter) / splatDist : vec2(1.0, 0.0);
+        t.y += rippleDisp * dir.x * 4.0;
+        b.y += rippleDisp * dir.y * 4.0;
+    }
+
+    // S3 Clapotis (Analytical Wall Reflection):
+    // Near pool boundaries (|x| > 3.0 or |z| > 3.0), dominant wave w1 reflects off vertical walls
+    float wallDistX = 4.0 - abs(wp.x);
+    float wallDistZ = 4.0 - abs(wp.z);
+    if (wallDistX < 1.5 && wallDistX > -0.5) {
+        vec2 wallNorm = vec2(-sign(wp.x), 0.0);
+        vec2 dRef = w1.xy - 2.0 * dot(w1.xy, wallNorm) * wallNorm;
+        vec4 wRef = vec4(dRef, w1.z * 0.85, w1.w);
+        float wallTrap = smoothstep(1.5, 0.0, wallDistX);
+        displacement += gerstnerWave(wRef, wp, speed, time, t, b) * wallTrap;
+    }
+    if (wallDistZ < 1.5 && wallDistZ > -0.5) {
+        vec2 wallNorm = vec2(0.0, -sign(wp.z));
+        vec2 dRef = w1.xy - 2.0 * dot(w1.xy, wallNorm) * wallNorm;
+        vec4 wRef = vec4(dRef, w1.z * 0.85, w1.w);
+        float wallTrap = smoothstep(1.5, 0.0, wallDistZ);
+        displacement += gerstnerWave(wRef, wp, speed, time, t, b) * wallTrap;
+    }
 
     wp += displacement;
     v_worldPos = wp;

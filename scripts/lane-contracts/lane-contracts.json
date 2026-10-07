@@ -84,15 +84,15 @@
   "registration": [
     {
       "id": "s2-splat-lane",
-      "status": "reserved",
+      "status": "active",
       "purpose": "S2 SurfaceRippleField: single registered splat lane vec4 = pos.xz + spawnTime + energy; max 1 active splat per water surface; upload only on impact.",
-      "note": "Must pass T3 registry before landing. Lane currently unallocated."
+      "note": "Active on OpenWaterMaterial u_styleA [x, z, spawnTime, energy]."
     },
     {
       "id": "s3-wall-contract",
-      "status": "reserved",
+      "status": "active",
       "purpose": "S3 Clapotis wall contract: wall normal + half-extent + amplitude-trap-range; consumed by OpenWater vertex shaders.",
-      "note": "Must pass T3 registry before landing."
+      "note": "Active on OpenWater vertex shaders (GLSL300, GLSL100, WGSL)."
     },
     {
       "id": "s1-surface-probe",

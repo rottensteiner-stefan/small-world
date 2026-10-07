@@ -103,3 +103,31 @@ des Materials, ohne dass Renderer-Änderungen nötig waren.
 Vertex-/Fragment-Algorithmus braucht (nicht nur andere Farben/Koeffizienten/refraktiv-vs-emissiv)
 — z. B. eine partikelbasierte oder SPH-simulierte Flüssigkeit. Das ist neue Arbeit, die ihr
 eigenes Material rechtfertigt, kein Preset auf `LiquidSurfaceMaterial`.
+
+---
+
+## Verdikt-Update & Härtung (2026-10-07)
+
+Im Rahmen der Flüssigkeits-Roadmap (Konsens P2, §8.6) wurden die Erkenntnisse aus der 256-Byte-Uniform-Slot-Grenze und der Interaktivitäts-Erweiterung (S1–S3) formell verankert:
+
+### 1. 256-Byte-Slot-MOAT (ADR 0026)
+- Das feste Uniform-Layout von 256 Byte (`ObjectUniforms`, 16 `vec4` Register) bleibt das unantastbare Limit der Engine, um strikte WebGL1-Kompatibilität (Fragment-Uniform-Mindestgarantie) sicherzustellen.
+- **Kein blindes Slot-Wachstum:** Es werden keine neuen `vec4`-Felder in den globalen Objekt-Block eingefügt.
+- Parameter-Wachstum und Interaktionskanäle werden über exakt registrierte Lane-Reuses (`LaneContractRegistry`) oder Kompilierzeit-Spezialisierungen kanalisiert.
+
+### 2. Strategie für Parameter-Surfaces, LOD & komplexe Looks
+Sollten künftige Flüssigkeitseffekte (wie multiskaliges Ozean-LOD, komplexe Flow-Maps oder partikelgestützte Schaumkarten) mehr Parameter benötigen, als der 256-Byte-Slot fasst, greift folgende Prioritätskaskade (gemäß ADR 0026):
+1. **LUT- & Parameter-Texturen (1D/2D):** Texturen bieten unbegrenzte Parameter-Speicherdichte bei voller WebGL1/2/WebGPU-Kompatibilität.
+2. **Kompilierzeit-Konstanten:** Feste Material-Presets (z. B. feste Wellenkonfigurationen oder Farben) werden bei der Shader-Assemblierung per Chunk/Token injiziert (0 Uniform-Kosten).
+3. **Instanz-/Vertex-Attribute:** Dynamische Partikel, Wellen-Splats oder lokale Modifikatoren können als Geometrie- oder Instanz-Attribute übertragen werden.
+4. **Material-Scope-UBOs (WebGL2 & WebGPU only):** Falls nötig, dürfen isolierte Material-Uniform-Puffer existieren, sofern der WebGL1-Fallback graceful degradiert.
+
+### 3. S2/S3 Interaktivitäts-Routing
+- **S2 Splat-Displacement:** Dynamische Ringwellen nutzen die registrierte Lane `u_styleA` (`vec4(x, z, spawnTime, energy)`).
+- **S3 Boundary Clapotis:** Stehwellen-Reflexionen werden rein analytisch im Vertex-Shader über den bestehenden Vektor `u_worldBounds` (`minX, minZ, maxX, maxZ`) berechnet — mit **0 zusätzlichen Uniform-Bytes**.
+
+### 4. Zero-Allocation & CPU/GPU-Parität
+- Manifest-Puffer (`getRenderManifest()`) und Pack-Routinen für alle Flüssigkeitsmaterialien sind zero-allocation auf dem Hot-Path garantiert (`LiquidZeroAlloc.test.ts`).
+- Die CPU-seitige Wellensonde (`OpenWaterSurfaceProbe`) spiegelt die 6 Gerstner-Wellen f32-präzise zur GPU-Vertexberechnung für exakten hydrostatischen Auftrieb (`BuoyancySolver`).
+
+

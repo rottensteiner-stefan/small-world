@@ -12,6 +12,16 @@ import {
 import { InspectorField } from "../Inspectable.js";
 
 /**
+ * Configuration options for WireframeMaterial.
+ */
+export interface WireframeMaterialOptions {
+  /** The wireframe line color. Defaults to white. */
+  color?: Color;
+  /** Wireframe rendering mode ("structural" or "triangles"). Defaults to "structural". */
+  wireframeMode?: "structural" | "triangles";
+}
+
+/**
  * A material for wireframe rendering.
  */
 export class WireframeMaterial extends AbstractMaterial {
@@ -27,12 +37,18 @@ export class WireframeMaterial extends AbstractMaterial {
   public wireframeMode: "structural" | "triangles" = "structural";
 
   constructor(
-    color: Color = new Color(1, 1, 1, 1),
+    optionsOrColor: WireframeMaterialOptions | Color = new Color(1, 1, 1, 1),
     wireframeMode: "structural" | "triangles" = "structural",
   ) {
     super(MaterialType.WIREFRAME);
-    this.color = Object.isFrozen(color) ? color.clone() : color;
-    this.wireframeMode = wireframeMode;
+    if (optionsOrColor instanceof Color) {
+      this.color = Object.isFrozen(optionsOrColor) ? optionsOrColor.clone() : optionsOrColor;
+      this.wireframeMode = wireframeMode;
+    } else if (optionsOrColor && typeof optionsOrColor === "object") {
+      const { color = new Color(1, 1, 1, 1), wireframeMode: mode = wireframeMode } = optionsOrColor;
+      this.color = Object.isFrozen(color) ? color.clone() : color;
+      this.wireframeMode = mode;
+    }
   }
 
   /** @inheritdoc */

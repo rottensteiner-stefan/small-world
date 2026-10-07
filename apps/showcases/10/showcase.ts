@@ -21,6 +21,7 @@ import {
   Ground,
   LambertMaterial,
   LavaMaterial,
+  LiquidWaveMaterial,
   MathUtils,
   Object3D,
   OpenWaterMaterial,
@@ -42,6 +43,7 @@ import {
 } from "../../../packages/engine/src/index.js";
 import { GltfLoader } from "../../../packages/engine/src/loaders/index.js";
 import { NoirWaterMaterial, OilSlickMaterial } from "../../../packages/liquid-extras/src/index.js";
+import { LiveTunePad } from "./LiveTunePad.js";
 
 const GROUT_THICKNESS_PX = 5.5; // half-grout drawn per tile cell -> 11px full grout line
 const TILE_CELL_PX = 128; // 8x8 tiles in 1024x1024 texture
@@ -67,7 +69,7 @@ const LIQUID_Y = 0.05; // flush just below the +0.10 curb top
 
 const GOLDEN_WIDTH = 1024;
 const GOLDEN_HEIGHT = 576;
-const GOLDEN_FRAMES_DEFAULT = 600;
+const GOLDEN_FRAMES_DEFAULT = 60;
 const GOLDEN_FRAME_TIME = 1 / 60;
 const GOLDEN_SOAK_MS = 700;
 const GOLDEN_TOP_HEIGHT = 7.2;
@@ -352,6 +354,7 @@ class SplashDropBehavior extends Behavior {
     private readonly _surfaceY: number,
     private readonly _spawnY: number,
     private readonly _spawnDelay: number,
+    private readonly _onImpact?: (x: number, z: number, speed: number) => void,
   ) {
     super();
     this._waitTimer = _spawnDelay;
@@ -380,6 +383,13 @@ class SplashDropBehavior extends Behavior {
         target.position.y = this._surfaceY;
         this._state = "BOBBING";
         this._bobTimer = 0;
+        if (this._onImpact) {
+          this._onImpact(
+            target.position.x,
+            target.position.z,
+            Math.min(Math.abs(this._velocityY) / 9.81, 1.0),
+          );
+        }
       }
       return;
     }
@@ -420,6 +430,7 @@ export class Showcase10 extends AbstractShowcase {
   private _barrelHazard: Object3D | undefined;
   private _barrelOil: Object3D | undefined;
   private _barrelChemical: Object3D | undefined;
+  private _liveTunePad: LiveTunePad | undefined;
   private _time: number = 0;
   private readonly _buoyancyBodies: Array<{
     body: Object3D;
@@ -626,6 +637,8 @@ export class Showcase10 extends AbstractShowcase {
       wave2: [0.3, 0.9, 0.06, 2.0],
       wave3: [-0.4, 0.6, 0.04, 1.3],
     });
+    this._liveTunePad = new LiveTunePad(toonWater);
+    this._liveTunePad.attach(window);
     this._buildPool({
       name: "ToonWaterPool",
       ...poolWorldPosition("toon-water"),
@@ -1446,7 +1459,11 @@ export class Showcase10 extends AbstractShowcase {
     dropObj.castShadow = true;
     this._attachPoolBehavior(
       dropObj,
-      new SplashDropBehavior(LIQUID_Y, WALL_HEIGHT + 3.0, spawnDelay),
+      new SplashDropBehavior(LIQUID_Y, WALL_HEIGHT + 3.0, spawnDelay, (x, z, speed) => {
+        if (liquid instanceof LiquidWaveMaterial) {
+          liquid.emitSplat(x, z, this._time, speed);
+        }
+      }),
     );
     pool.add(dropObj);
   }

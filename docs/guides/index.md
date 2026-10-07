@@ -15,6 +15,7 @@ Practical, in-depth guides for each subsystem and tool of the Small World engine
 |---|---|
 | [Architecture & Overview](./architecture.md) | Overall architecture and code showcases. |
 | [Materials & Shaders](./materials.md) | PBR material system and shader fundamentals. |
+| [Liquid Simulation & Waves](./liquid-wave-data-model.md) | Wave data model, Gerstner cascade, splats, clapotis, and buoyancy probing. |
 | [Shadows](./shadows.md) | Shadow mapping, CSM, PCSS. |
 | [Adding a New Material](./adding-materials.md) | Step-by-step recipe for new materials across all renderers. |
 | [Shader Importers](./shader-importers.md) | WGSL/GLSL chunk assembly. |

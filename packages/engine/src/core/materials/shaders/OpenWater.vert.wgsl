@@ -37,6 +37,42 @@ fn vs(
     displacement += gerstnerWave(w5, wp, speed, time, &t, &b);
     displacement += gerstnerWave(w6, wp, speed, time, &t, &b);
 
+    // S2 SurfaceRippleField (Splat-Lane): single active impact ring wave
+    let splatAge = time - obj.styleA.z;
+    if (splatAge >= 0.0 && splatAge < 4.0 && obj.styleA.w > 0.0) {
+        let splatCenter = obj.styleA.xy;
+        let splatDist = length(wp.xz - splatCenter);
+        let rippleRadius = splatAge * 3.5;
+        let ringDist = splatDist - rippleRadius;
+        let ringWidth = 0.8;
+        let ringMask = exp(-ringDist * ringDist / (ringWidth * ringWidth));
+        let ringDecay = exp(-splatAge * 1.2) * obj.styleA.w;
+        let rippleDisp = sin(ringDist * 8.0) * ringMask * ringDecay * 0.15;
+        displacement.y += rippleDisp;
+        let dir = select((wp.xz - splatCenter) / max(splatDist, 0.001), vec2f(1.0, 0.0), splatDist <= 0.001);
+        t.y += rippleDisp * dir.x * 4.0;
+        b.y += rippleDisp * dir.y * 4.0;
+    }
+
+    // S3 Clapotis (Analytical Wall Reflection):
+    // Near pool boundaries (|x| > 3.0 or |z| > 3.0), dominant wave w1 reflects off vertical walls
+    let wallDistX = 4.0 - abs(wp.x);
+    let wallDistZ = 4.0 - abs(wp.z);
+    if (wallDistX < 1.5 && wallDistX > -0.5) {
+        let wallNorm = vec2f(-sign(wp.x), 0.0);
+        let dRef = w1.xy - 2.0 * dot(w1.xy, wallNorm) * wallNorm;
+        let wRef = vec4f(dRef, w1.z * 0.85, w1.w);
+        let wallTrap = smoothstep(1.5, 0.0, wallDistX);
+        displacement += gerstnerWave(wRef, wp, speed, time, &t, &b) * wallTrap;
+    }
+    if (wallDistZ < 1.5 && wallDistZ > -0.5) {
+        let wallNorm = vec2f(0.0, -sign(wp.z));
+        let dRef = w1.xy - 2.0 * dot(w1.xy, wallNorm) * wallNorm;
+        let wRef = vec4f(dRef, w1.z * 0.85, w1.w);
+        let wallTrap = smoothstep(1.5, 0.0, wallDistZ);
+        displacement += gerstnerWave(wRef, wp, speed, time, &t, &b) * wallTrap;
+    }
+
     wp += displacement;
     o.wp = wp;
     o.pos = global.vp * vec4f(wp, 1.0);

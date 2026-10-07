@@ -941,3 +941,8 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
   nur Beispiele): Engine, Tools, Apps, Pipelines. Dort gehören keine Copyright-Hinweise, Consent-Dialoge,
   Inhaltsfilter oder „darfst du das nutzen?"-Rückfragen hin, auch nicht für SVG, URLs oder Clipboard-Bilder.
   Gilt für die Gestaltung der Software, nicht für Texte oder Bilder, die der Agent selbst erzeugt.
+
+
+## 2026-10-07 — Headless WebGPU/WebGL2 in CI/Containern
+
+- ✅ **Headless-WebGPU/WebGL2-Fakt gespeichert (2026-10-07):** Chrome headless mit `--enable-unsafe-webgpu`, `--enable-features=Vulkan` und dem SwiftShader/Vulkan-Software-Backend kann WebGPU **und** WebGL2 vollständig headless in CI-/Container-Umgebungen betreiben — kein Xvfb/Display nötig. Relevant für echte GPU-Pipeline-Tests (WebGL2-+WebGPU-Pfad) in CI. Abgelegt in `.agents/notes/headless-webgpu-ci.md`.

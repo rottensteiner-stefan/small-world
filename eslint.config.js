@@ -120,7 +120,7 @@ export default [
 
   // 4. Konfiguration für deine Build-Skripte (Node.js-Umgebung)
   {
-    files: ["scripts/**/*.js"],
+    files: ["scripts/**/*.{js,mjs,ts}"],
     languageOptions: {
       globals: {
         ...globals.node, // Erkennt process, __dirname, fs etc.

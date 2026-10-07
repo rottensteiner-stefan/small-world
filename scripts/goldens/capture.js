@@ -165,16 +165,15 @@ async function captureCell(browser, { poolKey, view }) {
   const url = `https://localhost:4173/apps/showcases/10/index.html${query}`;
 
   try {
-    const readyPromise = page
-      .waitForFunction("window.__goldenReady === true", { timeout: 120000 })
+    await page.goto(url, { waitUntil: "load", timeout: 60000 });
+    const ready = await page
+      .waitForFunction("window.__goldenReady === true || Boolean(window.__goldenMeta && window.__goldenMeta.error)", { timeout: 120000 })
       .then(() =>
         // eslint-disable-next-line no-undef -- runs inside the page (browser context via Puppeteer), not Node
         page.evaluate(() => ({ __goldenMeta: window.__goldenMeta })),
       )
       .catch(() => null);
 
-    await page.goto(url, { waitUntil: "load", timeout: 20000 });
-    const ready = await readyPromise;
     if (!ready) {
       entry.ok = false;
       entry.error = args.allowNoGolden ? "golden-ready not set (app-hook pending)" : "timeout waiting for window.__goldenReady";
@@ -222,7 +221,7 @@ async function captureCell(browser, { poolKey, view }) {
     } else {
       const outPath = path.join(args.out, entry.file);
       fs.writeFileSync(outPath, buffer);
-      const png = PNG.sync.read(buffer);
+      const png = PNG.sync.read(Buffer.from(buffer));
       entry.width = png.width;
       entry.height = png.height;
       entry.sha256 = createHash("sha256").update(buffer).digest("hex");
