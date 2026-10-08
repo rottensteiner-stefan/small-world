@@ -264,6 +264,8 @@ function stopServer(server) {
   }
 }
 
+const MAX_CELL_ATTEMPTS = 3;
+
 async function main() {
   const cells = buildCells();
   if (0 === cells.length) throw new Error("Matrix is empty (check --pool/--view and config.json)");
@@ -309,7 +311,14 @@ async function main() {
     const manifest = [];
     for (const cell of cells) {
       process.stdout.write(`Capturing ${cell.poolKey}/${cell.view} [${backend}] ... `);
-      const entry = await captureCell(browser, cell);
+      // A software-GL2 (SwiftShader) page occasionally comes up blank on a loaded CI runner (seen once in
+      // 24 cells on 2026-10-08). Retry the single cell; a real defect fails every attempt and still fails.
+      let entry = await captureCell(browser, cell);
+      for (let attempt = 2; !entry.ok && attempt <= MAX_CELL_ATTEMPTS; attempt++) {
+        process.stdout.write(`FAIL (${entry.error}), retry ${attempt}/${MAX_CELL_ATTEMPTS} ... `);
+        entry = await captureCell(browser, cell);
+        entry.attempts = attempt;
+      }
       manifest.push(entry);
       process.stdout.write(entry.ok ? "OK\n" : `FAIL (${entry.error})\n`);
     }
