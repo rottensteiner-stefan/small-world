@@ -42,6 +42,7 @@ jobs:
 
   showcases-smoke-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     # Informational only: headless Chrome in CI can't reliably init WebGPU pipelines
     # (software-rendering texture-limit issues), so this job is expected to be flaky
     # for WebGPU-path showcases. Never block merges on it.
@@ -72,6 +73,7 @@ jobs:
   # GL2 captures are fully reproducible and this job is BLOCKING for merges.
   liquid-goldens:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -117,6 +119,7 @@ jobs:
   # we only capture, log a summary and upload as diagnostics.
   liquid-goldens-gpu:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     continue-on-error: true
     steps:
       - name: Checkout

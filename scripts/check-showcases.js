@@ -259,7 +259,7 @@ async function run() {
   console.log("Starting Vite preview server...");
   const server = spawn("npm", ["run", "preview"], {
     stdio: "pipe", // we want to see output
-    detached: false,
+    detached: true, // own process group so the whole `npm -> vite preview` tree can be killed below
   });
 
   server.stdout.on("data", (data) => console.log(data.toString()));
@@ -331,7 +331,11 @@ async function run() {
   await browser.close();
 
   console.log("Killing server...");
-  server.kill();
+  try {
+    process.kill(-server.pid, "SIGTERM");
+  } catch {
+    server.kill();
+  }
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 

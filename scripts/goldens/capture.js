@@ -250,6 +250,20 @@ async function captureCell(browser, { poolKey, view }) {
   return entry;
 }
 
+/**
+ * Kills the preview server together with its children. `server.kill()` only signals `npm`, which leaves
+ * the `vite preview` child (and the piped stdio handles) alive, so the capture process never exits:
+ * in CI the job then hung after "24/24 cells OK" until GitHub's 6 h limit cancelled it.
+ * @param {import("child_process").ChildProcess} server The detached `npm run preview` process.
+ */
+function stopServer(server) {
+  try {
+    process.kill(-server.pid, "SIGTERM");
+  } catch {
+    server.kill();
+  }
+}
+
 async function main() {
   const cells = buildCells();
   if (0 === cells.length) throw new Error("Matrix is empty (check --pool/--view and config.json)");
@@ -257,7 +271,8 @@ async function main() {
 
   let server = null;
   if (!args.skipSpawn) {
-    server = spawn("npm", ["run", "preview"], { cwd: ROOT, stdio: "pipe" });
+    // detached: own process group, so the whole `npm -> vite preview` tree can be killed (see stopServer).
+    server = spawn("npm", ["run", "preview"], { cwd: ROOT, stdio: "pipe", detached: true });
     server.stdout.on("data", (d) => process.stdout.write(d.toString()));
     server.stderr.on("data", (d) => process.stderr.write(d.toString()));
     await sleep(3000);
@@ -321,12 +336,14 @@ async function main() {
     }
   } finally {
     if (browser) await browser.close();
-    if (server) server.kill();
+    if (server) stopServer(server);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(process.exitCode ?? 0))
+  .catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
