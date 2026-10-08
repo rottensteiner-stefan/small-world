@@ -951,13 +951,10 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
 
 - ✅ **Headless-WebGPU/WebGL2-Fakt gespeichert (2026-10-07):** Chrome headless mit `--enable-unsafe-webgpu`, `--enable-features=Vulkan` und dem SwiftShader/Vulkan-Software-Backend kann WebGPU **und** WebGL2 vollständig headless in CI-/Container-Umgebungen betreiben — kein Xvfb/Display nötig. Relevant für echte GPU-Pipeline-Tests (WebGL2-+WebGPU-Pfad) in CI. Abgelegt in `.agents/notes/headless-webgpu-ci.md`.
 
-## 2026-10-07 — Collaborate: `next`-Session „StylizedWater ramp LUT V1“ abgeschlossen
+## 2026-10-07 — Collaborate: `next`-Session „Ramp LUT für StylizedWater“ (ADR 0026, Route a) abgeschlossen
 
-- ✅ **Collaborate-Session `.agents/collaborate/next.md` formal beendet (2026-10-07, `/collaborate --stop`):**
-  Vorschlag P2 (Ramp LUT für StylizedWater, Konstanten-LUT zur Kaustik-/Farbkurve, enginenahe Farbe)
-  einstimmig (Charly/Alice + Sub-Agent-Audits), Umsetzung committet unter `5e374b0e` „Colors are the smiles of
-  nature.“ Laufzeit-/Paritätsbelege: `.agents/scratches/ramp-lut/results.json`, `.agents/scratches/goldens/`
-  (`p2-off` 24/24 Zellen byte-identisch zu `pre-p2`), Tests A1–A4 grün, Docs ADR 0026 + Guide §5.1 ergänzt.
-  Abschluss-Block im Topic-Dokument, pid auf `terminated` (rev 34). Offen ist nur die separate, weiterlaufende
-  Session `liquid-roadmap` (consensus_reached, plan) mit offener formaler Abnahme/G6 im CI-Verbund — kein
-  Handlungsbedarf durch mich; liegt beim Moderator.
+- ✅ **Umgesetzt und released als 0.99.0 (`5e374b0e`, Tag `v0.99.0`):** `StylizedWaterMaterial.rampMap` nimmt eine 256×1-`RampLUT` (`bakeRamp` + Texture) statt der festen Tiefe→Farbe-Mischung; Flag `USE_RAMP_LUT` in GLSL100/GLSL300/WGSL, WebGPU-Binding 18, 0 Uniform-Lanes. Ohne Rampe unveränderte Ausgabe.
+- ✅ **Belege:** GL2-Goldens mit Flag aus 24/24 byte-identisch zu `pre-p2`; Flag an (Rot/Blau-Extreme, Farbflip, Aus-Schalter, Re-Bake) auf WebGL1/WebGL2/WebGPU 8/8, nur toon-water/top. Tests, `tsc`, Lane-Scan grün. Session `next.md`: Konsens P2 (Alice/Bob/Charly), `[ABNAHME_ERTEILT: Charly]`, pid `terminated`.
+- ⚠️ **Bekannte Grenzen:** konstantes Gewicht 0.6 ⇒ Endfarben der LUT werden nur zu ca. 79–89 % erreicht (Designfrage, ggf. neuer Vorschlag); Flag an nur auf einem der fünf StylizedWater-Pools geprüft; `quality.disableTextures` färbt eine gebundene Rampe weiß; WebGL1 indiziert die Rampe per Fresnel statt Tiefe.
+- 📋 **Offen:** Die committete Golden-Baseline ist auf HEAD schon unabhängig davon rot (toon-water, bold-anime, painterly-sparkle, wave-rider, je top > 0,5 %) — Neuaufnahme ist Moderator-Entscheidung. WebGL1 hat einen alten Shader-Fehler (`finalLight` undeclared, Link-Fehler), nicht StylizedWater.
+- ℹ️ Session `liquid-roadmap` ist ebenfalls `terminated` (siehe deren Abschluss-Block); ihr einziger offener Punkt (formale Abnahme/G6 im CI-Verbund) ist ein externes CI-Gate, keine Session-Arbeit.
