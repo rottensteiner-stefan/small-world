@@ -370,7 +370,7 @@ Sparring-Hut („critical architect") auf, Branchen-Benchmark angewendet:
 
 **Empfehlung (kurz):** **B, in kleinsten Schritten — mit A als Sofortmaßnahme.** *Archiv (D) ist ein späterer Build-Output, kein Authoring-Format.* C wird explizit verworfen (glTF bleibt Asset- und Szenen-Format, keine App-Klammer).
 
-Warum nicht sofort das volle System? Weil **Invariante 10** und die Postmortem-Literatur (Scope-Creep, fehlende *Werkzeuge* statt fehlender Formate) dagegen sprechen, und weil [`CLAUDE.md`](../../CLAUDE.md) „Simplicity — strictly avoid overengineering" verlangt. Das Manifest ist der *einzige* neue Begriff, den wir sofort brauchen — alles Weitere folgt aus realer Reibung.
+Warum nicht sofort das volle System? Weil **Invariante 10** und die Postmortem-Literatur (Scope-Creep, fehlende *Werkzeuge* statt fehlender Formate) dagegen sprechen, und weil `CLAUDE.md` „Simplicity — strictly avoid overengineering" verlangt. Das Manifest ist der *einzige* neue Begriff, den wir sofort brauchen — alles Weitere folgt aus realer Reibung.
 
 ---
 
