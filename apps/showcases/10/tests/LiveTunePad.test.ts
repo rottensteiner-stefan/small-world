@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { StylizedWaterMaterial } from "../../../../packages/engine/src/core/materials/StylizedWaterMaterial.js";
-import { LiveTunePad, DEFAULT_TUNE_PARAMETERS } from "../LiveTunePad.js";
+import { describe, expect, it, vi } from "vitest";
+import { StylizedWaterMaterial } from "@small-world/engine";
+import { DEFAULT_TUNE_PARAMETERS, LiveTunePad } from "../LiveTunePad.js";
 
 describe("LiveTunePad (D4)", () => {
   function createPad(initialOptions?: {

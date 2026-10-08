@@ -1,18 +1,18 @@
 import {
+  AbstractShowcase,
+  AmbientLight,
   CameraStrategyType,
   Color,
   Cube,
   DirectionalLight,
   FPSController,
-  ZoomController,
+  Ground,
+  MathUtils,
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
-  Ground,
   WireframeMaterial,
-  AmbientLight,
-  MathUtils,
-  AbstractShowcase,
+  ZoomController,
 } from "@small-world/engine";
 
 /**

@@ -1,31 +1,32 @@
 import {
+  AbstractLight,
+  AbstractShowcase,
   AmbientLight,
+  BloomElement,
   CameraStrategyType,
   Color,
-  Object3D,
-  PerspectiveProjection,
-  ProjectionType,
-  RendererType,
-  PostProcessingEffectType,
-  ToneMappingMode,
-  PointLight,
-  SpotLight,
   Cube,
   Cylinder,
-  Torus,
-  StandardMaterial,
-  ToneMappingElement,
-  VignetteElement,
-  GrainElement,
-  BloomElement,
-  OutlineElement,
-  Scene,
-  AbstractLight,
-  Texture,
-  GlassMaterial,
   FrostglassMaterial,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+  GlassMaterial,
+  GrainElement,
+  Object3D,
+  OutlineElement,
+  PerspectiveProjection,
+  PointLight,
+  PostProcessingEffectType,
+  QuantizeElement,
+  ProjectionType,
+  RendererType,
+  Scene,
+  SpotLight,
+  StandardMaterial,
+  Texture,
+  ToneMappingElement,
+  ToneMappingMode,
+  Torus,
+  VignetteElement,
+} from "@small-world/engine";
 
 // ============================================================================
 // 1. Shared Simulation State
@@ -890,9 +891,9 @@ class Showcase14 extends AbstractShowcase {
           toneMapping.exposure = 1.2;
         }
         {
-          const quantize = this.renderer.postProcessing.get<
-            import("../../../packages/engine/src/renderers/post/index.js").QuantizeElement
-          >(PostProcessingEffectType.QUANTIZE);
+          const quantize = this.renderer.postProcessing.get<QuantizeElement>(
+            PostProcessingEffectType.QUANTIZE,
+          );
           if (quantize) {
             quantize.enabled = true;
             quantize.steps = 6.0; // 6 color bands for graphic novel look

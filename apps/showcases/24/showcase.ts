@@ -15,6 +15,7 @@ import COMPUTETOYS_MATRIX_RAIN from "./assets/computetoys_matrix_rain.wgsl?raw";
 import COMPUTETOYS_SIN_CITY from "./assets/computetoys_sin_city.wgsl?raw";
 import COMPUTETOYS_CODE_TUNNEL from "./assets/computetoys_code_tunnel.wgsl?raw";
 import {
+  AbstractShowcase,
   AmbientLight,
   Behavior,
   CameraInterfaceData,
@@ -25,19 +26,18 @@ import {
   CustomShaderMaterial,
   DirectionalLight,
   ExternalShaderUniformBehavior,
+  FPSController,
   GLSLSandboxImporter,
   Object3D,
-  FPSController,
   Plane,
   Raycaster,
   RendererType,
   ShadertoyImporter,
-  AbstractShowcase,
   Sphere,
   Vector2D,
   Vector3D,
   WireframeMaterial,
-} from "../../../packages/engine/src/index.js";
+} from "@small-world/engine";
 
 class BobbingBehavior extends Behavior {
   private _timeOffset: number = Math.random() * Math.PI * 2;

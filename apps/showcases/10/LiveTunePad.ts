@@ -1,4 +1,4 @@
-import { StylizedWaterMaterial } from "../../../packages/engine/src/core/materials/StylizedWaterMaterial.js";
+import { StylizedWaterMaterial } from "@small-world/engine";
 
 export type StylizedWaterTunableKey =
   | "rampSoftness"

@@ -13,8 +13,8 @@ import {
   RendererType,
   Sphere,
   StandardMaterial,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 const GRID_SIZE = 7;
 const SPHERE_RADIUS = 0.55;

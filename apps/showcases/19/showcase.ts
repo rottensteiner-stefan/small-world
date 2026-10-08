@@ -1,20 +1,20 @@
 import {
   AbstractShowcase,
-  EngineOptions,
-  RendererType,
-  Cube,
-  StandardMaterial,
-  Color,
-  DirectionalLight,
-  HoverBehavior,
-  DraggableBehavior,
-  Texture,
   AmbientLight,
-  Object3D,
-  Vector3D,
   BoundingBox,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
+  Color,
+  Cube,
+  DirectionalLight,
+  DraggableBehavior,
+  EngineOptions,
+  HoverBehavior,
+  Object3D,
+  RendererType,
+  StandardMaterial,
+  Texture,
+  Vector3D,
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 class Showcase19 extends AbstractShowcase {
   constructor(options: EngineOptions = {}) {

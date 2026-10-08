@@ -1,4 +1,5 @@
 import {
+  AbstractShowcase,
   AmbientLight,
   AxesHelper,
   BasicMaterial,
@@ -13,8 +14,7 @@ import {
   ProjectionType,
   Sphere,
   WireframeMaterial,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+} from "@small-world/engine";
 
 /**
  * Showcase 11: Orientation

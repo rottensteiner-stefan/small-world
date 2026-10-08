@@ -1,25 +1,25 @@
 import {
+  AbstractShowcase,
   AmbientLight,
+  BloomElement,
   Color,
-  DirectionalLight,
-  Object3D,
-  PerspectiveProjection,
-  ProjectionType,
-  RendererType,
-  PostProcessingEffectType,
+  Cube,
   CubeLayout,
   CubeTexture,
-  BloomElement,
-  StandardMaterial,
+  Cylinder,
+  DirectionalLight,
+  GltfLoader,
+  Object3D,
+  PerspectiveProjection,
+  PostProcessingEffectType,
+  ProjectionType,
+  RendererType,
+  SkyboxMaterial,
   SpotLight,
+  StandardMaterial,
   Texture,
   Vector3D,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
-import { Cube } from "../../../packages/engine/src/geometry/Cube.js";
-import { Cylinder } from "../../../packages/engine/src/geometry/Cylinder.js";
-import { SkyboxMaterial } from "../../../packages/engine/src/core/materials/SkyboxMaterial.js";
-import { GltfLoader } from "../../../packages/engine/src/loaders/GltfLoader.js";
+} from "@small-world/engine";
 
 class Showcase13 extends AbstractShowcase {
   private _helmet?: Object3D;

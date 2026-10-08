@@ -1,25 +1,25 @@
 import {
   AbstractShowcase,
-  Color,
-  EngineOptions,
-  Object3D,
-  StandardMaterial,
-  GlassMaterial,
-  Cube,
-  Sphere,
-  OrbitController,
-  DirectionalLight,
-  Vector3D,
-  PostProcessingEffectType,
+  AmbientLight,
   BloomElement,
   BoundingBox,
   BoundingSphere,
-  RigidBody,
-  PhysicsSystem,
+  Color,
   ColorUtils,
+  Cube,
+  DirectionalLight,
+  EngineOptions,
   GeometryDataInterface,
-} from "../../../packages/engine/src/index.js";
-import { AmbientLight } from "../../../packages/engine/src/core/lights/index.js";
+  GlassMaterial,
+  Object3D,
+  OrbitController,
+  PhysicsSystem,
+  PostProcessingEffectType,
+  RigidBody,
+  Sphere,
+  StandardMaterial,
+  Vector3D,
+} from "@small-world/engine";
 
 /**
  * A pentatonic scale for musical physical collisions.

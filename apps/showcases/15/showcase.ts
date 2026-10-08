@@ -6,9 +6,13 @@ import {
   CubeLayout,
   CubeTexture,
   DirectionalLight,
+  DynamicReflectionProbe,
+  Ground,
+  InstancedMesh,
+  Matrix4,
   Object3D,
   PerspectiveProjection,
-  Ground,
+  PlanarReflectionNode,
   PointLight,
   ProjectionType,
   RendererType,
@@ -18,12 +22,8 @@ import {
   StateMachine,
   Texture,
   TextureFilter,
-  InstancedMesh,
-  Matrix4,
   Vector3D,
-  PlanarReflectionNode,
-  DynamicReflectionProbe,
-} from "../../../packages/engine/src/index.js";
+} from "@small-world/engine";
 
 interface Ball {
   position: { x: number; y: number; z: number };

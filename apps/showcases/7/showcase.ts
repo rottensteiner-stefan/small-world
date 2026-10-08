@@ -1,4 +1,5 @@
 import {
+  AbstractShowcase,
   AmbientLight,
   Color,
   Cube,
@@ -11,8 +12,7 @@ import {
   PhongMaterial,
   SkyboxMaterial,
   Vector3D,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+} from "@small-world/engine";
 
 /**
  * Showcase 7: Skybox & FPS Controls.

@@ -1,32 +1,32 @@
 import {
   AbstractShowcase,
   AmbientLight,
+  BloomElement,
   CameraStrategyType,
   Color,
   Cube,
+  CubeLayout,
+  CubeTexture,
   Cylinder,
   DirectionalLight,
   EngineOptions,
+  GltfLoader,
+  HbaoElement,
   Object3D,
   OrbitController,
   PerspectiveProjection,
   PlanarReflectionNode,
-  PostProcessingEffectType,
   PointLight,
+  PostProcessingEffectType,
   ProjectionType,
   RendererType,
+  SkyboxMaterial,
   SpotLight,
   StandardMaterial,
-  CubeLayout,
   Texture,
-  CubeTexture,
-  SkyboxMaterial,
-  BloomElement,
-  HbaoElement,
   VignetteElement,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
-import { GltfLoader } from "../../../packages/engine/src/loaders/GltfLoader.js";
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 /**
  * Showcase 30: "The Rain-Drenched Cyberpunk Albedo: Screen-Space Reflections & Neon Wetness"

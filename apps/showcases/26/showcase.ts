@@ -7,7 +7,7 @@ import {
   Plane,
   RetroScreenMaterial,
   TextTexture,
-} from "../../../packages/engine/src/index.js";
+} from "@small-world/engine";
 
 class Showcase26 extends AbstractShowcase {
   private _textTexture: TextTexture | undefined;

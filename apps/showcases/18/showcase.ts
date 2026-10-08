@@ -10,7 +10,7 @@ import {
   StandardMaterial,
   ThreadPool,
   Vector3D,
-} from "../../../packages/engine/src/index.js";
+} from "@small-world/engine";
 
 class Showcase18 extends AbstractShowcase {
   private _threadPool: ThreadPool;

@@ -1,4 +1,5 @@
 import {
+  AbstractShowcase,
   AmbientLight,
   Annulus,
   Arch,
@@ -24,7 +25,6 @@ import {
   Ground,
   HollowCylinder,
   HollowTruncatedCone,
-  PointedPillar,
   Line,
   LShape,
   Object3D,
@@ -32,6 +32,7 @@ import {
   OpenFrame,
   PerspectiveProjection,
   Plane,
+  PointedPillar,
   PolygonFan,
   Polyline,
   Pyramid,
@@ -52,11 +53,13 @@ import {
   Vector3D,
   WireframeMaterial,
   ZoomController,
-} from "../../../packages/engine/src/index.js";
+} from "@small-world/engine";
 import {
+  computeCellFaces,
   FilledPolygon,
   Lathe,
   MarchingCubes,
+  metaballField,
   MobiusStrip,
   ParametricSurface,
   PlatonicSolid,
@@ -64,11 +67,8 @@ import {
   TorusKnot,
   VoronoiCells,
   VoronoiShardGeometry,
-  computeCellFaces,
-  metaballField,
-} from "../../../packages/geometry-extras/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+} from "@small-world/geometry-extras";
+import { attachDevTools } from "@small-world/tools";
 
 /**
  * Showcase 6: Geometry Showcase.

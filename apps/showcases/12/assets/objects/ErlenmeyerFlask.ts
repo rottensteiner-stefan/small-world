@@ -1,6 +1,4 @@
-import { Object3D } from "../../../../../packages/engine/src/core/index.js";
-import { Cylinder } from "../../../../../packages/engine/src/geometry/index.js";
-import { AbstractMaterial } from "../../../../../packages/engine/src/core/materials/AbstractMaterial.js";
+import { AbstractMaterial, Cylinder, Object3D } from "@small-world/engine";
 
 export interface ErlenmeyerFlaskOptions {
   radius?: number;

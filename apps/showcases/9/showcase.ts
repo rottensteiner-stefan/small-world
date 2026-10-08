@@ -1,5 +1,7 @@
 import {
+  AbstractShowcase,
   AmbientLight,
+  BasicMaterial,
   BoundingBox,
   CameraStrategyType,
   Color,
@@ -11,13 +13,11 @@ import {
   PerspectiveProjection,
   PhongMaterial,
   Sphere,
-  BasicMaterial,
   StiffStrategy,
   Texture,
   TextureFilter,
   Vector3D,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+} from "@small-world/engine";
 
 /**
  * Showcase 9: A classic 2.5D Jump & Run with pure code physics and collision!

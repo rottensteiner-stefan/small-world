@@ -1,4 +1,5 @@
 import {
+  AbstractShowcase,
   AmbientLight,
   CameraStrategyType,
   Color,
@@ -13,8 +14,7 @@ import {
   ProjectionType,
   Vector3D,
   WireframeMaterial,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+} from "@small-world/engine";
 
 class Showcase3 extends AbstractShowcase {
   private _carModel: Object3D | undefined;

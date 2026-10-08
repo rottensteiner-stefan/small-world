@@ -42,8 +42,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
   arc: vi.fn(),
 }) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
-import { Texture } from "../../../packages/engine/src/core/textures/Texture.js";
-import { BoundingBox } from "../../../packages/engine/src/physix/BoundingBox.js";
+import { BoundingBox, Texture } from "@small-world/engine";
 
 describe("Showcase 6 - Complete Plaque & Geometry Verification", () => {
   let Showcase6Class: typeof import("../6/showcase.js").Showcase6;
@@ -54,7 +53,7 @@ describe("Showcase 6 - Complete Plaque & Geometry Verification", () => {
     );
     const mod = await import("../6/showcase.js");
     Showcase6Class = mod.Showcase6;
-  });
+  }, 20000);
 
   const expectedGeometries = [
     { key: "Cube", displayName: "Cube", dimension: "3d" },

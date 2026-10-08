@@ -1,4 +1,5 @@
 import {
+  AbstractShowcase,
   AmbientLight,
   Color,
   Cube,
@@ -10,8 +11,7 @@ import {
   Skydome,
   Texture,
   Vector3D,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+} from "@small-world/engine";
 
 /**
  * Showcase 8: Clean rebuild with Skydome, Reference Cubes, WASD/QE movement.

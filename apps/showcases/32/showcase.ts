@@ -4,8 +4,8 @@ import {
   BloomElement,
   CameraStrategyType,
   Color,
-  Cube,
   ColorGradingElement,
+  Cube,
   Cylinder,
   DirectionalLight,
   EngineOptions,
@@ -29,8 +29,8 @@ import {
   Vector3D,
   VignetteElement,
   WeatherEmitter,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 const STREET_HALF_WIDTH = 6;
 const STREET_LENGTH = 60;

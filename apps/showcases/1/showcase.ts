@@ -1,17 +1,17 @@
 import {
+  AbstractShowcase,
+  AmbientLight,
   CameraStrategyType,
   Color,
   Cube,
   DirectionalLight,
+  Ground,
   LambertMaterial,
   Object3D,
+  OrbitController,
   PerspectiveProjection,
   PhongMaterial,
-  AmbientLight,
-  Ground,
-  OrbitController,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "@small-world/engine";
+} from "@small-world/engine";
 
 class Showcase1 extends AbstractShowcase {
   private _myCube!: Object3D;

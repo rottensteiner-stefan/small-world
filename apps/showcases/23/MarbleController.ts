@@ -1,11 +1,11 @@
 import {
   Behavior,
-  Keys,
-  Vector3D,
   CameraInterfaceData,
   InputInterface,
+  Keys,
   Object3D,
-} from "../../../packages/engine/src/index.js";
+  Vector3D,
+} from "@small-world/engine";
 
 /**
  * Controller to move a physics-based marble using WASD.

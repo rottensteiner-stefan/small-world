@@ -1,31 +1,30 @@
 import {
   AbstractShowcase,
-  PointLight,
+  AmbientLight,
+  BobbingBehavior,
   Color,
   Cube,
-  Sphere,
-  StandardMaterial,
-  RigidBody,
-  Texture,
+  CustomShaderMaterial,
+  Cylinder,
+  EmissivePulseBehavior,
+  EngineOptions,
+  HoverBehavior,
+  MathUtils,
   Object3D,
   PhysicsSystem,
-  AmbientLight,
-  Vector3D,
-  MathUtils,
-  Cylinder,
-  Torus,
-  HoverBehavior,
+  PointLight,
+  RigidBody,
   RotatorBehavior,
-  BobbingBehavior,
-  EmissivePulseBehavior,
-  CustomShaderMaterial,
+  Sphere,
+  StandardMaterial,
   StandardWebGPULayout,
-  EngineOptions,
-} from "../../../packages/engine/src/index.js";
-
-import fragWGSL from "../../../packages/engine/src/core/materials/shaders/Standard.frag.wgsl?raw";
-import fragGLSL from "../../../packages/engine/src/core/materials/shaders/Standard.frag.glsl?raw";
-import fragGLSL100 from "../../../packages/engine/src/core/materials/shaders/Standard.frag.glsl100?raw";
+  Texture,
+  Torus,
+  Vector3D,
+} from "@small-world/engine";
+import fragWGSL from "@small-world/engine/core/materials/shaders/Standard.frag.wgsl?raw";
+import fragGLSL from "@small-world/engine/core/materials/shaders/Standard.frag.glsl?raw";
+import fragGLSL100 from "@small-world/engine/core/materials/shaders/Standard.frag.glsl100?raw";
 import { MarbleController } from "./MarbleController.js";
 import { DroneController } from "./DroneController.js";
 

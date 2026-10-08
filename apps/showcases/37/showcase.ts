@@ -1,16 +1,15 @@
 import {
+  AbstractShowcase,
   AmbientLight,
+  BloomElement,
   CameraStrategyType,
   Color,
+  ColorGradingElement,
   Cube,
   Cylinder,
-  HbaoElement,
-  BloomElement,
-  ColorGradingElement,
+  FlyController,
   GrainElement,
-  VignetteElement,
-  ToneMappingElement,
-  ToneMappingMode,
+  HbaoElement,
   Object3D,
   PerspectiveProjection,
   PointLight,
@@ -22,10 +21,11 @@ import {
   StandardMaterial,
   Texture,
   TextureWrap,
+  ToneMappingElement,
+  ToneMappingMode,
   Vector3D,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
-import { FlyController } from "../../../packages/engine/src/core/controllers/FlyController.js";
+  VignetteElement,
+} from "@small-world/engine";
 
 class Showcase37 extends AbstractShowcase {
   private _refCamPos = new Vector3D(0.65, 1.15, 2.45);

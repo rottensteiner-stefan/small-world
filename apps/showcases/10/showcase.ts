@@ -18,33 +18,33 @@ import {
   FogMode,
   FPSController,
   GeometryDataInterface,
+  GltfLoader,
   Ground,
   LambertMaterial,
   LavaMaterial,
   LiquidWaveMaterial,
   MathUtils,
   Object3D,
+  Octahedron,
   OpenWaterMaterial,
   OpenWaterSurfaceProbe,
-  Octahedron,
   PerspectiveProjection,
   Plane,
   PointLight,
+  RampLUT,
+  RampStop,
   RendererType,
   RigidBody,
   RotatorBehavior,
-  Sphere,
   SlimeMaterial,
+  Sphere,
   StylizedWaterMaterial,
   Texture,
   Vector3D,
   WorldMaterial,
-  RampLUT,
-  RampStop,
   ZoomController,
-} from "../../../packages/engine/src/index.js";
-import { GltfLoader } from "../../../packages/engine/src/loaders/index.js";
-import { NoirWaterMaterial, OilSlickMaterial } from "../../../packages/liquid-extras/src/index.js";
+} from "@small-world/engine";
+import { NoirWaterMaterial, OilSlickMaterial } from "@small-world/liquid-extras";
 import { LiveTunePad } from "./LiveTunePad.js";
 
 const GROUT_THICKNESS_PX = 5.5; // half-grout drawn per tile cell -> 11px full grout line

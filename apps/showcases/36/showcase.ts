@@ -1,26 +1,26 @@
 import {
+  AbstractShowcase,
   AmbientLight,
+  BloomElement,
   Color,
-  DirectionalLight,
-  Object3D,
-  PerspectiveProjection,
-  ProjectionType,
-  RendererType,
-  PostProcessingEffectType,
+  Cube,
   CubeLayout,
   CubeTexture,
-  BloomElement,
-  StandardMaterial,
+  DirectionalLight,
+  GltfLoader,
+  Object3D,
+  PerspectiveProjection,
   PointLight,
+  PostProcessingEffectType,
+  ProjectionType,
+  RendererType,
+  SkyboxMaterial,
+  StandardMaterial,
   Texture,
   ToneMappingElement,
   ToneMappingMode,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
-import { Cube } from "../../../packages/engine/src/geometry/Cube.js";
-import { SkyboxMaterial } from "../../../packages/engine/src/core/materials/SkyboxMaterial.js";
-import { GltfLoader } from "../../../packages/engine/src/loaders/GltfLoader.js";
-import { Vector3D } from "../../../packages/engine/src/math/index.js";
+  Vector3D,
+} from "@small-world/engine";
 
 class Showcase36 extends AbstractShowcase {
   protected override async setupScene(): Promise<void> {

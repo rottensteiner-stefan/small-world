@@ -1,4 +1,5 @@
 import {
+  AbstractShowcase,
   AmbientLight,
   BoundingBox,
   CameraStrategyType,
@@ -14,8 +15,7 @@ import {
   TextureGenerator,
   Vector3D,
   WASDController,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+} from "@small-world/engine";
 
 const CAR_SPEED: number = 10.0; // The car's speed
 

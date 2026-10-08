@@ -1,4 +1,5 @@
 import {
+  AbstractShowcase,
   AmbientLight,
   BloomElement,
   CameraStrategyType,
@@ -9,6 +10,7 @@ import {
   Cylinder,
   DirectionalLight,
   FlickerBehavior,
+  FlyController,
   Fog,
   FogMode,
   GrainElement,
@@ -28,9 +30,7 @@ import {
   ToneMappingMode,
   Vector3D,
   VignetteElement,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
-import { FlyController } from "../../../packages/engine/src/core/controllers/FlyController.js";
+} from "@small-world/engine";
 
 interface CameraPreset {
   name: string;

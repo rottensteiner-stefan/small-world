@@ -1,19 +1,19 @@
 import {
+  AbstractShowcase,
   AmbientLight,
   CameraStrategyType,
   Color,
   Cube,
   DirectionalLight,
   Grid,
+  Keys,
   Object3D,
   OrthographicProjection,
+  PhongMaterial,
   Sphere,
   Vector3D,
   WireframeMaterial,
-  PhongMaterial,
-  Keys,
-} from "../../../packages/engine/src/index.js";
-import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
+} from "@small-world/engine";
 
 /**
  * Showcase 5: Grid-based Movement with Enemies.

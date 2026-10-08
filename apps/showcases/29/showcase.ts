@@ -1,33 +1,33 @@
 import {
   AbstractShowcase,
   AmbientLight,
+  BasicMaterial,
+  BloomElement,
   CameraStrategyType,
   Color,
+  CullMode,
   Cylinder,
   DirectionalLight,
   EngineOptions,
+  FlyController,
+  GltfLoader,
+  HbaoElement,
   Object3D,
   PerspectiveProjection,
-  PostProcessingEffectType,
   PointLight,
-  SpotLight,
+  PostProcessingEffectType,
   ProjectionType,
   RendererType,
-  StandardMaterial,
-  GltfLoader,
-  FlyController,
   Sphere,
+  SpotLight,
+  StandardMaterial,
   Texture,
-  BasicMaterial,
-  CullMode,
-  BloomElement,
-  HbaoElement,
   ToneMappingElement,
   ToneMappingMode,
-  VignetteElement,
   Vector3D,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
+  VignetteElement,
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 /**
  * Showcase 29: "Sponza Atrium: Global Illumination & Volumetric Light Shafts"

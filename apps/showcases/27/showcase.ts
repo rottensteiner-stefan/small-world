@@ -1,30 +1,30 @@
 import {
   AbstractShowcase,
   AmbientLight,
+  BloomElement,
   CameraStrategyType,
   Color,
+  Cube,
+  CubeLayout,
+  CubeTexture,
   Cylinder,
   DirectionalLight,
   EngineOptions,
+  HbaoElement,
   Object3D,
   OrbitController,
   PerspectiveProjection,
   PostProcessingEffectType,
   ProjectionType,
   RendererType,
+  SkyboxMaterial,
   SpotLight,
   StandardMaterial,
+  Texture,
   Torus,
   Vector3D,
-  Cube,
-  CubeLayout,
-  Texture,
-  CubeTexture,
-  SkyboxMaterial,
-  BloomElement,
-  HbaoElement,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 class Showcase27 extends AbstractShowcase {
   private _ringGroup!: Object3D;

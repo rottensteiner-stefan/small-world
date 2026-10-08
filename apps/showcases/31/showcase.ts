@@ -14,9 +14,9 @@ import {
   MathUtils,
   Matrix4,
   Object3D,
+  Octahedron,
   OpenWaterMaterial,
   OrbitController,
-  Octahedron,
   PerspectiveProjection,
   Plane,
   PointLight,
@@ -28,8 +28,8 @@ import {
   Torus,
   Vector3D,
   VignetteElement,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 const PLATFORM_HALF_WIDTH = 3.2;
 const PLATFORM_LENGTH = 34;

@@ -18,8 +18,8 @@ import {
   Sphere,
   StandardMaterial,
   Vector3D,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 /** A simple procedural tree: a tapered trunk plus three overlapping foliage spheres. Built
  * fresh for every instance -- shared, mutable geometry/material would be wrong here since bake

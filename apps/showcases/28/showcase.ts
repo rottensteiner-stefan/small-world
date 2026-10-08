@@ -1,16 +1,21 @@
 import {
   AbstractShowcase,
   AmbientLight,
+  BloomElement,
   CameraStrategyType,
+  CauchyMaterials,
   Color,
   Cube,
+  CubeLayout,
+  CubeTexture,
   Cylinder,
   DirectionalLight,
   EngineOptions,
-  CauchyMaterials,
+  HbaoElement,
+  Keys,
   MathUtils,
-  Octahedron,
   Object3D,
+  Octahedron,
   Optics,
   OrbitController,
   PerspectiveProjection,
@@ -18,19 +23,14 @@ import {
   ProjectionType,
   Ray2D,
   RendererType,
+  SkyboxMaterial,
   SpotLight,
   StandardMaterial,
-  Torus,
-  CubeLayout,
   Texture,
-  CubeTexture,
-  SkyboxMaterial,
-  BloomElement,
-  HbaoElement,
+  Torus,
   Vector2D,
-  Keys,
-} from "../../../packages/engine/src/index.js";
-import { attachDevTools } from "../../../packages/tools/src/index.js";
+} from "@small-world/engine";
+import { attachDevTools } from "@small-world/tools";
 
 // ----------------------------------------------------------------------------
 // Real prism optics: Snell's law at both surfaces of the equilateral-triangle prism, with a
