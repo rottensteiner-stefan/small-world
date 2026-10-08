@@ -14,6 +14,8 @@ void main() {
     discard;
   }
 
+  [LIGHT_CALC]
+
   gl_FragColor = vec4(finalLight * u_color.rgb * texColor.rgb, finalAlpha);
   [FOG_CALC]
 }
