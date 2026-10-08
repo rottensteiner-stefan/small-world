@@ -149,6 +149,46 @@ async function runWithConcurrency(items, concurrency, worker) {
 }
 
 /**
+ * Probes whether this machine can actually run WebGPU: adapter available, device creatable, and the
+ * device not immediately lost. On CI runners without a usable software Vulkan driver, Chrome hands
+ * out a device that gets destroyed right away ("Device was destroyed" / "Instance dropped error in
+ * getCompilationInfo"), so every WEB_GPU check fails regardless of the showcase -- that is an
+ * environment limitation, not a regression, and must not be reported as one.
+ * @param {import('puppeteer').Browser} browser
+ * @returns {Promise<{ usable: boolean, reason: string }>}
+ */
+async function probeWebGpu(browser) {
+  const page = await browser.newPage();
+  try {
+    // WebGPU needs a secure context; the preview server is served over https.
+    await page.goto("https://localhost:4173/", { waitUntil: "load", timeout: 20000 });
+    return await page.evaluate(async () => {
+      const gpu = navigator.gpu;
+      if (!gpu) return { usable: false, reason: "navigator.gpu is undefined" };
+      const adapter = await gpu.requestAdapter();
+      if (!adapter) return { usable: false, reason: "requestAdapter() returned null" };
+      const device = await adapter.requestDevice();
+      let lostInfo = null;
+      device.lost.then((info) => {
+        lostInfo = info;
+      });
+      device.createBuffer({ size: 16, usage: 0x8 /* GPUBufferUsage.UNIFORM */ });
+      device.queue.submit([device.createCommandEncoder().finish()]);
+      await device.queue.onSubmittedWorkDone();
+      await new Promise((r) => setTimeout(r, 1000));
+      if (lostInfo)
+        return { usable: false, reason: `device lost: ${lostInfo.reason} ${lostInfo.message}` };
+      device.destroy();
+      return { usable: true, reason: "ok" };
+    });
+  } catch (err) {
+    return { usable: false, reason: `probe threw: ${err.message}` };
+  } finally {
+    await page.close();
+  }
+}
+
+/**
  * Checks a single showcase/rendererType combination in its own page. Buffers its console output
  * instead of writing it immediately, since this runs concurrently with other checks and
  * interleaved writes would garble the log.
@@ -299,11 +339,31 @@ async function run() {
     ],
   });
 
+  // Skip (not fail) the WEB_GPU legs when the environment cannot run WebGPU at all. Set
+  // SHOWCASE_REQUIRE_WEBGPU=1 to treat an unusable WebGPU as a hard failure instead.
+  let activeCases = testCases;
+  if (testCases.some((tc) => "WEB_GPU" === tc.rendererType)) {
+    const gpu = await probeWebGpu(browser);
+    if (gpu.usable) {
+      console.log("WebGPU probe: usable.");
+    } else if (process.env.SHOWCASE_REQUIRE_WEBGPU) {
+      console.error(`WebGPU probe FAILED (${gpu.reason}) and SHOWCASE_REQUIRE_WEBGPU is set.`);
+      await browser.close();
+      process.exit(1);
+    } else {
+      const skipped = testCases.filter((tc) => "WEB_GPU" === tc.rendererType).length;
+      console.log(
+        `⚠️  WebGPU probe: unusable (${gpu.reason}) -- SKIPPING ${skipped} WEB_GPU checks.`,
+      );
+      activeCases = testCases.filter((tc) => "WEB_GPU" !== tc.rendererType);
+    }
+  }
+
   console.log(
-    `Running ${testCases.length} showcase checks with concurrency ${Math.min(CONCURRENCY, testCases.length)}...`,
+    `Running ${activeCases.length} showcase checks with concurrency ${Math.min(CONCURRENCY, activeCases.length)}...`,
   );
 
-  const firstPass = await runWithConcurrency(testCases, CONCURRENCY, async (testCase) => {
+  const firstPass = await runWithConcurrency(activeCases, CONCURRENCY, async (testCase) => {
     const result = await checkShowcase(browser, testCase);
     console.log(result.lines.join("\n"));
     return { testCase, ...result };
