@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.100.0] - 2026-10-08
+
+### "Drop it anywhere, and it finds its way." - Anonymous
+
+- **Features:**
+  - *Map Generator on universal ingest*: [`MapGenerator`](packages/tools/src/MapGenerator.ts) now uses the shared `UniversalIngestDropzone` instead of its own text/file/URL panel: drag and drop (window-wide), file and folder picker, URL import and `Cmd+V`. ASCII maps (`.map`, `.txt`), JSON level descriptions (`map`, `ascii` or `grid` fields, or a plain string array), ZIP archives and image or SVG sprites (rasterised to the grid, palette-matched) all load through one route. New `loadFromImage()`. Covered by new tests in `MapGenerator.test.ts`.
+- **Housekeeping & Docs:**
+  - *Showcase imports*: all showcases import from the package names (`@small-world/engine`, `@small-world/tools`) instead of long relative `packages/.../src` paths; duplicate imports from one module are merged, names sorted. Only the shared audio test mock stays relative.
+  - *Asset budgets*: ADR 0011 section 1.1 and the asset sourcing guideline fix a four-tier polycount budget by object size (clutter 800-1.5k, props 2.5-4.5k, furniture 6-10k, hero/architecture 10-16k triangles), set upstream at modelling or export.
+  - Verified: `tsc` clean, 245 test files, 1499 tests; showcase build green. The Map Generator's drop routes were covered by unit tests only, not clicked through in a browser.
+
 ## [0.99.0] - 2026-10-07
 
 ### "Colors are the smiles of nature." - Leigh Hunt
