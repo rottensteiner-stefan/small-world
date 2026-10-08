@@ -40,6 +40,12 @@ CI ruft Capture+Compare als blockierenden Job `liquid-goldens` auf (`ref: .githu
    Review die neuen Bilder nach `.agents/goldens/liquid/baseline/` kopieren und die
    `manifest.json` aktualisieren (Capture schreibt sie mit), committen.
 3. **Regeneration der Baseline:** `npm run goldens:capture -- --matrix gl2 --out .agents/goldens/liquid/baseline`.
+   **Wichtig (Stand 2026-10-08):** Der blockierende Vergleich läuft im CI (Linux-Runner). Eine lokal auf dem Mac
+   aufgenommene Baseline wich dort in vielen `oblique`-Zellen um 0,6 bis 1,8 % ab, obwohl lokal alles grün war.
+   Die Baseline daher aus dem CI-Artefakt `liquid-goldens` (Ordner `current/`) übernehmen:
+   `gh run download <run-id> -n liquid-goldens -D <dir>` und die PNGs samt `manifest.json`/`summary.json` nach
+   `.agents/goldens/liquid/baseline/` kopieren. Der Capture wiederholt eine leere Zelle bis zu dreimal (SwiftShader
+   liefert auf einem ausgelasteten Runner gelegentlich ein leeres Bild).
 
 ## Drift zuordnen, bevor die Baseline neu aufgenommen wird
 
