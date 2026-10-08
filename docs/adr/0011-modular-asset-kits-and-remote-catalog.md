@@ -103,6 +103,22 @@ gesamte Metadaten (`id`, `name`, `category`/`maps`/`file`) stehen schon vollstä
 `kit.json` -- ein Sidecar-File hätte nur `id`/`name` dupliziert, ohne echten Informationsgewinn
 (keine Dreiecke, keine Bounding-Box, keine Sockets, die ein solches File rechtfertigen würden).
 
+### 1.1. Die 4-Tier Geometrie- & Polycount-Budget-Doktrin (2026-10-07)
+
+Pauschale Polycounts (z. B. flache 12.000 Tris für alle Modelle) sind grafiktechnisch ineffizient: Ein 20-cm-Teller mit 12k Tris erzeugt sub-pixeligen **GPU Quad-Overdraw**, während ein 2-Meter-Hochbett dieselbe Polygonzahl benötigt, um Rundungen sauber abzubilden.
+
+Alle Kit-Props folgen daher verbindlich dem **4-Tier-Budget-Rezept** nach Objektgröße (Bounding Box / Volumen) und Relevanz:
+
+| Tier | Kategorie & Beispiele | Bounding-Box ($L_\text{max}$) | Ziel-Budget (Tris) | Standard-Textur |
+| :--- | :--- | :---: | :---: | :---: |
+| **Tier 1: Clutter / Kleinteile** | Teller, Besteck, Tassen, Schalter, Notizen | $\le 0{,}35\,\text{m}$ | **$800 – 1.500$** | $512 \times 512$ |
+| **Tier 2: Medium Props** | Stiefel, Kerosinlampe, Hocker, Eimer, Wandregal | $0{,}35 – 1{,}0\,\text{m}$ | **$2.500 – 4.500$** | $1024 \times 1024$ |
+| **Tier 3: Möbel / Großobjekte** | Schreibtisch, Hochbett, Terminal, Schrank, Fässer | $1{,}0 – 2{,}5\,\text{m}$ | **$6.000 – 10.000$** | $1024 / 2048$ |
+| **Tier 4: Hero / Architektur** | Bunkertore, Schutthaufen, Schleusen, Fahrzeuge | $> 2{,}5\,\text{m}$ | **$10.000 – 16.000$** | $2048 \times 2048$ |
+
+- **Pipeline-Doktrin:** Die Budgets werden **Upstream bei der Modellerstellung / im Tripo-Export / DCC-Remeshing** (`face_limit` / `decimate`) verbindlich festgelegt, um sicherzustellen, dass Textur-Bakes, UV-Seams und Vertex-Normalen sauber erhalten bleiben. Post-Hoc-Dezimierung ohne UV-Re-Bake ist unzulässig.
+- **Status (2026-10-07):** Festgelegt als verbindlicher Standard für alle neuen Kit- und Prop-Erstellungen. Bestehende Original-Assets wurden unverändert beibehalten.
+
 ### 2. Phase 2: Out-of-Tree-Repository & CDN-Distribution
 - **Dediziertes Asset-Repository (`small-world-assets`):** Binäre Produktions-Assets, rohe DCC-Dateien und Kit-Bündel werden in einem dedizierten Repository oder Git-LFS-Speicher untergebracht.
 - **CDN-Distribution:** Assets werden auf ein schnelles CDN veröffentlicht (über GitHub Releases, jsDelivr oder Cloudflare), sodass Szenen Standard-Assets über Remote-URIs referenzieren können, ohne den lokalen Datenträger aufzublähen.

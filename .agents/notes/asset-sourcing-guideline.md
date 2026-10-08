@@ -38,3 +38,16 @@ Um bei unterschiedlich großen Räumen (von der 7×7m Koje 42 bis zur 50m Halle)
    - *Makro-Decals:* Großflächige Sickerwasser-Läufe, Salpeterkrusten, Brandschäden und Mauerausbrüche (`rebar_damage`).
    - *Mikro-Decals:* Lokale Ziffern, Sektor-Stencils, Gefahrenstreifen (`hazard_stripes`) und Leuchtmarkierungen (`guide_stripe_glow`).
 4. **Deterministischer UV-Jitter:** Automatischer instanzbasierter UV-Offset (`texture.offset.set((x * 0.37) % 1.0, (z * 0.37) % 1.0)`), damit benachbarte Wandelemente desselben Materials niemals dieselben Texturmerkmale an gleicher Stelle teilen.
+
+---
+
+## 5. Die 4-Tier Polycount- und Geometriebudget-Doktrin (ADR 0011 §1.1)
+
+Um sub-pixeligen GPU Quad-Overdraw zu vermeiden und schnelle Ladezeiten im Web zu garantieren, werden alle 3D-Assets nach ihrer physischen Bounding-Box ($L_\text{max}$) in vier strikte Polycount-Budgets eingeteilt:
+
+- **Tier 1 — Clutter & Kleinteile ($\le 0{,}35\,\text{m}$):** $800 – 1.500$ Tris (Teller, Besteck, Tassen, Schalter, Notizen).
+- **Tier 2 — Medium Props ($0{,}35 – 1{,}0\,\text{m}$):** $2.500 – 4.500$ Tris (Stiefel, Lampen, Hocker, Eimer, Handtücher).
+- **Tier 3 — Möbel & Großobjekte ($1{,}0 – 2{,}5\,\text{m}$):** $6.000 – 10.000$ Tris (Tische, Betten, Schränke, Fässer, Terminals).
+- **Tier 4 — Hero & Architektur ($> 2{,}5\,\text{m}$):** $10.000 – 16.000$ Tris (Tore, Mauerdurchbrüche, Schutthaufen, Fahrzeuge).
+
+*Budgets werden stets Upstream bei der Modellerstellung / im Tripo-Export (`face_limit`) bzw. Remeshing mit UV-Bake festgelegt.*
