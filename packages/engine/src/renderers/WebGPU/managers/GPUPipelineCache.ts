@@ -492,6 +492,16 @@ export class GPUPipelineCache {
       } else {
         wgslConstants += "const USE_RAMP_LUT: bool = false;\n";
       }
+      // Inject any arbitrary user/material flags (e.g. STYLE_TOON, STYLE_BOLD, STYLE_SPARKLE, etc.)
+      for (const flag of flags) {
+        if (
+          !flag.startsWith("USE_TEXTURE_ARRAY") &&
+          !flag.startsWith("USE_NORMAL_MAP") &&
+          !flag.startsWith("USE_RAMP_LUT")
+        ) {
+          wgslConstants += `const ${flag}: bool = true;\n`;
+        }
+      }
       code = wgslConstants + "\n" + code;
 
       if (isInstanced) {

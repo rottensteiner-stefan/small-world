@@ -12,19 +12,12 @@ uniform vec4 u_color;          // Shallow water color (RGBA)
 uniform vec4 u_specColor;      // Deep water color (RGBA)
 uniform vec2 u_texOffset;      // Edge/Shore color (R, G)
 uniform vec2 u_texRepeat;      // Edge color (B), edgeSoftness
-uniform float u_shininess;     // refractionStrength
-uniform float u_isSkinned;     // waterAbsorption.r
-uniform float u_boneOffset;    // waterAbsorption.g
-uniform float u_pad1;          // waterAbsorption.b
-uniform float u_isTerrain;     // foamColor.r
-uniform float u_metallic;      // foamColor.g
-uniform float u_roughness;     // foamColor.b
-uniform float u_useEnvMap;     // foamCutoff (threshold for toon foam)
-uniform float u_useReflectionMap; // foamNoiseScale
-uniform float u_pad2;          // foamNoiseSpeed
-uniform float u_pad3;          // foamDistance (shore/intersection width)
-uniform vec4 u_styleA;         // [rampSoftness, washAmount, lineDensity, lineWidth]
-uniform vec4 u_styleB;         // [foamSoftness, skyTint, glitterStrength, styleId]
+// Dedicated material parameter bank (512-byte layout slots)
+uniform vec4 u_matParam0;         // [waterAbsorption.rgb, refractionStrength]
+uniform vec4 u_matParam1;         // [foamColor.rgb, foamDistance]
+uniform vec4 u_matParam2;         // [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
+uniform vec4 u_styleA;             // [rampSoftness, washAmount, lineDensity, lineWidth]
+uniform vec4 u_styleB;             // [foamSoftness, skyTint, glitterStrength, styleId]
 uniform float u_time;
 uniform sampler2D u_opaqueDepthMap;
 uniform sampler2D u_opaqueMap;
@@ -53,7 +46,8 @@ void main() {
     vec3 deepColor = sRGBToLinear(u_specColor.rgb);
     vec3 edgeColor = sRGBToLinear(vec3(u_texOffset.x, u_texOffset.y, u_texRepeat.x));
     float edgeSoftness = max(u_texRepeat.y, 0.001);
-    float foamDistance = max(u_pad3, 0.001);
+    float foamDistance = max(u_matParam1.a, 0.001);
+    float refractionStrength = u_matParam0.a;
 
     // styleId map: 0 toon, 1 soft, 2 sparkle, 3 extension (Noir/Oil), 4 dredge, 5 bold
     float styleId = u_styleB.w;
@@ -79,7 +73,7 @@ void main() {
 
     // 2. Screen-space Refraction (Masked strictly to depthDiff > 0.0)
     float refrDamping = clamp(depthDiff / 0.3, 0.0, 1.0);
-    vec2 distortedUv = screenUv + (v_normal.xz * u_shininess * refrDamping);
+    vec2 distortedUv = screenUv + (v_normal.xz * refractionStrength * refrDamping);
     float distortedBgDepth = texture(u_opaqueDepthMap, distortedUv).r;
     float ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
     float linDistortedBgDepth = (2.0 * near * far) / (far + near - ndcDistortedBg * (far - near));
@@ -95,7 +89,7 @@ void main() {
     // Distorted Caustics UVs mapped to underwater ground
     float causticsDistortionStrength = 0.45;
     vec2 uvCaustics = groundWorldPos.xz + (v_normal.xz * causticsDistortionStrength);
-    float causticsSpeed = u_pad2 * 0.75;
+    float causticsSpeed = u_matParam2.b * 0.75;
 
     float maxCausticsDepth = 6.0;
     float causticsFade = 1.0 - smoothstep(0.0, maxCausticsDepth, depthDiff);
@@ -105,7 +99,7 @@ void main() {
 
     if (u_styleB.w > 0.5) {
         // Anime / Ghibli F1-SmoothF1 cellular caustics network with bold pure white core + soft cyan halo
-        vec2 warpedCaustics = waterDomainWarp(uvCaustics * (u_useReflectionMap * 0.9), u_time * causticsSpeed);
+        vec2 warpedCaustics = waterDomainWarp(uvCaustics * (u_matParam2.g * 0.9), u_time * causticsSpeed);
         float lineSignal = waterCausticLine(warpedCaustics, 0.18);
         float causticHalo = smoothstep(0.30, 0.55, lineSignal);
         float causticCore = aaStepMask(0.62, lineSignal, 0.06);
@@ -122,8 +116,8 @@ void main() {
         illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3(0.82, 0.92, 0.98), vec3(1.0), 1.0 - causticCore * 0.45 * shadowMask) + finalCaustics;
     } else {
         // Legacy Dual-Chromatic Panning Voronoi noise
-        vec2 causticsUv1 = uvCaustics * (u_useReflectionMap * 0.85) + vec2(u_time * causticsSpeed, u_time * causticsSpeed * 0.5);
-        vec2 causticsUv2 = uvCaustics * (u_useReflectionMap * 1.1) - vec2(u_time * causticsSpeed * 0.6, u_time * causticsSpeed * 0.8);
+        vec2 causticsUv1 = uvCaustics * (u_matParam2.g * 0.85) + vec2(u_time * causticsSpeed, u_time * causticsSpeed * 0.5);
+        vec2 causticsUv2 = uvCaustics * (u_matParam2.g * 1.1) - vec2(u_time * causticsSpeed * 0.6, u_time * causticsSpeed * 0.8);
         float causticsNoise1 = 1.0 - waterCellNoise(causticsUv1);
         float causticsNoise2 = 1.0 - waterCellNoise(causticsUv2);
         float causticsThreshold = 0.42;
@@ -134,7 +128,7 @@ void main() {
     }
 
     // 4. Stylized Beer-Lambert absorption & painted wash depth ramp
-    vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
+    vec3 waterAbsorption = u_matParam0.rgb;
     float washNoise = (waterCellNoise(v_worldPos.xz * 0.5 + vec2(u_time * 0.08, u_time * 0.04)) - 0.5) * u_styleA.y;
     float effDepth = max(depthDiff + washNoise * 1.5, 0.0);
     vec3 transmittance = exp(-effDepth * waterAbsorption);
@@ -225,10 +219,10 @@ void main() {
     }
 
     // 7. Advanced Procedural Foam (Intersection/Shoreline Foam)
-    vec3 foamColor = sRGBToLinear(vec3(u_isTerrain, u_metallic, u_roughness));
-    float foamCutoff = u_useEnvMap;
-    float foamScale = u_useReflectionMap;
-    float foamSpeed = u_pad2;
+    vec3 foamColor = sRGBToLinear(u_matParam1.rgb);
+    float foamCutoff = u_matParam2.r;
+    float foamScale = u_matParam2.g;
+    float foamSpeed = u_matParam2.b;
     float foamSoftness = (u_styleB.w > 0.5) ? max(u_styleB.x, 0.01) : 0.06;
 
     // 7a. Intersection / Shoreline Foam (Depth-Driven Dual Noise)

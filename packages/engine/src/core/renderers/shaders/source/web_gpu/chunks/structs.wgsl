@@ -1,8 +1,13 @@
 // WGSL Global and Object structures
 
+// GlobalUniforms: Scene-level uniforms (848 bytes / 212 floats)
+// Cleanly grouped into Camera & View, Environment & Fog, Shadow Maps, and Clustered Light Grid.
 struct GlobalUniforms {
+    // --- 1. Camera & View (80 bytes) ---
     vp: mat4x4f,
     viewPos: vec4f,
+
+    // --- 2. Environment, Direct Light & Atmospheric Fog (112 bytes) ---
     ambientColor: vec4f,
     dirLightColor: vec4f,
     dirLightDir: vec4f,
@@ -19,20 +24,29 @@ struct GlobalUniforms {
     fogHeightFalloff: f32,
     envIntensity: f32,
     fogColor: vec4f,
+
+    // --- 3. Shadow Matrices & Projection (576 bytes) ---
     spotShadowMatrices: array<mat4x4f, 4>,
     spotShadowInfo: array<vec4f, 4>, // [bias, normalBias, castShadow, pad]
     cascadeMatrices: array<mat4x4f, 4>,
     cascadeSplits: vec4f,
     dirShadowInfo: vec4f, // [bias, normalBias, castShadow, numCascades]
+
+    // --- 4. Clustered Light Culling & Screen Geometry (80 bytes) ---
     cameraNearFar: vec2f,
-    resolution: vec2f, // canvas size in pixels, for clustered light culling
-    projScale: vec2f, // projection matrix diagonal terms [0][0]/[1][1], for view-space reconstruction
-    tileSizePx: vec2f, // clustered light grid screen-space tile size in pixels
-    clusterDims: vec4f // [x, y, z cell counts, maxLightsPerCluster], all as f32
+    resolution: vec2f,    // canvas size in pixels, for clustered light culling
+    projScale: vec2f,     // projection matrix diagonal terms [0][0]/[1][1], for view-space reconstruction
+    tileSizePx: vec2f,    // clustered light grid screen-space tile size in pixels
+    clusterDims: vec4f    // [x, y, z cell counts, maxLightsPerCluster], all as f32
 }
 
+// ObjectUniforms: 512-byte uniform block (32 vec4 / 128 floats)
+// Cleanly grouped into Transform, Core Material, Pipeline/Animation, and Semantic Material Parameters.
 struct ObjectUniforms {
+    // --- 1. Transform Block (64 bytes) ---
     model: mat4x4f,
+
+    // --- 2. Core Material & Surface Properties (64 bytes) ---
     color: vec4f,
     specColor: vec4f, 
     texOffset: vec2f,
@@ -41,9 +55,11 @@ struct ObjectUniforms {
     isTerrain: f32,
     metallic: f32,
     roughness: f32,
-    extraParams: vec4f, // [ao, time, flowSpeed, noiseScale]
-    liquidParams: vec4f, // [waveFreq, waveAmp, 0, 0]
-    thresholds: vec4f,  // [sandToGrass, grassToRock, rockToSnow, softness]
+
+    // --- 3. Pipeline, Surface Tuning & Animation (128 bytes) ---
+    extraParams: vec4f,   // [ao, time, flowSpeed, noiseScale]
+    liquidParams: vec4f,  // [waveFreq, waveAmp, 0, 0]
+    thresholds: vec4f,    // [sandToGrass, grassToRock, rockToSnow, softness]
     useEnvMap: f32,
     useReflectionMap: f32,
     reflectivity: f32,
@@ -54,7 +70,26 @@ struct ObjectUniforms {
     pad2: f32,
     pad3: f32,
     styleA: vec4f,
-    styleB: vec4f
+    styleB: vec4f,
+
+    // --- 4. Semantic Material Parameters: matParam0..15 (256 bytes) ---
+    // Dedicated parameter bank for modern materials (OpenWater, StylizedWater, PBR extensions, etc.)
+    matParam0: vec4f,  // e.g. OpenWater: [waterAbsorption.rgb, refractionStrength]
+    matParam1: vec4f,  // e.g. OpenWater: [foamColor.rgb, foamDistance]
+    matParam2: vec4f,  // e.g. OpenWater: [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
+    matParam3: vec4f,
+    matParam4: vec4f,
+    matParam5: vec4f,
+    matParam6: vec4f,
+    matParam7: vec4f,
+    matParam8: vec4f,
+    matParam9: vec4f,
+    matParam10: vec4f,
+    matParam11: vec4f,
+    matParam12: vec4f,
+    matParam13: vec4f,
+    matParam14: vec4f,
+    matParam15: vec4f
 }
 
 // Per-draw view-projection matrix, dynamic-offset-indexed -- one slot for the main camera,

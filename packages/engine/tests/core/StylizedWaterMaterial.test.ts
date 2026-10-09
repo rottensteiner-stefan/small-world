@@ -81,7 +81,7 @@ describe("StylizedWaterMaterial Anime Style Ladder & Preset Vectors", () => {
 describe("StylizedWaterMaterial rampMap (P2 verification, A2)", () => {
   it("does not set the flag or bind the texture while rampMap is unset", () => {
     const manifest = new StylizedWaterMaterial().getRenderManifest();
-    expect(manifest.flags).toBeUndefined();
+    expect(manifest.flags).toEqual(["STYLE_TOON"]);
     expect(manifest.textures["u_rampMap"]).toBeUndefined();
   });
 
@@ -89,18 +89,18 @@ describe("StylizedWaterMaterial rampMap (P2 verification, A2)", () => {
     const mat = new StylizedWaterMaterial();
     mat.rampMap = Texture.empty();
     const manifest = mat.getRenderManifest();
-    expect(manifest.flags).toEqual(["USE_RAMP_LUT"]);
+    expect(manifest.flags).toEqual(["USE_RAMP_LUT", "STYLE_TOON"]);
     expect(manifest.textures["u_rampMap"]).toBe(mat.rampMap);
   });
 
   it("clears the flag and the texture when rampMap is unset again on the same instance", () => {
     const mat = new StylizedWaterMaterial();
     mat.rampMap = Texture.empty();
-    expect(mat.getRenderManifest().flags).toEqual(["USE_RAMP_LUT"]);
+    expect(mat.getRenderManifest().flags).toEqual(["USE_RAMP_LUT", "STYLE_TOON"]);
 
     mat.rampMap = undefined;
     const manifest = mat.getRenderManifest();
-    expect(manifest.flags).toBeUndefined();
+    expect(manifest.flags).toEqual(["STYLE_TOON"]);
     expect(manifest.textures["u_rampMap"]).toBeUndefined();
   });
 });

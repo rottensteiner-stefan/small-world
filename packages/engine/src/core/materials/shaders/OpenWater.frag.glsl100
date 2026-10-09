@@ -14,17 +14,10 @@ uniform vec4 u_color;
 uniform vec4 u_specColor;
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
-uniform float u_shininess; // repurposed: refractionStrength (see OpenWaterMaterial.ts)
-uniform float u_isSkinned; // repurposed: waterAbsorption.r
-uniform float u_boneOffset; // repurposed: waterAbsorption.g
-uniform float u_pad1; // repurposed: waterAbsorption.b
-uniform float u_isTerrain; // repurposed: foamColor.r
-uniform float u_metallic; // repurposed: foamColor.g
-uniform float u_roughness; // repurposed: foamColor.b
-uniform float u_useEnvMap; // repurposed: foamCutoff
-uniform float u_useReflectionMap; // repurposed: foamNoiseScale
-uniform float u_pad2; // repurposed: foamNoiseSpeed
-uniform float u_pad3; // repurposed: foamDistance
+// Dedicated material parameter bank (512-byte layout slots)
+uniform vec4 u_matParam0; // [waterAbsorption.rgb, refractionStrength]
+uniform vec4 u_matParam1; // [foamColor.rgb, foamDistance]
+uniform vec4 u_matParam2; // [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
 uniform float u_time;
 uniform sampler2D u_opaqueMap;
 
@@ -43,11 +36,19 @@ void main() {
 
     vec3 edgeColor = vec3(u_texOffset.x, u_texOffset.y, u_texRepeat.x);
     float edgeSoftness = max(u_texRepeat.y, 0.001);
-    float foamDistance = max(u_pad3, 0.001);
+
+    // Unpack from dedicated material parameter slots (512-byte layout)
+    vec3 waterAbsorption = u_matParam0.rgb;
+    float refractionStrength = u_matParam0.a;
+    vec3 foamColor = pow(u_matParam1.rgb, vec3(2.2));
+    float foamDistance = max(u_matParam1.a, 0.001);
+    float foamCutoff = u_matParam2.r;
+    float foamNoiseScale = u_matParam2.g;
+    float foamNoiseSpeed = u_matParam2.b;
 
     // Real screen UV from the clip-space varying (the mesh UV sampled the capture as a sub-rectangle)
     vec2 screenUv = v_clipPos.xy / v_clipPos.w * 0.5 + 0.5;
-    vec2 refractionUv = clamp(screenUv + v_normal.xz * u_shininess, vec2(0.001), vec2(0.999));
+    vec2 refractionUv = clamp(screenUv + v_normal.xz * refractionStrength, vec2(0.001), vec2(0.999));
     vec3 refractedColor = texture2D(u_opaqueMap, refractionUv).rgb;
     refractedColor = pow(refractedColor, vec3(2.2));
 
@@ -57,7 +58,6 @@ void main() {
     // No real depth buffer on WebGL1 (see comment above), so `fresnel` doubles as the "how deep
     // does this pixel look" proxy that OpenWater.frag.glsl/.wgsl get from the real depth capture.
     // Scaled by 10 to land in roughly the same absorption range as those depth-based versions.
-    vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
     vec3 transmittance = exp(-fresnel * 10.0 * waterAbsorption);
     vec3 tintedSeabed = refractedColor * mix(vec3(1.0), waterColor, 0.6);
     vec3 inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
@@ -78,17 +78,8 @@ void main() {
     vec3 edgeColLinear = pow(edgeColor, vec3(2.2));
     vec3 finalColor = mix(baseColor, edgeColLinear, edgeBlend * 0.3);
 
-    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to its own
-    // shoreline/intersection band (foamDistance) instead of edgeBlend -- same "no real depth
-    // buffer on WebGL1" fresnel-proxy tradeoff as edgeBlend above, but with its own independently
-    // tunable falloff exponent so foam width doesn't have to match the color-edge width.
-    vec3 foamColor = pow(vec3(u_isTerrain, u_metallic, u_roughness), vec3(2.2));
-    float foamCutoff = u_useEnvMap;
-    float foamNoiseScale = u_useReflectionMap;
-    float foamNoiseSpeed = u_pad2;
-    // No depth buffer on WebGL1: the old pow(1 - fresnel, ..) proxy is ~1 everywhere when seen from
-    // above, which turned the whole pool into a white blob field. Fresnel is the only "far shore"
-    // proxy we have, so shore foam now fades in only at grazing angles (same fix as StylizedWater).
+    // Procedural foam: an anisotropic lace pattern drifting in world-space XZ, masked to its own
+    // shoreline/intersection band (foamDistance) instead of edgeBlend.
     float foamBlend = smoothstep(0.04, 0.04 + 0.5 * foamDistance, fresnel) * 0.6;
     vec2 foamUv = v_worldPos.xz * foamNoiseScale + u_time * foamNoiseSpeed;
     float foamCell = waterCellNoise(foamUv);
@@ -104,10 +95,13 @@ void main() {
 
     // Wave-crest foam: v_crest is the vertex-shader Jacobian (wave-folding) metric, 0 on flat
     // water -> 1 where the Gerstner crests pinch together (replaces the parked normal.y
-    // threshold, which only picked up high-frequency curvature noise). smoothstep (no step)
-    // keeps the edge soft/alias-free; the existing Worley pattern breaks it into patches, and
-    // it's gated so it never fully covers the crest line.
-    float crestFoam = smoothstep(0.65, 0.95, v_crest) * foamPattern * 0.5;
+    // threshold, which only picked up high-frequency curvature noise).
+    // Anisotropic lace edge network: combines two frequencies of Worley cell walls.
+    vec2 crestCellUv = foamUv * 2.7 + 11.0;
+    float crestCell2 = waterCellNoise(crestCellUv);
+    float crestMask = smoothstep(0.65, 0.95, v_crest);
+    float crestLace = max(smoothstep(0.35, 0.85, foamCell), smoothstep(0.35, 0.85, crestCell2));
+    float crestFoam = clamp(crestMask * crestLace + crestMask * crestMask * 0.6, 0.0, 1.0) * 0.9;
     foamMask = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMask);

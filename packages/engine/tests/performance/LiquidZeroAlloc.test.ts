@@ -67,7 +67,7 @@ describe("Liquid Materials Zero-Allocation Guarantees", () => {
         obj.updateMatrixWorld();
 
         const def = instance.getShaderDefinition();
-        const scratchBuffer = new Float32Array(64); // 256 bytes = 64 floats
+        const scratchBuffer = new Float32Array(128); // 512 bytes = 128 floats
         const scratchUniformValues: Record<string, unknown> = {};
         const scratchModelMatrix = new Float32Array(16);
 
@@ -132,7 +132,7 @@ describe("Liquid Materials Zero-Allocation Guarantees", () => {
         new StylizedWaterMaterial(),
       ];
 
-      const scratchObjBufferData = new Float32Array(64);
+      const scratchObjBufferData = new Float32Array(128); // 512 bytes = 128 floats
       const scratchUniformValues: Record<string, unknown> = {};
       const scratchModelMatrix = new Float32Array(16);
       const scratchColorArray = new Float32Array(4);

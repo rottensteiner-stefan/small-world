@@ -85,7 +85,7 @@ fn vs(
     // (Never write the literal end-of-function statement in a comment here: it is regex-matched.)
     let steepSum = w1.z + w2.z + w3.z + w4.z + w5.z + w6.z;
     let jacobian = t.x * b.z - t.z * b.x;
-    o.original_uv = vec2f(clamp((1.0 - jacobian) / max(steepSum, 0.001), -1.0, 1.0), 0.0);
+    o.original_uv = vec2f(clamp(2.5 * (1.0 - jacobian) / max(steepSum, 0.001), -1.0, 1.0), 0.0);
     
     o.uv = uv;
     o.n = normalize(cross(b, t));

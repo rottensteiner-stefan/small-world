@@ -17,7 +17,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     let deepColor = sRGBToLinear(obj.specColor.rgb);
     let edgeColor = sRGBToLinear(vec3<f32>(obj.texOffset.x, obj.texOffset.y, obj.texRepeat.x));
     let edgeSoftness = max(obj.texRepeat.y, 0.001);
-    let foamDistance = max(obj.pad3, 0.001);
+    let foamDistance = max(obj.matParam1.w, 0.001);
 
     // styleId map: 0 toon, 1 soft, 2 sparkle, 3 extension (Noir/Oil), 4 dredge, 5 bold
     let styleId = obj.styleB.w;
@@ -96,7 +96,8 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
         illuminatedUnderwater = opaqueUnderwaterColor + finalCaustics;
     }
 
-    let waterAbsorption = vec3<f32>(obj.isSkinned, obj.boneOffset, obj.pad1);
+    // Parameters from 512-byte ObjectUniforms (obj.matParam0..2)
+    let waterAbsorption = obj.matParam0.xyz;
     let washNoise = (waterCellNoise(i.wp.xz * 0.5 + vec2<f32>(obj.time * 0.08, obj.time * 0.04)) - 0.5) * obj.styleA.y;
     let effDepth = max(depthDiff + washNoise * 1.5, 0.0);
     let transmittance = exp(-effDepth * waterAbsorption);
@@ -179,10 +180,10 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
         surfaceColor = surfaceColor * 1.1 / (1.0 + 0.3 * surfaceColor);
     }
 
-    let foamColor = sRGBToLinear(vec3<f32>(obj.isTerrain, obj.metallic, obj.roughness));
-    let foamCutoff = obj.useEnvMap;
-    let foamScale = obj.useReflectionMap;
-    let foamSpeed = obj.pad2;
+    let foamColor = sRGBToLinear(obj.matParam1.xyz);
+    let foamCutoff = obj.matParam2.x;
+    let foamScale = obj.matParam2.y;
+    let foamSpeed = obj.matParam2.z;
     let foamSoftness = select(0.06, max(obj.styleB.x, 0.01), obj.styleB.w > 0.5);
 
     // Shoreline foam

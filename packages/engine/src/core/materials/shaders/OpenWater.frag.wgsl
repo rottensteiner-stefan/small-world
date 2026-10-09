@@ -6,9 +6,14 @@
 
     let edgeColor = vec3<f32>(obj.texOffset.x, obj.texOffset.y, obj.texRepeat.x);
     let edgeSoftness = max(obj.texRepeat.y, 0.001);
-    // obj.pad3 is the last remaining free named slot -- repurposed to carry foamDistance,
-    // decoupled from edgeSoftness (see OpenWaterMaterial.ts).
-    let foamDistance = max(obj.pad3, 0.001);
+    // Parameters unpacked from 512-byte ObjectUniforms (obj.matParam0..2)
+    let waterAbsorption = obj.matParam0.xyz;
+    let refractionStrength = obj.matParam0.w;
+    let foamColor = sRGBToLinear(obj.matParam1.xyz);
+    let foamDistance = max(obj.matParam1.w, 0.001);
+    let foamCutoff = obj.matParam2.x;
+    let foamNoiseScale = obj.matParam2.y;
+    let foamNoiseSpeed = obj.matParam2.z;
 
     let fragPosCoords = vec2<i32>(i.pos.xy);
     let bgDepth = textureLoad(u_opaqueDepthMap, fragPosCoords, 0);
@@ -24,14 +29,12 @@
 
     let depthDiff = max(linBgDepth - linFragDepth, 0.0);
 
-    // Screen-space refraction: distort the sample point by the wave normal's horizontal
-    // components (obj.shininess is repurposed as refractionStrength, see OpenWaterMaterial.ts).
-    // If the distorted sample lands in front of the water surface, fall back to the undistorted
-    // texel -- otherwise that pixel would show something that's not actually underwater.
+    // Screen-space refraction: distort the sample point by the wave normal's horizontal components.
+    // If the distorted sample lands in front of the water surface, fall back to the undistorted texel.
     let screenRes = vec2<f32>(textureDimensions(u_opaqueDepthMap));
     let screenUv = i.pos.xy / screenRes;
     let refrDamping = clamp(depthDiff / 0.3, 0.0, 1.0);
-    let distortedUv = screenUv + (i.n.xz * obj.shininess * refrDamping);
+    let distortedUv = screenUv + (i.n.xz * refractionStrength * refrDamping);
     let distortedCoords = vec2<i32>(distortedUv * screenRes);
     let distortedBgDepth = textureLoad(u_opaqueDepthMap, distortedCoords, 0);
     let ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
@@ -43,7 +46,6 @@
     // Beer-Lambert absorption: light traveling through `depthDiff` units of water loses each
     // color channel at its own exponential rate (waterAbsorption). Ambient in-scattering prevents
     // unnatural blackness in deep or shaded regions.
-    let waterAbsorption = vec3<f32>(obj.isSkinned, obj.boneOffset, obj.pad1);
     let transmittance = exp(-depthDiff * waterAbsorption);
     let tintedSeabed = refractedColor * mix(vec3<f32>(1.0), waterColor, 0.6);
     let inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
@@ -68,12 +70,8 @@
     let edgeColLinear = sRGBToLinear(edgeColor);
     var finalColor = mix(baseColor, edgeColLinear, edgeBlend);
 
-    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to its own
+    // Procedural foam: an anisotropic lace pattern drifting in world-space XZ, masked to its own
     // shoreline/intersection band (foamDistance).
-    let foamColor = sRGBToLinear(vec3<f32>(obj.isTerrain, obj.metallic, obj.roughness));
-    let foamCutoff = obj.useEnvMap;
-    let foamNoiseScale = obj.useReflectionMap;
-    let foamNoiseSpeed = obj.pad2;
     let foamBlend = pow(1.0 - saturate(depthDiff / foamDistance), 2.0);
     let foamUv = i.wp.xz * foamNoiseScale + obj.time * foamNoiseSpeed;
     let foamCell = waterCellNoise(foamUv);
@@ -87,8 +85,11 @@
     // Wave-crest foam from vertex Jacobian metric
     const CREST_FOAM_THRESHOLD_LOW: f32 = 0.65;
     const CREST_FOAM_THRESHOLD_HIGH: f32 = 0.95;
-    const CREST_FOAM_INTENSITY: f32 = 0.5;
-    let crestFoam = smoothstep(CREST_FOAM_THRESHOLD_LOW, CREST_FOAM_THRESHOLD_HIGH, i.original_uv.x) * foamPattern * CREST_FOAM_INTENSITY;
+    const CREST_FOAM_INTENSITY: f32 = 0.9;
+    let crestCell2 = waterCellNoise(foamUv * 2.7 + 11.0);
+    let crestMask = smoothstep(CREST_FOAM_THRESHOLD_LOW, CREST_FOAM_THRESHOLD_HIGH, i.original_uv.x);
+    let crestLace = max(smoothstep(0.35, 0.85, foamCell), smoothstep(0.35, 0.85, crestCell2));
+    let crestFoam = clamp(crestMask * crestLace + crestMask * crestMask * 0.6, 0.0, 1.0) * CREST_FOAM_INTENSITY;
     let foamMaskFinal = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMaskFinal);

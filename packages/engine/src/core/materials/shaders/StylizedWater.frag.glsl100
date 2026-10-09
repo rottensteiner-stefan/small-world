@@ -13,17 +13,10 @@ uniform vec4 u_color;
 uniform vec4 u_specColor;
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
-uniform float u_shininess;
-uniform float u_isSkinned;
-uniform float u_boneOffset;
-uniform float u_pad1;
-uniform float u_isTerrain;
-uniform float u_metallic;
-uniform float u_roughness;
-uniform float u_useEnvMap;
-uniform float u_useReflectionMap;
-uniform float u_pad2;
-uniform float u_pad3;
+// Dedicated material parameter bank (512-byte layout slots)
+uniform vec4 u_matParam0; // [waterAbsorption.rgb, refractionStrength]
+uniform vec4 u_matParam1; // [foamColor.rgb, foamDistance]
+uniform vec4 u_matParam2; // [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
 uniform vec4 u_styleA;
 uniform vec4 u_styleB;
 uniform float u_time;
@@ -51,7 +44,6 @@ void main() {
     vec3 deepColor = pow(u_specColor.rgb, vec3(2.2));
     vec3 edgeColor = pow(vec3(u_texOffset.x, u_texOffset.y, u_texRepeat.x), vec3(2.2));
     float edgeSoftness = max(u_texRepeat.y, 0.001);
-    float foamDistance = max(u_pad3, 0.001);
 
     // styleId map: 0 toon, 1 soft, 2 sparkle, 3 extension (Noir/Oil), 4 dredge, 5 bold
     float styleId = u_styleB.w;
@@ -61,8 +53,12 @@ void main() {
     bool isDredge = abs(styleId - 4.0) < 0.5;
 
     // Screen-space UV from the clip position (the mesh UV sampled the opaque map as a sub-rectangle)
+    float refractionStrength = u_matParam0.a;
+    vec3 waterAbsorption = u_matParam0.rgb;
+    float foamDistance = max(u_matParam1.a, 0.001);
+
     vec2 screenUv = v_clipPos.xy / v_clipPos.w * 0.5 + 0.5;
-    vec2 refractionUv = clamp(screenUv + v_normal.xz * u_shininess, vec2(0.001), vec2(0.999));
+    vec2 refractionUv = clamp(screenUv + v_normal.xz * refractionStrength, vec2(0.001), vec2(0.999));
     vec3 refractedColor = texture2D(u_opaqueMap, refractionUv).rgb;
     refractedColor = pow(refractedColor, vec3(2.2));
 
@@ -70,15 +66,15 @@ void main() {
     float fresnel = pow(1.0 - clamp(dot(v_normal, viewDir), 0.0, 1.0), 4.0);
 
     // Procedural Caustics
-    float causticsSpeed = u_pad2 * 0.75;
-    vec2 causticsUv1 = v_worldPos.xz * (u_useReflectionMap * 0.85) + vec2(u_time * causticsSpeed, u_time * causticsSpeed * 0.5);
-    vec2 causticsUv2 = v_worldPos.xz * (u_useReflectionMap * 1.1) - vec2(u_time * causticsSpeed * 0.6, u_time * causticsSpeed * 0.8);
+    float causticsSpeed = u_matParam2.b * 0.75;
+    vec2 causticsUv1 = v_worldPos.xz * (u_matParam2.g * 0.85) + vec2(u_time * causticsSpeed, u_time * causticsSpeed * 0.5);
+    vec2 causticsUv2 = v_worldPos.xz * (u_matParam2.g * 1.1) - vec2(u_time * causticsSpeed * 0.6, u_time * causticsSpeed * 0.8);
     float causticsFade = 1.0 - smoothstep(0.0, 1.0, fresnel);
     vec3 finalCaustics = vec3(0.0);
     vec3 illuminatedUnderwater = refractedColor;
 
     if (u_styleB.w > 0.5) {
-        vec2 warpedCaustics = waterDomainWarp(v_worldPos.xz * (u_useReflectionMap * 0.9), u_time * causticsSpeed);
+        vec2 warpedCaustics = waterDomainWarp(v_worldPos.xz * (u_matParam2.g * 0.9), u_time * causticsSpeed);
         float lineSignal = waterCausticLine(warpedCaustics, 0.18);
         float causticHalo = smoothstep(0.30, 0.55, lineSignal);
         float causticCore = aaStepMask(0.62, lineSignal, 0.06);
@@ -100,7 +96,6 @@ void main() {
         illuminatedUnderwater = refractedColor + finalCaustics;
     }
 
-    vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
     float washNoise = (waterCellNoise(v_worldPos.xz * 0.5 + vec2(u_time * 0.08, u_time * 0.04)) - 0.5) * u_styleA.y;
     // No depth buffer: fresnel is ~0 looking down. Extension styles (styleId 3, e.g. oil) assume a minimum water depth
     // so a dense film does not show the floor through itself.
@@ -189,10 +184,10 @@ void main() {
     }
 
     // Toon Foam
-    vec3 foamColor = pow(vec3(u_isTerrain, u_metallic, u_roughness), vec3(2.2));
-    float foamCutoff = u_useEnvMap;
-    float foamScale = u_useReflectionMap;
-    float foamSpeed = u_pad2;
+    vec3 foamColor = pow(u_matParam1.rgb, vec3(2.2));
+    float foamCutoff = u_matParam2.r;
+    float foamScale = u_matParam2.g;
+    float foamSpeed = u_matParam2.b;
     float foamSoftness = (u_styleB.w > 0.5) ? max(u_styleB.x, 0.01) : 0.06;
 
     // No depth buffer on WebGL1: grazing angle proxy

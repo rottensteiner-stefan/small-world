@@ -13,17 +13,10 @@ uniform vec4 u_color;
 uniform vec4 u_specColor;
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
-uniform float u_shininess; // repurposed: refractionStrength (see OpenWaterMaterial.ts)
-uniform float u_isSkinned; // repurposed: waterAbsorption.r
-uniform float u_boneOffset; // repurposed: waterAbsorption.g
-uniform float u_pad1; // repurposed: waterAbsorption.b
-uniform float u_isTerrain; // repurposed: foamColor.r
-uniform float u_metallic; // repurposed: foamColor.g
-uniform float u_roughness; // repurposed: foamColor.b
-uniform float u_useEnvMap; // repurposed: foamCutoff
-uniform float u_useReflectionMap; // repurposed: foamNoiseScale
-uniform float u_pad2; // repurposed: foamNoiseSpeed
-uniform float u_pad3; // repurposed: foamDistance
+// Dedicated material parameter bank (512-byte layout slots)
+uniform vec4 u_matParam0; // [waterAbsorption.rgb, refractionStrength]
+uniform vec4 u_matParam1; // [foamColor.rgb, foamDistance]
+uniform vec4 u_matParam2; // [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
 uniform float u_time;
 uniform sampler2D u_opaqueDepthMap;
 uniform sampler2D u_opaqueMap;
@@ -38,7 +31,15 @@ void main() {
 
     vec3 edgeColor = vec3(u_texOffset.x, u_texOffset.y, u_texRepeat.x);
     float edgeSoftness = max(u_texRepeat.y, 0.001);
-    float foamDistance = max(u_pad3, 0.001);
+
+    // Unpack from dedicated material parameter slots (512-byte layout)
+    vec3 waterAbsorption = u_matParam0.rgb;
+    float refractionStrength = u_matParam0.a;
+    vec3 foamColor = sRGBToLinear(u_matParam1.rgb);
+    float foamDistance = max(u_matParam1.a, 0.001);
+    float foamCutoff = u_matParam2.r;
+    float foamNoiseScale = u_matParam2.g;
+    float foamNoiseSpeed = u_matParam2.b;
 
     // texture() (not texelFetch) so the 1x1 fallback texture's CLAMP_TO_EDGE wrap mode kicks
     // in correctly when no real depth capture exists -- texelFetch has no such fallback and
@@ -60,7 +61,7 @@ void main() {
     // Screen-space refraction: distort the sample point by the wave normal's horizontal
     // components, damped in shallow depth to prevent edge tear.
     float refrDamping = clamp(depthDiff / 0.3, 0.0, 1.0);
-    vec2 distortedUv = screenUv + (v_normal.xz * u_shininess * refrDamping);
+    vec2 distortedUv = screenUv + (v_normal.xz * refractionStrength * refrDamping);
     float distortedBgDepth = texture(u_opaqueDepthMap, distortedUv).r;
     float ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
     float linDistortedBgDepth = (2.0 * near * far) / (far + near - ndcDistortedBg * (far - near));
@@ -71,7 +72,6 @@ void main() {
     // Beer-Lambert absorption: light traveling through `depthDiff` units of water loses each
     // color channel at its own exponential rate (waterAbsorption). Ambient in-scattering prevents
     // unnatural blackness in deep or shaded regions.
-    vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
     vec3 transmittance = exp(-depthDiff * waterAbsorption);
     vec3 tintedSeabed = refractedColor * mix(vec3(1.0), waterColor, 0.6);
     vec3 inScatterCol = mix(waterColor, deepWaterColor, 0.35) * 0.15;
@@ -98,12 +98,8 @@ void main() {
     vec3 edgeColLinear = sRGBToLinear(edgeColor);
     vec3 finalColor = mix(baseColor, edgeColLinear, edgeBlend);
 
-    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to its own
+    // Procedural foam: an anisotropic lace pattern drifting in world-space XZ, masked to its own
     // shoreline/intersection band (foamDistance).
-    vec3 foamColor = sRGBToLinear(vec3(u_isTerrain, u_metallic, u_roughness));
-    float foamCutoff = u_useEnvMap;
-    float foamNoiseScale = u_useReflectionMap;
-    float foamNoiseSpeed = u_pad2;
     float foamBlend = pow(1.0 - clamp(depthDiff / foamDistance, 0.0, 1.0), 2.0);
     vec2 foamUv = v_worldPos.xz * foamNoiseScale + u_time * foamNoiseSpeed;
     float foamCell = waterCellNoise(foamUv);
@@ -117,8 +113,11 @@ void main() {
     // Wave-crest foam from vertex Jacobian metric
     const float CREST_FOAM_THRESHOLD_LOW = 0.65;
     const float CREST_FOAM_THRESHOLD_HIGH = 0.95;
-    const float CREST_FOAM_INTENSITY = 0.5;
-    float crestFoam = smoothstep(CREST_FOAM_THRESHOLD_LOW, CREST_FOAM_THRESHOLD_HIGH, v_crest) * foamPattern * CREST_FOAM_INTENSITY;
+    const float CREST_FOAM_INTENSITY = 0.9;
+    float crestCell2 = waterCellNoise(foamUv * 2.7 + 11.0);
+    float crestMask = smoothstep(CREST_FOAM_THRESHOLD_LOW, CREST_FOAM_THRESHOLD_HIGH, v_crest);
+    float crestLace = max(smoothstep(0.35, 0.85, foamCell), smoothstep(0.35, 0.85, crestCell2));
+    float crestFoam = clamp(crestMask * crestLace + crestMask * crestMask * 0.6, 0.0, 1.0) * CREST_FOAM_INTENSITY;
     foamMask = max(foamMask, crestFoam);
 
     finalColor = mix(finalColor, foamColor, foamMask);

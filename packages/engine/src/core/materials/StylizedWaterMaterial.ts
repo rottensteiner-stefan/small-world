@@ -308,13 +308,22 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
     sB[3] = this.styleId;
     props["u_styleB"] = sB;
 
-    // Re-assigned on every call (the manifest is cached) so unsetting `rampMap` really clears the flag.
     manifest.textures["u_rampMap"] = this.rampMap;
-    if (undefined === this.rampMap) {
-      delete manifest.flags;
-    } else {
-      manifest.flags = ["USE_RAMP_LUT"];
+
+    // Style specialization flags (Route b): compiled into shader for zero branch divergence
+    const flags: string[] = [];
+    if (this.rampMap) {
+      flags.push("USE_RAMP_LUT");
     }
+    // 0: toon, 1: soft, 2: sparkle, 3: extension, 4: dredge, 5: bold
+    if (this.styleId === 0.0) flags.push("STYLE_TOON");
+    else if (this.styleId === 1.0) flags.push("STYLE_SOFT");
+    else if (this.styleId === 2.0) flags.push("STYLE_SPARKLE");
+    else if (this.styleId === 3.0) flags.push("STYLE_EXTENSION");
+    else if (this.styleId === 4.0) flags.push("STYLE_DREDGE");
+    else if (this.styleId === 5.0) flags.push("STYLE_BOLD");
+
+    manifest.flags = flags;
 
     return manifest;
   }

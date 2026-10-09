@@ -34,9 +34,9 @@ export class GPUObjectRingBuffer {
     this._device = device;
     this._objectBGL = objectBGL;
     // Slot stride must respect the device's dynamic-offset alignment (commonly 256, but not
-    // guaranteed) -- 256 is the payload size (`ObjectUniforms` packs into <= 256 bytes).
+    // guaranteed) -- 512 is the payload size (`ObjectUniforms` packs into <= 512 bytes).
     const alignment = device.limits.minUniformBufferOffsetAlignment;
-    this._stride = Math.ceil(256 / alignment) * alignment;
+    this._stride = Math.ceil(512 / alignment) * alignment;
     this.ensureCapacity(initialCapacity);
   }
 

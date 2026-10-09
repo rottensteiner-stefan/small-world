@@ -153,7 +153,7 @@ void main() {
     // preset-independent; carried as a varying (no new uniforms -- ADR 0013 layout is full).
     float steepSum = w1.z + w2.z + w3.z + w4.z + w5.z + w6.z;
     float jacobian = t.x * b.z - t.z * b.x;
-    v_crest = clamp((1.0 - jacobian) / max(steepSum, 0.001), -1.0, 1.0);
+    v_crest = clamp(2.5 * (1.0 - jacobian) / max(steepSum, 0.001), -1.0, 1.0);
 
     v_uv = a_uv;
     v_normal = normalize(cross(b, t));

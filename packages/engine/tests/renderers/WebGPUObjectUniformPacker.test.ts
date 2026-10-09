@@ -86,11 +86,11 @@ describe("WebGPU Object Uniform MAT4 alignment (WGSL/std140 spec compliance)", (
   });
 });
 
-describe("StandardWebGPULayout ObjectUniforms 256-byte budget and style slots", () => {
-  it("packs StandardWebGPULayout into exactly 64 floats (256 bytes) with u_styleA at float 56 and u_styleB at float 60", async () => {
+describe("StandardWebGPULayout ObjectUniforms 512-byte budget and style slots", () => {
+  it("packs StandardWebGPULayout into exactly 128 floats (512 bytes) with u_styleA at float 56, u_styleB at float 60 and u_matParam0 at float 64", async () => {
     const { StandardWebGPULayout } =
       await import("../../src/core/renderers/shaders/StandardWebGPULayout.js");
-    const targetBuffer = new Float32Array(64);
+    const targetBuffer = new Float32Array(128);
     const dummyValues: Record<string, unknown> = {
       u_model: new Matrix4(),
       u_color: new Float32Array([1, 1, 1, 1]),
@@ -115,6 +115,7 @@ describe("StandardWebGPULayout ObjectUniforms 256-byte budget and style slots", 
       u_pad3: 0,
       u_styleA: [0.8, 0.5, 0.4, 1.2],
       u_styleB: [0.12, 0.6, 0.3, 2.0],
+      u_matParam0: [1.0, 2.0, 3.0, 4.0],
     };
 
     UniformPacker.packInto(StandardWebGPULayout, dummyValues, targetBuffer);
@@ -130,5 +131,11 @@ describe("StandardWebGPULayout ObjectUniforms 256-byte budget and style slots", 
     expect(targetBuffer[61]).toBeCloseTo(0.6);
     expect(targetBuffer[62]).toBeCloseTo(0.3);
     expect(targetBuffer[63]).toBeCloseTo(2.0);
+
+    // u_matParam0 must land at float offset 64 (byte offset 256)
+    expect(targetBuffer[64]).toBeCloseTo(1.0);
+    expect(targetBuffer[65]).toBeCloseTo(2.0);
+    expect(targetBuffer[66]).toBeCloseTo(3.0);
+    expect(targetBuffer[67]).toBeCloseTo(4.0);
   });
 });

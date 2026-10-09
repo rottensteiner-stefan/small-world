@@ -203,7 +203,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _scratchPointLightData = new Float32Array(32); // Initial capacity, grows dynamically
   protected _scratchSpotLightData = new Float32Array(64); // Initial capacity, grows dynamically
   protected _scratchAreaLightData = new Float32Array(96); // Initial capacity, grows dynamically
-  protected _scratchObjBufferData = new Float32Array(256 / 4); // Max 256 bytes
+  protected _scratchObjBufferData = new Float32Array(512 / 4); // 512 bytes (32 vec4)
 
   /** Clustered light grid dimensions for the current canvas size, see `setSize()`. */
   private _clusterDims: ClusterGridDims = { x: 1, y: 1, z: 1 };
@@ -1837,11 +1837,7 @@ export class WebGPURenderer extends AbstractRenderer {
     if (isSkinnedMesh(o) && o.skeleton) {
       values["u_isSkinned"] = 1.0;
       values["u_boneOffset"] = this._getBoneMatrixOffset(o);
-    } else if (values["u_isSkinned"] === undefined) {
-      // Only default these for materials that don't already carry a real value here --
-      // LiquidWaveMaterial repurposes u_isSkinned/u_boneOffset (skeletal-only fields, meaningless
-      // for a water plane) to smuggle waterAbsorption.r/.g through the standard uniform layout.
-      // Unconditionally zeroing them for every unskinned object clobbered that data.
+    } else {
       values["u_isSkinned"] = 0.0;
       values["u_boneOffset"] = 0.0;
     }

@@ -116,29 +116,27 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
       this._renderManifest.properties["u_thresholds"] = [...this.wave3];
       this._renderManifest.properties["u_reflectivity"] = this.speed;
       this._renderManifest.properties["u_time"] = this.time;
-      // u_shininess is otherwise unused by this material (no specular map) -- repurposed to carry
-      // refractionStrength, same "borrow a free named slot" convention as u_texOffset/u_texRepeat
-      // above.
-      this._renderManifest.properties["u_shininess"] = this.refractionStrength;
-      // u_isSkinned/u_boneOffset/u_pad1 are skeletal-animation-only fields, meaningless for a
-      // water plane -- repurposed to carry the 3 waterAbsorption channels (no free vec3/vec4
-      // uniform slot remains; wave1/2/3 already occupy all three).
-      this._renderManifest.properties["u_isSkinned"] = this.waterAbsorption[0];
-      this._renderManifest.properties["u_boneOffset"] = this.waterAbsorption[1];
-      this._renderManifest.properties["u_pad1"] = this.waterAbsorption[2];
-      // u_isTerrain/u_metallic/u_roughness/u_useEnvMap/u_useReflectionMap/u_pad2 are the last
-      // remaining free named slots -- repurposed for foamColor.rgb + foamCutoff/foamNoiseScale/
-      // foamNoiseSpeed (no PBR/terrain/env-map features apply to this material).
-      this._renderManifest.properties["u_isTerrain"] = this.foamColor.r;
-      this._renderManifest.properties["u_metallic"] = this.foamColor.g;
-      this._renderManifest.properties["u_roughness"] = this.foamColor.b;
-      this._renderManifest.properties["u_useEnvMap"] = this.foamCutoff;
-      this._renderManifest.properties["u_useReflectionMap"] = this.foamNoiseScale;
-      this._renderManifest.properties["u_pad2"] = this.foamNoiseSpeed;
-      // u_pad3 is the last remaining free named slot (see structs.wgsl/StandardWebGPULayout.ts)
-      // -- repurposed to carry foamDistance, decoupled from edgeSoftness.
-      this._renderManifest.properties["u_pad3"] = this.foamDistance;
       this._renderManifest.properties["u_styleA"] = [...this.splat];
+
+      // New 512-byte semantic parameter slots (matParam0..3)
+      this._renderManifest.properties["u_matParam0"] = [
+        this.waterAbsorption[0],
+        this.waterAbsorption[1],
+        this.waterAbsorption[2],
+        this.refractionStrength,
+      ];
+      this._renderManifest.properties["u_matParam1"] = [
+        this.foamColor.r,
+        this.foamColor.g,
+        this.foamColor.b,
+        this.foamDistance,
+      ];
+      this._renderManifest.properties["u_matParam2"] = [
+        this.foamCutoff,
+        this.foamNoiseScale,
+        this.foamNoiseSpeed,
+        1.0, // reserved / foam intensity
+      ];
     }
 
     this._syncBaseManifestState();
@@ -182,17 +180,30 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
 
     props["u_reflectivity"] = this.speed;
     props["u_time"] = this.time;
-    props["u_shininess"] = this.refractionStrength;
-    props["u_isSkinned"] = this.waterAbsorption[0];
-    props["u_boneOffset"] = this.waterAbsorption[1];
-    props["u_pad1"] = this.waterAbsorption[2];
-    props["u_isTerrain"] = this.foamColor.r;
-    props["u_metallic"] = this.foamColor.g;
-    props["u_roughness"] = this.foamColor.b;
-    props["u_useEnvMap"] = this.foamCutoff;
-    props["u_useReflectionMap"] = this.foamNoiseScale;
-    props["u_pad2"] = this.foamNoiseSpeed;
-    props["u_pad3"] = this.foamDistance;
+
+    const mp0 = props["u_matParam0"] as number[] | undefined;
+    if (mp0) {
+      mp0[0] = this.waterAbsorption[0];
+      mp0[1] = this.waterAbsorption[1];
+      mp0[2] = this.waterAbsorption[2];
+      mp0[3] = this.refractionStrength;
+    }
+
+    const mp1 = props["u_matParam1"] as number[] | undefined;
+    if (mp1) {
+      mp1[0] = this.foamColor.r;
+      mp1[1] = this.foamColor.g;
+      mp1[2] = this.foamColor.b;
+      mp1[3] = this.foamDistance;
+    }
+
+    const mp2 = props["u_matParam2"] as number[] | undefined;
+    if (mp2) {
+      mp2[0] = this.foamCutoff;
+      mp2[1] = this.foamNoiseScale;
+      mp2[2] = this.foamNoiseSpeed;
+      mp2[3] = 1.0;
+    }
 
     return this._renderManifest;
   }
