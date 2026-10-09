@@ -484,6 +484,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   public bindMainRenderTarget(): boolean {
     let isOffscreen = false;
 
+    // Reconcile the HDR post pipeline on every frame: showcases enable post-processing in
+    // `setupScene()`, i.e. after the renderer's initial `setSize()`, so without this the FBO +
+    // post pass would never exist and WebGL1 would silently fall back to a forward-to-canvas
+    // hybrid in which the tonemapping composite (and thus the presented frame) is lost.
+    this._reconcilePostProcess();
+
     if (this._activeRenderTarget instanceof RenderTargetCube) {
       isOffscreen = true;
       const cubeTarget = this._activeRenderTarget;
@@ -1099,7 +1105,16 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   /** @inheritdoc */
   public override setSize(width: number, height: number): void {
     super.setSize(width, height);
+    this._reconcilePostProcess();
+  }
 
+  /**
+   * Lazily creates or tears down the HDR post-processing framebuffer and passes to match the
+   * current `postProcessing.enabled` state and canvas dimensions -- the WebGL1 counterpart of
+   * `WebGL2Renderer._ensurePostProcessFbo()`. Creating these resources only inside `setSize`
+   * broke any scene that enabled post-processing after the renderer had initialized.
+   */
+  private _reconcilePostProcess(): void {
     if (this.postProcessing.enabled) {
       if (!this._hdrFbo) {
         this._hdrFbo = this.gl.createFramebuffer()!;
@@ -1110,14 +1125,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const w = this.gl.canvas.width;
       const h = this.gl.canvas.height;
 
-      // In WebGL1, floating point textures require extensions.
-      // OES_texture_half_float allows HALF_FLOAT_OES.
-      // OES_texture_float allows FLOAT.
-      // WebGL1 framebuffers may not support rendering to float textures without WEBGL_color_buffer_float / EXT_color_buffer_half_float
-      const extHalf = this.gl.getExtension("OES_texture_half_float");
-      const extColorHalf = this.gl.getExtension("EXT_color_buffer_half_float");
-      const useHalfFloat = extHalf && extColorHalf;
-      const type = useHalfFloat ? extHalf.HALF_FLOAT_OES : this.gl.UNSIGNED_BYTE;
+      // Always use an 8-bit color target on WebGL1. Rendering to a HALF_FLOAT_OES texture
+      // (via OES_texture_half_float + EXT_color_buffer_half_float) reports FRAMEBUFFER_COMPLETE
+      // on some drivers (ANGLE/Metal, SwiftShader) yet silently drops every draw, leaving the
+      // post pipeline black. The GL1 path is the legacy/low-quality fallback, so the reduced
+      // HDR range of RGBA8 is an acceptable trade for a reliable result.
+      const type = this.gl.UNSIGNED_BYTE;
 
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this._hdrFbo);
 
