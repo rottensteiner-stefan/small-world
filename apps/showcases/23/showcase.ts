@@ -29,6 +29,8 @@ import { MarbleController } from "./MarbleController.js";
 import { DroneController } from "./DroneController.js";
 
 class Showcase23 extends AbstractShowcase {
+  protected override defaultCameraController = "none" as const;
+
   private _marble: Object3D | null = null;
   private _ambientAudioStarted: boolean = false;
   private _gameActive: boolean = false;

@@ -958,3 +958,38 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
 - ⚠️ **Bekannte Grenzen:** konstantes Gewicht 0.6 ⇒ Endfarben der LUT werden nur zu ca. 79–89 % erreicht (Designfrage, ggf. neuer Vorschlag); Flag an nur auf einem der fünf StylizedWater-Pools geprüft; `quality.disableTextures` färbt eine gebundene Rampe weiß; WebGL1 indiziert die Rampe per Fresnel statt Tiefe.
 - 📋 **Offen:** Die committete Golden-Baseline ist auf HEAD schon unabhängig davon rot (toon-water, bold-anime, painterly-sparkle, wave-rider, je top > 0,5 %) — Neuaufnahme ist Moderator-Entscheidung. WebGL1 hat einen alten Shader-Fehler (`finalLight` undeclared, Link-Fehler), nicht StylizedWater.
 - ℹ️ Session `liquid-roadmap` ist ebenfalls `terminated` (siehe deren Abschluss-Block); ihr einziger offener Punkt (formale Abnahme/G6 im CI-Verbund) ist ein externes CI-Gate, keine Session-Arbeit.
+
+## 2026-10-08 — Engine-vs-AI-Vergleich Showcase 10 auf 12 Pools erweitert
+
+- ✅ **Vergleichs-Galerie `.agents/scratches/compare/` (index.html + index.md) auf 12 Pools erweitert** (vorher 10): neue Pools
+  `wave-rider` (OpenWater, echte Gerstner-Auftriebsfahrt) und `dead-sea` (OpenWater, Brinen-Dichte 1.24). Die alten
+  `*__top.png` vom 06.–07.10. drifteten gegen die committete GL2-Baseline um 3,4–20,5 % (veraltete Engine), deshalb neu
+  aufgenommen.
+- ✅ **Neue Engine-Screenshots via Golden-Capture-Pipeline, WebGPU-Matrix:** `node scripts/goldens/capture.js --matrix gpu
+  --view top --frames 600 --out <dir>` → 12/12 ok (Chrome 152, SwiftShader/Vulkan-Software-WebGPU). Manifest/summary im
+  Ordner auf `WEB_GPU` aktualisiert. Hinweis: Tripo-Key `TRIPO_API_KEY` ist in der Shell-Umgebung vorhanden; der
+  Erzeuge-Bild-Endpunkt ist `POST https://api.tripo3d.ai/v2/openapi/task` mit `{"type":"text_to_image","prompt":...}`,
+  Ausgabe ist **immer quadratisch 768×768** unter `output.generated_image` (Sign-URL) — 16:9-Referenzen (1376×768) werden
+  per zentriertem Vertikal-Crop nach Skalierung erzeugt (Margen-Prompt nötig, damit der zentrale Pool den Schnitt übersteht).
+
+## 2026-10-08 — Build-Fehler TS6059 (liquid-extras außerhalb engine-rootDir) behoben
+
+- 🔴→✅ **Ursache:** `packages/engine/vite.lib.config.ts` → `vite-plugin-dts` (unplugin-dts) kompiliert beim Lib-Build ein
+  tsc-Programm aus `packages/engine/tsconfig.json`, das `tests/**/*` + `rootDir:"./"` inkludiert.
+  `DeadOptionLint.test.ts:33` importiert `../liquid-extras/src` (außerhalb packages/engine) → TS6059-Flut im
+  `npm run build`-Output (Build lief trotzdem exit 0). Root-Typecheck war davon nie betroffen (Repo-Root rootDir).
+- ✅ **Fix (minimal):** dts-Plugin auf `include: ["src/**"]` begrenzt — Lib-Build emittiert nur Typen der öffentlichen
+  Fläche, Tests fallen aus dessen tsc-Programm (keine TS6059 mehr, keine nutzlosen `dist/tests/*.d.ts`). Tests bleiben
+  durch `npm run typecheck` (Repo-weit) und vitest abgedeckt. Verifiziert: kompletter `npm run build` (exit 0, 0 TS6059),
+  `lint:fix` grün, `npx tsc --noEmit` exit 0, volle Suite 1505/1505 grün.
+
+## 2026-10-08 — "Synthetische Augen": vision-image.mjs (Bilder für text-only Modelle)
+
+- ✅ **`.agents/vision-image.mjs` angelegt:** Bild → externe Vision-API → Text-Beschreibung als stdin, damit das text-only
+  Modell (Deepseek V4 Flash auf lokalem Spark, einziger aktiver opencode-Provider) "sehen" kann. **Standard: Gemini**
+  (`gemini-3.8-flash`, env `GEMINI_API_KEY` — verifiziert funktionierend); `--provider openai` ist opt-in (`gpt-4o-mini`,
+  `OPENAI_API_KEY` in dieser Shell aktuell 401/ungültig). Nutzung: `node .agents/vision-image.mjs <bild> [--prompt ...]`.
+- ✅ **Angewandt auf improve-noir (Ist/Soll):** Soll `noir_pool_ki_soll.png` = Comic-Noir-Pool mit weißer Kugel + Ripples,
+  rein monochrom, harte Posterization, reines Weiß nur an Kanten/Kamm, inkl. AI-Artefakte (wackelnde Fliesenlinien,
+  schwarze Fliesen ohne Logik, mehrdeutige Schatten). Engine-Ist `noir_pool_engine_ist.png` = "close", aber Unterschied:
+  mechanische diagonale Stripes + weiches Kugel-Shading statt dynamischer Comic-Ink-Schraffur/posterisierter Steps.

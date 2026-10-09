@@ -31,6 +31,11 @@ export default defineConfig({
   plugins: [
     dts({
       rollupTypes: false,
+      // Only the public library surface emits declarations. The engine tsconfig includes
+      // tests/**/* ; some tests import ../liquid-extras/src (outside packages/engine), which
+      // would otherwise pull those files into this tsc program and trip TS6059 ("not under
+      // rootDir"). Tests type-correctness stays covered by the repo-wide `npm run typecheck`.
+      include: ["src/**"],
     }),
   ],
 });

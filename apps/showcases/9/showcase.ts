@@ -23,6 +23,8 @@ import {
  * Showcase 9: A classic 2.5D Jump & Run with pure code physics and collision!
  */
 export class Showcase9 extends AbstractShowcase {
+  protected override defaultCameraController = "none" as const;
+
   private _player!: Object3D;
   private _blocks: Object3D[] = [];
 

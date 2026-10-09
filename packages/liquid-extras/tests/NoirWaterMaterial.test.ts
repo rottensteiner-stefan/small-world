@@ -15,25 +15,34 @@ describe("NoirWaterMaterial Hook-Based Extension", () => {
     expect(styleB[3]).toBe(3.0); // styleId
   });
 
-  it("injects ink, hatching and posterize hooks into all three backends", () => {
+  it("injects ink, concentric shockwaves and posterize hooks into all three backends", () => {
     const mat = new NoirWaterMaterial();
     const shaderDef = mat.getShaderDefinition();
     expect(shaderDef).toBeDefined();
 
-    expect(shaderDef.sources.glsl300?.fs).toContain("hatchA");
-    expect(shaderDef.sources.glsl100?.fs).toContain("hatchA");
-    expect(shaderDef.sources.wgsl).toContain("hatchA");
-    // posterize steps are read from the lane, not hardcoded
+    expect(shaderDef.sources.glsl300?.fs).toContain("ripStroke");
+    expect(shaderDef.sources.glsl100?.fs).toContain("ripStroke");
+    expect(shaderDef.sources.wgsl).toContain("ripStroke");
+    // posterize steps and ripple center are read from the lanes
     expect(shaderDef.sources.glsl300?.fs).toContain("u_styleA.w");
     expect(shaderDef.sources.wgsl).toContain("obj.styleA.w");
   });
 
-  it("transports posterizeSteps through the u_styleA.w lane", () => {
-    const mat = new NoirWaterMaterial({ posterizeSteps: 6 });
+  it("transports posterizeSteps and rippleCenter through the u_styleA lanes", () => {
+    const mat = new NoirWaterMaterial({ posterizeSteps: 6, rippleCenter: [-2.0, 3.5] });
     expect(mat.posterizeSteps).toBe(6);
-    expect((mat.getRenderManifest().properties["u_styleA"] as number[])[3]).toBe(6);
+    expect(mat.rippleCenter).toEqual([-2.0, 3.5]);
+    const styleA = mat.getRenderManifest().properties["u_styleA"] as number[];
+    expect(styleA[0]).toBe(-2.0);
+    expect(styleA[1]).toBe(3.5);
+    expect(styleA[3]).toBe(6);
+
     mat.posterizeSteps = 3;
-    expect((mat.getRenderManifest().properties["u_styleA"] as number[])[3]).toBe(3);
+    mat.rippleCenter = [1.2, -0.8];
+    const styleAUpdated = mat.getRenderManifest().properties["u_styleA"] as number[];
+    expect(styleAUpdated[0]).toBe(1.2);
+    expect(styleAUpdated[1]).toBe(-0.8);
+    expect(styleAUpdated[3]).toBe(3);
   });
 
   it("clamps posterizeSteps to 2..8 and defaults to 4", () => {
@@ -42,11 +51,34 @@ describe("NoirWaterMaterial Hook-Based Extension", () => {
     expect(new NoirWaterMaterial({ posterizeSteps: 99 }).posterizeSteps).toBe(8);
   });
 
-  it("disables base ripple lines and glitter, and uses low caustics by default", () => {
-    const mat = new NoirWaterMaterial({ lineDensity: 0.9, glitterStrength: 0.9 });
+  it("transports multi-object ripple centers through u_styleA and u_styleB lanes", () => {
+    const mat = new NoirWaterMaterial({
+      posterizeSteps: 5,
+      rippleCenter: [-1.5, 2.0],
+      rippleCenter2: [3.0, -4.5],
+      rippleCenter3: [0.5, 1.2],
+    });
+    expect(mat.posterizeSteps).toBe(5);
+    expect(mat.rippleCenter).toEqual([-1.5, 2.0]);
+    expect(mat.rippleCenter2).toEqual([3.0, -4.5]);
+    expect(mat.rippleCenter3).toEqual([0.5, 1.2]);
+
     const manifest = mat.getRenderManifest();
-    expect((manifest.properties["u_styleA"] as number[])[2]).toBe(0);
-    expect((manifest.properties["u_styleB"] as number[])[2]).toBe(0);
+    const styleA = manifest.properties["u_styleA"] as number[];
+    const styleB = manifest.properties["u_styleB"] as number[];
+    expect(styleA[0]).toBe(-1.5);
+    expect(styleA[1]).toBe(2.0);
+    expect(styleA[2]).toBe(3.0);
+    expect(styleA[3]).toBe(5);
+
+    expect(styleB[0]).toBe(-4.5);
+    expect(styleB[1]).toBe(0.5);
+    expect(styleB[2]).toBe(1.2);
+    expect(styleB[3]).toBe(3.0); // styleId
+  });
+
+  it("uses low caustics by default", () => {
+    const mat = new NoirWaterMaterial();
     expect(mat.causticStrength).toBeLessThanOrEqual(0.2);
   });
 

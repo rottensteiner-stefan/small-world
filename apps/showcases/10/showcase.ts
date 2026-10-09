@@ -49,12 +49,10 @@ import { LiveTunePad } from "./LiveTunePad.js";
 
 const GROUT_THICKNESS_PX = 5.5; // half-grout drawn per tile cell -> 11px full grout line
 const TILE_CELL_PX = 128; // 8x8 tiles in 1024x1024 texture
-const GROUT_RATIO = (GROUT_THICKNESS_PX * 2) / TILE_CELL_PX; // 11 / 128 ≈ 0.0859
 const TILE_UNIT_SIZE = 0.142; // ~14.2cm per tile unit (tile + center grout)
-const GROUT_METERS = TILE_UNIT_SIZE * GROUT_RATIO; // ~0.0122m full grout line in world units
-const WALL_THICKNESS = 2 * TILE_UNIT_SIZE + GROUT_METERS; // exactly 2 tiles + 1 extra grout line = ~0.296m
+const WALL_THICKNESS = 2 * TILE_UNIT_SIZE; // exactly 2 tiles = ~0.284m
 const POOL_TILES_OUTER = 35; // 35 tiles along outer edge
-const POOL_SIZE = POOL_TILES_OUTER * TILE_UNIT_SIZE + GROUT_METERS; // ~4.982m
+const POOL_SIZE = POOL_TILES_OUTER * TILE_UNIT_SIZE; // ~4.970m
 const WALL_HEIGHT = 1.5;
 const WALL_CENTER_Y = -0.65; // top curb face at +0.10 (subtle 5cm curb above ground)
 const FLOOR_Y = -1.35;
@@ -446,7 +444,11 @@ export class Showcase10 extends AbstractShowcase {
   )[] = [];
   private _lavaLight: PointLight | undefined;
   private _slimeLight: PointLight | undefined;
-  private _crateMaterial: WorldMaterial | undefined;
+  private _noirWater: NoirWaterMaterial | undefined;
+  private _noirFloater1: Object3D | undefined;
+  private _noirFloater2: Object3D | undefined;
+  private _noirDropper: Object3D | undefined;
+  private _crateTexture: Texture | undefined;
   private _buoyTextures: Map<string, Texture> = new Map();
   private _barrelHazard: Object3D | undefined;
   private _barrelOil: Object3D | undefined;
@@ -548,7 +550,7 @@ export class Showcase10 extends AbstractShowcase {
     const tileMaterial = this._createTileMaterial(TILE_PALETTES.pool);
     // Dark frames for the dark / special liquids: the bright cyan frame clashes with lava, oil, noir...
     const murkTileMaterial = this._createTileMaterial(TILE_PALETTES.murk);
-    const noirTileMaterial = this._createTileMaterial(TILE_PALETTES.noir);
+    const noirTileMaterial = this._createNoirTileMaterial();
     const basaltTileMaterial = this._createTileMaterial(TILE_PALETTES.basalt);
     const toxicTileMaterial = this._createTileMaterial(TILE_PALETTES.toxic);
     const oilTileMaterial = this._createTileMaterial(TILE_PALETTES.graphite);
@@ -583,16 +585,8 @@ export class Showcase10 extends AbstractShowcase {
       flipY: true,
     });
 
-    // Load wooden crate textures (Underwater Hideout asset)
-    const crateDiffuse = await Texture.fromUrl("./assets/crate_diffuse.webp", {
-      generateMipmaps: true,
-      flipY: true,
-      anisotropy: 16,
-    });
-    this._crateMaterial = new WorldMaterial({
-      diffuseMap: crateDiffuse,
-    });
-    this._crateMaterial.color = Color.WHITE;
+    // Create procedural light-brown wooden shipping crate texture matching authentic vintage cargo crate
+    this._crateTexture = this._createWoodCrateTexture();
 
     // Load Industrial Kit Barrels (GLB models)
     const gltfLoader = new GltfLoader();
@@ -828,24 +822,37 @@ export class Showcase10 extends AbstractShowcase {
       dredge: dredgeWater,
     });
 
-    // 7. Noir Graphic Novel (Black-and-White Comic Ink Posterization)
-    const noirWater = new NoirWaterMaterial();
+    const noirPos = poolWorldPosition("noir-graphic");
+    const noirWater = new NoirWaterMaterial({
+      posterizeSteps: 4,
+      rippleCenter: [noirPos.x - 1.1, noirPos.z + 1.1],
+      rippleCenter2: [noirPos.x + 1.1, noirPos.z - 0.9],
+      rippleCenter3: [noirPos.x + 0.3, noirPos.z + 0.2],
+    });
+    this._noirWater = noirWater;
+    const noirFloaterBall = this._makeBall(new Color(0.96, 0.96, 0.96), 0.36);
+    const noirFloaterCrate = this._makeCrate();
+    const noirDropper = this._makeBall(new Color(0.95, 0.95, 0.95), 0.35);
+    this._noirFloater1 = noirFloaterBall;
+    this._noirFloater2 = noirFloaterCrate;
+    this._noirDropper = noirDropper;
+
     this._buildPool({
       name: "NoirGraphicPool",
-      ...poolWorldPosition("noir-graphic"),
+      ...noirPos,
       liquid: noirWater,
       needsTangents: true,
       tileMaterial: noirTileMaterial,
       spawnDelay: 4.2,
       sunkObjects: [
-        [this._makeCrate(new Color(0.1, 0.1, 0.1)), -0.9, -0.6],
-        [this._makeBall(new Color(0.9, 0.9, 0.9), 0.32), 0.9, 0.5],
+        [this._makeCrate(), -0.9, -0.6],
+        [this._makeBall(new Color(0.92, 0.92, 0.92), 0.32), 0.9, 0.5],
       ],
       floaters: [
-        [this._makeBall(new Color(0.95, 0.95, 0.95), 0.36), -1.1, 1.1, 0.1, 1.8],
-        [this._makeCrate(new Color(0.05, 0.05, 0.05)), 1.1, -0.9, 0.09, 2.2],
+        [noirFloaterBall, -1.1, 1.1, 0.1, 1.8],
+        [noirFloaterCrate, 1.1, -0.9, 0.09, 2.2],
       ],
-      dropper: this._makeBall(new Color(0.85, 0.85, 0.85), 0.35),
+      dropper: noirDropper,
     });
 
     // 8. Molten Lava (Viscous Magma with Crust & Pulse)
@@ -1160,10 +1167,72 @@ export class Showcase10 extends AbstractShowcase {
   }
 
   /** Wraps a generated ceramic tile texture into a world material for the pool frame. */
-  private _createTileMaterial(palette: TilePalette): WorldMaterial {
-    const material = new WorldMaterial({ diffuseMap: this._createPoolTileTexture(palette) });
+  private _createTileMaterial(palette: TilePalette): LambertMaterial {
+    const material = new LambertMaterial({ diffuseMap: this._createPoolTileTexture(palette) });
     material.color = Color.WHITE;
     return material;
+  }
+
+  /** Creates the high-contrast comic inked tile material for the Noir Graphic Novel pool. */
+  private _createNoirTileMaterial(): LambertMaterial {
+    const material = new LambertMaterial({ diffuseMap: this._createNoirPoolTileTexture() });
+    material.color = Color.WHITE;
+    return material;
+  }
+
+  /**
+   * Generates a graphic-novel comic tile texture: flat slate/charcoal grey tiles with sharp white
+   * grout lines, thin ink boundary strokes, and randomized deep-black accent tiles.
+   */
+  private _createNoirPoolTileTexture(): Texture {
+    const size = 1024;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return Texture.empty();
+
+    const tilesPerAxis = 8;
+    const tileSize = size / tilesPerAxis; // 128px
+    const groutSize = 9.0; // Bold white comic grout lines (18px between tiles)
+
+    // Background: Crisp stark white grout lines for the comic deck rim and floor
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+
+    // Draw flat comic inked tiles with occasional solid black accent tiles
+    for (let y = 0; y < tilesPerAxis; y++) {
+      for (let x = 0; x < tilesPerAxis; x++) {
+        const tx = x * tileSize + groutSize;
+        const ty = y * tileSize + groutSize;
+        const tw = tileSize - groutSize * 2;
+        const th = tileSize - groutSize * 2;
+
+        const rand = Math.random();
+        if (rand < 0.16) {
+          // Deep solid ink black accent tile
+          ctx.fillStyle = "#0a0a0d";
+        } else if (rand < 0.58) {
+          ctx.fillStyle = "#4c525c"; // Classic comic slate grey
+        } else if (rand < 0.86) {
+          ctx.fillStyle = "#666d7a"; // Light slate grey
+        } else {
+          ctx.fillStyle = "#272a30"; // Dark charcoal
+        }
+
+        ctx.fillRect(tx, ty, tw, th);
+
+        // Thin sharp comic border outline
+        ctx.strokeStyle = "#08080a";
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(tx, ty, tw, th);
+      }
+    }
+
+    return Texture.fromCanvas(canvas, {
+      anisotropy: 16,
+      generateMipmaps: true,
+    });
   }
 
   /**
@@ -1180,7 +1249,7 @@ export class Showcase10 extends AbstractShowcase {
 
     const tilesPerAxis = 8;
     const tileSize = size / tilesPerAxis; // 128px
-    const groutSize = 5.5; // Double-thickness grout (11px between tiles)
+    const groutSize = GROUT_THICKNESS_PX; // Double-thickness grout (11px between tiles)
 
     ctx.fillStyle = palette.grout;
     ctx.fillRect(0, 0, size, size);
@@ -1253,8 +1322,9 @@ export class Showcase10 extends AbstractShowcase {
   }
 
   /**
-   * Creates a box geometry with UV coordinates scaled and offset so that the top rim face
-   * maps to exactly 2 tiles and 3 full grout lines (outer, center, inner) with equal thickness.
+   * Creates a box geometry with UV coordinates scaled so that each unit of `tileUnitSize`
+   * maps to exactly one tile cell (half-grout at outer/inner edges, full grout between tiles).
+   * For the 2-tile rim, this produces: half grout, whole tile, whole grout, whole tile, half grout.
    */
   private _createTiledBoxGeometry(
     width: number,
@@ -1272,7 +1342,6 @@ export class Showcase10 extends AbstractShowcase {
         vertices[i + 2] = vertices[i + 2]! * depth;
       }
 
-      const gUV = GROUT_THICKNESS_PX / 1024;
       const faceDims: Array<[number, number]> = [
         [depth, height], // Face 0: Right (+X)
         [depth, height], // Face 1: Left (-X)
@@ -1284,12 +1353,12 @@ export class Showcase10 extends AbstractShowcase {
 
       for (let f = 0; f < 6; f++) {
         const [spanU, spanV] = faceDims[f]!;
-        const numTilesU = Math.max(1, Math.round((spanU - GROUT_METERS) / tileUnitSize));
-        const numTilesV = Math.max(1, Math.round((spanV - GROUT_METERS) / tileUnitSize));
-        const u0 = -gUV;
-        const u1 = (numTilesU * TILE_CELL_PX + GROUT_THICKNESS_PX) / 1024;
-        const v0 = -gUV;
-        const v1 = (numTilesV * TILE_CELL_PX + GROUT_THICKNESS_PX) / 1024;
+        const numTilesU = Math.max(1, Math.round(spanU / tileUnitSize));
+        const numTilesV = Math.max(1, Math.round(spanV / tileUnitSize));
+        const u0 = 0;
+        const u1 = (numTilesU * TILE_CELL_PX) / 1024;
+        const v0 = 0;
+        const v1 = (numTilesV * TILE_CELL_PX) / 1024;
 
         const offset = f * 8;
         // Vertices order from Cube.buildPlane:
@@ -1410,7 +1479,7 @@ export class Showcase10 extends AbstractShowcase {
     z: number;
     liquid: OpenWaterMaterial | StylizedWaterMaterial | FluidSurfaceMaterial | NoirWaterMaterial;
     needsTangents: boolean;
-    tileMaterial: WorldMaterial;
+    tileMaterial: LambertMaterial;
     spawnDelay: number;
     sunkObjects?: Array<[Object3D, number, number]>;
     floaters?: Array<[Object3D, number, number, number, number]>;
@@ -1652,27 +1721,445 @@ export class Showcase10 extends AbstractShowcase {
     return tex;
   }
 
+  /**
+   * Generates a stylized pine wooden crate texture matching classic framed cargo crates:
+   * 4-sided outer perimeter frame, recessed vertical planks with wood grain and knots,
+   * diagonal Z-brace cross-strut casting 3D drop shadow, and iron L-brackets with rivets in the corners.
+   */
+  private _createWoodCrateTexture(): Texture {
+    const size = 1024;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return Texture.empty();
+
+    const frameW = 148;
+    const innerX = frameW;
+    const innerY = frameW;
+    const innerW = size - frameW * 2; // 728
+    const innerH = size - frameW * 2; // 728
+
+    // Helper: draw wood grain lines
+    const drawWoodGrain = (
+      clipRect: [number, number, number, number],
+      vertical: boolean,
+      density: number,
+      baseAlpha: number = 0.18,
+    ): void => {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(...clipRect);
+      ctx.clip();
+      const [rx, ry, rw, rh] = clipRect;
+      for (let i = 0; i < density; i++) {
+        const t = i / density;
+        const isDark = i % 2 === 0;
+        ctx.strokeStyle = isDark
+          ? `rgba(110, 65, 22, ${baseAlpha * (0.6 + 0.4 * Math.sin(i * 1.3))})`
+          : `rgba(255, 235, 195, ${baseAlpha * (0.5 + 0.5 * Math.cos(i * 1.7))})`;
+        ctx.lineWidth = 1.0 + (i % 3) * 0.8;
+        ctx.beginPath();
+        if (vertical) {
+          const gx = rx + t * rw;
+          ctx.moveTo(gx, ry);
+          ctx.bezierCurveTo(
+            gx + Math.sin(i * 1.5) * 8,
+            ry + rh * 0.33,
+            gx + Math.cos(i * 1.2) * 8,
+            ry + rh * 0.66,
+            gx,
+            ry + rh,
+          );
+        } else {
+          const gy = ry + t * rh;
+          ctx.moveTo(rx, gy);
+          ctx.bezierCurveTo(
+            rx + rw * 0.33,
+            gy + Math.sin(i * 1.5) * 8,
+            rx + rw * 0.66,
+            gy + Math.cos(i * 1.2) * 8,
+            rx + rw,
+            gy,
+          );
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+
+    // Helper: draw a natural pine wood knot
+    const drawWoodKnot = (
+      cx: number,
+      cy: number,
+      radiusX: number,
+      radiusY: number,
+      angle: number = 0,
+    ): void => {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      // Outer halo
+      ctx.fillStyle = "rgba(160, 95, 35, 0.35)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radiusX * 1.6, radiusY * 1.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Rings
+      for (let r = 5; r >= 1; r--) {
+        const f = r / 5;
+        ctx.strokeStyle = r % 2 === 0 ? "rgba(95, 48, 15, 0.45)" : "rgba(220, 160, 90, 0.4)";
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radiusX * f, radiusY * f, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // Core knot
+      ctx.fillStyle = "#633513";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radiusX * 0.35, radiusY * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    };
+
+    // Helper: draw metal rivet/nail head
+    const drawRivet = (
+      cx: number,
+      cy: number,
+      radius: number = 6.5,
+      metalDark: boolean = false,
+    ): void => {
+      // Shadow
+      ctx.fillStyle = "rgba(15, 8, 3, 0.65)";
+      ctx.beginPath();
+      ctx.arc(cx + 1.5, cy + 2.0, radius + 1.0, 0, Math.PI * 2);
+      ctx.fill();
+      // Base
+      const rGrad = ctx.createRadialGradient(
+        cx - radius * 0.3,
+        cy - radius * 0.3,
+        1,
+        cx,
+        cy,
+        radius,
+      );
+      if (metalDark) {
+        rGrad.addColorStop(0.0, "#9aa0aa");
+        rGrad.addColorStop(0.5, "#42464e");
+        rGrad.addColorStop(1.0, "#1d1f23");
+      } else {
+        rGrad.addColorStop(0.0, "#f0f2f5");
+        rGrad.addColorStop(0.4, "#a8afb9");
+        rGrad.addColorStop(1.0, "#4a5059");
+      }
+      ctx.fillStyle = rGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(15, 20, 25, 0.8)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      // Center slot / specular dot
+      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+      ctx.beginPath();
+      ctx.arc(cx - radius * 0.35, cy - radius * 0.35, radius * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    // ==========================================
+    // 1. RECESSED INNER PANEL (VERTICAL PLANKS)
+    // ==========================================
+    const numPlanks = 6;
+    const plankW = innerW / numPlanks;
+    const plankTones = ["#dfb577", "#d5a666", "#e4bd80", "#d1a05e", "#deb375", "#d7a869"];
+
+    for (let p = 0; p < numPlanks; p++) {
+      const px = innerX + p * plankW;
+      const grad = ctx.createLinearGradient(px, innerY, px + plankW, innerY);
+      grad.addColorStop(0.0, plankTones[p]!);
+      grad.addColorStop(0.5, "#ebd098");
+      grad.addColorStop(1.0, plankTones[(p + 1) % numPlanks]!);
+      ctx.fillStyle = grad;
+      ctx.fillRect(px, innerY, plankW, innerH);
+
+      // Vertical wood grain
+      drawWoodGrain([px, innerY, plankW, innerH], true, 30, 0.22);
+
+      // Plank separator groove
+      if (p > 0) {
+        ctx.fillStyle = "rgba(45, 25, 10, 0.9)";
+        ctx.fillRect(px - 2.5, innerY, 5, innerH);
+        ctx.fillStyle = "rgba(255, 240, 210, 0.4)";
+        ctx.fillRect(px + 2.5, innerY, 1.5, innerH);
+      }
+    }
+
+    // Knots on vertical planks
+    drawWoodKnot(innerX + 180, innerY + 240, 22, 34, 0.1);
+    drawWoodKnot(innerX + 540, innerY + 480, 26, 40, -0.15);
+    drawWoodKnot(innerX + 320, innerY + 610, 18, 28, 0.05);
+
+    // Deep inner shadow cast by the frame onto the recessed panel
+    const topShadow = ctx.createLinearGradient(0, innerY, 0, innerY + 45);
+    topShadow.addColorStop(0.0, "rgba(20, 10, 4, 0.75)");
+    topShadow.addColorStop(1.0, "rgba(20, 10, 4, 0.0)");
+    ctx.fillStyle = topShadow;
+    ctx.fillRect(innerX, innerY, innerW, 45);
+
+    const leftShadow = ctx.createLinearGradient(innerX, 0, innerX + 45, 0);
+    leftShadow.addColorStop(0.0, "rgba(20, 10, 4, 0.75)");
+    leftShadow.addColorStop(1.0, "rgba(20, 10, 4, 0.0)");
+    ctx.fillStyle = leftShadow;
+    ctx.fillRect(innerX, innerY, 45, innerH);
+
+    // ==========================================
+    // 2. DIAGONAL CROSS-BRACE (Z-STRUT)
+    // ==========================================
+    const braceW = 138;
+    const p1x = innerX;
+    const p1y = innerY + innerH;
+    const p2x = innerX + innerW;
+    const p2y = innerY;
+    const dx = p2x - p1x;
+    const dy = p2y - p1y;
+    const len = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx); // ~ -45 deg
+
+    ctx.save();
+    // Clip diagonal brace to inner box
+    ctx.beginPath();
+    ctx.rect(innerX, innerY, innerW, innerH);
+    ctx.clip();
+
+    ctx.translate(p1x, p1y);
+    ctx.rotate(angle);
+
+    // 3D Drop shadow underneath the diagonal brace onto the planks
+    const shadowOffset = 20;
+    const bShadow = ctx.createLinearGradient(0, braceW * 0.5, 0, braceW * 0.5 + shadowOffset);
+    bShadow.addColorStop(0.0, "rgba(15, 8, 3, 0.75)");
+    bShadow.addColorStop(1.0, "rgba(15, 8, 3, 0.0)");
+    ctx.fillStyle = bShadow;
+    ctx.fillRect(-50, braceW * 0.5, len + 100, shadowOffset);
+
+    // Diagonal brace wooden plank
+    const bGrad = ctx.createLinearGradient(0, -braceW * 0.5, 0, braceW * 0.5);
+    bGrad.addColorStop(0.0, "#eed5a4");
+    bGrad.addColorStop(0.25, "#e0b678");
+    bGrad.addColorStop(0.75, "#cf9f5d");
+    bGrad.addColorStop(1.0, "#b37f3e");
+    ctx.fillStyle = bGrad;
+    ctx.fillRect(-50, -braceW * 0.5, len + 100, braceW);
+
+    // Wood grain lines along the brace
+    drawWoodGrain([-50, -braceW * 0.5, len + 100, braceW], false, 35, 0.24);
+
+    // Knot on diagonal brace
+    drawWoodKnot(len * 0.52, -4, 16, 26, 0.4);
+
+    // Bevel highlights & edge shadows on diagonal brace
+    ctx.fillStyle = "rgba(255, 245, 225, 0.7)";
+    ctx.fillRect(-50, -braceW * 0.5, len + 100, 3);
+    ctx.fillStyle = "rgba(35, 18, 6, 0.75)";
+    ctx.fillRect(-50, braceW * 0.5 - 3, len + 100, 3);
+
+    // Rivets on diagonal brace ends
+    drawRivet(70, 0, 7);
+    drawRivet(len - 70, 0, 7);
+
+    ctx.restore();
+
+    // ==========================================
+    // 3. OUTER BORDER FRAME (4 PERIMETER BEAMS)
+    // ==========================================
+    const drawFrameBeam = (
+      rect: [number, number, number, number],
+      vertical: boolean,
+      tones: [string, string, string],
+      knot?: [number, number, number, number, number],
+    ): void => {
+      const [bx, by, bw, bh] = rect;
+      const grad = vertical
+        ? ctx.createLinearGradient(bx, by, bx + bw, by)
+        : ctx.createLinearGradient(bx, by, bx, by + bh);
+      grad.addColorStop(0.0, tones[0]);
+      grad.addColorStop(0.5, tones[1]);
+      grad.addColorStop(1.0, tones[2]);
+      ctx.fillStyle = grad;
+      ctx.fillRect(bx, by, bw, bh);
+
+      // Wood grain
+      drawWoodGrain(rect, vertical, 36, 0.25);
+
+      // Knot if specified
+      if (knot) {
+        drawWoodKnot(...knot);
+      }
+
+      // Outer highlight and inner shadow bevels
+      if (vertical) {
+        ctx.fillStyle = "rgba(255, 245, 220, 0.55)";
+        ctx.fillRect(bx, by, 3, bh);
+        ctx.fillStyle = "rgba(40, 20, 5, 0.75)";
+        ctx.fillRect(bx + bw - 3, by, 3, bh);
+      } else {
+        ctx.fillStyle = "rgba(255, 245, 220, 0.55)";
+        ctx.fillRect(bx, by, bw, 3);
+        ctx.fillStyle = "rgba(40, 20, 5, 0.75)";
+        ctx.fillRect(bx, by + bh - 3, bw, 3);
+      }
+    };
+
+    // Top beam
+    drawFrameBeam(
+      [0, 0, size, frameW],
+      false,
+      ["#edd3a0", "#dfb476", "#c89753"],
+      [size * 0.4, frameW * 0.5, 24, 16, 0.05],
+    );
+    // Bottom beam
+    drawFrameBeam(
+      [0, size - frameW, size, frameW],
+      false,
+      ["#e4be82", "#d5a463", "#bc8541"],
+      [size * 0.42, size - frameW * 0.5, 22, 15, 0.1],
+    );
+    // Left beam
+    drawFrameBeam(
+      [0, 0, frameW, size],
+      true,
+      ["#ebd09d", "#dfb375", "#c69450"],
+      [frameW * 0.5, size * 0.62, 16, 26, 0.12],
+    );
+    // Right beam
+    drawFrameBeam(
+      [size - frameW, 0, frameW, size],
+      true,
+      ["#e2ba7c", "#d19f5c", "#b67d38"],
+      [size - frameW * 0.5, size * 0.7, 16, 25, -0.08],
+    );
+
+    // Outer frame corner joint lines
+    ctx.strokeStyle = "rgba(35, 18, 6, 0.85)";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, frameW);
+    ctx.lineTo(frameW, frameW);
+    ctx.moveTo(size - frameW, frameW);
+    ctx.lineTo(size, frameW);
+    ctx.moveTo(0, size - frameW);
+    ctx.lineTo(frameW, size - frameW);
+    ctx.moveTo(size - frameW, size - frameW);
+    ctx.lineTo(size, size - frameW);
+    ctx.stroke();
+
+    // Rivets on outer wooden frame
+    drawRivet(size * 0.5, frameW * 0.5, 6.5);
+    drawRivet(size * 0.5, size - frameW * 0.5, 6.5);
+    drawRivet(frameW * 0.5, size * 0.32, 6.5);
+    drawRivet(frameW * 0.5, size * 0.78, 6.5);
+    drawRivet(size - frameW * 0.5, size * 0.32, 6.5);
+    drawRivet(size - frameW * 0.5, size * 0.78, 6.5);
+
+    // ==========================================
+    // 4. METAL CORNER BRACKETS (L-BRACKETS)
+    // ==========================================
+    const armL = 136;
+    const armW = 38;
+
+    const drawCornerBracket = (
+      cornerX: number,
+      cornerY: number,
+      dirX: 1 | -1,
+      dirY: 1 | -1,
+    ): void => {
+      ctx.save();
+      ctx.translate(cornerX, cornerY);
+      ctx.scale(dirX, dirY);
+
+      // Bracket drop shadow
+      ctx.fillStyle = "rgba(10, 5, 2, 0.65)";
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(armL + 4, 0);
+      ctx.lineTo(armL + 4, armW + 4);
+      ctx.lineTo(armW + 4, armW + 4);
+      ctx.lineTo(armW + 4, armL + 4);
+      ctx.lineTo(0, armL + 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Metal base gradient
+      const mGrad = ctx.createLinearGradient(0, 0, armL, armL);
+      mGrad.addColorStop(0.0, "#606672");
+      mGrad.addColorStop(0.3, "#474b53");
+      mGrad.addColorStop(0.7, "#303339");
+      mGrad.addColorStop(1.0, "#202226");
+      ctx.fillStyle = mGrad;
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(armL, 0);
+      ctx.lineTo(armL, armW);
+      ctx.lineTo(armW, armW);
+      ctx.lineTo(armW, armL);
+      ctx.lineTo(0, armL);
+      ctx.closePath();
+      ctx.fill();
+
+      // 3D Bevel highlight & shadow on metal edges
+      ctx.strokeStyle = "rgba(220, 230, 245, 0.75)";
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.moveTo(0, armL);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(armL, 0);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(12, 14, 18, 0.9)";
+      ctx.beginPath();
+      ctx.moveTo(armL, 0);
+      ctx.lineTo(armL, armW);
+      ctx.lineTo(armW, armW);
+      ctx.lineTo(armW, armL);
+      ctx.lineTo(0, armL);
+      ctx.stroke();
+
+      // Rivets on bracket arms
+      drawRivet(armL - 26, armW * 0.5, 5.5, true);
+      drawRivet(armW * 0.5, armL - 26, 5.5, true);
+
+      ctx.restore();
+    };
+
+    // 4 corners: Top-Left, Top-Right, Bottom-Left, Bottom-Right
+    drawCornerBracket(0, 0, 1, 1);
+    drawCornerBracket(size, 0, -1, 1);
+    drawCornerBracket(0, size, 1, -1);
+    drawCornerBracket(size, size, -1, -1);
+
+    // Outer border dark vignette
+    ctx.strokeStyle = "rgba(20, 12, 5, 0.5)";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, size - 4, size - 4);
+
+    return Texture.fromCanvas(canvas, {
+      anisotropy: 16,
+      generateMipmaps: true,
+    });
+  }
+
   private _makeCrate(color?: Color): Object3D {
     const crate = new Object3D("Crate");
     crate.geometry = new Cube({ size: 0.6 }).getGeometryData();
     crate.castShadow = true;
     crate.receiveShadow = true;
-    if (this._crateMaterial) {
-      if (color && (color.r !== 1 || color.g !== 1 || color.b !== 1)) {
-        const mat = new WorldMaterial(
-          this._crateMaterial.diffuseMap
-            ? { diffuseMap: this._crateMaterial.diffuseMap, color }
-            : { color },
-        );
-        crate.material = mat;
-      } else {
-        crate.material = this._crateMaterial;
-      }
-    } else {
-      crate.material = new WorldMaterial({
-        color: color ?? new Color(0.55, 0.4, 0.25),
-      });
+    if (!this._crateTexture) {
+      this._crateTexture = this._createWoodCrateTexture();
     }
+    crate.material = new LambertMaterial({
+      diffuseMap: this._crateTexture,
+      color: color ? (Object.isFrozen(color) ? color.clone() : color) : Color.WHITE,
+    });
     return crate;
   }
 
@@ -1903,6 +2390,28 @@ export class Showcase10 extends AbstractShowcase {
     if (this._slimeLight) {
       const pulse = Math.cos(this._time * 1.8) * 0.5 + 0.5;
       this._slimeLight.intensity = 2.5 + pulse * 2.5;
+    }
+
+    if (this._noirWater) {
+      const noirPos = poolWorldPosition("noir-graphic");
+      if (this._noirFloater1) {
+        this._noirWater.rippleCenter = [
+          noirPos.x + this._noirFloater1.position.x,
+          noirPos.z + this._noirFloater1.position.z,
+        ];
+      }
+      if (this._noirFloater2) {
+        this._noirWater.rippleCenter2 = [
+          noirPos.x + this._noirFloater2.position.x,
+          noirPos.z + this._noirFloater2.position.z,
+        ];
+      }
+      if (this._noirDropper) {
+        this._noirWater.rippleCenter3 = [
+          noirPos.x + this._noirDropper.position.x,
+          noirPos.z + this._noirDropper.position.z,
+        ];
+      }
     }
   }
 

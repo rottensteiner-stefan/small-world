@@ -133,6 +133,25 @@ export class CustomShaderMaterial extends AbstractMaterial {
       skipDepthPrePass: true,
     };
 
+    // Derive shader-compile flags from the assigned textures so the assembled fragment template
+    // actually declares the guarded sampler uniforms (u_emissiveMap -> USE_EMISSIVE_MAP, ...).
+    // Without this, any custom material reusing a template with #ifdef-guarded maps compiles its
+    // map usage against an undeclared sampler on the GLSL 300 path (StandardMaterial does this
+    // explicitly per-typed-slot; a generic material cannot). Unused defines are always harmless.
+    const flags: string[] = [];
+    for (const key in this.textures) {
+      if (!this.textures[key]) continue;
+      if (key === "u_envMap") {
+        flags.push("USE_ENV_MAP");
+      } else if (key === "u_normalMap") {
+        flags.push("USE_NORMAL_MAP");
+      } else {
+        const m = /^u_([a-zA-Z0-9]+?)Map$/.exec(key);
+        if (m) flags.push(`USE_${m[1]!.toUpperCase()}_MAP`);
+      }
+    }
+    this._renderManifest.flags = Array.from(new Set(flags));
+
     return this._renderManifest;
   }
 

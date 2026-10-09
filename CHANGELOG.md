@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.100.1] - 2026-10-09
+
+### "Geometry is the archetype of the beauty of the world." - Johannes Kepler
+
+- **Architecture & Bugfixes:**
+  - *Showcase 10 pool curb tile layout*: Pool edge geometry and UV unwrap now precisely match the physical tile grid. The edge rim follows an exact symmetric joint spacing: half grout -> full tile -> full grout -> full tile -> half grout (`WALL_THICKNESS = 2 * TILE_UNIT_SIZE`, `POOL_SIZE = POOL_TILES_OUTER * TILE_UNIT_SIZE`). Switched pool border mesh from triplanar `WorldMaterial` to `LambertMaterial` so the tile atlas faithfully respects geometry UV coordinates across all rendering pipelines (WebGL & WebGPU).
+  - *CustomShaderMaterial texture defines*: Automatically derives shader compilation flags (`USE_*_MAP`) from bound texture slots so `#ifdef`-guarded samplers in standard fragment templates compile without undeclared uniforms.
+  - *DTS build isolation*: Restricted `vite-plugin-dts` in `packages/engine/vite.lib.config.ts` to `src/**`, eliminating TS6059 warnings when external extra packages are referenced by tests.
+  - *Noir water ink transport*: Aligned `NoirWaterMaterial` shader posterization hooks and uniform lane transport with `LaneTransport` specifications (`posterizeSteps` default 4, `inkSteps = max(posterizeSteps - 1.0, 1.0)`).
+- **Housekeeping & Docs:**
+  - Cleaned default camera controllers in showcases 9 and 23 (`defaultCameraController = "none"`).
+  - Verified: 246 test suites, 1505 unit tests green; clean linting and builds across core library and all showcases.
+
 ## [0.100.0] - 2026-10-08
 
 ### "Drop it anywhere, and it finds its way." - Anonymous
