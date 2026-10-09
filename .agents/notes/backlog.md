@@ -25,7 +25,7 @@ erzeugen.
 - ✅ **Root Cause:** `WebGL1Renderer` hatte kein Pendant zu `WebGL2Renderer._ensurePostProcessFbo()` — die HDR-Post-Ressourcen wurden nur in `setSize()` angelegt. Aktivierte ein Showcase PostFX erst in `setupScene()` (nach Init/`setSize`), existierte der HDR-FBO nie → kein Tonemap-Composite → schwarze Präsentation, obwohl der Backbuffer nachweislich korrekt gerendert wurde (`preserveDrawingBuffer`-Readback).
 - ✅ **Fix (`WebGL1Renderer.ts`):** neues privates `_reconcilePostProcess()` erzeugt/entfernt HDR-FBO + Post-Passes passend zum aktuellen `postProcessing.enabled` pro Frame (in `bindMainRenderTarget()`) und in `setSize()` — GL1-Gegenstück zu GL2 `_ensurePostProcessFbo()`. Zusätzlich Color-Target fix auf `UNSIGNED_BYTE`: `HALF_FLOAT_OES` + `EXT_color_buffer_half_float` verwerfen auf ANGLE/Metal **und** SwiftShader trotz `FRAMEBUFFER_COMPLETE` jeden Draw stumm (schwarze Frames); GL1 ist Legacy-Pfad, RGBA8 statt verlorenem HDR-Range ist der robuste Kompromiss (im Code kommentiert).
 - ✅ **Verifikation:** Showcases 12/31/37/38 grün auf allen Backends (GL1/GL2/GPU). Echte GPU (ANGLE Metal M4 Pro, `--use-angle=default`): 31 GL1 crop mean ≈ 113 (vorher 4.8/schwarz). Build 0 TS-Fehler, ESLint clean, Tests 1505/1505.
-- ℹ️ Diagnose-Proben (GLSTATE/OPAQUE/TRANS, HDR-BUF/FB-DIAG) vollständig entfernt; Diff minimal (eine Datei). Commit `1ca58f70`.
+- ℹ️ Diagnose-Proben (GLSTATE/OPAQUE/TRANS, HDR-BUF/FB-DIAG) vollständig entfernt; Diff minimal (eine Datei). Commit `633e4674`.
 
 ## 2026-10-07 — Map Generator: Universal IO Input Integration
 
