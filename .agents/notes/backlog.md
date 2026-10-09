@@ -25,7 +25,7 @@ erzeugen.
 - ✅ **Umgesetzt (volles Programm):** ADR 0027 (`docs/adr/0027-object-uniforms-512-byte-expansion.md`) — `ObjectUniforms`-Puffer auf 512 Byte erweitert, gekaperte Semantik-Slots (`u_isSkinned`, `u_boneOffset`, `u_pad1..3`, PBR/Env-Slots) in `LiquidWaveMaterial`/`StylizedWaterMaterial` auf semantische `matParam0..2` (UBO/WebGPU-Puffer) entflochten; Shader-Parität GLSL100/GLSL300/WGSL für OpenWater + StylizedWater, `StandardWebGPULayout.ts`, `structs.wgsl`, `GPUObjectRingBuffer`, `GPUPipelineCache`; WebGPU-Tests angepasst.
 - ✅ **Showcase 10 (Noir):** Parameter-Inhalt des improve-noir-Konsenses (Wellenprofile, `waterAbsorption`) integriert; Session-Dokumente + Referenzbilder unter `.agents/collaborate/` (`improve-noir.*`, `assets/noir_pool_*.png`).
 - ✅ **Beim vollen Verifikations-Programm gefunden & behoben vor dem Commit:** (1) `StylizedWaterMaterial.getRenderManifest()` wies `flags` explizit `undefined` zu → `exactOptionalPropertyTypes`-TS-Fehler (dts-Build); jetzt immer `string[]` wie Standard/Phong. (2) `StylizedWater.frag.glsl100` referenzierte den toten `u_pad3`-Slot (GL1-Fragment-Kompilierfehler → Showcase 10 WEB_GL1 rot); veraltete Zeile entfernt, Parität zu glsl300/wgsl wiederhergestellt.
-- ⚠️ **Verifikation:** `lint:fix` 0, `build` 0 TS, `tsc --noEmit` 0, Tests 1504/1504, Showcases 10/12/13/16/31/37/38 grün auf allen Backends. Commit siehe Git-Historie 2026-10-09 (`COMMIT_HASH`).
+- ⚠️ **Verifikation:** `lint:fix` 0, `build` 0 TS, `tsc --noEmit` 0, Tests 1504/1504, Showcases 10/12/13/16/31/37/38 grün auf allen Backends. Commit siehe Git-Historie 2026-10-09 (`de563711`).
 
 ## 2026-10-09 — GL1-PostFX schwarze Frames (Showcases 31/37/38 Dark-Trim) behoben
 
