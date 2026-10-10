@@ -1,129 +1,77 @@
-[WGSL_LIQUID_WORLEY_NOISE]
+// smoothstep() is undefined for edge0 >= edge1 (a blur of 0); fall back to a hard step.
+fn lavaSmoothstep(edge0: f32, edge1: f32, x: f32) -> f32 {
+    if (edge0 < edge1) { return smoothstep(edge0, edge1, x); }
+    return step(edge0, x);
+}
 
-@fragment fn fs(i: Out) -> @location(0) vec4<f32> {
-    let time = obj.time;
-
-    // --- Uniform Parameter Mapping ---
-    // u_matParam0: [scaleMain, scaleDistort, distortionStrength, pulseFrequency]
-    let scaleMain = obj.matParam0.x;
-    let scaleDistort = obj.matParam0.y;
-    let distortionStrength = obj.matParam0.z;
-    let pulseFrequency = obj.matParam0.w;
-
+@fragment fn fs(i: LavaOut) -> @location(0) vec4<f32> {
+    // u_matParam0: [scaleMain, scaleDistort, distortion, vertexDistortion]
     // u_matParam1: [speedMainX, speedMainY, speedDistortX, speedDistortY]
-    let speedMain = obj.matParam1.xy;
-    let speedDistort = obj.matParam1.zw;
+    // u_matParam2: [cutoffTop, topBlur, tintOffset, brightnessUnderLava]
+    // u_matParam3: [edgeThickness, edgeBlur, brightnessTopLava, unused]
+    // u_matParam6..9: Main Tint Start / Main Tint End / Top Layer Tint / Edge Color
 
-    // u_matParam2: [cutoffTop, topBlur, tintOffset, pulseAmount]
-    let cutoffTop = obj.matParam2.x;
-    let topBlur = obj.matParam2.y;
-    let tintOffset = obj.matParam2.z;
-    let pulseAmount = obj.matParam2.w;
+    // Unity's _Time.x is t / 20.
+    let timeX = obj.time * 0.05;
+    let r = i.color.r;
 
-    // u_matParam3: [edgeThickness, edgeBlur, depthFalloff, unused]
-    let edgeThickness = obj.matParam3.x;
-    let edgeBlur = obj.matParam3.y;
+    // Distortion: the noise texture projected over world XZ at two scales, scrolling.
+    let uvDistort = i.wp.xz * obj.matParam0.y;
+    let speedDistort = timeX * obj.matParam1.zw;
+    let d = textureSample(u_distortMap, s, uvDistort + speedDistort).r;
+    let d2 = textureSample(u_distortMap, s, (i.wp.xz * (obj.matParam0.y * 0.5)) + speedDistort).r;
+    let layeredDist = saturate((d + d2) * 0.5);
 
-    // u_matParam5: [brightnessUnderLava, brightnessTopLava, brightnessEdge, emissionGlowPower]
-    let brightnessUnderLava = obj.matParam5.x;
-    let brightnessTopLava = obj.matParam5.y;
-    let brightnessEdge = obj.matParam5.z;
+    // Main texture over world XZ + distortion, scrolling, plus extra distortion from the red
+    // vertex color (a scalar added to both UV components, as in the original).
+    var uvMain = i.wp.xz * obj.matParam0.x;
+    uvMain += layeredDist * obj.matParam0.z;
+    uvMain += timeX * obj.matParam1.xy + (r * obj.matParam0.w);
 
-    // Colors:
-    // u_matParam6: Main Tint Start (Cool Basalt / Crust Color - RGB)
-    let colorStart = sRGBToLinear(obj.matParam6.rgb);
-    // u_matParam7: Main Tint End (Molten Core Color - RGB)
-    let colorEnd = sRGBToLinear(obj.matParam7.rgb);
-    // u_matParam8: Top Fissure Tint (Superheated Seams - RGB)
-    let colorTop = sRGBToLinear(obj.matParam8.rgb);
-    // u_matParam9: Contact Edge Tint (Shore Scorch Glow - RGB)
-    let colorEdge = sRGBToLinear(obj.matParam9.rgb);
+    // Main texture fading with vertex color, plus the layered distortion.
+    var col = textureSample(u_diffuseMap, s, uvMain).r * r;
+    col += layeredDist;
 
-    // --- 1. Dual-Frequency Flow Distortion (MinionsArt) ---
-    // World-Space XZ coordinates for seamless procedural tiling
-    let uvDistortBase = i.wp.xz * scaleDistort;
-    let speedDistortCombined = speedDistort * time;
+    // Top layer: the brightest part of the texture, dimmed by the vertex color.
+    let top = lavaSmoothstep(obj.matParam2.x, obj.matParam2.x + obj.matParam2.y, col) * r;
 
-    // Sample continuous noise at two scales (1x and 0.5x)
-    let d1 = waterCellNoise(uvDistortBase + speedDistortCombined);
-    let d2 = waterCellNoise((i.wp.xz * (scaleDistort * 0.5)) + speedDistortCombined);
-    let layeredDist = saturate((d1 + d2) * 0.5);
-
-    // --- 2. Main Crust Coordinate with Flow Distortion ---
-    let uvMainBase = i.wp.xz * scaleMain;
-    let speedMainCombined = speedMain * time;
-    let uvMainDistorted = uvMainBase + (layeredDist * distortionStrength) + speedMainCombined;
-
-    // Sample main Voronoi crust pattern
-    // (If diffuseMap is bound, sample it; otherwise use procedural Worley cell noise)
-    var crustNoise: f32 = 0.0;
-    if (USE_DIFFUSE_MAP) {
-        crustNoise = textureSample(u_diffuseMap, s, uvMainDistorted).r;
-    } else {
-        crustNoise = waterCellNoise(uvMainDistorted);
-    }
-
-    // Composite layered noise onto main pattern
-    let colPattern = saturate(crustNoise + layeredDist * 0.35);
-
-    // --- 3. Scene Depth Edge Detection (Organic Shore Scorch) ---
-    let fragPosCoords = vec2<i32>(i.pos.xy);
-    let bgDepth = textureLoad(u_opaqueDepthMap, fragPosCoords, 0);
-
+    // Depth edge detection. Coordinates are clamped to the texture so a 1x1 fallback depth
+    // stays valid; a missing capture (0) is treated as "nothing behind".
+    let depthDims = vec2<i32>(textureDimensions(u_opaqueDepthMap));
+    let depthCoord = clamp(vec2<i32>(i.pos.xy), vec2<i32>(0), depthDims - vec2<i32>(1));
+    var bgDepth = textureLoad(u_opaqueDepthMap, depthCoord, 0);
+    if (bgDepth <= 0.0) { bgDepth = 1.0; }
     let near = global.cameraNearFar.x;
     let far = global.cameraNearFar.y;
+    let linBgDepth = (2.0 * near * far) / (far + near - (bgDepth * 2.0 - 1.0) * (far - near));
+    let linFragDepth = (2.0 * near * far) / (far + near - (i.pos.z * 2.0 - 1.0) * (far - near));
+    let edgeLine = 1.0 - saturate(obj.matParam3.x * (linBgDepth - linFragDepth));
 
-    let ndcBg = bgDepth * 2.0 - 1.0;
-    let linBgDepth = (2.0 * near * far) / (far + near - ndcBg * (far - near));
+    // Cutoff edge based on the main texture.
+    let edge = lavaSmoothstep(1.0 - col, 1.0 - col + obj.matParam3.y, edgeLine);
 
-    let ndcFrag = i.pos.z * 2.0 - 1.0;
-    let linFragDepth = (2.0 * near * far) / (far + near - ndcFrag * (far - near));
-
-    let depthDiff = max(linBgDepth - linFragDepth, 0.0);
-    let edgeLine = 1.0 - saturate(edgeThickness * depthDiff);
-
-    // MinionsArt Organic Shoreline: carve edge line based on the inverse of the crust texture
-    let edgeMask = smoothstep(1.0 - colPattern, (1.0 - colPattern) + edgeBlur, edgeLine);
-
-    // --- 4. Glowing Top Fissures / Cracks Isolation ---
-    let topMask = smoothstep(cutoffTop, cutoffTop + topBlur, colPattern);
-
-    // --- 5. Thermal Heat Calculation & Ramp LUT (Lücke 3 Muscle Flex) ---
+    // Lerp start and end color over the main texture (unclamped, like Unity's lerp), multiply
+    // for brightness.
     var baseColor: vec3<f32>;
-    let pulse = 1.0 + pulseAmount * sin(time * pulseFrequency);
-
-    if (USE_RAMP_MAP) {
-        // Thermal heat coordinate T_heat in [0, 1]
-        let heatCoord = saturate(colPattern * tintOffset * pulse);
-        let rampUv = vec2<f32>((heatCoord * 255.0 + 0.5) / 256.0, 0.5);
-        let thermalRgb = sRGBToLinear(textureSampleLevel(u_rampMap, s, rampUv, 0.0).rgb);
-        baseColor = thermalRgb * brightnessUnderLava;
+    if (USE_RAMP_LUT) {
+        // ADR 0026 extension: a 256-color thermal ramp replaces the two-color lerp.
+        let heat = saturate(col * obj.matParam2.z);
+        let rampUv = vec2<f32>((heat * 255.0 + 0.5) / 256.0, 0.5);
+        baseColor = sRGBToLinear(textureSampleLevel(u_rampMap, s, rampUv, 0.0).rgb);
     } else {
-        // MinionsArt 3-color lerp
-        baseColor = mix(colorStart, colorEnd, saturate(colPattern * tintOffset)) * brightnessUnderLava * pulse;
+        baseColor = mix(sRGBToLinear(obj.matParam6.rgb), sRGBToLinear(obj.matParam7.rgb), col * obj.matParam2.z);
     }
+    var color = baseColor * obj.matParam2.w;
 
-    // --- 6. Non-Overlapping Subtractive Isolation (Anti-Blowout Algebra) ---
-    // Carve out edge and top fissure footprints from base color to eliminate HDR bloom burnout
-    baseColor *= (1.0 - edgeMask);
-    baseColor *= (1.0 - topMask);
+    // Take the edge and the top out of the main color, fade by the vertex color, add them back.
+    color *= (1.0 - edge);
+    color *= (1.0 - top);
+    color *= r;
+    color += (edge * sRGBToLinear(obj.matParam9.rgb)) * obj.matParam3.z;
+    color += top * sRGBToLinear(obj.matParam8.rgb) * obj.matParam3.z;
 
-    // Re-inject distinct glowing emissive layers with independent HDR intensity multipliers
-    let emissiveEdge = edgeMask * colorEdge * brightnessEdge;
-    let emissiveTop = topMask * colorTop * brightnessTopLava;
-
-    var finalRgb = baseColor + emissiveEdge + emissiveTop;
-
-    // Exposure & Tonemapping
-    finalRgb *= global.exposure;
-    if (global.gamma != 1.0) {
-        finalRgb = finalRgb / (finalRgb + vec3f(1.0)); // Reinhard
-    }
-    finalRgb = linearToSRGB(finalRgb);
-
-    // The fog chunk blends a `color` variable in-place
-    var color = finalRgb;
-    [WGSL_FOG_CALC]
-
-    return vec4<f32>(color, 1.0);
+    // Negative light is meaningless in an HDR target (the unclamped lerp can undershoot).
+    color = max(color, vec3<f32>(0.0));
+    color *= global.exposure;
+    return vec4<f32>(linearToSRGB(color), 1.0);
 }

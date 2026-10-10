@@ -331,7 +331,7 @@ Wir heben `StylizedLavaMaterial` auf AAA-Niveau mit einer **Thermal Heat Coordin
 **Round:** 5  
 **Role:** Engine & GPU Architect  
 
-Das Referenzbild [`post1_img_26.png`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/collaborate/assets/lava/post1_img_26.png) (`https://i.imgur.com/f7xrwGX.png`) zeigt die exakten Produktions-Material-Einstellungen von MinionsArt aus dem Projekt *Astro Kat*:
+Das Referenzbild [`post1_img_26.png`](assets/lava/post1_img_26.png) (`https://i.imgur.com/f7xrwGX.png`) zeigt die exakten Produktions-Material-Einstellungen von MinionsArt aus dem Projekt *Astro Kat*:
 
 | Parameter-Gruppe | Parameter-Name im Inspector | Exakter Wert | Shader-Bedeutung / Uniform-Mapping in Small World |
 | :--- | :--- | :--- | :--- |
@@ -402,3 +402,17 @@ I conducted a thorough verification of the code, shader pipelines, and mathemati
 - Laufzeit- und Shader-Architektur fehlerfrei verifiziert.
 - Empfehlung an Moderator: Beenden via `/collaborate --stop`.
 [/ABNAHME_ERTEILT]
+
+---
+
+## Nachtrag 2026-10-10 — Korrektur der Konsens-Entscheidung
+
+Die Abnahme dieses Protokolls ("Worley statt Textur", Wegfall der Vertex Colors, WebGL1 nicht abgedeckt) war falsch: Das Ergebnis war kein Port des Unity-Shaders, sondern ein eigener Look (wenige große Platten, dünne Risslinien). Das Ziel ist ein **verlustfreier** Port von `minionsart_lava_shader.shader`.
+
+Umgesetzt (siehe `StylizedLavaMaterial.ts`, `StylizedLava.*`):
+- `_MainTex` / `_DistortTex` als echte, kachelbare Texturen (Stand-ins aus `scripts/gen-lava-textures.mjs`, ersetzbar durch die Originale); Worley-Rissnetz, `boil`, `crackLife`, `pulse`, `brightnessEdge`, `crackScale/-Motion` entfernt.
+- Vertex Color R wirkt an allen fünf Stellen des Originals; die Renderer (WebGL1/2, WebGPU) reichen `Geometry.colors` jetzt durch (Flag `USE_VERTEX_COLOR`, weiß als Fallback).
+- Zeitbasen `_Time.x = t/20` und `_Time.z = 2t`, Welle im Objektraum auf einer horizontalen `Ground`-Fläche (die alte Welle verschob Vertices innerhalb der vertikalen `Plane`).
+- WebGL1-Shader ergänzt (ohne Scene-Depth: Edge-Linie = 0).
+- Echte Renderer-Fehler des alten Stands: WebGL2 linkte nicht (`int`-Präzision der UBO-Felder), WebGPU kompilierte ohne gesetzte Maps nicht (`USE_*`-Konstanten).
+- Verifikation: Goldens-Capture auf WebGL2, WebGPU und WebGL1 ohne Konsolenfehler; GL2 und WebGPU liefern dasselbe Bild.

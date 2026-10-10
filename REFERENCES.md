@@ -899,16 +899,18 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Stylized Lava Surface & Subtractive Fissure Shading
 
-- **File:** `packages/engine/src/core/materials/StylizedLavaMaterial.ts`, `packages/engine/src/core/materials/shaders/StylizedLava.vert.wgsl`, `packages/engine/src/core/materials/shaders/StylizedLava.frag.wgsl`
+- **File:** `packages/engine/src/core/materials/StylizedLavaMaterial.ts`, `packages/engine/src/core/materials/shaders/StylizedLava.{vert,frag}.{glsl,glsl100,wgsl}`, `scripts/gen-lava-textures.mjs` (stand-ins for the shader's two input textures)
 - **Authors/Gurus:** Joyce / MinionsArt (Joyce[MinionsArt] on Patreon / Twitter / Bluesky)
 - **Source:**
   - ["Stylized Lava Shader" (Patreon Post 32245619)](https://www.patreon.com/posts/stylized-lava-32245619)
   - ["Shader Graph Stylized Lava" (Patreon Post 33388865)](https://www.patreon.com/posts/shader-graph-33388865)
 - **Formulas & Architecture:**
-  - Dual-Frequency Flow Distortion: $\mathbf{u}_{\text{distort}} = \mathbf{x}_{xz} \cdot s_{\text{dist}} + t \cdot \mathbf{v}_{\text{dist}}$, $\mathbf{u}_{\text{main}} = \mathbf{x}_{xz} \cdot s_{\text{main}} + t \cdot \mathbf{v}_{\text{main}} + \frac{d(\mathbf{u}_{\text{distort}}) + d(0.5 \mathbf{u}_{\text{distort}})}{2} \cdot w_{\text{dist}}$
-  - Diagonal Viscous Undulation: $\Delta y = \sin(t \cdot \omega + x \cdot z \cdot k) \cdot A \cdot v_{\text{color.r}}$
-  - Non-Overlapping Subtractive Isolation: $C_{\text{base}} \cdot (1 - M_{\text{edge}}) \cdot (1 - M_{\text{top}}) + M_{\text{edge}} C_{\text{edge}} I_{\text{edge}} + M_{\text{top}} C_{\text{top}} I_{\text{top}}$
-- **Usage:** A massive heartfelt thank-you to Joyce (MinionsArt) for pioneering this stylized NPR lava paradigm! Her step-by-step breakdown (dual-frequency noise UV perturbation, cellular Voronoi basalt crusts, Scene Depth edge subtraction for organic shoreline burns, and mathematically clean subtractive cutout algebra that eliminates HDR bloom blowout) serves as the primary artistic and mathematical foundation for Small World's `StylizedLavaMaterial`.
+  - Line-by-line port of the original "Simple Lava" shader (`_Time.x = t/20`, `_Time.z = 2t`). World-XZ projected `_DistortTex` sampled at two scales: $d = \text{saturate}\big(\frac{T_d(\mathbf{u}_d) + T_d(0.5\,\mathbf{u}_d)}{2}\big)$ with $\mathbf{u}_d = \mathbf{x}_{xz} s_{\text{dist}} + \tfrac{t}{20}\mathbf{v}_{\text{dist}}$
+  - Main UV: $\mathbf{u}_{\text{main}} = \mathbf{x}_{xz} s_{\text{main}} + d\,w_{\text{dist}} + \tfrac{t}{20}\mathbf{v}_{\text{main}} + r\,w_{\text{vtx}}$, then $c = T_m(\mathbf{u}_{\text{main}})\,r + d$ with $r$ the red vertex color
+  - Diagonal vertex wave (object space): $\Delta y = \sin(2t \cdot \omega + x \cdot z \cdot k) \cdot A \cdot r$
+  - Depth edge: $e_{\text{line}} = 1 - \text{sat}\big(E\,(z_{\text{scene}} - z_{\text{frag}})\big)$, $M_{\text{edge}} = \text{smoothstep}(1-c,\,1-c+b_e,\,e_{\text{line}})$, $M_{\text{top}} = \text{smoothstep}(c_{\text{cut}},\,c_{\text{cut}}+b_t,\,c)\,r$
+  - Non-Overlapping Subtractive Isolation: $\big(\text{lerp}(C_1, C_2, c\,o)\,S\,(1 - M_{\text{edge}})(1 - M_{\text{top}})\,r\big) + M_{\text{edge}} C_{\text{edge}} S_{\text{top}} + M_{\text{top}} C_{\text{top}} S_{\text{top}}$
+- **Usage:** A massive heartfelt thank-you to Joyce (MinionsArt) for pioneering this stylized NPR lava paradigm! Her step-by-step breakdown (dual-frequency noise UV perturbation, a cellular crust texture, vertex-color painting, Scene Depth edge subtraction for organic shoreline burns, and mathematically clean subtractive cutout algebra that eliminates HDR bloom blowout) serves as the primary artistic and mathematical foundation for Small World's `StylizedLavaMaterial`.
 
 ## AI Coding & Architecture Assistants
 
