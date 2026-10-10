@@ -13,6 +13,7 @@ import {
   IngestResult,
   CommandHistory,
   bindToolShortcuts,
+  isActiveToolHost,
   primaryPbrTexture,
   firstImageItem,
 } from "./common/io/index.js";
@@ -420,16 +421,16 @@ export class Xtractor extends ForgeTool {
 
     const unbindShortcuts = bindToolShortcuts({
       undo: (): void => {
-        if (this._container.isConnected) triggerUndo();
+        if (isActiveToolHost(this._container)) triggerUndo();
       },
       redo: (): void => {
-        if (this._container.isConnected) triggerRedo();
+        if (isActiveToolHost(this._container)) triggerRedo();
       },
     });
     signal.addEventListener("abort", unbindShortcuts, { once: true });
 
     const onKeyDown = (e: KeyboardEvent): void => {
-      if (!this._container.isConnected) return;
+      if (!this._container.isConnected || !isActiveToolHost(this._container)) return;
       const target = e.target as HTMLElement | null;
       if (
         target &&
