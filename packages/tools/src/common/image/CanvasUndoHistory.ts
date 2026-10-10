@@ -1,3 +1,6 @@
+/** 256 MB: bounds memory for large canvases (a 4096x4096 snapshot is 64 MB). */
+const DEFAULT_MAX_UNDO_BYTES = 256 * 1024 * 1024;
+
 export interface CanvasUndoSnapshot {
   imageData: ImageData;
   width: number;
@@ -8,10 +11,17 @@ export interface CanvasUndoSnapshot {
 export class CanvasUndoHistory {
   private _undoStack: CanvasUndoSnapshot[] = [];
   private _redoStack: CanvasUndoSnapshot[] = [];
-  private _maxEntries: number;
+  private readonly _maxEntries: number;
+  private readonly _maxBytes: number;
 
-  constructor(maxEntries = 30) {
+  /**
+   * @param maxEntries Maximum snapshots per stack.
+   * @param maxBytes RGBA byte budget per stack; the oldest snapshots are dropped first. The newest
+   *   snapshot is always kept, even if it alone exceeds the budget.
+   */
+  constructor(maxEntries = 30, maxBytes = DEFAULT_MAX_UNDO_BYTES) {
     this._maxEntries = maxEntries;
+    this._maxBytes = maxBytes;
   }
 
   public get canUndo(): boolean {
@@ -45,14 +55,16 @@ export class CanvasUndoHistory {
       height: canvas.height,
       label,
     });
-    if (this._undoStack.length > this._maxEntries) {
-      this._undoStack.shift();
-    }
+    this._trim(this._undoStack);
     this._redoStack = [];
   }
 
   /** Reverts to the previous snapshot, placing current canvas onto the redo stack. */
-  public undo(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): CanvasUndoSnapshot | null {
+  public undo(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D,
+    redoLabel: string,
+  ): CanvasUndoSnapshot | null {
     if (this._undoStack.length === 0) return null;
 
     if (canvas.width > 0 && canvas.height > 0) {
@@ -61,11 +73,9 @@ export class CanvasUndoHistory {
         imageData: current,
         width: canvas.width,
         height: canvas.height,
-        label: "Aktueller Zustand",
+        label: redoLabel,
       });
-      if (this._redoStack.length > this._maxEntries) {
-        this._redoStack.shift();
-      }
+      this._trim(this._redoStack);
     }
 
     const snapshot = this._undoStack.pop()!;
@@ -74,7 +84,11 @@ export class CanvasUndoHistory {
   }
 
   /** Re-applies the next snapshot, placing current canvas onto the undo stack. */
-  public redo(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): CanvasUndoSnapshot | null {
+  public redo(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D,
+    undoLabel: string,
+  ): CanvasUndoSnapshot | null {
     if (this._redoStack.length === 0) return null;
 
     if (canvas.width > 0 && canvas.height > 0) {
@@ -83,16 +97,22 @@ export class CanvasUndoHistory {
         imageData: current,
         width: canvas.width,
         height: canvas.height,
-        label: "Vor Wiederholen",
+        label: undoLabel,
       });
-      if (this._undoStack.length > this._maxEntries) {
-        this._undoStack.shift();
-      }
+      this._trim(this._undoStack);
     }
 
     const snapshot = this._redoStack.pop()!;
     this._applySnapshot(canvas, ctx, snapshot);
     return snapshot;
+  }
+
+  private _trim(stack: CanvasUndoSnapshot[]): void {
+    let bytes = stack.reduce((sum, snap) => sum + snap.width * snap.height * 4, 0);
+    while (stack.length > 1 && (stack.length > this._maxEntries || bytes > this._maxBytes)) {
+      const dropped = stack.shift()!;
+      bytes -= dropped.width * dropped.height * 4;
+    }
   }
 
   private _applySnapshot(

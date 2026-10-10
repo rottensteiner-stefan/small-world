@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { zipSync } from "fflate";
+import { SecurityValidator } from "../../src/common/io/Security.js";
 import { ZipAssetSink } from "../../src/common/io/sinks/ZipAssetSink.js";
 import { ZipAssetSource } from "../../src/common/io/sources/ZipAssetSource.js";
 
@@ -59,5 +61,18 @@ describe("ZipAssetSink & ZipAssetSource roundtrip", () => {
   it("should reject path traversal entries on write", async () => {
     const sink = new ZipAssetSink();
     await expect(sink.write("../outside.txt", new Uint8Array([1]))).rejects.toThrow();
+  });
+
+  it("rejects ZIP entries that declare more than the file limit (zip bomb)", async () => {
+    const bomb = zipSync({ "big.bin": new Uint8Array(512 * 1024) });
+    await expect(
+      ZipAssetSource.fromBytes(bomb, { security: new SecurityValidator({ maxFileBytes: 1024 }) }),
+    ).rejects.toThrow(/exceeds limit/);
+  });
+
+  it("skips Zip-Slip entries when loading", async () => {
+    const zip = zipSync({ "../evil.bin": new Uint8Array([1]), "ok.bin": new Uint8Array([2]) });
+    const source = await ZipAssetSource.fromBytes(zip);
+    expect(await source.list()).toEqual(["ok.bin"]);
   });
 });

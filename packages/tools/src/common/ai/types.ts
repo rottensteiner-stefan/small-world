@@ -18,6 +18,8 @@ export interface VisionAiRequest {
   systemInstruction?: string;
   temperature?: number;
   maxTokens?: number;
+  /** Caller-side cancellation; combined with the provider's own request timeout. */
+  signal?: AbortSignal;
 }
 
 export interface VisionAiResponse {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   parseImageData,
   sortModelsDescending,
@@ -9,6 +9,8 @@ import {
   ClaudeProvider,
   OllamaProvider,
   AiConfig,
+  AiProviderType,
+  IVisionAiProvider,
 } from "../../src/common/ai/index.js";
 
 describe("Vision AI Multi-Provider System", () => {
@@ -16,7 +18,7 @@ describe("Vision AI Multi-Provider System", () => {
 
   beforeEach(() => {
     mockStorage = {};
-    globalThis.localStorage = {
+    vi.stubGlobal("localStorage", {
       getItem: (key: string) => mockStorage[key] || null,
       setItem: (key: string, value: string) => {
         mockStorage[key] = value;
@@ -29,7 +31,11 @@ describe("Vision AI Multi-Provider System", () => {
       },
       length: 0,
       key: (_index: number) => null,
-    } as Storage;
+    } as Storage);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -145,7 +151,7 @@ describe("Vision AI Multi-Provider System", () => {
         candidates: [{ content: { parts: [{ text: "Detected 4 frames with palette #ff0000" }] } }],
       }),
     });
-    globalThis.fetch = mockFetch;
+    vi.stubGlobal("fetch", mockFetch);
 
     const provider = new GeminiProvider({
       provider: "gemini",
@@ -163,7 +169,11 @@ describe("Vision AI Multi-Provider System", () => {
     expect(res.text).toBe("Detected 4 frames with palette #ff0000");
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, options] = mockFetch.mock.calls[0]!;
-    expect(url).toContain("gemini-1.5-flash:generateContent?key=AIzaTestKey");
+    expect(url).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+    );
+    expect(url).not.toContain("AIzaTestKey");
+    expect(options.headers["x-goog-api-key"]).toBe("AIzaTestKey");
     const body = JSON.parse(options.body as string);
     expect(body.contents[0].parts[0].inline_data.data).toBe("AAAA");
     expect(body.systemInstruction.parts[0].text).toBe("Game Dev Mode");
@@ -176,7 +186,7 @@ describe("Vision AI Multi-Provider System", () => {
         choices: [{ message: { content: "PBR: Roughness 0.4, Metallic 0.0" } }],
       }),
     });
-    globalThis.fetch = mockFetch;
+    vi.stubGlobal("fetch", mockFetch);
 
     const provider = new OpenAiProvider({
       provider: "openai",
@@ -198,6 +208,29 @@ describe("Vision AI Multi-Provider System", () => {
     expect(body.messages[0].content[1].image_url.url).toBe("data:image/png;base64,BBBB");
   });
 
+  it.each([
+    ["gpt-4o-mini", "max_tokens", true],
+    ["gpt-5", "max_completion_tokens", false],
+    ["o3-mini", "max_completion_tokens", false],
+  ])("OpenAI model %s sends %s", async (model, tokenField, sendsTemperature) => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: "ok" } }] }),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    await new OpenAiProvider({ provider: "openai", apiKey: "k", model }).sendMessage({
+      messages: [{ role: "user", content: "hi" }],
+      maxTokens: 256,
+      temperature: 0.2,
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0]![1].body as string);
+    expect(body[tokenField]).toBe(256);
+    expect(Object.keys(body).filter((k) => k.startsWith("max_"))).toEqual([tokenField]);
+    expect("temperature" in body).toBe(sendsTemperature);
+  });
+
   it("formats and executes Claude requests with direct browser access headers", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -205,7 +238,7 @@ describe("Vision AI Multi-Provider System", () => {
         content: [{ type: "text", text: "Claude analyzed: 8 frames [SLICE: 8]" }],
       }),
     });
-    globalThis.fetch = mockFetch;
+    vi.stubGlobal("fetch", mockFetch);
 
     const provider = new ClaudeProvider({
       provider: "claude",
@@ -233,7 +266,7 @@ describe("Vision AI Multi-Provider System", () => {
         message: { content: "Ollama local response" },
       }),
     });
-    globalThis.fetch = mockFetch;
+    vi.stubGlobal("fetch", mockFetch);
 
     const provider = new OllamaProvider({
       provider: "ollama",
@@ -264,7 +297,7 @@ describe("Vision AI Multi-Provider System", () => {
         ],
       }),
     });
-    globalThis.fetch = mockGeminiFetch;
+    vi.stubGlobal("fetch", mockGeminiFetch);
 
     const gemini = new GeminiProvider({
       provider: "gemini",
@@ -281,10 +314,121 @@ describe("Vision AI Multi-Provider System", () => {
         models: [{ name: "llama3.1:latest" }, { name: "llama3.2-vision:latest" }],
       }),
     });
-    globalThis.fetch = mockOllamaFetch;
+    vi.stubGlobal("fetch", mockOllamaFetch);
 
     const ollama = new OllamaProvider({ provider: "ollama", model: "llama3.2-vision" });
     const ollamaModels = await ollama.listModels();
     expect(ollamaModels).toEqual(["llama3.2-vision:latest", "llama3.1:latest"]);
+  });
+
+  it("keeps the API key out of Gemini model-list URLs", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false });
+    vi.stubGlobal("fetch", mockFetch);
+    const gemini = new GeminiProvider({ provider: "gemini", apiKey: "secret", model: "m" });
+    await gemini.listModels();
+    const [url, options] = mockFetch.mock.calls[0]!;
+    expect(url).not.toContain("secret");
+    expect(options.headers["x-goog-api-key"]).toBe("secret");
+  });
+
+  describe("error paths", () => {
+    const providers: Array<[string, () => IVisionAiProvider]> = [
+      [
+        "gemini",
+        (): IVisionAiProvider =>
+          new GeminiProvider({ provider: "gemini", apiKey: "k", model: "m" }),
+      ],
+      [
+        "openai",
+        (): IVisionAiProvider =>
+          new OpenAiProvider({ provider: "openai", apiKey: "k", model: "m" }),
+      ],
+      [
+        "claude",
+        (): IVisionAiProvider =>
+          new ClaudeProvider({ provider: "claude", apiKey: "k", model: "m" }),
+      ],
+      ["ollama", (): IVisionAiProvider => new OllamaProvider({ provider: "ollama", model: "m" })],
+    ];
+    const request = { messages: [{ role: "user" as const, content: "hi" }] };
+
+    it.each(providers)("%s maps a non-ok response to an error with status", async (_n, make) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: false, status: 429, text: async () => "rate limited" }),
+      );
+      await expect(make().sendMessage(request)).rejects.toThrow(/\(429\): rate limited/);
+    });
+
+    it.each(providers)("%s propagates network failures", async (_n, make) => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+      await expect(make().sendMessage(request)).rejects.toThrow("Failed to fetch");
+    });
+
+    it.each(providers)("%s listModels falls back when the request fails", async (_n, make) => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+      const models = await make().listModels!();
+      expect(models.length).toBeGreaterThan(0);
+    });
+
+    it.each(providers.filter(([name]) => name !== "ollama"))(
+      "%s rejects a missing API key without calling fetch",
+      async (name) => {
+        const mockFetch = vi.fn();
+        vi.stubGlobal("fetch", mockFetch);
+        const provider = createVisionAiProvider({ provider: name as AiProviderType, model: "m" });
+        await expect(provider.sendMessage(request)).rejects.toThrow(/API Key is missing/);
+        expect(mockFetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it("custom OpenAI-compatible endpoints work without a key", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: "pong" } }] }),
+      });
+      vi.stubGlobal("fetch", mockFetch);
+      const provider = createVisionAiProvider({
+        provider: "custom",
+        model: "m",
+        endpoint: "http://localhost:1234/v1/chat/completions",
+      });
+      await expect(provider.sendMessage(request)).resolves.toEqual({ text: "pong" });
+      expect(mockFetch.mock.calls[0]![1].headers["Authorization"]).toBeUndefined();
+    });
+
+    it("passes a combined abort signal and honours caller cancellation", async () => {
+      const mockFetch = vi.fn((_url: string, init: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+        });
+      });
+      vi.stubGlobal("fetch", mockFetch);
+      const controller = new AbortController();
+      const pending = providers[3]![1]().sendMessage({ ...request, signal: controller.signal });
+      controller.abort(new Error("cancelled"));
+      await expect(pending).rejects.toThrow("cancelled");
+    });
+  });
+
+  describe("AiConfigStorage validation", () => {
+    it("ignores unknown providers and non-string fields", () => {
+      localStorage.setItem("smallworld_ai_config", JSON.stringify({ provider: "evil", model: 5 }));
+      expect(AiConfigStorage.load().provider).toBe("gemini");
+
+      localStorage.setItem(
+        "smallworld_ai_config",
+        JSON.stringify({ provider: "claude", model: 5, apiKey: 7 }),
+      );
+      const loaded = AiConfigStorage.load();
+      expect(loaded.provider).toBe("claude");
+      expect(loaded.model).toBe("claude-haiku-5-5");
+      expect(loaded.apiKey).toBe("");
+    });
+
+    it("falls back to defaults on corrupt JSON", () => {
+      localStorage.setItem("smallworld_ai_config", "{not json");
+      expect(AiConfigStorage.load().provider).toBe("gemini");
+    });
   });
 });

@@ -8,6 +8,8 @@ import { normalizeSvg } from "./svgNormalize.js";
 /** Default longer edge (px) an SVG is sized to, so vector input yields a useful bitmap size. */
 const DEFAULT_SVG_LONG_EDGE = 1024;
 
+const FETCH_TIMEOUT_MS = 60_000;
+
 export interface IngestRouterOptions {
   preferredKind?: "image" | "svg" | "pbr-set" | "gltf" | "json" | "archive" | "any";
   onProgress?: (msg: string) => void;
@@ -165,7 +167,7 @@ export class UniversalIngestRouter {
       (i) => i.name.toLowerCase().endsWith(".gltf") || i.name.toLowerCase().endsWith(".glb"),
     );
     if (gltfEntry) {
-      const zipSource = await ZipAssetSource.fromBytes(buffer, { name: archiveName });
+      const zipSource = ZipAssetSource.fromEntries(items, { name: archiveName });
       return {
         kind: "gltf",
         source: zipSource,
@@ -216,13 +218,13 @@ export class UniversalIngestRouter {
 
     // 1a. SVG Data URL (data:image/svg+xml;...)
     if (/^data:image\/svg\+xml/i.test(trimmed)) {
-      const res = await fetch(trimmed);
+      const res = await fetch(trimmed, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       return this._buildSvgResult(await res.text(), `${fallbackName}.svg`);
     }
 
     // 1. Data URL (e.g. data:image/png;base64,...)
     if (trimmed.startsWith("data:image/")) {
-      const res = await fetch(trimmed);
+      const res = await fetch(trimmed, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       const blob = await res.blob();
       const img = await this._loadImageFromBlob(blob);
       return {
@@ -276,7 +278,7 @@ export class UniversalIngestRouter {
    * Fetches and routes a URL.
    */
   public async routeUrl(url: string): Promise<IngestResult> {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status} beim Laden von ${url}: ${res.statusText}`);
     }

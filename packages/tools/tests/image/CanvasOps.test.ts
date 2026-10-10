@@ -149,13 +149,22 @@ describe("CanvasOps Deterministic Image Transformations", () => {
   it("applies posterization, sepia, auto levels, and chroma key", () => {
     const src = createTestImage(4, 4, [120, 130, 140, 255]);
     const post = posterizeImage(src, 4);
-    expect(post.data[0]).toBeDefined();
+    expect([post.data[0], post.data[1], post.data[2], post.data[3]]).toEqual([85, 170, 170, 255]);
 
     const sepia = sepiaImage(src);
     expect(sepia.data[0]).toBeGreaterThan(0);
 
     const levels = autoLevelsImage(src);
-    expect(levels.data[0]).toBeDefined();
+    expect([levels.data[0], levels.data[1], levels.data[2]]).toEqual([120, 130, 140]);
+
+    const ramp = makeImageData(
+      2,
+      1,
+      new Uint8ClampedArray([100, 100, 100, 255, 150, 150, 150, 255]),
+    );
+    const stretched = autoLevelsImage(ramp);
+    expect(stretched.data[0]).toBe(0);
+    expect(stretched.data[4]).toBe(255);
 
     const chroma = chromaKeyImage(src, "#78828c", 30);
     expect(chroma.data[3]).toBe(0); // keyed out to transparent

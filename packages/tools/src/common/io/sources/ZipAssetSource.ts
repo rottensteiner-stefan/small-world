@@ -1,6 +1,6 @@
-import { unzip, unzipSync } from "fflate";
 import type { IAssetSource } from "../types.js";
 import { SecurityValidator } from "../Security.js";
+import { safeUnzip } from "../safeUnzip.js";
 
 export interface ZipAssetSourceOptions {
   id?: string;
@@ -54,28 +54,20 @@ export class ZipAssetSource implements IAssetSource {
     return ZipAssetSource.fromBuffer(bytes, options);
   }
 
+  /** Builds a source from entries that were already unpacked and validated (see ArchiveDecompressor). */
+  public static fromEntries(
+    entries: Iterable<{ path: string; data: Uint8Array }>,
+    options: ZipAssetSourceOptions = {},
+  ): ZipAssetSource {
+    const source = new ZipAssetSource(options);
+    for (const entry of entries) {
+      source._files.set(entry.path, entry.data);
+    }
+    return source;
+  }
+
   private async _loadZipData(bytes: Uint8Array): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      unzip(bytes, (err, unzipped) => {
-        if (err) {
-          try {
-            // Fallback to sync unzip if worker/async encounters environment issues
-            const syncResult = unzipSync(bytes);
-            this._processUnzipped(syncResult);
-            resolve();
-          } catch {
-            reject(new Error(`[ZipAssetSource] Failed to unzip archive: ${err.message}`));
-          }
-          return;
-        }
-        try {
-          this._processUnzipped(unzipped);
-          resolve();
-        } catch (processErr) {
-          reject(processErr);
-        }
-      });
-    });
+    this._processUnzipped(await safeUnzip(bytes, this._security));
   }
 
   private _processUnzipped(unzipped: Record<string, Uint8Array>): void {

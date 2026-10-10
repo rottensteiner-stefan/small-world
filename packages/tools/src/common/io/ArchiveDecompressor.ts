@@ -1,6 +1,9 @@
-import { unzip, unzipSync, gunzipSync } from "fflate";
+import { Gunzip } from "fflate";
+import { safeUnzip } from "./safeUnzip.js";
 import { SecurityValidator } from "./Security.js";
 import type { IngestFileItem } from "./UniversalIngestTypes.js";
+
+const GZIP_INPUT_CHUNK_BYTES = 64 * 1024;
 
 export class ArchiveDecompressor {
   private readonly _security: SecurityValidator;
@@ -25,25 +28,10 @@ export class ArchiveDecompressor {
       bytes = buffer;
     }
 
-    let decompressed: Uint8Array;
-
-    if (typeof DecompressionStream !== "undefined") {
-      try {
-        const stream = new Blob([bytes as BlobPart])
-          .stream()
-          .pipeThrough(new DecompressionStream("gzip"));
-        const response = new Response(stream);
-        decompressed = new Uint8Array(await response.arrayBuffer());
-      } catch {
-        // Fallback to fflate
-        decompressed = gunzipSync(bytes);
-      }
-    } else {
-      decompressed = gunzipSync(bytes);
-    }
+    const decompressed = this._gunzipLimited(bytes);
 
     const uncompressedName = filename.replace(/\.gz$/i, "") || "uncompressed_file";
-    const mimeType = this._guessMimeType(uncompressedName);
+    const mimeType = SecurityValidator.getMimeType(uncompressedName);
 
     return {
       name: uncompressedName,
@@ -68,38 +56,16 @@ export class ArchiveDecompressor {
       bytes = buffer;
     }
 
-    const unzipped = await new Promise<Record<string, Uint8Array>>((resolve, reject) => {
-      unzip(bytes, (err, data) => {
-        if (err) {
-          try {
-            resolve(unzipSync(bytes));
-          } catch {
-            reject(new Error(`Failed to decompress ZIP archive: ${err.message}`));
-          }
-          return;
-        }
-        resolve(data);
-      });
-    });
+    const unzipped = await safeUnzip(bytes, this._security, { enforceExtensions: true });
 
     const items: IngestFileItem[] = [];
 
     for (const [rawPath, data] of Object.entries(unzipped)) {
-      if (rawPath.endsWith("/")) continue;
-
-      const pathValidation = this._security.validatePath(rawPath);
-      if (!pathValidation.valid) {
-        console.warn(
-          `[ArchiveDecompressor] Skipping unsafe entry '${rawPath}': ${pathValidation.reason}`,
-        );
-        continue;
-      }
-
       const cleanPath = this._security.sanitizePath(rawPath);
       if (!cleanPath) continue;
 
       const filename = cleanPath.split("/").pop() || cleanPath;
-      const mimeType = this._guessMimeType(filename);
+      const mimeType = SecurityValidator.getMimeType(filename);
 
       items.push({
         name: filename,
@@ -114,34 +80,25 @@ export class ArchiveDecompressor {
     return items;
   }
 
-  private _guessMimeType(filename: string): string {
-    const ext = filename.split(".").pop()?.toLowerCase();
-    switch (ext) {
-      case "png":
-        return "image/png";
-      case "jpg":
-      case "jpeg":
-        return "image/jpeg";
-      case "webp":
-        return "image/webp";
-      case "svg":
-        return "image/svg+xml";
-      case "gltf":
-        return "model/gltf+json";
-      case "glb":
-        return "model/gltf-binary";
-      case "json":
-        return "application/json";
-      case "bin":
-        return "application/octet-stream";
-      case "wav":
-        return "audio/wav";
-      case "mp3":
-        return "audio/mpeg";
-      case "ogg":
-        return "audio/ogg";
-      default:
-        return "application/octet-stream";
+  /** Inflates in small input chunks so a gzip bomb is aborted as soon as the byte limit is exceeded. */
+  private _gunzipLimited(bytes: Uint8Array): Uint8Array {
+    const parts: Uint8Array[] = [];
+    let total = 0;
+    const gunzip = new Gunzip((chunk) => {
+      total += chunk.byteLength;
+      this._security.assertSize(total);
+      parts.push(chunk);
+    });
+    for (let offset = 0; offset < bytes.byteLength; offset += GZIP_INPUT_CHUNK_BYTES) {
+      const end = Math.min(offset + GZIP_INPUT_CHUNK_BYTES, bytes.byteLength);
+      gunzip.push(bytes.subarray(offset, end), end === bytes.byteLength);
     }
+    const result = new Uint8Array(total);
+    let position = 0;
+    for (const part of parts) {
+      result.set(part, position);
+      position += part.byteLength;
+    }
+    return result;
   }
 }

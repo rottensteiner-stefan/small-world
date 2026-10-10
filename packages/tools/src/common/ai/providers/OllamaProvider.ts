@@ -1,40 +1,61 @@
-import { IVisionAiProvider, VisionAiRequest, VisionAiResponse, AiConfig } from "../types.js";
-import { parseImageData, sortModelsDescending } from "../utils.js";
+import type { VisionAiRequest } from "../types.js";
+import { parseImageData } from "../utils.js";
+import {
+  HttpVisionProvider,
+  type HttpRequestSpec,
+  type ModelsRequestSpec,
+} from "./HttpVisionProvider.js";
 
-export class OllamaProvider implements IVisionAiProvider {
-  constructor(private config: AiConfig) {}
+const DEFAULT_CHAT_ENDPOINT = "http://localhost:11434/api/chat";
 
-  public async sendMessage(req: VisionAiRequest): Promise<VisionAiResponse> {
-    const endpoint = this.config.endpoint?.trim() || "http://localhost:11434/api/chat";
-    const model = this.config.model || "llama3.2-vision";
+interface OllamaMessage {
+  role: string;
+  content: string;
+  images?: string[];
+}
 
-    const messages: Array<{
-      role: string;
-      content: string;
-      images?: string[];
-    }> = [];
+interface OllamaResponse {
+  message?: { content?: string };
+}
+
+interface OllamaTagsResponse {
+  models?: Array<{ name: string }>;
+}
+
+export class OllamaProvider extends HttpVisionProvider {
+  protected override get _requiresApiKey(): boolean {
+    return false;
+  }
+
+  protected get _keyLabel(): string {
+    return "Ollama";
+  }
+
+  protected get _errorLabel(): string {
+    return "Ollama Error";
+  }
+
+  protected get _fallbackModels(): string[] {
+    return ["llama3.3", "llama3.2-vision", "minicpm-v", "llava", "bakllava"];
+  }
+
+  protected _buildRequest(req: VisionAiRequest, _apiKey: string): HttpRequestSpec {
+    const messages: OllamaMessage[] = [];
 
     if (req.systemInstruction) {
-      messages.push({
-        role: "system",
-        content: req.systemInstruction,
-      });
+      messages.push({ role: "system", content: req.systemInstruction });
     }
 
     for (const m of req.messages) {
-      const msgObj: { role: string; content: string; images?: string[] } = {
-        role: m.role,
-        content: m.content || "Analyze this image.",
-      };
+      const message: OllamaMessage = { role: m.role, content: m.content || "Analyze this image." };
       if (m.imageBase64) {
-        const { data } = parseImageData(m.imageBase64);
-        msgObj.images = [data];
+        message.images = [parseImageData(m.imageBase64).data];
       }
-      messages.push(msgObj);
+      messages.push(message);
     }
 
     const body: Record<string, unknown> = {
-      model,
+      model: this._config.model || "llama3.2-vision",
       messages,
       stream: false,
     };
@@ -42,58 +63,22 @@ export class OllamaProvider implements IVisionAiProvider {
       body["options"] = { temperature: req.temperature };
     }
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Ollama Error (${res.status}): ${errText}`);
-    }
-
-    const data = (await res.json()) as {
-      message?: {
-        content?: string;
-      };
-    };
-
-    const text = data.message?.content || "";
-    return { text };
+    return { url: this._chatEndpoint(), headers: {}, body };
   }
 
-  public async testConnection(): Promise<boolean> {
-    const res = await this.sendMessage({
-      messages: [{ role: "user", content: "Ping: Respond with 'OK' if you can read this." }],
-      maxTokens: 10,
-    });
-    return res.text.length > 0;
+  protected _parseResponse(data: unknown): string {
+    return (data as OllamaResponse).message?.content || "";
   }
 
-  public async listModels(): Promise<string[]> {
-    const endpoint = this.config.endpoint?.trim() || "http://localhost:11434/api/chat";
-    const tagsUrl = endpoint.replace(/\/api\/chat\/?$/, "/api/tags");
+  protected override _buildModelsRequest(_apiKey: string): ModelsRequestSpec | null {
+    return { url: this._chatEndpoint().replace(/\/api\/chat\/?$/, "/api/tags"), headers: {} };
+  }
 
-    try {
-      const res = await fetch(tagsUrl);
-      if (res.ok) {
-        const data = (await res.json()) as {
-          models?: Array<{ name: string }>;
-        };
-        if (data.models && Array.isArray(data.models)) {
-          const names = data.models.map((m) => m.name);
-          if (names.length > 0) {
-            return sortModelsDescending(names);
-          }
-        }
-      }
-    } catch {
-      // Fallback
-    }
+  protected override _parseModels(data: unknown): string[] {
+    return ((data as OllamaTagsResponse).models ?? []).map((m) => m.name);
+  }
 
-    return sortModelsDescending(["llama3.3", "llama3.2-vision", "minicpm-v", "llava", "bakllava"]);
+  private _chatEndpoint(): string {
+    return this._config.endpoint?.trim() || DEFAULT_CHAT_ENDPOINT;
   }
 }

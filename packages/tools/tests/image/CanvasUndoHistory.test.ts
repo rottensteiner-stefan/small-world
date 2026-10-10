@@ -64,7 +64,7 @@ describe("CanvasUndoHistory", () => {
     expect(history.canUndo).toBe(true);
 
     // Perform undo
-    const undone = history.undo(canvas, ctx);
+    const undone = history.undo(canvas, ctx, "current");
     expect(undone).not.toBeNull();
     expect(undone?.label).toBe("Initial state");
     expect(history.canUndo).toBe(false);
@@ -75,7 +75,7 @@ describe("CanvasUndoHistory", () => {
     expect(restoredData.data[0]).toBe(100);
 
     // Perform redo
-    const redone = history.redo(canvas, ctx);
+    const redone = history.redo(canvas, ctx, "before redo");
     expect(redone).not.toBeNull();
     expect(history.canUndo).toBe(true);
     expect(history.canRedo).toBe(false);
@@ -95,11 +95,62 @@ describe("CanvasUndoHistory", () => {
 
     expect(history.undoCount).toBe(3);
 
-    history.undo(canvas, ctx);
+    history.undo(canvas, ctx, "current");
     expect(history.canRedo).toBe(true);
 
     // Pushing a new action clears redo
     history.push(canvas, ctx, "Step 5");
     expect(history.canRedo).toBe(false);
+  });
+
+  it("drops the oldest snapshots once the byte budget is exceeded", () => {
+    // 4x4 RGBA = 64 bytes per snapshot, budget fits exactly two
+    const history = new CanvasUndoHistory(100, 128);
+    const { canvas, ctx } = createMockCanvas(4, 4);
+
+    history.push(canvas, ctx, "A");
+    history.push(canvas, ctx, "B");
+    history.push(canvas, ctx, "C");
+
+    expect(history.undoCount).toBe(2);
+    expect(history.undo(canvas, ctx, "current")?.label).toBe("C");
+    expect(history.undo(canvas, ctx, "current")?.label).toBe("B");
+    expect(history.undo(canvas, ctx, "current")).toBeNull();
+  });
+
+  it("always keeps the newest snapshot even if it alone exceeds the budget", () => {
+    const history = new CanvasUndoHistory(10, 16);
+    const { canvas, ctx } = createMockCanvas(4, 4);
+
+    history.push(canvas, ctx, "A");
+    history.push(canvas, ctx, "B");
+
+    expect(history.undoCount).toBe(1);
+    expect(history.undo(canvas, ctx, "current")?.label).toBe("B");
+  });
+
+  it("labels the opposite stack with the caller-provided text", () => {
+    const history = new CanvasUndoHistory(10);
+    const { canvas, ctx } = createMockCanvas(2, 2);
+
+    history.push(canvas, ctx, "Edit");
+    history.undo(canvas, ctx, "state before undo");
+    expect(history.redo(canvas, ctx, "state before redo")?.label).toBe("state before undo");
+    expect(history.undo(canvas, ctx, "x")?.label).toBe("state before redo");
+  });
+
+  it("clear empties both stacks and a new push after undo resets redo", () => {
+    const history = new CanvasUndoHistory(10);
+    const { canvas, ctx } = createMockCanvas(2, 2);
+
+    history.push(canvas, ctx, "A");
+    history.undo(canvas, ctx, "current");
+    expect(history.redoCount).toBe(1);
+    history.push(canvas, ctx, "B");
+    expect(history.redoCount).toBe(0);
+
+    history.clear();
+    expect(history.undoCount).toBe(0);
+    expect(history.canUndo).toBe(false);
   });
 });

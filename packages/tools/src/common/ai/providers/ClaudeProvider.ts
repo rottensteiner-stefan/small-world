@@ -1,64 +1,65 @@
-import { IVisionAiProvider, VisionAiRequest, VisionAiResponse, AiConfig } from "../types.js";
-import { parseImageData, sortModelsDescending } from "../utils.js";
+import type { VisionAiRequest } from "../types.js";
+import { parseImageData } from "../utils.js";
+import {
+  HttpVisionProvider,
+  type HttpRequestSpec,
+  type ModelsRequestSpec,
+} from "./HttpVisionProvider.js";
 
-export class ClaudeProvider implements IVisionAiProvider {
-  constructor(private config: AiConfig) {}
+type ClaudeContent =
+  | string
+  | Array<{
+      type: string;
+      text?: string;
+      source?: { type: "base64"; media_type: string; data: string };
+    }>;
 
-  public async sendMessage(req: VisionAiRequest): Promise<VisionAiResponse> {
-    const apiKey = this.config.apiKey?.trim();
-    if (!apiKey) {
-      throw new Error("Anthropic Claude API Key is missing. Please configure it in settings.");
-    }
+interface ClaudeResponse {
+  content?: Array<{ type?: string; text?: string }>;
+}
 
-    const model = this.config.model || "claude-3-5-haiku-20241022";
-    const endpoint = this.config.endpoint?.trim() || "https://api.anthropic.com/v1/messages";
+interface ClaudeModelsResponse {
+  data?: Array<{ id: string }>;
+}
 
-    const messages: Array<{
-      role: "user" | "assistant";
-      content:
-        | string
-        | Array<{
-            type: string;
-            text?: string;
-            source?: { type: "base64"; media_type: string; data: string };
-          }>;
-    }> = [];
+const MODELS_URL = "https://api.anthropic.com/v1/models";
+
+export class ClaudeProvider extends HttpVisionProvider {
+  protected get _keyLabel(): string {
+    return "Anthropic Claude";
+  }
+
+  protected get _errorLabel(): string {
+    return "Anthropic API Error";
+  }
+
+  protected get _fallbackModels(): string[] {
+    return ["claude-opus-4-1", "claude-sonnet-5-5", "claude-haiku-5-5"];
+  }
+
+  protected _buildRequest(req: VisionAiRequest, apiKey: string): HttpRequestSpec {
+    const url = this._config.endpoint?.trim() || "https://api.anthropic.com/v1/messages";
+    const messages: Array<{ role: "user" | "assistant"; content: ClaudeContent }> = [];
 
     for (const m of req.messages) {
-      if (m.role === "system") continue; // system instruction passed in separate property
+      if (m.role === "system") continue; // system instruction is a separate property
+      const role = m.role as "user" | "assistant";
       if (m.imageBase64) {
         const { mimeType, data } = parseImageData(m.imageBase64);
         messages.push({
-          role: m.role as "user" | "assistant",
+          role,
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mimeType,
-                data: data,
-              },
-            },
+            { type: "image", source: { type: "base64", media_type: mimeType, data } },
             { type: "text", text: m.content || "Analyze this image." },
           ],
         });
       } else {
-        messages.push({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        });
+        messages.push({ role, content: m.content });
       }
     }
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    };
-
     const body: Record<string, unknown> = {
-      model,
+      model: this._config.model || "claude-haiku-5-5",
       messages,
       max_tokens: req.maxTokens || 1024,
     };
@@ -69,65 +70,29 @@ export class ClaudeProvider implements IVisionAiProvider {
       body["temperature"] = req.temperature;
     }
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
+    return { url, headers: ClaudeProvider._headers(apiKey), body };
+  }
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Anthropic API Error (${res.status}): ${errText}`);
+  protected _parseResponse(data: unknown): string {
+    return (data as ClaudeResponse).content?.find((c) => c.type === "text")?.text || "";
+  }
+
+  protected override _buildModelsRequest(apiKey: string): ModelsRequestSpec | null {
+    if ("" === apiKey) {
+      return null;
     }
+    return { url: MODELS_URL, headers: ClaudeProvider._headers(apiKey) };
+  }
 
-    const data = (await res.json()) as {
-      content?: Array<{
-        type?: string;
-        text?: string;
-      }>;
+  protected override _parseModels(data: unknown): string[] {
+    return ((data as ClaudeModelsResponse).data ?? []).map((m) => m.id);
+  }
+
+  private static _headers(apiKey: string): Record<string, string> {
+    return {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
     };
-
-    const textPart = data.content?.find((c) => c.type === "text")?.text || "";
-    return { text: textPart };
-  }
-
-  public async testConnection(): Promise<boolean> {
-    const res = await this.sendMessage({
-      messages: [{ role: "user", content: "Ping: Respond with 'OK' if you can read this." }],
-      maxTokens: 10,
-    });
-    return res.text.length > 0;
-  }
-
-  public async listModels(): Promise<string[]> {
-    const apiKey = this.config.apiKey?.trim();
-    if (apiKey) {
-      try {
-        const res = await fetch("https://api.anthropic.com/v1/models", {
-          headers: {
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-            "anthropic-dangerous-direct-browser-access": "true",
-          },
-        });
-        if (res.ok) {
-          const data = (await res.json()) as {
-            data?: Array<{ id: string }>;
-          };
-          if (data.data && Array.isArray(data.data)) {
-            return sortModelsDescending(data.data.map((m) => m.id));
-          }
-        }
-      } catch {
-        // Fallback
-      }
-    }
-
-    return sortModelsDescending([
-      "claude-3-5-sonnet-20241022",
-      "claude-3-5-haiku-20241022",
-      "claude-3-opus-20240229",
-      "claude-3-haiku-20240307",
-    ]);
   }
 }

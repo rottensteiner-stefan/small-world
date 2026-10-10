@@ -2,6 +2,7 @@ export * from "./types.js";
 export * from "./utils.js";
 export * from "./AiConfigStorage.js";
 export * from "./VisionAiFactory.js";
+export * from "./providers/HttpVisionProvider.js";
 export * from "./providers/GeminiProvider.js";
 export * from "./providers/OpenAiProvider.js";
 export * from "./providers/ClaudeProvider.js";

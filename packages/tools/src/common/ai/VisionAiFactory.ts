@@ -9,8 +9,9 @@ export function createVisionAiProvider(config: AiConfig): IVisionAiProvider {
     case "gemini":
       return new GeminiProvider(config);
     case "openai":
-    case "custom":
       return new OpenAiProvider(config);
+    case "custom":
+      return new OpenAiProvider(config, false);
     case "claude":
       return new ClaudeProvider(config);
     case "ollama":

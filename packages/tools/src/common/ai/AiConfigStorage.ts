@@ -1,10 +1,10 @@
-import { AiConfig, AiProviderType } from "./types.js";
+import type { AiConfig, AiProviderType } from "./types.js";
 
 export const DEFAULT_AI_CONFIGS: Record<AiProviderType, AiConfig> = {
   gemini: {
     provider: "gemini",
     apiKey: "",
-    model: "gemini-1.5-flash",
+    model: "gemini-2.5-flash",
     endpoint: "",
   },
   openai: {
@@ -16,7 +16,7 @@ export const DEFAULT_AI_CONFIGS: Record<AiProviderType, AiConfig> = {
   claude: {
     provider: "claude",
     apiKey: "",
-    model: "claude-3-5-haiku-20241022",
+    model: "claude-haiku-5-5",
     endpoint: "",
   },
   ollama: {
@@ -35,18 +35,31 @@ export const DEFAULT_AI_CONFIGS: Record<AiProviderType, AiConfig> = {
 
 const STORAGE_KEY = "smallworld_ai_config";
 
+function isProviderType(value: unknown): value is AiProviderType {
+  return "string" === typeof value && Object.hasOwn(DEFAULT_AI_CONFIGS, value);
+}
+
+function optionalString(value: unknown): string | undefined {
+  return "string" === typeof value ? value : undefined;
+}
+
 export class AiConfigStorage {
   public static load(): AiConfig {
     try {
       if (typeof localStorage !== "undefined") {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw) as Partial<AiConfig>;
-          const provider = parsed.provider || "gemini";
-          const defaults = DEFAULT_AI_CONFIGS[provider] || DEFAULT_AI_CONFIGS.gemini;
+          const parsed = JSON.parse(raw) as Record<string, unknown> | null;
+          const provider = parsed?.["provider"];
+          if (!isProviderType(provider)) {
+            return { ...DEFAULT_AI_CONFIGS.gemini };
+          }
+          const defaults = DEFAULT_AI_CONFIGS[provider];
           return {
-            ...defaults,
-            ...parsed,
+            provider,
+            apiKey: optionalString(parsed?.["apiKey"]) ?? defaults.apiKey,
+            model: optionalString(parsed?.["model"]) || defaults.model,
+            endpoint: optionalString(parsed?.["endpoint"]) ?? defaults.endpoint,
           };
         }
       }
