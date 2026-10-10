@@ -433,17 +433,17 @@ class Showcase12 extends AbstractShowcase {
       decoNormal = await Texture.fromUrl("./assets/artdeco_normal.webp");
       decoRoughness = await Texture.fromUrl("./assets/artdeco_roughness.webp");
 
-      brassDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.webp");
+      brassDiffuse = await Texture.fromUrl("../shared/assets/rusty_brass_diffuse.webp");
       if (brassDiffuse) {
         brassDiffuse.repeat.x = 2;
         brassDiffuse.repeat.y = 2;
       }
-      brassNormal = await Texture.fromUrl("./assets/rusty_brass_normal.webp");
+      brassNormal = await Texture.fromUrl("../shared/assets/rusty_brass_normal.webp");
       if (brassNormal) {
         brassNormal.repeat.x = 2;
         brassNormal.repeat.y = 2;
       }
-      brassRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.webp");
+      brassRoughness = await Texture.fromUrl("../shared/assets/rusty_brass_roughness.webp");
       if (brassRoughness) {
         brassRoughness.repeat.x = 2;
         brassRoughness.repeat.y = 2;
@@ -453,17 +453,17 @@ class Showcase12 extends AbstractShowcase {
       glassRoughness = await Texture.fromUrl("./assets/glass_roughness.webp");
       glassEmissive = await Texture.fromUrl("./assets/glass_emissive.webp");
 
-      steelDiffuse = await Texture.fromUrl("./assets/scratched_steel_diffuse.webp");
+      steelDiffuse = await Texture.fromUrl("../shared/assets/scratched_steel_diffuse.webp");
       if (steelDiffuse) {
         steelDiffuse.repeat.x = 2;
         steelDiffuse.repeat.y = 2;
       }
-      steelNormal = await Texture.fromUrl("./assets/scratched_steel_normal.webp");
+      steelNormal = await Texture.fromUrl("../shared/assets/scratched_steel_normal.webp");
       if (steelNormal) {
         steelNormal.repeat.x = 2;
         steelNormal.repeat.y = 2;
       }
-      steelRoughness = await Texture.fromUrl("./assets/scratched_steel_roughness.webp");
+      steelRoughness = await Texture.fromUrl("../shared/assets/scratched_steel_roughness.webp");
       if (steelRoughness) {
         steelRoughness.repeat.x = 2;
         steelRoughness.repeat.y = 2;

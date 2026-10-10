@@ -146,9 +146,9 @@ class Showcase27 extends AbstractShowcase {
         Texture.fromUrl("./assets/artdeco_diffuse.webp"),
         Texture.fromUrl("./assets/artdeco_normal.webp"),
         Texture.fromUrl("./assets/artdeco_roughness.webp"),
-        Texture.fromUrl("./assets/rusty_brass_diffuse.webp"),
-        Texture.fromUrl("./assets/rusty_brass_normal.webp"),
-        Texture.fromUrl("./assets/rusty_brass_roughness.webp"),
+        Texture.fromUrl("../shared/assets/rusty_brass_diffuse.webp"),
+        Texture.fromUrl("../shared/assets/rusty_brass_normal.webp"),
+        Texture.fromUrl("../shared/assets/rusty_brass_roughness.webp"),
         envTexture.loadFrom("./assets/ibl/env.webp", CubeLayout.CROSS_HORIZONTAL),
         irradianceTexture.loadFrom("./assets/ibl/irradiance.webp", CubeLayout.CROSS_HORIZONTAL),
         prefilterTexture.loadMipmapsFrom(

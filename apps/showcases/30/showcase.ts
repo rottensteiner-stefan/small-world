@@ -213,25 +213,25 @@ class Showcase30 extends AbstractShowcase {
         asphaltRoughness.repeat.y = 7;
       }
 
-      steelDiffuse = await Texture.fromUrl("./assets/scratched_steel_diffuse.webp");
+      steelDiffuse = await Texture.fromUrl("../shared/assets/scratched_steel_diffuse.webp");
       if (steelDiffuse) {
         steelDiffuse.repeat.x = 2;
         steelDiffuse.repeat.y = 4;
       }
-      steelNormal = await Texture.fromUrl("./assets/scratched_steel_normal.webp");
+      steelNormal = await Texture.fromUrl("../shared/assets/scratched_steel_normal.webp");
       if (steelNormal) {
         steelNormal.repeat.x = 2;
         steelNormal.repeat.y = 4;
       }
-      steelRoughness = await Texture.fromUrl("./assets/scratched_steel_roughness.webp");
+      steelRoughness = await Texture.fromUrl("../shared/assets/scratched_steel_roughness.webp");
       if (steelRoughness) {
         steelRoughness.repeat.x = 2;
         steelRoughness.repeat.y = 4;
       }
 
-      brassDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.webp");
-      brassNormal = await Texture.fromUrl("./assets/rusty_brass_normal.webp");
-      brassRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.webp");
+      brassDiffuse = await Texture.fromUrl("../shared/assets/rusty_brass_diffuse.webp");
+      brassNormal = await Texture.fromUrl("../shared/assets/rusty_brass_normal.webp");
+      brassRoughness = await Texture.fromUrl("../shared/assets/rusty_brass_roughness.webp");
     } catch (e) {
       console.warn("Could not load PBR textures:", e);
     }
