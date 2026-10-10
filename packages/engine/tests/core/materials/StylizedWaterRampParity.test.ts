@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { composeStylizedWaterSources } from "../../../src/core/materials/StylizedWaterMaterial.js";
 
+// Source lint: asserts the three backends spell the ramp LUT identically (substring checks on the
+// shader text). It cannot prove the shaders compile or render alike; see LiquidUniformNameParity.test.ts
+// for the uniform-name mapping check and the golden captures for the rendered result.
 describe("StylizedWater ramp LUT source parity (P2 verification, A4)", () => {
   const sources = composeStylizedWaterSources();
   const glsl300 = sources.glsl300?.fs ?? "";

@@ -6,8 +6,10 @@
 // collision carve-out, (c) unresolved future registrations (S2/S3), (d) eviction policies
 // weakening below "rehome-to-per-style-constant, never silent delete".
 //
-// Heuristics are intentional and documented: this gate's job is to fail on regressions, not
-// to prove shader correctness (that is ShaderValidation's job). Exit 0 = ok, 1 = violation,
+// Heuristics are intentional and documented: markers are substring matches against the
+// comment-stripped source, so the gate proves a lane write is still PRESENT, not that it is
+// correct or that the shader consumes it as declared (that is ShaderValidation's and the
+// probe tests' job). Every registry meaning must have a marker mapping, otherwise the scan fails. Exit 0 = ok, 1 = violation,
 // 2 = technical error (missing file, broken JSON).
 
 import fs from "fs";
@@ -26,6 +28,10 @@ const SCAN_TARGETS = {
   layout: path.join(ROOT, "packages", "engine", "src", "core", "renderers", "shaders", "StandardWebGPULayout.ts"),
   noir: path.join(ROOT, "packages", "liquid-extras", "src", "materials", "NoirWaterMaterial.ts"),
   oil: path.join(ROOT, "packages", "liquid-extras", "src", "materials", "OilSlickMaterial.ts"),
+  openWaterTs: path.join(ROOT, "packages", "engine", "src", "core", "materials", "OpenWaterMaterial.ts"),
+  vertGlsl300: path.join(ROOT, "packages", "engine", "src", "core", "materials", "shaders", "OpenWater.vert.glsl"),
+  vertGlsl100: path.join(ROOT, "packages", "engine", "src", "core", "materials", "shaders", "OpenWater.vert.glsl100"),
+  vertWgsl: path.join(ROOT, "packages", "engine", "src", "core", "materials", "shaders", "OpenWater.vert.wgsl"),
 };
 
 // meaning -> required source marker(s). Every registry lane with a known meaning must have all
@@ -59,11 +65,27 @@ const MEANING_MARKERS = {
     [["oil"], "iridescenceStrength"],
     [["oil"], "u_styleA.w"],
   ],
+  "splat (OpenWater impact ring)": [
+    [["openWaterTs"], "styleA[3] = this._splat[3]"],
+    [["vertGlsl300"], "u_styleA.w"],
+    [["vertGlsl100"], "u_styleA.w"],
+    [["vertWgsl"], "styleA.w"],
+  ],
+  "poolHalfExtent (OpenWater clapotis walls)": [
+    [["openWaterTs"], "_matParam2Array[3] = this.poolHalfExtent"],
+    [["vertGlsl300"], "u_matParam2.w"],
+    [["vertGlsl100"], "u_matParam2.w"],
+    [["vertWgsl"], "matParam2.w"],
+  ],
 };
 
 const violations = [];
 const warnings = [];
 const sourceCache = {};
+
+function stripComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+}
 
 function readSource(key) {
   if (key in sourceCache) return sourceCache[key];
@@ -71,7 +93,9 @@ function readSource(key) {
   if (!file || !fs.existsSync(file)) {
     throw new Error(`scan target missing: ${key}`);
   }
-  sourceCache[key] = fs.readFileSync(file, "utf8");
+  // Markers are matched against CODE only: a marker that survives solely in a comment (e.g. a
+  // lane write that was deleted but still documented) must not satisfy the gate.
+  sourceCache[key] = stripComments(fs.readFileSync(file, "utf8"));
   return sourceCache[key];
 }
 
@@ -108,7 +132,7 @@ function main() {
 
     const markers = MEANING_MARKERS[lane.meaning];
     if (!markers) {
-      warnings.push(`meaning '${lane.meaning}' (${lane.lane}) not mapped in scanner - unverified`);
+      violations.push(`meaning '${lane.meaning}' (${lane.lane}) has no marker mapping in scan.js - an unverified lane would pass silently`);
       continue;
     }
     for (const [fileKeys, marker] of markers) {

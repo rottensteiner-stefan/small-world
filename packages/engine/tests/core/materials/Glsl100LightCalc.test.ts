@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const SHADER_DIR = join(__dirname, "../../../src/core/materials/shaders");
 
+// Source lint (text order check), kept because it guards a real past WebGL1-only compile failure.
 /**
  * `finalLight` is declared by the `[LIGHT_CALC]` chunk. A WebGL1 fragment shader that reads it without
  * pulling in the chunk fails to compile on GLSL ES 1.00 ("'finalLight' : undeclared identifier"), which

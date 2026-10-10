@@ -9,6 +9,7 @@ uniform vec4 u_extraParams;
 uniform vec4 u_liquidParams;
 uniform vec4 u_thresholds;
 uniform vec4 u_styleA;
+uniform vec4 u_matParam2;
 uniform float u_time;
 uniform float u_reflectivity;
 
@@ -62,18 +63,20 @@ void main() {
         b.y += rippleDisp * dir.y * 4.0;
     }
 
-    // S3 Clapotis (Analytical Wall Reflection):
-    // Near pool boundaries (|x| > 3.0 or |z| > 3.0), dominant wave w1 reflects off vertical walls
-    float wallDistX = 4.0 - abs(wp.x);
-    float wallDistZ = 4.0 - abs(wp.z);
-    if (wallDistX < 1.5 && wallDistX > -0.5) {
+    // S3 Clapotis (Analytical Wall Reflection): the dominant wave w1 reflects off the vertical
+    // walls of a square basin centred on the world origin; half extent in matParam2.w, 0 = off.
+    float poolHalfExtent = u_matParam2.w;
+    bool wallsActive = poolHalfExtent > 0.0;
+    float wallDistX = poolHalfExtent - abs(wp.x);
+    float wallDistZ = poolHalfExtent - abs(wp.z);
+    if (wallsActive && wallDistX < 1.5 && wallDistX > -0.5) {
         vec2 wallNorm = vec2(-sign(wp.x), 0.0);
         vec2 dRef = w1.xy - 2.0 * dot(w1.xy, wallNorm) * wallNorm;
         vec4 wRef = vec4(dRef, w1.z * 0.85, w1.w);
         float wallTrap = smoothstep(1.5, 0.0, wallDistX);
         displacement += gerstnerWave(wRef, wp, speed, time, t, b) * wallTrap;
     }
-    if (wallDistZ < 1.5 && wallDistZ > -0.5) {
+    if (wallsActive && wallDistZ < 1.5 && wallDistZ > -0.5) {
         vec2 wallNorm = vec2(0.0, -sign(wp.z));
         vec2 dRef = w1.xy - 2.0 * dot(w1.xy, wallNorm) * wallNorm;
         vec4 wRef = vec4(dRef, w1.z * 0.85, w1.w);

@@ -38,10 +38,27 @@ export interface OpenWaterMaterialOptions {
   foamNoiseScale?: number;
   /** How fast the foam pattern drifts over time. */
   foamNoiseSpeed?: number;
+  /**
+   * Half extent of the square basin (centred on the world origin) whose walls reflect the waves
+   * (S3 clapotis): the walls sit at |x| = poolHalfExtent and |z| = poolHalfExtent. 0 disables the
+   * wall reflection. Defaults to 4.0, the basin of Showcase 10. Travels in `u_matParam2.w`.
+   */
+  poolHalfExtent?: number;
 }
+
+const SPLAT_IDLE: readonly [number, number, number, number] = [0, 0, -9999, 0];
 
 /** Realistic, PBR-leaning open water preset on top of {@link LiquidWaveMaterial}. */
 export class OpenWaterMaterial extends LiquidWaveMaterial {
+  /** See {@link OpenWaterMaterialOptions.poolHalfExtent}. Must match the `OpenWaterSurfaceProbe` option of the same name. */
+  public poolHalfExtent: number;
+  private readonly _splat: [number, number, number, number] = [
+    SPLAT_IDLE[0],
+    SPLAT_IDLE[1],
+    SPLAT_IDLE[2],
+    SPLAT_IDLE[3],
+  ];
+
   constructor(options: OpenWaterMaterialOptions = {}) {
     const {
       waterColor = new Color(0.0, 0.5, 0.8),
@@ -59,6 +76,7 @@ export class OpenWaterMaterial extends LiquidWaveMaterial {
       foamCutoff = 0.6,
       foamNoiseScale = 3.0,
       foamNoiseSpeed = 0.5,
+      poolHalfExtent = 4.0,
     } = options;
 
     super(MaterialType.OPEN_WATER, {
@@ -78,6 +96,29 @@ export class OpenWaterMaterial extends LiquidWaveMaterial {
       foamNoiseScale,
       foamNoiseSpeed,
     });
+    this.poolHalfExtent = poolHalfExtent;
+  }
+
+  /** S2 splat lane `[x, z, spawnTime, energy]` as last emitted. Read-only view; use {@link emitSplat} to change it. */
+  public get splat(): readonly [number, number, number, number] {
+    return this._splat;
+  }
+
+  /** Emits an impact ring wave at (x, z) at `spawnTime` (engine time) with the given energy. Only one ring is active at a time. */
+  public override emitSplat(x: number, z: number, spawnTime: number, energy: number = 1.0): void {
+    this._splat[0] = x;
+    this._splat[1] = z;
+    this._splat[2] = spawnTime;
+    this._splat[3] = energy;
+  }
+
+  protected override _packVariantLanes(): void {
+    const styleA = this._styleAArray;
+    styleA[0] = this._splat[0];
+    styleA[1] = this._splat[1];
+    styleA[2] = this._splat[2];
+    styleA[3] = this._splat[3];
+    this._matParam2Array[3] = this.poolHalfExtent;
   }
 
   protected override _getLiquidWaveShaderSources(): ShaderDefinition["sources"] {

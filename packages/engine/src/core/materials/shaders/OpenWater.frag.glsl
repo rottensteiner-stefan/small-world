@@ -16,7 +16,7 @@ uniform vec2 u_texRepeat;
 // Dedicated material parameter bank (512-byte layout slots)
 uniform vec4 u_matParam0; // [waterAbsorption.rgb, refractionStrength]
 uniform vec4 u_matParam1; // [foamColor.rgb, foamDistance]
-uniform vec4 u_matParam2; // [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
+uniform vec4 u_matParam2; // [foamCutoff, foamNoiseScale, foamNoiseSpeed, poolHalfExtent (vertex stage)]
 uniform float u_time;
 uniform sampler2D u_opaqueDepthMap;
 uniform sampler2D u_opaqueMap;

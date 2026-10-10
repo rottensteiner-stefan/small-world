@@ -59,16 +59,19 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
   public foamCutoff: number;
   public foamNoiseScale: number;
   public foamNoiseSpeed: number;
-  /** S2 Splat-Lane: [x, z, spawnTime, energy] */
-  public splat: [number, number, number, number] = [0, 0, -9999, 0];
+  /** The `u_styleA` lane in the manifest. Presets own its meaning (see the lane table in docs/guides/liquid-wave-data-model.md). */
+  protected readonly _styleAArray: number[] = [0, 0, 0, 0];
+  /** The `u_matParam2` lane: `[foamCutoff, foamNoiseScale, foamNoiseSpeed, <preset lane>]`; `w` is free for presets. */
+  protected readonly _matParam2Array: number[] = [0, 0, 0, 0];
 
-  /** Emits an impact ring wave at position (x, z) at spawnTime with given energy. */
-  public emitSplat(x: number, z: number, spawnTime: number, energy: number = 1.0): void {
-    this.splat[0] = x;
-    this.splat[1] = z;
-    this.splat[2] = spawnTime;
-    this.splat[3] = energy;
-  }
+  /**
+   * Emits an impact ring wave at (x, z). Only presets that render impact rings (OpenWater) act on
+   * it; the base implementation is a deliberate no-op so callers can treat every liquid alike.
+   */
+  public emitSplat(_x: number, _z: number, _spawnTime: number, _energy: number = 1.0): void {}
+
+  /** Hook run at the end of every `getRenderManifest()`: presets write their own lane values here. */
+  protected _packVariantLanes(): void {}
 
   protected constructor(type: string, init: LiquidWaveMaterialInit) {
     super(type);
@@ -107,8 +110,8 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
       this._renderManifest.textures["u_opaqueMap"] = undefined;
       this._renderManifest.properties["u_specColor"] = this.deepWaterColor.toFloat32Array();
       // u_texOffset/u_texRepeat carry edgeColor.rgb + edgeSoftness here, not actual texture
-      // UV offset/repeat -- StandardWebGPULayout only has 3 free vec4 slots (already used by
-      // wave1/2/3 below), so these unrelated vec2 slots are repurposed to fit edge shading data.
+      // UV offset/repeat: a liquid surface has no UV-mapped diffuse, so these slots are free and
+      // repurposed to fit edge shading data (ADR 0026 lane repurposing).
       this._renderManifest.properties["u_texOffset"] = [this.edgeColor.r, this.edgeColor.g];
       this._renderManifest.properties["u_texRepeat"] = [this.edgeColor.b, this.edgeSoftness];
       this._renderManifest.properties["u_extraParams"] = [...this.wave1];
@@ -116,7 +119,7 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
       this._renderManifest.properties["u_thresholds"] = [...this.wave3];
       this._renderManifest.properties["u_reflectivity"] = this.speed;
       this._renderManifest.properties["u_time"] = this.time;
-      this._renderManifest.properties["u_styleA"] = [...this.splat];
+      this._renderManifest.properties["u_styleA"] = this._styleAArray;
 
       // New 512-byte semantic parameter slots (matParam0..3)
       this._renderManifest.properties["u_matParam0"] = [
@@ -131,26 +134,13 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
         this.foamColor.b,
         this.foamDistance,
       ];
-      this._renderManifest.properties["u_matParam2"] = [
-        this.foamCutoff,
-        this.foamNoiseScale,
-        this.foamNoiseSpeed,
-        1.0, // reserved / foam intensity
-      ];
+      this._renderManifest.properties["u_matParam2"] = this._matParam2Array;
     }
 
     this._syncBaseManifestState();
 
     const props = this._renderManifest.properties as Record<string, unknown>;
     props["u_specColor"] = this.deepWaterColor.toFloat32Array();
-
-    const sA = props["u_styleA"] as number[] | undefined;
-    if (sA && !("rampSoftness" in this)) {
-      sA[0] = this.splat[0];
-      sA[1] = this.splat[1];
-      sA[2] = this.splat[2];
-      sA[3] = this.splat[3];
-    }
 
     const offset = props["u_texOffset"] as number[];
     offset[0] = this.edgeColor.r;
@@ -197,13 +187,12 @@ export abstract class LiquidWaveMaterial extends AbstractMaterial {
       mp1[3] = this.foamDistance;
     }
 
-    const mp2 = props["u_matParam2"] as number[] | undefined;
-    if (mp2) {
-      mp2[0] = this.foamCutoff;
-      mp2[1] = this.foamNoiseScale;
-      mp2[2] = this.foamNoiseSpeed;
-      mp2[3] = 1.0;
-    }
+    const mp2 = this._matParam2Array;
+    mp2[0] = this.foamCutoff;
+    mp2[1] = this.foamNoiseScale;
+    mp2[2] = this.foamNoiseSpeed;
+
+    this._packVariantLanes();
 
     return this._renderManifest;
   }

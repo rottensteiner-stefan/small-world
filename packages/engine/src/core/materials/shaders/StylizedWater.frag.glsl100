@@ -6,6 +6,8 @@ varying vec2 v_uv;
 varying vec4 v_clipPos;
 
 [LIGHT_DEFS]
+// WebGL1 has no shadow sampler: the chunk below is the constant-1.0 stub that extension surface hooks
+// (OilSlickMaterial) call, so it must stay even though this shader itself never samples shadows.
 [DIR_SHADOW]
 
 uniform vec3 u_viewPos;
@@ -16,7 +18,7 @@ uniform vec2 u_texRepeat;
 // Dedicated material parameter bank (512-byte layout slots)
 uniform vec4 u_matParam0; // [waterAbsorption.rgb, refractionStrength]
 uniform vec4 u_matParam1; // [foamColor.rgb, foamDistance]
-uniform vec4 u_matParam2; // [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
+uniform vec4 u_matParam2; // [foamCutoff, foamNoiseScale, foamNoiseSpeed, unused]
 uniform vec4 u_styleA;
 uniform vec4 u_styleB;
 uniform float u_time;

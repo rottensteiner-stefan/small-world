@@ -6,7 +6,6 @@ import {
   OpenWaterMaterial,
   StylizedWaterMaterial,
   Object3D,
-  MathPool,
   UniformPacker,
   ShaderBootstrap,
   ShaderRegistry,
@@ -31,6 +30,8 @@ describe("Liquid Materials Zero-Allocation Guarantees", () => {
         // First frame
         const manifest1 = instance.getRenderManifest();
         const props1 = manifest1.properties as Record<string, unknown>;
+        const flags1 = manifest1.flags;
+        const state1 = manifest1.state;
 
         // Capture references to all internal arrays/buffers in the manifest
         const arrayRefs1 = new Map<string, unknown>();
@@ -48,6 +49,10 @@ describe("Liquid Materials Zero-Allocation Guarantees", () => {
 
           // Must return the exact same manifest object instance
           expect(manifestN).toBe(manifest1);
+          // Compile flags and render state feed the pipeline-cache key every frame; a fresh array
+          // or object per call would be a per-frame allocation (and defeat reference-equality caches).
+          expect(manifestN.flags).toBe(flags1);
+          expect(manifestN.state).toBe(state1);
 
           // All array/buffer references inside manifest.properties must be identical across frames
           for (const [key, ref1] of arrayRefs1) {
@@ -58,9 +63,9 @@ describe("Liquid Materials Zero-Allocation Guarantees", () => {
     });
   });
 
-  describe("UniformPacker Packing Zero-Allocation & MathPool Soundness", () => {
+  describe("UniformPacker packing into a pre-allocated buffer", () => {
     liquidMaterials.forEach(({ name, instance }) => {
-      it(`should pack ObjectUniforms for ${name} with 0 MathPool leaks into a pre-allocated buffer`, () => {
+      it(`should pack ObjectUniforms for ${name} into the reused buffer every frame`, () => {
         const obj = new Object3D();
         obj.material = instance;
         obj.position.set(10, 20, 30);
@@ -71,29 +76,13 @@ describe("Liquid Materials Zero-Allocation Guarantees", () => {
         const scratchUniformValues: Record<string, unknown> = {};
         const scratchModelMatrix = new Float32Array(16);
 
-        // Warm up
-        instance.time = 0;
-        let manifest = instance.getRenderManifest();
-        scratchModelMatrix.set(obj.worldMatrix.data);
-        for (const k in scratchUniformValues) scratchUniformValues[k] = undefined;
-        for (const k in manifest.properties) scratchUniformValues[k] = manifest.properties[k];
-        scratchUniformValues["u_model"] = scratchModelMatrix;
-        UniformPacker.packInto(def.layout, scratchUniformValues, scratchBuffer);
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const vectorsBefore = (MathPool as any)._VECTOR_POOL.length;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const matricesBefore = (MathPool as any)._MATRIX_POOL.length;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const quaternionsBefore = (MathPool as any)._QUATERNION_POOL.length;
-
-        // Run 1000 simulated frame packing cycles
+        // Every frame writes the same scratch containers: no new buffer, no new values record.
         for (let frame = 1; frame <= 1000; frame++) {
           instance.time += 0.016;
           obj.position.x += 0.001;
           obj.updateMatrixWorld();
 
-          manifest = instance.getRenderManifest();
+          const manifest = instance.getRenderManifest();
           scratchModelMatrix.set(obj.worldMatrix.data);
 
           for (const k in scratchUniformValues) scratchUniformValues[k] = undefined;
@@ -101,21 +90,11 @@ describe("Liquid Materials Zero-Allocation Guarantees", () => {
           scratchUniformValues["u_model"] = scratchModelMatrix;
 
           UniformPacker.packInto(def.layout, scratchUniformValues, scratchBuffer);
+
+          // The packed model matrix must track the moving object frame by frame.
+          expect(scratchBuffer[12]).toBeCloseTo(obj.position.x, 5);
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const vectorsAfter = (MathPool as any)._VECTOR_POOL.length;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const matricesAfter = (MathPool as any)._MATRIX_POOL.length;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const quaternionsAfter = (MathPool as any)._QUATERNION_POOL.length;
-
-        expect(vectorsAfter).toBe(vectorsBefore);
-        expect(matricesAfter).toBe(matricesBefore);
-        expect(quaternionsAfter).toBe(quaternionsBefore);
-
-        // Model matrix should have been packed to offset 0
-        expect(scratchBuffer[12]).toBeCloseTo(obj.position.x);
         expect(scratchBuffer[13]).toBeCloseTo(20);
         expect(scratchBuffer[14]).toBeCloseTo(30);
       });

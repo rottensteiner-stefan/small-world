@@ -73,9 +73,12 @@ export class BuoyancySolver {
           aabbMaxY = boundsA.center.y + br;
         }
 
-        const waterTop = fv.surfaceHeightAt
-          ? fv.surfaceHeightAt(boundsA.center.x, boundsA.center.z)
-          : fv.bounds.max.y;
+        let waterTop = fv.bounds.max.y;
+        if (fv.surfaceHeightAt) {
+          const probed = fv.surfaceHeightAt(boundsA.center.x, boundsA.center.z);
+          // A NaN/Infinity probe result (singular solve, bad lane data) must not poison the forces.
+          waterTop = Number.isFinite(probed) ? probed : fv.bounds.max.y;
+        }
         if (aabbMinY < waterTop) {
           const objectHeight = Math.max(0.001, aabbMaxY - aabbMinY);
           const submergedDepth = Math.max(0, waterTop - aabbMinY);

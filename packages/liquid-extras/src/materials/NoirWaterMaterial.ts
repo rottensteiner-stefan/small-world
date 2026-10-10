@@ -136,16 +136,17 @@ export class NoirWaterMaterial extends StylizedWaterMaterial {
 
   public override getRenderManifest(): RenderManifest {
     const manifest = super.getRenderManifest();
-    const props = manifest.properties as Record<string, number[]>;
-    props["u_styleA"]![0] = this._rippleCenter[0];
-    props["u_styleA"]![1] = this._rippleCenter[1];
-    props["u_styleA"]![2] = this._rippleCenter2[0];
-    props["u_styleA"]![3] = this._posterizeSteps;
+    const styleA = this._styleAArray;
+    styleA[0] = this._rippleCenter[0];
+    styleA[1] = this._rippleCenter[1];
+    styleA[2] = this._rippleCenter2[0];
+    styleA[3] = this._posterizeSteps;
 
-    props["u_styleB"]![0] = this._rippleCenter2[1];
-    props["u_styleB"]![1] = this._rippleCenter3[0];
-    props["u_styleB"]![2] = this._rippleCenter3[1];
-    props["u_styleB"]![3] = this.styleId;
+    const styleB = this._styleBArray;
+    styleB[0] = this._rippleCenter2[1];
+    styleB[1] = this._rippleCenter3[0];
+    styleB[2] = this._rippleCenter3[1];
+    styleB[3] = this.styleId;
     return manifest;
   }
 

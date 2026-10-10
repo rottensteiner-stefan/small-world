@@ -44,7 +44,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     let screenRes = vec2<f32>(textureDimensions(u_opaqueDepthMap));
     let screenUv = i.pos.xy / screenRes;
     let refrDamping = clamp(depthDiff / 0.3, 0.0, 1.0);
-    let distortedUv = screenUv + (i.n.xz * obj.shininess * refrDamping);
+    let distortedUv = screenUv + (i.n.xz * obj.matParam0.w * refrDamping);
     let distortedCoords = vec2<i32>(distortedUv * screenRes);
     let distortedBgDepth = textureLoad(u_opaqueDepthMap, distortedCoords, 0);
     let ndcDistortedBg = distortedBgDepth * 2.0 - 1.0;
@@ -60,7 +60,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
 
     let causticsDistortionStrength = 0.45;
     let uvCaustics = groundWorldPos.xz + (i.n.xz * causticsDistortionStrength);
-    let causticsSpeed = obj.pad2 * 0.75;
+    let causticsSpeed = obj.matParam2.z * 0.75;
 
     let maxCausticsDepth = 6.0;
     let causticsFade = 1.0 - smoothstep(0.0, maxCausticsDepth, depthDiff);
@@ -69,7 +69,7 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
     var illuminatedUnderwater = opaqueUnderwaterColor;
 
     if (obj.styleB.w > 0.5) {
-        let warpedCaustics = waterDomainWarp(uvCaustics * (obj.useReflectionMap * 0.9), obj.time * causticsSpeed);
+        let warpedCaustics = waterDomainWarp(uvCaustics * (obj.matParam2.y * 0.9), obj.time * causticsSpeed);
         let lineSignal = waterCausticLine(warpedCaustics, 0.18);
         let causticHalo = smoothstep(0.30, 0.55, lineSignal);
         let causticCore = aaStepMask(0.62, lineSignal, 0.06);
@@ -85,8 +85,8 @@ fn aaStepMask(edge: f32, value: f32, softness: f32) -> f32 {
         finalCaustics = causticRgb * causticsFade * causticGain * shadowMask;
         illuminatedUnderwater = opaqueUnderwaterColor * mix(vec3<f32>(0.82, 0.92, 0.98), vec3<f32>(1.0), 1.0 - causticCore * 0.45 * shadowMask) + finalCaustics;
     } else {
-        let causticsUv1 = uvCaustics * (obj.useReflectionMap * 0.85) + vec2<f32>(obj.time * causticsSpeed, obj.time * causticsSpeed * 0.5);
-        let causticsUv2 = uvCaustics * (obj.useReflectionMap * 1.1) - vec2<f32>(obj.time * causticsSpeed * 0.6, obj.time * causticsSpeed * 0.8);
+        let causticsUv1 = uvCaustics * (obj.matParam2.y * 0.85) + vec2<f32>(obj.time * causticsSpeed, obj.time * causticsSpeed * 0.5);
+        let causticsUv2 = uvCaustics * (obj.matParam2.y * 1.1) - vec2<f32>(obj.time * causticsSpeed * 0.6, obj.time * causticsSpeed * 0.8);
         let causticsNoise1 = 1.0 - waterCellNoise(causticsUv1);
         let causticsNoise2 = 1.0 - waterCellNoise(causticsUv2);
         let causticsThreshold = 0.42;

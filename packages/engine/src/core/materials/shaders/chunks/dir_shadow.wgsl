@@ -1,5 +1,5 @@
 fn sampleDirShadow(worldPos: vec3f, N: vec3f) -> f32 {
-    if (global.dirShadowInfo.z < 0.5) {
+    if (global.dirShadowInfo.z < 0.5 || global.dirShadowInfo.w < 1.0) {
         return 1.0;
     }
 

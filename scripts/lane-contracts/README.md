@@ -32,6 +32,16 @@ schreibt nichts zurück.
 - Hooks: `[WATER_EXT_DECL]` / `[WATER_EXT_SURFACE]` (ADR 0025); Erweiterungen nutzen die
   Surface-Hook-Injektion.
 
+- OpenWater-Lanes: `u_styleA` = Splat `[x, z, spawnTime, energy]`, `u_matParam2.w` =
+  `poolHalfExtent` (Clapotis-Wände, 0 = aus, Default 4.0). Beide werden von
+  `OpenWaterMaterial._packVariantLanes()` geschrieben und von `OpenWaterSurfaceProbe` gespiegelt.
+
+## Was der Scanner (nicht) beweist
+Marker sind Substring-Treffer im kommentarbereinigten Quelltext: er beweist, dass ein deklarierter
+Lane-Write noch **vorhanden** ist, nicht dass er korrekt ist oder der Shader ihn wie deklariert
+liest. Jede Registry-Bedeutung ohne Marker-Mapping in `scan.js` ist eine Verletzung. Namens-
+Zuordnung Shader <-> Material prüft `LiquidUniformNameParity.test.ts`.
+
 ## Nutzung
 ```bash
 node scripts/lane-contracts/scan.js

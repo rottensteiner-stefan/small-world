@@ -64,6 +64,8 @@ describe("Lane-Contract-Registry (T3)", () => {
       "styleId (float selector)",
       "posterizeSteps (extension carve-out)",
       "iridescenceStrength (extension carve-out)",
+      "splat (OpenWater impact ring)",
+      "poolHalfExtent (OpenWater clapotis walls)",
     ]) {
       expect(meanings).toContain(expected);
     }
@@ -96,6 +98,14 @@ describe("Lane-Contract-Registry (T3)", () => {
       ["s2-splat-lane", "s3-wall-contract"].includes(x.id),
     )) {
       expect(["reserved", "active"]).toContain(r.status);
+    }
+  });
+
+  it("registers the OpenWater splat and wall lanes for OpenWaterMaterial only", () => {
+    for (const lane of ["u_styleA.xyzw", "u_matParam2.w"]) {
+      const entries = registry.lanes.filter((l) => l.lane === lane);
+      expect(entries.length).toBe(1);
+      expect(entries[0]!.materialTypes).toEqual(["OpenWaterMaterial"]);
     }
   });
 

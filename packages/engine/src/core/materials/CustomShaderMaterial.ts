@@ -40,6 +40,9 @@ export class CustomShaderMaterial extends AbstractMaterial {
   public properties: Record<string, unknown>;
   public textures: Record<string, Texture | CubeTexture | undefined>;
 
+  private readonly _textureFlags: string[] = [];
+  private readonly _textureFlagByKey: Map<string, string | undefined> = new Map();
+
   constructor(options: CustomShaderMaterialOptions) {
     // We generate a unique MaterialType ID for this custom shader
     // so the ShaderRegistry does not overwrite other CustomShaderMaterials.
@@ -122,37 +125,50 @@ export class CustomShaderMaterial extends AbstractMaterial {
       this._renderManifest.textures[key] = this.textures[key];
     }
 
-    // Ensure state changes are reflected
-    this._renderManifest.state = {
-      ...this._renderManifest.state,
-      depthTest: this.depthTest,
-      depthWrite: this.depthWrite,
-      culling: this.cullMode,
-      transparent: this.transparent,
-      blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
-      skipDepthPrePass: true,
-    };
+    const state = this._renderManifest.state;
+    if (state) {
+      state.depthTest = this.depthTest;
+      state.depthWrite = this.depthWrite;
+      state.culling = this.cullMode;
+      state.transparent = this.transparent;
+      state.blending = this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE;
+      state.skipDepthPrePass = true;
+    }
 
     // Derive shader-compile flags from the assigned textures so the assembled fragment template
     // actually declares the guarded sampler uniforms (u_emissiveMap -> USE_EMISSIVE_MAP, ...).
     // Without this, any custom material reusing a template with #ifdef-guarded maps compiles its
     // map usage against an undeclared sampler on the GLSL 300 path (StandardMaterial does this
     // explicitly per-typed-slot; a generic material cannot). Unused defines are always harmless.
-    const flags: string[] = [];
+    // The array is rebuilt in place (stable reference) and the key -> flag mapping is memoised,
+    // so the per-frame cost is a key walk without regex or allocation.
+    const flags = this._textureFlags;
+    flags.length = 0;
     for (const key in this.textures) {
       if (!this.textures[key]) continue;
-      if (key === "u_envMap") {
-        flags.push("USE_ENV_MAP");
-      } else if (key === "u_normalMap") {
-        flags.push("USE_NORMAL_MAP");
-      } else {
-        const m = /^u_([a-zA-Z0-9]+?)Map$/.exec(key);
-        if (m) flags.push(`USE_${m[1]!.toUpperCase()}_MAP`);
-      }
+      const flag = this._flagForTextureKey(key);
+      if (undefined !== flag && !flags.includes(flag)) flags.push(flag);
     }
-    this._renderManifest.flags = Array.from(new Set(flags));
+    this._renderManifest.flags = flags;
 
     return this._renderManifest;
+  }
+
+  private _flagForTextureKey(key: string): string | undefined {
+    if (this._textureFlagByKey.has(key)) {
+      return this._textureFlagByKey.get(key);
+    }
+    let flag: string | undefined;
+    if (key === "u_envMap") {
+      flag = "USE_ENV_MAP";
+    } else if (key === "u_normalMap") {
+      flag = "USE_NORMAL_MAP";
+    } else {
+      const m = /^u_([a-zA-Z0-9]+?)Map$/.exec(key);
+      if (m) flag = `USE_${m[1]!.toUpperCase()}_MAP`;
+    }
+    this._textureFlagByKey.set(key, flag);
+    return flag;
   }
 
   /** @inheritdoc */

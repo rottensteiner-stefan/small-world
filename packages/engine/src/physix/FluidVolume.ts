@@ -17,7 +17,7 @@ export class FluidVolume {
   /**
    * World-space surface height at a horizontal position (x, z). When set, this overrides the
    * flat `bounds.max.y` fallback used by the buoyancy solver, letting bodies ride the real
-   * wave surface instead of the AABB's upper bound.
+   * wave surface instead of the AABB's upper bound. A non-finite return value falls back to `bounds.max.y`.
    */
   public surfaceHeightAt?: (x: number, z: number) => number;
 

@@ -54,18 +54,20 @@ fn vs(
         b.y += rippleDisp * dir.y * 4.0;
     }
 
-    // S3 Clapotis (Analytical Wall Reflection):
-    // Near pool boundaries (|x| > 3.0 or |z| > 3.0), dominant wave w1 reflects off vertical walls
-    let wallDistX = 4.0 - abs(wp.x);
-    let wallDistZ = 4.0 - abs(wp.z);
-    if (wallDistX < 1.5 && wallDistX > -0.5) {
+    // S3 Clapotis (Analytical Wall Reflection): the dominant wave w1 reflects off the vertical
+    // walls of a square basin centred on the world origin; half extent in matParam2.w, 0 = off.
+    let poolHalfExtent = obj.matParam2.w;
+    let wallsActive = poolHalfExtent > 0.0;
+    let wallDistX = poolHalfExtent - abs(wp.x);
+    let wallDistZ = poolHalfExtent - abs(wp.z);
+    if (wallsActive && wallDistX < 1.5 && wallDistX > -0.5) {
         let wallNorm = vec2f(-sign(wp.x), 0.0);
         let dRef = w1.xy - 2.0 * dot(w1.xy, wallNorm) * wallNorm;
         let wRef = vec4f(dRef, w1.z * 0.85, w1.w);
         let wallTrap = smoothstep(1.5, 0.0, wallDistX);
         displacement += gerstnerWave(wRef, wp, speed, time, &t, &b) * wallTrap;
     }
-    if (wallDistZ < 1.5 && wallDistZ > -0.5) {
+    if (wallsActive && wallDistZ < 1.5 && wallDistZ > -0.5) {
         let wallNorm = vec2f(0.0, -sign(wp.z));
         let dRef = w1.xy - 2.0 * dot(w1.xy, wallNorm) * wallNorm;
         let wRef = vec4f(dRef, w1.z * 0.85, w1.w);

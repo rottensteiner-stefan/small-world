@@ -15,7 +15,7 @@ uniform vec2 u_texRepeat;      // Edge color (B), edgeSoftness
 // Dedicated material parameter bank (512-byte layout slots)
 uniform vec4 u_matParam0;         // [waterAbsorption.rgb, refractionStrength]
 uniform vec4 u_matParam1;         // [foamColor.rgb, foamDistance]
-uniform vec4 u_matParam2;         // [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
+uniform vec4 u_matParam2;         // [foamCutoff, foamNoiseScale, foamNoiseSpeed, unused]
 uniform vec4 u_styleA;             // [rampSoftness, washAmount, lineDensity, lineWidth]
 uniform vec4 u_styleB;             // [foamSoftness, skyTint, glitterStrength, styleId]
 uniform float u_time;

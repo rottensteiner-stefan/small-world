@@ -315,7 +315,10 @@ describe("DeadOptionLint (G3/G9)", () => {
   const mockTex = (): Texture => new MockTexture();
   const mockCube = (): CubeTexture => new MockCubeTexture();
 
-  describe("Runtime Option Consumption Verification", () => {
+  // These tests prove that an option survives the constructor (stored on the instance). That an
+  // option is actually CONSUMED is proven by the static AST audit above and, for the liquid family,
+  // by the "reaches the manifest lanes" tests below; the other materials are assignment-only checks.
+  describe("Runtime Option Storage Verification (constructor assignment)", () => {
     it("BasicMaterial consumes all options", () => {
       const col = new Color(0.2, 0.4, 0.6);
       const tex = mockTex();
@@ -687,6 +690,56 @@ describe("DeadOptionLint (G3/G9)", () => {
       expect(manifest.properties["u_styleB"]).toBeDefined();
     });
 
+    it("OpenWater options reach the manifest lanes the shader reads", () => {
+      const mat = new OpenWaterMaterial({
+        waterColor: new Color(0.1, 0.4, 0.7),
+        deepWaterColor: new Color(0.01, 0.05, 0.2),
+        edgeColor: new Color(0.9, 0.95, 1.0),
+        edgeSoftness: 1.2,
+        speed: 1.1,
+        wave1: [1.0, 0.5, 0.1, 8.0],
+        wave2: [0.2, 0.7, 0.12, 5.0],
+        wave3: [-0.3, 0.5, 0.04, 2.0],
+        refractionStrength: 0.04,
+        waterAbsorption: [0.35, 0.08, 0.03],
+        foamColor: new Color(0.9, 0.8, 0.7),
+        foamDistance: 1.5,
+        foamCutoff: 0.55,
+        foamNoiseScale: 4.0,
+        foamNoiseSpeed: 0.7,
+        poolHalfExtent: 3.0,
+      });
+      const props = mat.getRenderManifest().properties as Record<string, number[] | number>;
+      const lane = (name: string): number[] => props[name] as number[];
+
+      expect(lane("u_extraParams")).toEqual([1.0, 0.5, 0.1, 8.0]);
+      expect(lane("u_liquidParams")).toEqual([0.2, 0.7, 0.12, 5.0]);
+      expect(lane("u_thresholds")).toEqual([-0.3, 0.5, 0.04, 2.0]);
+      expect(props["u_reflectivity"]).toBe(1.1);
+      expect(lane("u_texRepeat")[1]).toBe(1.2);
+      expect(lane("u_matParam0")).toEqual([0.35, 0.08, 0.03, 0.04]);
+      expect(lane("u_matParam1")[0]).toBeCloseTo(0.9, 6);
+      expect(lane("u_matParam1")[3]).toBe(1.5);
+      expect(lane("u_matParam2")).toEqual([0.55, 4.0, 0.7, 3.0]);
+    });
+
+    it("Stylized options reach the style lanes the shader reads", () => {
+      const mat = new StylizedWaterMaterial({
+        style: "sparkle",
+        rampSoftness: 0.8,
+        washAmount: 0.3,
+        lineDensity: 2.0,
+        lineWidth: 0.6,
+        foamSoftness: 0.1,
+        skyTint: 0.4,
+        glitterStrength: 0.8,
+        styleId: 2,
+      });
+      const props = mat.getRenderManifest().properties as Record<string, number[]>;
+      expect(props["u_styleA"]).toEqual([0.8, 0.3, 2.0, 0.6]);
+      expect(props["u_styleB"]).toEqual([0.1, 0.4, 0.8, 2]);
+    });
+
     it("WireframeMaterial and SpriteMaterial consume options object", () => {
       const wire = new WireframeMaterial({
         color: new Color(0.1, 0.8, 0.3),
@@ -694,6 +747,12 @@ describe("DeadOptionLint (G3/G9)", () => {
       });
       expect(wire.color.r).toBeCloseTo(0.1);
       expect(wire.wireframeMode).toBe("triangles");
+
+      const colorOverload = new WireframeMaterial(new Color(0.2, 0.3, 0.4), "triangles");
+      expect(colorOverload.wireframeMode).toBe("triangles");
+      expect(colorOverload.color.g).toBeCloseTo(0.3);
+      expect(new WireframeMaterial({}).wireframeMode).toBe("structural");
+      expect(() => new WireframeMaterial(null as unknown as Color)).toThrow(TypeError);
 
       const tex = mockTex();
       const sprite = new SpriteMaterial({

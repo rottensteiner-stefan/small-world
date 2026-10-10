@@ -20,6 +20,11 @@
  *
  * Optional free text after the closing `]` is allowed and ignored.
  *
+ * LIMITS (read before trusting a green run): this lint only checks that the referenced file,
+ * line number and test name EXIST. It says nothing about whether the cited line still contains
+ * the claimed fact, or whether the cited test actually asserts it or passes. A marker is a
+ * pointer that must be kept honest by the author, not a proof of truth.
+ *
  * Usage:
  *   node scripts/check-verified-markers.js
  *   node scripts/check-verified-markers.js --refs .agents/collaborate/liquid-roadmap*.md

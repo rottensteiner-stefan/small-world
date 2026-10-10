@@ -93,8 +93,7 @@ export class OilSlickMaterial extends StylizedWaterMaterial {
 
   public override getRenderManifest(): RenderManifest {
     const manifest = super.getRenderManifest();
-    const props = manifest.properties as Record<string, number[]>;
-    props["u_styleA"]![3] = this._iridescenceStrength;
+    this._styleAArray[3] = this._iridescenceStrength;
     return manifest;
   }
 

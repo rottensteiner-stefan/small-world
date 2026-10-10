@@ -36,19 +36,25 @@ export class WireframeMaterial extends AbstractMaterial {
 
   public wireframeMode: "structural" | "triangles" = "structural";
 
+  /**
+   * @param optionsOrColor Line colour, or an options object (`color`, `wireframeMode`). Defaults to white.
+   * @param wireframeMode Only used with the colour overload; an options object carries its own mode.
+   */
   constructor(
     optionsOrColor: WireframeMaterialOptions | Color = new Color(1, 1, 1, 1),
     wireframeMode: "structural" | "triangles" = "structural",
   ) {
     super(MaterialType.WIREFRAME);
-    if (optionsOrColor instanceof Color) {
-      this.color = Object.isFrozen(optionsOrColor) ? optionsOrColor.clone() : optionsOrColor;
-      this.wireframeMode = wireframeMode;
-    } else if (optionsOrColor && typeof optionsOrColor === "object") {
-      const { color = new Color(1, 1, 1, 1), wireframeMode: mode = wireframeMode } = optionsOrColor;
-      this.color = Object.isFrozen(color) ? color.clone() : color;
-      this.wireframeMode = mode;
+    if (null === optionsOrColor || "object" !== typeof optionsOrColor) {
+      throw new TypeError(
+        "WireframeMaterial expects a Color or a WireframeMaterialOptions object.",
+      );
     }
+    const options: WireframeMaterialOptions =
+      optionsOrColor instanceof Color ? { color: optionsOrColor, wireframeMode } : optionsOrColor;
+    const color = options.color ?? new Color(1, 1, 1, 1);
+    this.color = Object.isFrozen(color) ? color.clone() : color;
+    this.wireframeMode = options.wireframeMode ?? "structural";
   }
 
   /** @inheritdoc */

@@ -80,6 +80,25 @@
       "evictionPolicy": "rehome-to-per-style-constant, never silent delete (G3)",
       "collision": "overrides base lineWidth meaning; valid ONLY because styleId==3.0 dispatches extension branch"
     }
+,
+    {
+      "lane": "u_styleA.xyzw",
+      "meaning": "splat (OpenWater impact ring)",
+      "materialTypes": ["OpenWaterMaterial"],
+      "styleIds": [],
+      "writeOrder": "hook:_packVariantLanes (after base pack)",
+      "range": "[x, z, spawnTime, energy]; ring active for 0..4 s after spawnTime when energy > 0",
+      "evictionPolicy": "rehome-to-per-style-constant, never silent delete (G3)"
+    },
+    {
+      "lane": "u_matParam2.w",
+      "meaning": "poolHalfExtent (OpenWater clapotis walls)",
+      "materialTypes": ["OpenWaterMaterial"],
+      "styleIds": [],
+      "writeOrder": "hook:_packVariantLanes (after base pack)",
+      "range": "world units, > 0 enables wall reflection, 0 = off; default 4.0",
+      "evictionPolicy": "rehome-to-per-style-constant, never silent delete (G3)"
+    }
   ],
   "registration": [
     {
@@ -91,8 +110,8 @@
     {
       "id": "s3-wall-contract",
       "status": "active",
-      "purpose": "S3 Clapotis wall contract: wall normal + half-extent + amplitude-trap-range; consumed by OpenWater vertex shaders.",
-      "note": "Active on OpenWater vertex shaders (GLSL300, GLSL100, WGSL)."
+      "purpose": "S3 Clapotis wall contract: square basin centred on the world origin, half extent travels in u_matParam2.w (0 = off, default 4.0); wall normal, fade band and amplitude scale are shader constants.",
+      "note": "Active on OpenWater vertex shaders (GLSL300, GLSL100, WGSL); mirrored by OpenWaterSurfaceProbe (poolHalfExtent lane)."
     },
     {
       "id": "s1-surface-probe",

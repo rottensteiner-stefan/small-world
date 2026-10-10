@@ -67,4 +67,22 @@ describe("BuoyancySolver", () => {
     expect(obj.rigidBody.forces.x).toBeGreaterThan(0);
     expect(obj.rigidBody.forces.z).toBeGreaterThan(0);
   });
+
+  it("falls back to the flat bounds when surfaceHeightAt returns a non-finite value", () => {
+    const obj = new Object3D("NaNProbeCube");
+    obj.rigidBody = new RigidBody(2.0);
+    obj.bounds = new BoundingBox(new Vector3D(-0.5, -1, -0.5), new Vector3D(0.5, 0, 0.5));
+
+    const fluid = new FluidVolume(
+      new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 0, 10)),
+      1.0,
+      0.8,
+    );
+    fluid.surfaceHeightAt = (): number => Number.NaN;
+
+    BuoyancySolver.applyFluidForces(obj, [fluid], new Vector3D(0, -9.81, 0));
+
+    expect(Number.isFinite(obj.rigidBody.forces.y)).toBe(true);
+    expect(obj.rigidBody.forces.y).toBeCloseTo(9.81);
+  });
 });

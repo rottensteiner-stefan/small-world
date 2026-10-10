@@ -73,12 +73,13 @@ describe("WaveSurfaceBuoyancy", () => {
     // Test-controlled driven time read by the surface closure.
     const drivenTime = DRIVEN_TIME;
     const water = makeWater(0.95);
-    water.surfaceHeightAt = (x: number, z: number): number => probe.heightAt(x, z, drivenTime);
+    water.surfaceHeightAt = (x: number, z: number): number =>
+      probe.surfaceHeightAt(x, z, drivenTime);
 
     const body = makeBody("CrestBody");
     runPhysics(body, water);
 
-    const surfaceY = probe.heightAt(BODY_X, BODY_Z, DRIVEN_TIME);
+    const surfaceY = probe.surfaceHeightAt(BODY_X, BODY_Z, DRIVEN_TIME);
     const restingY = body.position.y;
     const flatY = water.bounds.max.y;
     const box = body.bounds as BoundingBox;
@@ -99,7 +100,7 @@ describe("WaveSurfaceBuoyancy", () => {
     // Wave amplitude at the body's position over a full time window.
     let waveAmplitude = 0;
     for (let t = 0; t <= 20; t += 0.1) {
-      waveAmplitude = Math.max(waveAmplitude, Math.abs(probe.heightAt(BODY_X, BODY_Z, t)));
+      waveAmplitude = Math.max(waveAmplitude, Math.abs(probe.surfaceHeightAt(BODY_X, BODY_Z, t)));
     }
 
     // (b) resting height is more than the full wave amplitude away from the flat AABB top:
@@ -123,7 +124,7 @@ describe("WaveSurfaceBuoyancy", () => {
     const body = makeBody("FlatFallbackBody");
     runPhysics(body, water);
 
-    const surfaceY = probe.heightAt(BODY_X, BODY_Z, DRIVEN_TIME);
+    const surfaceY = probe.surfaceHeightAt(BODY_X, BODY_Z, DRIVEN_TIME);
     const restingY = body.position.y;
     const flatY = water.bounds.max.y;
 

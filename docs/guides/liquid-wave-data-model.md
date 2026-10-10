@@ -80,7 +80,7 @@ $$\text{foam}_{\text{crest}} = \text{smoothstep}(\text{CREST\_FOAM\_LOW}, \text{
 
 Dynamic point disturbances (falling rain, footsteps, projectile impacts) are emitted via `liquid.emitSplat(worldX, worldZ, time, energy)`:
 
-- **Transport:** Packed into the registered `u_styleA` lane as $\mathbf{s} = (x_0, z_0, t_{\text{spawn}}, E)$.
+- **Transport:** Packed into the registered `u_styleA` lane as $\mathbf{s} = (x_0, z_0, t_{\text{spawn}}, E)$. Only `OpenWaterMaterial` renders and stores the ring (`emitSplat` is a no-op on other presets; `splat` is a read-only view).
 - **Vertex Evaluation:** Computes an outward-propagating, decaying ring wave:
   $$r = \|\mathbf{p}_{xz} - \mathbf{s}_{xz}\|$$
   $$\Delta t = \max(t - \mathbf{s}_t, 0.0)$$
@@ -97,9 +97,9 @@ flowchart LR
 
 ### 3.2 S3 Boundary Clapotis (Wall Reflections)
 
-Enclosed basins and pool walls cause standing waves (*clapotis*). Rather than requiring additional uniforms or dynamic FBO ping-ponging, wall reflections are computed analytically in vertex shaders from `u_worldBounds`:
+Enclosed basins and pool walls cause standing waves (*clapotis*). Rather than requiring additional uniforms or dynamic FBO ping-ponging, wall reflections are computed analytically in the OpenWater vertex shaders. The basin is a square centred on the world origin; its half extent is the material parameter `poolHalfExtent` (default 4.0, `0` disables), transported in `u_matParam2.w`:
 
-1. Surface bounds $[x_{\min}, z_{\min}, x_{\max}, z_{\max}]$ define wall planes with normals $\mathbf{n}_{\text{wall}}$.
+1. The walls sit at $|x| = h$ and $|z| = h$ with inward normals $\mathbf{n}_{\text{wall}}$; the reflection is active in the band $-0.5 < h - |p| < 1.5$.
 2. For wave direction $\mathbf{d}_{\text{inc}}$, the reflected wave direction is:
    $$\mathbf{d}_{\text{ref}} = \mathbf{d}_{\text{inc}} - 2(\mathbf{d}_{\text{inc}} \cdot \mathbf{n}_{\text{wall}})\mathbf{n}_{\text{wall}}$$
 3. Reflected wave contributions are faded based on distance to the boundary wall, forming standing wave nodes and antinodes ($2A$ amplitude near the wall).
@@ -108,7 +108,7 @@ Enclosed basins and pool walls cause standing waves (*clapotis*). Rather than re
 
 ## 4. CPU Surface Probing & Buoyancy Data Flow
 
-To allow gameplay objects and physics bodies to float realistically without GPU readback latency, the CPU implements an exact mirror of the vertex shader mathematics.
+To allow gameplay objects and physics bodies to float realistically without GPU readback latency, the CPU implements a mirror of the vertex shader height field: the six Gerstner waves, the S2 impact ring and the S3 wall reflection. The probe reads the material's lanes live on every query (so `emitSplat`, wave edits and `poolHalfExtent` changes are seen); it does not mirror the normal or crest-foam metric. Use `surfaceHeightAt` (height above a world point) for buoyancy; `heightAt` is the height of the vertex with a given *rest* position.
 
 ```mermaid
 flowchart TD
@@ -155,6 +155,8 @@ In compliance with **ADR 0026**, the per-object uniform buffer (`ObjectUniforms`
 | `13` | `208..223` | `u_matParamsC` | `vec4` | `[foamScale, foamSpeed, foamDist, pad]` | `[foamScale, foamSpeed, foamDist, pad]` | `[rimStr, specStr, normalScale, pad]` |
 | `14` | `224..239` | `u_styleA` | `vec4` | `[splatX, splatZ, spawnTime, splatEnergy]` | `[rampSoft, washAmt, lineDensity, lineWidth/splat]` | `[emissive.r, time, flowSpeed, noiseScale]` |
 | `15` | `240..255` | `u_styleB` | `vec4` | `[pad0, pad1, pad2, pad3]` | `[foamSoft, skyTint, glitterStr, styleId]` | `[pad0, pad1, emissive.g, emissive.b]` |
+
+`matParam2.w` is free for presets: OpenWater uses it for `poolHalfExtent`, other presets leave it 0. Presets write their own lanes in the `_packVariantLanes()` hook of `LiquidWaveMaterial`.
 
 ### 5.1 Ramp LUT (`StylizedWaterMaterial.rampMap`)
 

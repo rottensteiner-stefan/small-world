@@ -205,8 +205,10 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
 
   private readonly _colorWithSpecular: number[] = [0, 0, 0, 0];
   private readonly _deepWithCaustic: number[] = [0, 0, 0, 0];
-  private readonly _styleAArray: number[] = [0, 0, 0, 0];
-  private readonly _styleBArray: number[] = [0, 0, 0, 0];
+  /** The `u_styleB` lane; subclasses may overwrite entries after `super.getRenderManifest()`. */
+  protected readonly _styleBArray: number[] = [0, 0, 0, 0];
+  private readonly _flagsWithRamp: string[] = ["USE_RAMP_LUT"];
+  private readonly _flagsNoRamp: string[] = [];
 
   constructor(
     options: StylizedWaterMaterialOptions = {},
@@ -299,7 +301,6 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
     sA[1] = this.washAmount;
     sA[2] = this.lineDensity;
     sA[3] = this.lineWidth;
-    props["u_styleA"] = sA;
 
     const sB = this._styleBArray;
     sB[0] = this.foamSoftness;
@@ -310,20 +311,9 @@ export class StylizedWaterMaterial extends LiquidWaveMaterial {
 
     manifest.textures["u_rampMap"] = this.rampMap;
 
-    // Style specialization flags (Route b): compiled into shader for zero branch divergence
-    const flags: string[] = [];
-    if (this.rampMap) {
-      flags.push("USE_RAMP_LUT");
-    }
-    // 0: toon, 1: soft, 2: sparkle, 3: extension, 4: dredge, 5: bold
-    if (this.styleId === 0.0) flags.push("STYLE_TOON");
-    else if (this.styleId === 1.0) flags.push("STYLE_SOFT");
-    else if (this.styleId === 2.0) flags.push("STYLE_SPARKLE");
-    else if (this.styleId === 3.0) flags.push("STYLE_EXTENSION");
-    else if (this.styleId === 4.0) flags.push("STYLE_DREDGE");
-    else if (this.styleId === 5.0) flags.push("STYLE_BOLD");
-
-    manifest.flags = flags;
+    // The style is selected at runtime via u_styleB.w; only the ramp LUT changes the compiled
+    // program. The array reference is stable and only swapped when the ramp presence flips.
+    manifest.flags = undefined !== this.rampMap ? this._flagsWithRamp : this._flagsNoRamp;
 
     return manifest;
   }
