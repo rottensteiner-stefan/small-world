@@ -4,7 +4,11 @@ import type {
   IVisionAiProvider,
   VisionAiMessage,
 } from "../common/ai/index.js";
-import { DEFAULT_AI_CONFIGS, sortModelsDescending } from "../common/ai/index.js";
+import {
+  DEFAULT_AI_CONFIGS,
+  providerRequiresApiKey,
+  sortModelsDescending,
+} from "../common/ai/index.js";
 import { parseActionChips, type CanvasActionChip } from "../common/image/index.js";
 import type { CommandHistory } from "../common/io/index.js";
 import { renderChatMarkup } from "./chatMarkup.js";
@@ -359,7 +363,7 @@ export class AiChatPanel {
       return;
     }
 
-    const hasKey = !!this._config.apiKey?.trim() || "ollama" === this._config.provider;
+    const hasKey = !!this._config.apiKey?.trim() || !providerRequiresApiKey(this._config.provider);
     if (!hasKey) {
       this._showMissingProviderHint();
       return;

@@ -147,11 +147,11 @@ export class CanvasSelection {
     if (this._moving && this._rect) {
       this._rect.x = Math.max(
         0,
-        Math.min(p.x - this._moveOffsetX, this._canvas.width - this._rect.w),
+        Math.min(Math.round(p.x - this._moveOffsetX), this._canvas.width - this._rect.w),
       );
       this._rect.y = Math.max(
         0,
-        Math.min(p.y - this._moveOffsetY, this._canvas.height - this._rect.h),
+        Math.min(Math.round(p.y - this._moveOffsetY), this._canvas.height - this._rect.h),
       );
       this._updateBox(this._rect.x, this._rect.y, this._rect.w, this._rect.h);
       this._updateInputs();
@@ -170,14 +170,15 @@ export class CanvasSelection {
     this._drawing = false;
 
     const p = this.toCanvasPoint(e);
-    const rect: SelectionRect = {
-      x: Math.min(this._startX, p.x),
-      y: Math.min(this._startY, p.y),
-      w: Math.abs(p.x - this._startX),
-      h: Math.abs(p.y - this._startY),
-    };
+    // Snap outwards to whole canvas pixels: a fractional crop would resample the edges.
+    const left = Math.max(0, Math.floor(Math.min(this._startX, p.x)));
+    const top = Math.max(0, Math.floor(Math.min(this._startY, p.y)));
+    const right = Math.min(this._canvas.width, Math.ceil(Math.max(this._startX, p.x)));
+    const bottom = Math.min(this._canvas.height, Math.ceil(Math.max(this._startY, p.y)));
+    const rect: SelectionRect = { x: left, y: top, w: right - left, h: bottom - top };
     if (rect.w > MIN_DRAG_EDGE && rect.h > MIN_DRAG_EDGE) {
       this._rect = rect;
+      this._updateBox(rect.x, rect.y, rect.w, rect.h);
       this._updateInputs();
       this._captureCrop();
     } else {

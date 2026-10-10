@@ -48,11 +48,16 @@ export class Xtractor extends ForgeTool {
     this._abortController = new AbortController();
   }
 
+  /** Present when hosted by the Forge; the standalone page has nobody to send crops to. */
+  private readonly _events: EventDispatcherImpl | undefined;
+
   constructor(
-    private events: EventDispatcherImpl,
-    options: ForgeToolOptions = {},
+    eventsOrOptions?: EventDispatcherImpl | ForgeToolOptions,
+    options?: ForgeToolOptions,
   ) {
-    super(options);
+    const hasEvents = undefined !== eventsOrOptions && "addEventListener" in eventsOrOptions;
+    super(hasEvents ? (options ?? {}) : ((eventsOrOptions as ForgeToolOptions | undefined) ?? {}));
+    this._events = hasEvents ? (eventsOrOptions as EventDispatcherImpl) : undefined;
     injectXtractorStyles();
     this._buildUI();
     this._bindLogic();
@@ -518,7 +523,7 @@ export class Xtractor extends ForgeTool {
     btnSendPixler.addEventListener("click", () => {
       if (selection.rect) {
         const base64 = selection.cropCanvas.toDataURL("image/png");
-        this.events.dispatchEvent(ToolEvents.Pixler.LOAD_BASE64, { base64 });
+        this._events?.dispatchEvent(ToolEvents.Pixler.LOAD_BASE64, { base64 });
       }
     });
 

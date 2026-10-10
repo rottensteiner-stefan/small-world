@@ -43,7 +43,10 @@ const XTRACTOR_CSS = `
       transform-origin: 0 0;
       transition: transform 0.1s ease-out;
     }
+    /* shared.css sizes every canvas to 100vw x 100vh; the bitmap's own size must win here. */
     #image-canvas {
+      width: auto;
+      height: auto;
       box-shadow: var(--tool-shadow-float);
       cursor: crosshair;
       max-width: 100%;
@@ -264,6 +267,7 @@ const XTRACTOR_CSS = `
       display: none;
     }
     .swf-ix-context-pill canvas {
+      width: auto;
       height: 40px;
       border: 1px solid var(--tool-border);
     }
