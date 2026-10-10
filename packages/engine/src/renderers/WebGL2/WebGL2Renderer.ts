@@ -796,6 +796,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             cache.attributes.get("a_normal")!,
             cache.attributes.get("a_uv")!,
             cache.attributes.get("a_tangent")!,
+            -1,
+            -1,
+            cache.attributes.get("a_color")!,
           );
         }
         mesh.draw(drawMode, batch!.wireframeMode);
@@ -1491,6 +1494,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             cache.attributes.get("a_tangent")!,
             cache.attributes.get("a_joints") ?? -1,
             cache.attributes.get("a_weights") ?? -1,
+            cache.attributes.get("a_color") ?? -1,
           );
         }
 
@@ -1612,8 +1616,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.canvas.height > 0
     ) {
       // RGBA16F rendering requires EXT_color_buffer_float; without it, WebGL2FrameBuffer's
-      // checkFramebufferStatus() throws. Fall back to an UNSIGNED_BYTE target, matching the
-      // WebGL1Renderer's OES_texture_half_float / EXT_color_buffer_half_float fallback.
+      // checkFramebufferStatus() throws. Fall back to an UNSIGNED_BYTE target (WebGL1Renderer
+      // always uses RGBA8 because half-float targets silently drop draws on some drivers).
       const supportsFloatColorBuffer = this.gl.getExtension("EXT_color_buffer_float") !== null;
       this._hdrFbo = new WebGL2FrameBuffer(this.gl, {
         width: this.gl.canvas.width,

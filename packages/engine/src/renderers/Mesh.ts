@@ -1,5 +1,8 @@
 import { GeometryDataInterface } from "../interfaces/index.js";
 
+/** Fixed WebGL2 attribute location of `a_color` (see `WebGLProgramCache`). */
+export const VERTEX_COLOR_LOCATION = 11;
+
 /**
  * Wrapper for WebGL vertex and index buffers.
  * Handles both indexed and non-indexed geometry.
@@ -17,6 +20,8 @@ export class Mesh {
   public tanbo: WebGLBuffer | undefined = undefined;
   /** The texture coordinate buffer object. */
   public tbo: WebGLBuffer | undefined = undefined;
+  /** The per-vertex color (RGBA) buffer object. */
+  public cbo: WebGLBuffer | undefined = undefined;
   /** The skinning joints buffer object. */
   public jbo: WebGLBuffer | undefined = undefined;
   /** The skinning weights buffer object. */
@@ -80,6 +85,13 @@ export class Mesh {
       gl.bufferData(gl.ARRAY_BUFFER, data.uvs, gl.STATIC_DRAW);
     }
 
+    // 4b. Vertex Colors Buffer
+    if (data.colors && 0 < data.colors.length) {
+      this.cbo = gl.createBuffer() ?? undefined;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.cbo ?? null);
+      gl.bufferData(gl.ARRAY_BUFFER, data.colors, gl.STATIC_DRAW);
+    }
+
     // 5. Joints Buffer (Skinning)
     if (data.joints && 0 < data.joints.length) {
       this.jbo = gl.createBuffer() ?? undefined;
@@ -126,6 +138,7 @@ export class Mesh {
    * @param tanLoc The location of the tangent attribute.
    * @param jointLoc The location of the joints attribute.
    * @param weightLoc The location of the weights attribute.
+   * @param colorLoc The location of the vertex color attribute.
    */
   public bind(
     posLoc: number,
@@ -134,6 +147,7 @@ export class Mesh {
     tanLoc: number = -1,
     jointLoc: number = -1,
     weightLoc: number = -1,
+    colorLoc: number = -1,
   ): void {
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.vbo ?? null);
     this._gl.vertexAttribPointer(posLoc, 3, this._gl.FLOAT, false, 0, 0);
@@ -188,6 +202,17 @@ export class Mesh {
         this._gl.disableVertexAttribArray(weightLoc);
       }
     }
+
+    if (0 <= colorLoc) {
+      if (this.cbo) {
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.cbo);
+        this._gl.vertexAttribPointer(colorLoc, 4, this._gl.FLOAT, false, 0, 0);
+        this._gl.enableVertexAttribArray(colorLoc);
+      } else {
+        this._gl.disableVertexAttribArray(colorLoc);
+        this._gl.vertexAttrib4f(colorLoc, 1, 1, 1, 1);
+      }
+    }
   }
 
   /**
@@ -212,9 +237,11 @@ export class Mesh {
 
   /**
    * Captures the attribute pointers for locations 0-5 (position/normal/uv/tangent/joints/
-   * weights, the fixed reservations from `WebGLProgramCache`) into a fresh VAO. Missing
-   * buffers disable their location so a later program sees the GL default constant, matching
-   * what `bind()` does per draw.
+   * weights) and the vertex color at location 11 (the fixed reservations from
+   * `WebGLProgramCache`) into a fresh VAO. Missing buffers disable their location so a later
+   * program sees the GL default constant, matching what `bind()` does per draw. The color
+   * constant is set to opaque white (the GL default would be black) -- generic attribute values
+   * are context state, not VAO state, so this holds for every mesh without colors.
    */
   private _buildVAO(gl: WebGL2RenderingContext): void {
     const vao = gl.createVertexArray();
@@ -226,6 +253,8 @@ export class Mesh {
     this._setupAttribute(gl, 3, this.tanbo, 3, this._gl.FLOAT);
     this._setupAttribute(gl, 4, this.jbo, 4, this._gl.FLOAT);
     this._setupAttribute(gl, 5, this.wbo, 4, this._gl.FLOAT);
+    this._setupAttribute(gl, VERTEX_COLOR_LOCATION, this.cbo, 4, this._gl.FLOAT);
+    if (!this.cbo) gl.vertexAttrib4f(VERTEX_COLOR_LOCATION, 1, 1, 1, 1);
     gl.bindVertexArray(null);
     this.vao = vao;
   }
@@ -264,7 +293,7 @@ export class Mesh {
 
   /**
    * Updates the GPU buffers with new geometry data.
-   * Currently updates vertices, normals and tangents.
+   * Currently updates vertices, normals, tangents and vertex colors.
    * @param data The new geometry data.
    */
   public update(data: GeometryDataInterface): void {
@@ -280,6 +309,11 @@ export class Mesh {
       this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tanbo);
       this._gl.bufferData(this._gl.ARRAY_BUFFER, data.tangents, this._gl.STATIC_DRAW);
     }
+
+    if (this.cbo && data.colors) {
+      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.cbo);
+      this._gl.bufferData(this._gl.ARRAY_BUFFER, data.colors, this._gl.STATIC_DRAW);
+    }
   }
 
   /** Deletes all GPU buffers owned by this mesh. Call only once its refCount reaches 0. */
@@ -290,6 +324,7 @@ export class Mesh {
     if (this.nbo) this._gl.deleteBuffer(this.nbo);
     if (this.tanbo) this._gl.deleteBuffer(this.tanbo);
     if (this.tbo) this._gl.deleteBuffer(this.tbo);
+    if (this.cbo) this._gl.deleteBuffer(this.cbo);
     if (this.jbo) this._gl.deleteBuffer(this.jbo);
     if (this.wbo) this._gl.deleteBuffer(this.wbo);
     if (this.vao) {

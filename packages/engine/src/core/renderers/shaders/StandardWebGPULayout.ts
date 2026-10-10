@@ -58,12 +58,6 @@ export const StandardWebGPULayout = {
     u_matParam13: { type: ShaderPropertyType.VEC4, defaultValue: [0, 0, 0, 0] },
     u_matParam14: { type: ShaderPropertyType.VEC4, defaultValue: [0, 0, 0, 0] },
     u_matParam15: { type: ShaderPropertyType.VEC4, defaultValue: [0, 0, 0, 0] },
-    // Semantic aliases for modern materials mapping into u_matParam slots
-    u_waterAbsorption: { type: ShaderPropertyType.VEC4, defaultValue: [0, 0, 0, 0] },
-    u_foamConfig: { type: ShaderPropertyType.VEC4, defaultValue: [0, 0, 0, 0] },
-    u_foamColor: { type: ShaderPropertyType.VEC4, defaultValue: [1, 1, 1, 1] },
-    u_foamParams: { type: ShaderPropertyType.VEC4, defaultValue: [0, 0, 0, 0] },
-    u_waterOptics: { type: ShaderPropertyType.VEC4, defaultValue: [0, 0, 0, 0] },
   },
   uniformLayout: [
     // 1. Transform

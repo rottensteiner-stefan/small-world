@@ -6,6 +6,7 @@ export interface WebGPUGeoCacheEntry {
   nb: GPUBuffer | undefined;
   uvb: GPUBuffer | undefined;
   tb: GPUBuffer | undefined;
+  cb: GPUBuffer | undefined;
   jb: GPUBuffer | undefined;
   wb: GPUBuffer | undefined;
   ib: GPUBuffer | undefined;
@@ -55,6 +56,7 @@ export class GPUGeometryCache {
         this._device.queue.writeBuffer(c.vb, 0, geo.vertices);
         if (c.nb && geo.normals) this._device.queue.writeBuffer(c.nb, 0, geo.normals);
         if (c.tb && geo.tangents?.length) this._device.queue.writeBuffer(c.tb, 0, geo.tangents);
+        if (c.cb && geo.colors?.length) this._device.queue.writeBuffer(c.cb, 0, geo.colors);
         geo.needsUpdate = false;
         this._acquireGeoCache(obj, geo, c);
         return c;
@@ -67,6 +69,9 @@ export class GPUGeometryCache {
         uvb: geo.uvs?.length ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : undefined,
         tb: geo.tangents?.length
           ? createBuf(geo.tangents, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
+          : undefined,
+        cb: geo.colors?.length
+          ? createBuf(geo.colors, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
           : undefined,
         jb: geo.joints?.length
           ? createBuf(
@@ -135,6 +140,7 @@ export class GPUGeometryCache {
       c.nb?.destroy();
       c.uvb?.destroy();
       c.tb?.destroy();
+      c.cb?.destroy();
       c.jb?.destroy();
       c.wb?.destroy();
       c.ib?.destroy();
@@ -149,6 +155,7 @@ export class GPUGeometryCache {
       c.nb?.destroy();
       c.uvb?.destroy();
       c.tb?.destroy();
+      c.cb?.destroy();
       c.jb?.destroy();
       c.wb?.destroy();
       c.ib?.destroy();

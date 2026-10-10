@@ -56,6 +56,19 @@ describe("WebGPU Shader Bindings & Layouts", () => {
     expect(table["u_rampMap"]!.binding).toBe(18);
   });
 
+  it("should have matching @binding(19) for u_distortMap in structs.wgsl and the optional texture table", () => {
+    const wgslPath = path.resolve(
+      __dirname,
+      "../../src/core/renderers/shaders/source/web_gpu/chunks/structs.wgsl",
+    );
+    const wgslContent = fs.readFileSync(wgslPath, "utf-8");
+    expect(wgslContent).toContain("@group(1) @binding(19) var u_distortMap: texture_2d<f32>;");
+
+    const table = getOptionalMaterialTextureBindings();
+    expect(table["u_distortMap"]).toBeDefined();
+    expect(table["u_distortMap"]!.binding).toBe(19);
+  });
+
   it("should correctly rewrite base.vert.wgsl for instanced rendering without corrupting parameters", () => {
     const wgslPath = path.resolve(
       __dirname,

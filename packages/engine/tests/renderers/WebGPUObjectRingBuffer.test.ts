@@ -116,7 +116,7 @@ describe("GPUObjectRingBuffer", () => {
     expect(device.createBuffer).toHaveBeenCalledTimes(2);
     // Old buffer is kept alive (not destroyed) until the frame that grew it finishes submitting.
     expect(bufferBefore.destroy).not.toHaveBeenCalled();
-    expect(ring.pendingDestroy).toBe(bufferBefore);
+    expect(ring.pendingDestroy).toEqual([bufferBefore]);
   });
 
   it("destroys a growth-replaced buffer only once endFrame() drains it", () => {
@@ -130,34 +130,57 @@ describe("GPUObjectRingBuffer", () => {
     expect(bufferBefore.destroy).not.toHaveBeenCalled();
     ring.endFrame();
     expect(bufferBefore.destroy).toHaveBeenCalledTimes(1);
-    expect(ring.pendingDestroy).toBeUndefined();
+    expect(ring.pendingDestroy).toEqual([]);
   });
 
-  it("clamps to the last slot and warns once when a frame needs more slots than predicted", () => {
+  it("grows mid-frame on overflow instead of reusing a slot, keeping every draw on a unique offset", () => {
     const device = makeMockDevice();
     const ring = new GPUObjectRingBuffer(
       device,
       { mock: "objectBGL" } as unknown as GPUBindGroupLayout,
       2,
     );
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const oldBuffer = ring.buffer;
 
-    const a = ring.acquireSlot("A");
-    const b = ring.acquireSlot("B");
-    const overflow1 = ring.acquireSlot("C");
-    const overflow2 = ring.acquireSlot("D");
+    const offsets = ["A", "B", "C", "D"].map((k) => ring.acquireSlot(k).offset);
 
-    expect(a.offset).toBe(0);
-    expect(b.offset).toBe(ring.stride);
-    // Overflowing draws reuse the last valid slot instead of writing out of bounds.
-    expect(overflow1.offset).toBe(b.offset);
-    expect(overflow2.offset).toBe(b.offset);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-
-    warnSpy.mockRestore();
+    expect(new Set(offsets).size).toBe(4);
+    expect(ring.capacity).toBeGreaterThanOrEqual(4);
+    expect(ring.buffer).not.toBe(oldBuffer);
+    expect(oldBuffer.destroy).not.toHaveBeenCalled();
   });
 
-  it("beginFrame() resets dedup state and grows capacity from last frame's usage", () => {
+  it("does not hand out pre-growth cached offsets for the new buffer", () => {
+    const device = makeMockDevice();
+    const ring = new GPUObjectRingBuffer(
+      device,
+      { mock: "objectBGL" } as unknown as GPUBindGroupLayout,
+      1,
+    );
+    ring.acquireSlot("A");
+    ring.acquireSlot("B"); // grows
+    const again = ring.acquireSlot("A");
+
+    expect(again.cached).toBe(false);
+  });
+
+  it("destroys every buffer replaced by repeated growth in one frame (no leak)", () => {
+    const device = makeMockDevice();
+    const ring = new GPUObjectRingBuffer(device, {
+      mock: "objectBGL",
+    } as unknown as GPUBindGroupLayout);
+    const first = ring.buffer;
+    ring.ensureCapacity(8192);
+    const second = ring.buffer;
+    ring.ensureCapacity(100000);
+
+    expect(ring.pendingDestroy).toEqual([first, second]);
+    ring.endFrame();
+    expect(first.destroy).toHaveBeenCalledTimes(1);
+    expect(second.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("beginFrame() resets dedup state and sizes capacity from last frame's usage", () => {
     const device = makeMockDevice();
     const ring = new GPUObjectRingBuffer(
       device,
@@ -167,15 +190,13 @@ describe("GPUObjectRingBuffer", () => {
 
     ring.acquireSlot("A");
     ring.acquireSlot("B");
-    ring.acquireSlot("C"); // overflow, clamped to B's slot
+    ring.acquireSlot("C");
     ring.endFrame();
 
     ring.beginFrame();
-    // Same key from last frame must NOT still be cached -- beginFrame() clears the dedup map.
     const again = ring.acquireSlot("A");
     expect(again.cached).toBe(false);
-    // Capacity grew from last frame's 3-slot demand (with 50% headroom, floored by the 1024 default).
-    expect(ring.capacity).toBeGreaterThanOrEqual(1024);
+    expect(ring.capacity).toBeGreaterThanOrEqual(4096);
   });
 
   it("write() forwards to device.queue.writeBuffer with the ring's current buffer", () => {

@@ -92,6 +92,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   protected _hdrFbo: WebGLFramebuffer | undefined = undefined;
   protected _hdrTexture: WebGLTexture | undefined = undefined;
   protected _hdrRenderBuffer: WebGLRenderbuffer | undefined = undefined;
+  private _hdrW: number = 0;
+  private _hdrH: number = 0;
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
   protected _bloomPassGL: BloomPassGL | undefined = undefined;
 
@@ -218,7 +220,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const samplerUnits = new Map<string, number>();
       const samplerTypes = new Map<string, number>();
 
-      const attribsToQuery = ["a_position", "a_normal", "a_uv", "a_tangent"];
+      const attribsToQuery = ["a_position", "a_normal", "a_uv", "a_tangent", "a_color"];
       if (isInstanced) attribsToQuery.push("a_instanceMatrix");
       attribsToQuery.forEach((name) => {
         attributes.set(name, this.gl.getAttribLocation(prog, name));
@@ -1022,6 +1024,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
             cache.attributes.get("a_normal")!,
             cache.attributes.get("a_uv")!,
             cache.attributes.get("a_tangent")!,
+            -1,
+            -1,
+            cache.attributes.get("a_color")!,
           );
 
           // A mat4 attribute occupies 4 consecutive locations (loc..loc+3), one vec4 column each --
@@ -1095,6 +1100,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
             cache.attributes.get("a_normal")!,
             cache.attributes.get("a_uv")!,
             cache.attributes.get("a_tangent")!,
+            -1,
+            -1,
+            cache.attributes.get("a_color")!,
           );
           mesh.draw(drawMode, batch.wireframeMode);
         }
@@ -1125,39 +1133,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const w = this.gl.canvas.width;
       const h = this.gl.canvas.height;
 
-      // Always use an 8-bit color target on WebGL1. Rendering to a HALF_FLOAT_OES texture
-      // (via OES_texture_half_float + EXT_color_buffer_half_float) reports FRAMEBUFFER_COMPLETE
-      // on some drivers (ANGLE/Metal, SwiftShader) yet silently drops every draw, leaving the
-      // post pipeline black. The GL1 path is the legacy/low-quality fallback, so the reduced
-      // HDR range of RGBA8 is an acceptable trade for a reliable result.
-      const type = this.gl.UNSIGNED_BYTE;
+      if (w !== this._hdrW || h !== this._hdrH) {
+        this._allocateHdrTarget(w, h);
+      }
 
-      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this._hdrFbo);
-
-      this.gl.bindTexture(this.gl.TEXTURE_2D, this._hdrTexture ?? null);
-      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, w, h, 0, this.gl.RGBA, type, null);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-      this.gl.framebufferTexture2D(
-        this.gl.FRAMEBUFFER,
-        this.gl.COLOR_ATTACHMENT0,
-        this.gl.TEXTURE_2D,
-        this._hdrTexture ?? null,
-        0,
-      );
-
-      this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this._hdrRenderBuffer ?? null);
-      this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_STENCIL, w, h);
-      this.gl.framebufferRenderbuffer(
-        this.gl.FRAMEBUFFER,
-        this.gl.DEPTH_STENCIL_ATTACHMENT,
-        this.gl.RENDERBUFFER,
-        this._hdrRenderBuffer ?? null,
-      );
-
-      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
       this._postPassGL ??= new PostProcessPassGL(this.gl, false);
       this._bloomPassGL ??= new BloomPassGL(this.gl, false);
     } else if (this._hdrFbo) {
@@ -1169,9 +1148,54 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this._hdrFbo = undefined;
       this._hdrTexture = undefined;
       this._hdrRenderBuffer = undefined;
+      this._hdrW = 0;
+      this._hdrH = 0;
       this._postPassGL = undefined;
       this._bloomPassGL = undefined;
     }
+  }
+
+  /** Only runs on creation or dimension change; callers must not invoke it per render. */
+  private _allocateHdrTarget(w: number, h: number): void {
+    const gl = this.gl;
+    // Always use an 8-bit color target on WebGL1. Rendering to a HALF_FLOAT_OES texture
+    // (via OES_texture_half_float + EXT_color_buffer_half_float) reports FRAMEBUFFER_COMPLETE
+    // on some drivers (ANGLE/Metal, SwiftShader) yet silently drops every draw, leaving the
+    // post pipeline black. The GL1 path is the legacy/low-quality fallback, so the reduced
+    // HDR range of RGBA8 is an acceptable trade for a reliable result.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._hdrFbo!);
+    gl.bindTexture(gl.TEXTURE_2D, this._hdrTexture ?? null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      this._hdrTexture ?? null,
+      0,
+    );
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this._hdrRenderBuffer ?? null);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, w, h);
+    gl.framebufferRenderbuffer(
+      gl.FRAMEBUFFER,
+      gl.DEPTH_STENCIL_ATTACHMENT,
+      gl.RENDERBUFFER,
+      this._hdrRenderBuffer ?? null,
+    );
+
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (0 < w && 0 < h && status !== gl.FRAMEBUFFER_COMPLETE) {
+      throw new Error(
+        `WebGL1Renderer: HDR post-process framebuffer incomplete (status 0x${status.toString(16)}).`,
+      );
+    }
+    this._hdrW = w;
+    this._hdrH = h;
   }
 
   /**

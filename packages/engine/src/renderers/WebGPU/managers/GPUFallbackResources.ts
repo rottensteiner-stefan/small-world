@@ -35,6 +35,7 @@ export class GPUFallbackResources {
   private _dummyTangentBuffer!: GPUBuffer;
   private _dummyJointsBuffer!: GPUBuffer;
   private _dummyWeightsBuffer!: GPUBuffer;
+  private _dummyColorBuffer!: GPUBuffer;
   private _dummyBufferSize = 0;
   /** Buffers replaced by a growth call, held here instead of destroyed immediately --
    * `ensureDummyBufferSize()` can run mid-frame from the main render loop, so an earlier object
@@ -110,6 +111,10 @@ export class GPUFallbackResources {
   }
   public get dummyWeightsBuffer(): GPUBuffer {
     return this._dummyWeightsBuffer;
+  }
+  /** Opaque white (1,1,1,1) per vertex: the neutral stand-in for meshes without vertex colors. */
+  public get dummyColorBuffer(): GPUBuffer {
+    return this._dummyColorBuffer;
   }
 
   private _initStaticResources(): void {
@@ -200,6 +205,7 @@ export class GPUFallbackResources {
     if (this._dummyTangentBuffer) this._buffersPendingDestroy.push(this._dummyTangentBuffer);
     if (this._dummyJointsBuffer) this._buffersPendingDestroy.push(this._dummyJointsBuffer);
     if (this._dummyWeightsBuffer) this._buffersPendingDestroy.push(this._dummyWeightsBuffer);
+    if (this._dummyColorBuffer) this._buffersPendingDestroy.push(this._dummyColorBuffer);
     const normalData = new Float32Array(newSize).fill(0);
     for (let i = 0; i < newSize; i += 3) normalData[i + 1] = 1.0;
 
@@ -236,6 +242,13 @@ export class GPUFallbackResources {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     this._device.queue.writeBuffer(this._dummyWeightsBuffer, 0, weightsData);
+
+    const colorData = new Float32Array(newSize).fill(1.0);
+    this._dummyColorBuffer = this._device.createBuffer({
+      size: colorData.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this._device.queue.writeBuffer(this._dummyColorBuffer, 0, colorData);
 
     this._dummyBufferSize = newSize;
   }

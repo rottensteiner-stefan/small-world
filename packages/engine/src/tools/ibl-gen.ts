@@ -1,5 +1,6 @@
 import { Matrix4, Vector3D, PerspectiveProjection, MathUtils } from "../math/index.js";
 import { IBLShaders } from "./IBLShaders.js";
+import { IBL_GEN_DEFAULTS, type IblGenDefaults } from "./ibl-gen-core.js";
 
 // Utility for WebGL2
 function compileShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
@@ -64,8 +65,10 @@ export class IBLBaker {
   private _equiProgram: WebGLProgram;
   private _irradianceProgram: WebGLProgram;
   private _prefilterProgram: WebGLProgram;
+  private readonly _options: IblGenDefaults;
 
-  constructor() {
+  constructor(options: IblGenDefaults = IBL_GEN_DEFAULTS) {
+    this._options = options;
     // Create a hidden canvas for processing
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
@@ -148,7 +151,7 @@ export class IBLBaker {
     targetCanvasId: string,
   ): Promise<WebGLTexture> {
     const gl = this._gl;
-    const resolution = 512;
+    const resolution = this._options.envResolution;
 
     const envCube = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCube);
@@ -254,7 +257,7 @@ export class IBLBaker {
     targetCanvasId: string,
   ): Promise<WebGLTexture> {
     const gl = this._gl;
-    const resolution = 32; // Irradiance map is very blurry, 32x32 is plenty
+    const resolution = this._options.irradianceResolution;
 
     const irradianceMap = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, irradianceMap);
@@ -347,7 +350,7 @@ export class IBLBaker {
     targetCanvasId: string,
   ): Promise<WebGLTexture> {
     const gl = this._gl;
-    const baseResolution = 128; // Standard size for prefiltered map base level
+    const baseResolution = this._options.prefilterResolution;
 
     const prefilteredMap = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, prefilteredMap);
@@ -379,13 +382,16 @@ export class IBLBaker {
       false,
       this._captureProjection,
     );
-    gl.uniform1f(gl.getUniformLocation(this._prefilterProgram, "u_resolution"), 512.0); // Assuming 512 env map
+    gl.uniform1f(
+      gl.getUniformLocation(this._prefilterProgram, "u_resolution"),
+      this._options.envResolution,
+    );
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubeTex);
 
     // Enable seamless cubemap filtering if possible (WebGL2 default for some things, but good to be careful)
 
-    const maxMipLevels = 5;
+    const maxMipLevels = this._options.prefilterMips;
 
     for (let mip = 0; mip < maxMipLevels; ++mip) {
       // resize framebuffer according to mip-level size.
@@ -456,6 +462,7 @@ export class IBLBaker {
 
   public async generateBRDF(targetCanvasId: string): Promise<void> {
     const gl = this._gl;
+    const size = this._options.brdfResolution;
 
     // Set up quad VAO
     const vao = gl.createVertexArray()!;
@@ -471,7 +478,7 @@ export class IBLBaker {
     // Create target texture (LUT)
     const lutTex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, lutTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, 512, 512, 0, gl.RG, gl.FLOAT, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, size, size, 0, gl.RG, gl.FLOAT, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -480,7 +487,7 @@ export class IBLBaker {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._fbo);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, lutTex, 0);
 
-    gl.viewport(0, 0, 512, 512);
+    gl.viewport(0, 0, size, size);
     gl.useProgram(this._brdfProgram);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -489,12 +496,12 @@ export class IBLBaker {
     const destCanvas = document.getElementById(targetCanvasId) as HTMLCanvasElement;
     const destCtx = destCanvas.getContext("2d")!;
 
-    const pixels = new Float32Array(512 * 512 * 4);
-    gl.readPixels(0, 0, 512, 512, gl.RGBA, gl.FLOAT, pixels);
+    const pixels = new Float32Array(size * size * 4);
+    gl.readPixels(0, 0, size, size, gl.RGBA, gl.FLOAT, pixels);
 
     // Convert Float32 RG to Uint8ClampedArray for Canvas ImageData
-    const imgData = destCtx.createImageData(512, 512);
-    for (let i = 0; i < 512 * 512; i++) {
+    const imgData = destCtx.createImageData(size, size);
+    for (let i = 0; i < size * size; i++) {
       imgData.data[i * 4] = MathUtils.clamp(pixels[i * 4]! * 255, 0, 255); // R
       imgData.data[i * 4 + 1] = MathUtils.clamp(pixels[i * 4 + 1]! * 255, 0, 255); // G
       imgData.data[i * 4 + 2] = 0; // B
@@ -503,8 +510,8 @@ export class IBLBaker {
 
     // Image is flipped vertically in WebGL, so flip it in canvas
     const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = 512;
-    tempCanvas.height = 512;
+    tempCanvas.width = size;
+    tempCanvas.height = size;
     tempCanvas.getContext("2d")!.putImageData(imgData, 0, 0);
 
     destCtx.save();
@@ -570,6 +577,17 @@ export class IBLBaker {
 
       crossCanvas.toBlob((blob) => resolve(blob!), "image/png");
     });
+  }
+
+  /** Releases the GL programs, framebuffer and context. The baker is unusable afterwards. */
+  public dispose(): void {
+    const gl = this._gl;
+    gl.deleteProgram(this._brdfProgram);
+    gl.deleteProgram(this._equiProgram);
+    gl.deleteProgram(this._irradianceProgram);
+    gl.deleteProgram(this._prefilterProgram);
+    gl.deleteFramebuffer(this._fbo);
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
   }
 
   public exportBRDFToBlob(canvasId: string): Promise<Blob> {

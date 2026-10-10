@@ -136,4 +136,16 @@ describe("SmallWorld public step(deltaTime) hook", () => {
       }
     }
   });
+
+  it("fails fast on negative / NaN deltaTime and after destroy()", () => {
+    const app = new TestSmallWorld();
+    attachTestRuntime(app);
+
+    expect(() => app.step(-0.1)).toThrow(/deltaTime/);
+    expect(() => app.step(Number.NaN)).toThrow(/deltaTime/);
+    expect(app.recordedDeltaTimes).toEqual([]);
+
+    app.destroy();
+    expect(() => app.step(1 / 60)).toThrow(/after destroy/);
+  });
 });

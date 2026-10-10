@@ -1,6 +1,12 @@
 import { Texture, CubeTexture } from "../../textures/index.js";
 import { BlendingMode, CullMode, Topology } from "../../../enums/index.js";
 /**
+ * Manifest flag for materials that read per-vertex colors (`a_color`, RGBA, white when the mesh
+ * has none). The renderers bind the color stream only for programs/pipelines compiled with it.
+ */
+export const VERTEX_COLOR_FLAG = "USE_VERTEX_COLOR";
+
+/**
  * The RenderManifest is the "order sheet" that a material
  * passes to the renderer to describe its requirements.
  */

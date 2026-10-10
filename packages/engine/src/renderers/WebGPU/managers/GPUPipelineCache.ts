@@ -4,6 +4,7 @@ import {
   Object3D,
   RenderManifest,
   ShaderRegistry,
+  VERTEX_COLOR_FLAG,
 } from "../../../core/index.js";
 import { BlendingMode, CullMode } from "../../../enums/index.js";
 
@@ -150,6 +151,14 @@ export function getOptionalMaterialTextureBindings(): Record<
           texture: { viewDimension: "2d", sampleType: "float" },
         },
       },
+      u_distortMap: {
+        binding: 19,
+        layoutEntry: {
+          binding: 19,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+      },
     };
   }
   return _optionalMaterialTextureBindings;
@@ -178,6 +187,29 @@ export function getOptionalMaterialTextureNames(
  * limit.
  */
 const GLOBAL_BIND_GROUP_TEXTURE_COUNT = 5;
+
+const ALWAYS_DECLARED_FLAGS: ReadonlySet<string> = new Set([
+  "USE_TEXTURE_ARRAY",
+  "USE_NORMAL_MAP",
+  "USE_RAMP_LUT",
+  "USE_INSTANCING",
+]);
+const SHADER_FLAG_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+
+/**
+ * Sorted, de-duplicated and validated flag list. Each flag becomes a WGSL `const`, so a
+ * duplicate would not compile and an invalid identifier would corrupt the shader prefix.
+ */
+function normalizeShaderFlags(flags: readonly string[]): string[] {
+  for (const flag of flags) {
+    if (!SHADER_FLAG_PATTERN.test(flag)) {
+      throw new Error(
+        `[GPUPipelineCache] Invalid shader flag name "${flag}" (expected ^[A-Z][A-Z0-9_]*$).`,
+      );
+    }
+  }
+  return [...new Set(flags)].sort();
+}
 
 /**
  * Render pipeline / shader module / material bind-group-layout caches, plus the pipeline
@@ -230,7 +262,8 @@ export class GPUPipelineCache {
    * per-stage sampled-texture minimum of 16 on any device that doesn't happen to allow more.
    */
   public getMaterialBGL(shaderId: string, flags: string[]): GPUBindGroupLayout {
-    const key = shaderId + "_" + flags.join("_");
+    flags = normalizeShaderFlags(flags);
+    const key = shaderId + "_" + flags.join("|");
     let bgl = this._materialBGLCache.get(key);
     if (!bgl) {
       const matEntries: GPUBindGroupLayoutEntry[] = [
@@ -305,8 +338,8 @@ export class GPUPipelineCache {
     targetFormat: GPUTextureFormat,
   ): string {
     const shaderId = manifest.shaderId;
-    const flags = manifest.flags || [];
-    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
+    const flags = normalizeShaderFlags(manifest.flags || []);
+    const flagKey = flags.length > 0 ? "_" + flags.join("|") : "";
     const state = manifest.state || {};
     return (
       shaderId +
@@ -353,6 +386,21 @@ export class GPUPipelineCache {
         { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: "float32x4" }] },
         { arrayStride: 16, attributes: [{ shaderLocation: 5, offset: 0, format: "float32x4" }] },
       ];
+
+      // Vertex colors (RGBA) ride in buffer slot 6 only for materials that opt in. Instanced
+      // pipelines already use slots 6-7 and the default maxVertexBuffers is 8, so the two
+      // cannot be combined.
+      if (flags.includes(VERTEX_COLOR_FLAG)) {
+        if (isInstanced) {
+          throw new Error(
+            `[WebGPUPipelineCache] ${shaderId}: ${VERTEX_COLOR_FLAG} cannot be combined with instancing (vertex buffer slot budget).`,
+          );
+        }
+        vertexBuffers.push({
+          arrayStride: 16,
+          attributes: [{ shaderLocation: 11, offset: 0, format: "float32x4" }],
+        });
+      }
 
       if (isInstanced) {
         vertexBuffers.push({
@@ -450,7 +498,8 @@ export class GPUPipelineCache {
     isInstanced: boolean = false,
     flags: string[] = [],
   ): GPUShaderModule {
-    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
+    flags = normalizeShaderFlags(flags);
+    const flagKey = flags.length > 0 ? "_" + flags.join("|") : "";
     const key = isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
     let sm = this._shaderModules.get(key);
     if (!sm) {
@@ -494,11 +543,7 @@ export class GPUPipelineCache {
       }
       // Inject any arbitrary user/material flags (e.g. STYLE_TOON, STYLE_BOLD, STYLE_SPARKLE, etc.)
       for (const flag of flags) {
-        if (
-          !flag.startsWith("USE_TEXTURE_ARRAY") &&
-          !flag.startsWith("USE_NORMAL_MAP") &&
-          !flag.startsWith("USE_RAMP_LUT")
-        ) {
+        if (!ALWAYS_DECLARED_FLAGS.has(flag)) {
           wgslConstants += `const ${flag}: bool = true;\n`;
         }
       }

@@ -48,7 +48,7 @@ import {
   HzbOcclusionPassGPU,
 } from "../passes/index.js";
 import { BloomPassGPU, AOPassGPU, HistoryBlendPassGPU } from "../post/passes/index.js";
-import { UniformPacker } from "../../core/renderers/shaders/index.js";
+import { UniformPacker, VERTEX_COLOR_FLAG } from "../../core/renderers/shaders/index.js";
 import { SkinnedMesh, Skeleton, MAX_SKINNED_BONES } from "../../core/animation/index.js";
 
 /**
@@ -203,7 +203,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _scratchPointLightData = new Float32Array(32); // Initial capacity, grows dynamically
   protected _scratchSpotLightData = new Float32Array(64); // Initial capacity, grows dynamically
   protected _scratchAreaLightData = new Float32Array(96); // Initial capacity, grows dynamically
-  protected _scratchObjBufferData = new Float32Array(512 / 4); // 512 bytes (32 vec4)
+  protected _scratchObjBufferData = new Float32Array(512 / 4); // 512 bytes (32 vec4), see docs/adr/0027-object-uniforms-512-byte-expansion.md
 
   /** Clustered light grid dimensions for the current canvas size, see `setSize()`. */
   private _clusterDims: ClusterGridDims = { x: 1, y: 1, z: 1 };
@@ -1653,6 +1653,8 @@ export class WebGPURenderer extends AbstractRenderer {
     rp.setBindGroup(1, matBindGroup);
     rp.setBindGroup(3, this._viewBindGroup, [viewOffset]);
 
+    const usesVertexColor = manifest.flags?.includes(VERTEX_COLOR_FLAG) === true;
+
     for (const obj of objects) {
       if (!obj.geometry) continue;
 
@@ -1670,6 +1672,7 @@ export class WebGPURenderer extends AbstractRenderer {
       rp.setVertexBuffer(3, gCache.tb || this._fallback.dummyTangentBuffer);
       rp.setVertexBuffer(4, gCache.jb || this._fallback.dummyJointsBuffer);
       rp.setVertexBuffer(5, gCache.wb || this._fallback.dummyWeightsBuffer);
+      if (usesVertexColor) rp.setVertexBuffer(6, gCache.cb || this._fallback.dummyColorBuffer);
 
       if (isInstanced) {
         const instMesh = obj as InstancedMesh;
@@ -2147,6 +2150,9 @@ export class WebGPURenderer extends AbstractRenderer {
     const d = Math.min(devicePixelRatio, maxRatio);
     this._context.canvas.width = width * d;
     this._context.canvas.height = height * d;
+    // setSize() runs between frames, so textures replaced by earlier resizes are safe to free now;
+    // without this, repeated resizes without a render (hidden tab) pile up full-screen textures.
+    this._fallback.drainPendingDestroy();
     if (this._depthTexture) this._fallback.deferDestroyTexture(this._depthTexture);
     this._depthTexture = this._device.createTexture({
       size: [this._context.canvas.width, this._context.canvas.height],
@@ -2233,6 +2239,11 @@ export class WebGPURenderer extends AbstractRenderer {
       data.tex.destroy();
       data.depth?.destroy();
     }
+
+    if (this._textures) {
+      for (const tex of this._pinnedIblTextures) this._textures.releaseRetainedTexture(tex);
+    }
+    this._pinnedIblTextures = [];
 
     this._fallback?.dispose();
     this._textures?.dispose();

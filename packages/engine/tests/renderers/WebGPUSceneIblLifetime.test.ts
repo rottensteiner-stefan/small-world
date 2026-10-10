@@ -1,6 +1,11 @@
 import "../../src/index.js";
 import { describe, expect, it, vi } from "vitest";
 import { WebGPURenderer } from "../../src/renderers/WebGPU/WebGPURenderer.js";
+import { GPUTextureResourceCache } from "../../src/renderers/WebGPU/managers/GPUTextureResourceCache.js";
+import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
+import { Texture } from "../../src/core/textures/Texture.js";
+import { Object3D } from "../../src/core/Object3D.js";
+import type { QualityConfig } from "../../src/interfaces/index.js";
 
 // Node/vitest has no WebGPU global; stub the bit-flag constants the code under test reads.
 (globalThis as unknown as { GPUTextureUsage: Record<string, number> }).GPUTextureUsage ??= {
@@ -28,8 +33,20 @@ import { WebGPURenderer } from "../../src/renderers/WebGPU/WebGPURenderer.js";
   COMPUTE: 0x4,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RendererInternals = any;
+interface SceneIblMaps {
+  irradianceMap: object | undefined;
+  prefilterMap: object | undefined;
+  brdfLUT: object | undefined;
+}
+
+/** The private surface of `WebGPURenderer` these tests drive directly. */
+interface RendererInternals {
+  _textures: Pick<GPUTextureResourceCache, "retainTexture" | "releaseRetainedTexture">;
+  _createGlobalBindGroup: () => object;
+  _rebuildGlobalBindGroupForScene: (scene: SceneIblMaps) => void;
+  globalResourcesVersion: number;
+  destroy: () => void;
+}
 
 function makeRenderer(): {
   renderer: RendererInternals;
@@ -38,7 +55,7 @@ function makeRenderer(): {
 } {
   const retain = vi.fn();
   const release = vi.fn();
-  const renderer = new WebGPURenderer() as RendererInternals;
+  const renderer = new WebGPURenderer() as unknown as RendererInternals;
   renderer._textures = { retainTexture: retain, releaseRetainedTexture: release };
   renderer._createGlobalBindGroup = vi.fn(() => ({}));
   return { renderer, retain, release };
@@ -100,5 +117,88 @@ describe("WebGPURenderer: lifetime of the scene IBL textures in the global bind 
     });
 
     expect(renderer.globalResourcesVersion).toBe(before + 1);
+  });
+});
+
+describe("WebGPURenderer: scene IBL pin against a real GPUTextureResourceCache", () => {
+  const QUALITY = { mipmapping: false } as QualityConfig;
+
+  function makeRealCacheRenderer(): {
+    renderer: RendererInternals;
+    textures: GPUTextureResourceCache;
+    gpuTextures: { destroy: ReturnType<typeof vi.fn> }[];
+  } {
+    const gpuTextures: { destroy: ReturnType<typeof vi.fn> }[] = [];
+    const device = {
+      createTexture: vi.fn(() => {
+        const gpuTexture = { createView: vi.fn(() => ({})), destroy: vi.fn() };
+        gpuTextures.push(gpuTexture);
+        return gpuTexture;
+      }),
+      createBindGroup: vi.fn(() => ({})),
+      createBindGroupLayout: vi.fn(() => ({})),
+      createShaderModule: vi.fn(() => ({})),
+      createPipelineLayout: vi.fn(() => ({})),
+      createRenderPipeline: vi.fn(() => ({})),
+      createSampler: vi.fn(() => ({})),
+      createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
+      createCommandEncoder: vi.fn(() => ({
+        beginRenderPass: vi.fn(() => ({
+          setPipeline: vi.fn(),
+          setBindGroup: vi.fn(),
+          draw: vi.fn(),
+          end: vi.fn(),
+        })),
+        finish: vi.fn(() => ({})),
+      })),
+      queue: {
+        copyExternalImageToTexture: vi.fn(),
+        submit: vi.fn(),
+        writeBuffer: vi.fn(),
+        writeTexture: vi.fn(),
+      },
+    } as unknown as GPUDevice;
+    const textures = new GPUTextureResourceCache(device, new GPUFallbackResources(device));
+    gpuTextures.length = 0;
+    const renderer = new WebGPURenderer() as unknown as RendererInternals;
+    renderer._textures = textures;
+    renderer._createGlobalBindGroup = vi.fn(() => ({}));
+    return { renderer, textures, gpuTextures };
+  }
+
+  it("removing the last object using the IBL texture does not destroy the pinned GPU texture", () => {
+    const { renderer, textures, gpuTextures } = makeRealCacheRenderer();
+    const ibl = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement);
+    textures.getTextureView(ibl, QUALITY);
+    const owner = new Object3D("owner");
+    textures.acquireTextures(owner, { u_diffuseMap: ibl });
+    renderer._rebuildGlobalBindGroupForScene({
+      irradianceMap: ibl,
+      prefilterMap: undefined,
+      brdfLUT: undefined,
+    });
+
+    textures.releaseObjectTextures(owner);
+
+    expect(gpuTextures).toHaveLength(1);
+    expect(gpuTextures[0]!.destroy).not.toHaveBeenCalled();
+  });
+
+  it("destroy() drops the pin so the texture is freed through the cache's refcount", () => {
+    const { renderer, textures, gpuTextures } = makeRealCacheRenderer();
+    const ibl = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement);
+    textures.getTextureView(ibl, QUALITY);
+    const owner = new Object3D("owner");
+    textures.acquireTextures(owner, { u_diffuseMap: ibl });
+    renderer._rebuildGlobalBindGroupForScene({
+      irradianceMap: ibl,
+      prefilterMap: undefined,
+      brdfLUT: undefined,
+    });
+    textures.releaseObjectTextures(owner);
+
+    renderer.destroy();
+
+    expect(gpuTextures[0]!.destroy).toHaveBeenCalledTimes(1);
   });
 });

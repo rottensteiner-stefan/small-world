@@ -76,7 +76,7 @@ struct ObjectUniforms {
     // Dedicated parameter bank for modern materials (OpenWater, StylizedWater, PBR extensions, etc.)
     matParam0: vec4f,  // e.g. OpenWater: [waterAbsorption.rgb, refractionStrength]
     matParam1: vec4f,  // e.g. OpenWater: [foamColor.rgb, foamDistance]
-    matParam2: vec4f,  // e.g. OpenWater: [foamCutoff, foamNoiseScale, foamNoiseSpeed, foamIntensity]
+    matParam2: vec4f,  // e.g. OpenWater: [foamCutoff, foamNoiseScale, foamNoiseSpeed, poolHalfExtent]
     matParam3: vec4f,
     matParam4: vec4f,
     matParam5: vec4f,
@@ -171,6 +171,7 @@ struct AreaLight {
 @group(1) @binding(16) var u_opaqueDepthMap: texture_depth_2d;
 @group(1) @binding(17) var u_aoMap: texture_2d<f32>;
 @group(1) @binding(18) var u_rampMap: texture_2d<f32>;
+@group(1) @binding(19) var u_distortMap: texture_2d<f32>;
 
 @group(2) @binding(0) var<uniform> obj: ObjectUniforms;
 

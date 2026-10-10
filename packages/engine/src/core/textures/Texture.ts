@@ -107,6 +107,26 @@ export class Texture {
   }
 
   /**
+   * Releases the CPU-side pixel data: closes an `ImageBitmap`, shrinks a canvas' backing store to
+   * zero and drops the references. GPU copies are owned by the renderers and are freed when the
+   * objects/materials using the texture are removed from the scene; this only frees what the
+   * texture itself holds (e.g. a procedural canvas). Call it after the scene using the texture is
+   * destroyed: a disposed texture reads as not loaded, so renderers sample their white fallback.
+   */
+  public dispose(): void {
+    const image = this.image;
+    if (typeof ImageBitmap !== "undefined" && image instanceof ImageBitmap) {
+      image.close();
+    } else if (typeof HTMLCanvasElement !== "undefined" && image instanceof HTMLCanvasElement) {
+      image.width = 0;
+      image.height = 0;
+    }
+    this.image = undefined;
+    this.compressedImage = undefined;
+    this.isLoaded = false;
+  }
+
+  /**
    * Flips the texture horizontally by modifying the UV offset and repeat.
    * @returns This texture instance for chaining.
    */

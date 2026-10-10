@@ -1,6 +1,7 @@
 import { Object3D } from "../../../core/index.js";
 import { ShaderRegistry } from "../../../core/renderers/shaders/index.js";
 import { WebGL2UniformBuffer } from "../WebGL2UniformBuffer.js";
+import { VERTEX_COLOR_LOCATION } from "../../Mesh.js";
 
 export interface WebGL2ProgramCacheEntry {
   prog: WebGLProgram;
@@ -47,7 +48,8 @@ export class WebGLProgramCache {
    * Making these locations deterministic across every compiled program is what lets a single
    * per-mesh VAO (`Mesh.bindVAO`) be valid for any program; without it the driver could assign
    * different locations per program and a cached VAO would silently point at the wrong buffers.
-   * `a_instanceMatrix` is a `mat4` and thus occupies locations 6-9; `a_instanceData` sits at 10.
+   * `a_instanceMatrix` is a `mat4` and thus occupies locations 6-9; `a_instanceData` sits at 10;
+   * `a_color` (vertex color, white when the mesh has none) sits at 11.
    */
   private static readonly _FIXED_ATTRIBUTE_LOCATIONS: ReadonlyArray<readonly [number, string]> = [
     [0, "a_position"],
@@ -58,6 +60,7 @@ export class WebGLProgramCache {
     [5, "a_weights"],
     [6, "a_instanceMatrix"],
     [10, "a_instanceData"],
+    [VERTEX_COLOR_LOCATION, "a_color"],
   ];
 
   private _programs = new Map<string, WebGL2ProgramCacheEntry>();
@@ -134,6 +137,7 @@ export class WebGLProgramCache {
         "a_tangent",
         "a_joints",
         "a_weights",
+        "a_color",
       ];
       if (isInstanced) {
         attribsToQuery.push("a_instanceMatrix", "a_instanceData");

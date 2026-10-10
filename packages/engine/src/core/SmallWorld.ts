@@ -83,6 +83,7 @@ export abstract class SmallWorld {
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
   private _isInitialized: boolean = false;
+  private _isDestroyed: boolean = false;
   private _hitStopRemaining: number = 0;
   private _hitStopScale: number = 1;
   private _taaFrameIndex: number = 0;
@@ -335,8 +336,15 @@ export abstract class SmallWorld {
    * writes `_isRunning`. This is the deterministic fixed-timestep hook for golden baselines and
    * test harnesses, where animated scenes must be reproducible independent of real elapsed time.
    * @param deltaTime Simulated elapsed seconds for this step (e.g. `1/60` for 60 Hz); forwarded to `update()`.
+   * @throws If called after `destroy()` or with a negative / non-finite `deltaTime`.
    */
   public step(deltaTime: number): void {
+    if (this._isDestroyed) {
+      throw new Error("[SmallWorld] step() called after destroy().");
+    }
+    if (!Number.isFinite(deltaTime) || 0 > deltaTime) {
+      throw new Error(`[SmallWorld] step() requires a finite deltaTime >= 0, got ${deltaTime}.`);
+    }
     let gameplayDeltaTime: number = deltaTime;
     if (0 < this._hitStopRemaining) {
       gameplayDeltaTime = deltaTime * this._hitStopScale;
@@ -455,6 +463,7 @@ export abstract class SmallWorld {
   public destroy(): void {
     this.stop();
     this._isInitialized = false;
+    this._isDestroyed = true;
 
     window.removeEventListener("resize", this._onResize);
     window.removeEventListener("pagehide", this._onPageHide);
@@ -500,7 +509,7 @@ export abstract class SmallWorld {
       return;
     }
 
-    const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
+    const deltaTime: number = Math.max(0, Math.min((currentTime - this._lastTime) / 1000.0, 0.1));
     this._lastTime = currentTime;
 
     this.step(deltaTime);

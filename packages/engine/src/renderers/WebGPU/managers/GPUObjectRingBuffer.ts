@@ -12,6 +12,8 @@
  * only decides WHICH offset a (possibly deduped) draw gets and whether the caller still needs to
  * pack+`write()` into it.
  */
+const DEFAULT_CAPACITY = 4096;
+
 export class GPUObjectRingBuffer {
   private readonly _device: GPUDevice;
   private readonly _objectBGL: GPUBindGroupLayout;
@@ -25,16 +27,21 @@ export class GPUObjectRingBuffer {
   /** Frame-local slot counter; becomes `_lastFrameSlotCount` for next frame's capacity guess. */
   private _slotCount = 0;
   private _lastFrameSlotCount = 0;
-  private _overflowWarned = false;
-  /** Set by `ensureCapacity()` when it grows; destroyed in `endFrame()` once every draw that
-   * referenced the old buffer's slots has actually been recorded and submitted. */
-  private _pendingDestroy?: GPUBuffer | undefined;
+  /** Buffers replaced by `ensureCapacity()`; destroyed in `endFrame()` once every draw that
+   * referenced their slots has actually been recorded and submitted. A list, because a frame can
+   * grow more than once. */
+  private _pendingDestroy: GPUBuffer[] = [];
 
-  constructor(device: GPUDevice, objectBGL: GPUBindGroupLayout, initialCapacity: number = 4096) {
+  constructor(
+    device: GPUDevice,
+    objectBGL: GPUBindGroupLayout,
+    initialCapacity: number = DEFAULT_CAPACITY,
+  ) {
     this._device = device;
     this._objectBGL = objectBGL;
     // Slot stride must respect the device's dynamic-offset alignment (commonly 256, but not
-    // guaranteed) -- 512 is the payload size (`ObjectUniforms` packs into <= 512 bytes).
+    // guaranteed) -- 512 is the payload size (`ObjectUniforms` packs into <= 512 bytes, see
+    // docs/adr/0027-object-uniforms-512-byte-expansion.md).
     const alignment = device.limits.minUniformBufferOffsetAlignment;
     this._stride = Math.ceil(512 / alignment) * alignment;
     this.ensureCapacity(initialCapacity);
@@ -52,15 +59,15 @@ export class GPUObjectRingBuffer {
   public get stride(): number {
     return this._stride;
   }
-  public get pendingDestroy(): GPUBuffer | undefined {
+  public get pendingDestroy(): readonly GPUBuffer[] {
     return this._pendingDestroy;
   }
 
   /** Grows the ring buffer (+ its single dynamic-offset bind group) to hold at least
-   * `neededSlots`. Never shrinks. Called once at construction and once per frame in
-   * `beginFrame()` based on the previous frame's usage -- never mid-frame (see `acquireSlot()`'s
-   * overflow clamp for why: swapping the bound `GPUBuffer` while a render pass is being recorded
-   * would need a second bind group + risks stale offsets in already-encoded draws). */
+   * `neededSlots`. Never shrinks. Called at construction, once per frame in `beginFrame()` based
+   * on the previous frame's usage, and from `acquireSlot()` as the rare mid-frame spike fallback.
+   * Mid-frame growth is safe because draws already recorded keep the old bind group (and thus the
+   * old buffer, destroyed only after submit), while every later draw reads `bindGroup` afresh. */
   public ensureCapacity(neededSlots: number): void {
     if (this._buffer && this._capacity >= neededSlots) return;
 
@@ -79,7 +86,7 @@ export class GPUObjectRingBuffer {
     // happens *before* this frame's draws are recorded, so the old buffer is still what those
     // draws' already-taken slot offsets refer to until we submit. Deferred to `endFrame()`'s
     // post-submit cleanup instead of destroying it here.
-    this._pendingDestroy = this._buffer;
+    if (this._buffer) this._pendingDestroy.push(this._buffer);
     this._buffer = newBuffer;
     this._bindGroup = newBindGroup;
     this._capacity = newCapacity;
@@ -91,8 +98,7 @@ export class GPUObjectRingBuffer {
   public beginFrame(): void {
     this._slotMap.clear();
     this._slotCount = 0;
-    this._overflowWarned = false;
-    this.ensureCapacity(Math.max(1024, Math.ceil(this._lastFrameSlotCount * 1.5)));
+    this.ensureCapacity(Math.max(DEFAULT_CAPACITY, Math.ceil(this._lastFrameSlotCount * 1.5)));
   }
 
   /** Remembers this frame's usage for next frame's capacity guess, and destroys a buffer replaced
@@ -100,10 +106,8 @@ export class GPUObjectRingBuffer {
    * `queue.submit()`, once nothing can still reference the old buffer. */
   public endFrame(): void {
     this._lastFrameSlotCount = this._slotCount;
-    if (this._pendingDestroy) {
-      this._pendingDestroy.destroy();
-      this._pendingDestroy = undefined;
-    }
+    for (const buffer of this._pendingDestroy) buffer.destroy();
+    this._pendingDestroy.length = 0;
   }
 
   /**
@@ -118,21 +122,13 @@ export class GPUObjectRingBuffer {
       if (cached !== undefined) return { offset: cached, cached: true };
     }
 
-    let slot = this._slotCount;
-    if (slot >= this._capacity) {
-      // Rare mid-frame spike beyond what last frame's usage predicted -- clamp instead of
-      // resizing mid-encode (see `ensureCapacity()`'s doc comment). Self-corrects next frame once
-      // `_lastFrameSlotCount` reflects the higher demand.
-      if (!this._overflowWarned) {
-        console.warn(
-          `[WebGPURenderer] Object uniform ring buffer exceeded its ${this._capacity}-slot capacity mid-frame; reusing the last slot for the overflow this frame. Capacity grows for the next frame.`,
-        );
-        this._overflowWarned = true;
-      }
-      slot = this._capacity - 1;
-    } else {
-      this._slotCount++;
+    if (this._slotCount >= this._capacity) {
+      // Rare spike beyond last frame's prediction. Slots already handed out live in the old
+      // buffer, so the dedup map must not hand them out again for the new one.
+      this.ensureCapacity(this._slotCount + 1);
+      this._slotMap.clear();
     }
+    const slot = this._slotCount++;
 
     const offset = slot * this._stride;
     if (key !== undefined) this._slotMap.set(key, offset);
@@ -145,6 +141,7 @@ export class GPUObjectRingBuffer {
 
   public dispose(): void {
     this._buffer?.destroy();
-    this._pendingDestroy?.destroy();
+    for (const buffer of this._pendingDestroy) buffer.destroy();
+    this._pendingDestroy.length = 0;
   }
 }
