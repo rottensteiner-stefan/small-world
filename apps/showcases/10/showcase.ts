@@ -38,6 +38,7 @@ import {
   RotatorBehavior,
   SlimeMaterial,
   Sphere,
+  StylizedLavaMaterial,
   StylizedWaterMaterial,
   Texture,
   Vector3D,
@@ -91,7 +92,11 @@ type GoldenPoolKey =
   | "toxic-slime"
   | "petroleum-oil"
   | "wave-rider"
-  | "dead-sea";
+  | "dead-sea"
+  | "lava-volcanic"
+  | "lava-infernal"
+  | "lava-plasma"
+  | "lava-toxic";
 
 type GoldenView = "top" | "oblique";
 
@@ -140,7 +145,8 @@ interface RampVerifyHook {
  * The pool gallery is a 3 x 4 grid, one pool per cell. This table is the single source of truth:
  * pool positions, meadow cutouts, signboards and the golden cameras are all derived from it.
  * Row 0 (north): realistic water and the buoyancy pools; row 1: stylized anime/painterly water;
- * row 2 (south): dark and exotic fluids.
+ * row 2 (south): dark and exotic fluids. Row 3 extends the gallery southward as a stylized-lava
+ * terrace; `POOL_GRID_ROWS` stays 3 so the existing rows keep their world positions (and goldens).
  */
 const POOL_GRID_COLUMNS = 4;
 const POOL_GRID_ROWS = 3;
@@ -159,6 +165,10 @@ const POOL_CELLS: Readonly<Record<GoldenPoolKey, { col: number; row: number }>> 
   "molten-lava": { col: 1, row: 2 },
   "toxic-slime": { col: 2, row: 2 },
   "petroleum-oil": { col: 3, row: 2 },
+  "lava-volcanic": { col: 0, row: 3 },
+  "lava-infernal": { col: 1, row: 3 },
+  "lava-plasma": { col: 2, row: 3 },
+  "lava-toxic": { col: 3, row: 3 },
 };
 
 /** World-space pool center of a grid cell (the grid is centered on the world origin). */
@@ -440,7 +450,11 @@ export class Showcase10 extends AbstractShowcase {
   private readonly _lightPulseSpeed: number = 2.1;
 
   private _liquids: (
-    OpenWaterMaterial | StylizedWaterMaterial | FluidSurfaceMaterial | NoirWaterMaterial
+    | OpenWaterMaterial
+    | StylizedWaterMaterial
+    | StylizedLavaMaterial
+    | FluidSurfaceMaterial
+    | NoirWaterMaterial
   )[] = [];
   private _lavaLight: PointLight | undefined;
   private _slimeLight: PointLight | undefined;
@@ -896,6 +910,65 @@ export class Showcase10 extends AbstractShowcase {
     this._lavaLight.position.set(lavaCenter.x, 0.45, lavaCenter.z); // Low over the surface: the orange light bleeds onto the frame and floaters
     this.scene.add(this._lavaLight);
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // SOUTH TERRACE (Z = +30): Stylized NPR lava pool variants, one per RampLUT
+    // preset. Same Astro-Kat base configuration; only the thermal ramp differs.
+    // ─────────────────────────────────────────────────────────────────────────
+    const stylizedLavaPools: ReadonlyArray<{
+      key: GoldenPoolKey;
+      name: string;
+      ramp: RampLUT;
+      spillColor: Color;
+    }> = [
+      {
+        key: "lava-volcanic",
+        name: "LavaVolcanicPool",
+        ramp: RampLUT.presets.volcanic(),
+        spillColor: new Color(1.0, 0.45, 0.05),
+      },
+      {
+        key: "lava-infernal",
+        name: "LavaInfernalPool",
+        ramp: RampLUT.presets.infernal(),
+        spillColor: new Color(0.95, 0.2, 0.03),
+      },
+      {
+        key: "lava-plasma",
+        name: "LavaPlasmaPool",
+        ramp: RampLUT.presets.plasmaCyan(),
+        spillColor: new Color(0.1, 0.7, 0.95),
+      },
+      {
+        key: "lava-toxic",
+        name: "LavaToxicPool",
+        ramp: RampLUT.presets.toxicSlime(),
+        spillColor: new Color(0.55, 0.9, 0.15),
+      },
+    ];
+    for (const { key, name, ramp, spillColor } of stylizedLavaPools) {
+      const stylizedLava = new StylizedLavaMaterial({
+        surfaceTexture: lavaTexture,
+        rampMap: ramp.texture,
+      });
+      this._buildPool({
+        name,
+        ...poolWorldPosition(key),
+        liquid: stylizedLava,
+        needsTangents: false,
+        tileMaterial: basaltTileMaterial,
+        spawnDelay: 4.5,
+        sunkObjects: [
+          [this._makeCrate(new Color(0.3, 0.12, 0.06)), -0.8, -0.5],
+          [this._makeDebris(spillColor, 0.38), 0.8, 0.6],
+        ],
+        floaters: [
+          [this._makeDebris(new Color(0.18, 0.12, 0.1), 0.42), -1.2, 1.1, 0.07, 1.2],
+          [this._makeBall(spillColor, 0.32), 1.0, -1.0, 0.06, 1.5],
+        ],
+        dropper: this._makeDebris(new Color(0.15, 0.1, 0.08), 0.4),
+      });
+    }
+
     // 9. Toxic Slime (Bioluminescent Green Acid with Bubbles)
     const slime = new SlimeMaterial({
       noiseMap: slimeTexture,
@@ -1041,6 +1114,10 @@ export class Showcase10 extends AbstractShowcase {
       "molten-lava": ["Molten Lava", "Viscous Magma • Emissive Crust Glow"],
       "toxic-slime": ["Toxic Slime", "Bioluminescent Acid • Bubbles"],
       "petroleum-oil": ["Petroleum Dark Oil", "Dark Hydrocarbon • Oil Slick Sheen"],
+      "lava-volcanic": ["Stylized Volcano", "NPR Lava • Thermal Ramp"],
+      "lava-infernal": ["Stylized Inferno", "Crimson Flow • Thermal Ramp"],
+      "lava-plasma": ["Stylized Plasma", "Cyan Magma • Thermal Ramp"],
+      "lava-toxic": ["Stylized Toxic Lava", "Neon Acid Flow • Thermal Ramp"],
     };
     for (const key of Object.keys(POOL_CELLS) as GoldenPoolKey[]) {
       const { x, z } = poolWorldPosition(key);
@@ -1477,7 +1554,12 @@ export class Showcase10 extends AbstractShowcase {
     name: string;
     x: number;
     z: number;
-    liquid: OpenWaterMaterial | StylizedWaterMaterial | FluidSurfaceMaterial | NoirWaterMaterial;
+    liquid:
+      | OpenWaterMaterial
+      | StylizedWaterMaterial
+      | StylizedLavaMaterial
+      | FluidSurfaceMaterial
+      | NoirWaterMaterial;
     needsTangents: boolean;
     tileMaterial: LambertMaterial;
     spawnDelay: number;

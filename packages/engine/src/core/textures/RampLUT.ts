@@ -91,4 +91,73 @@ export class RampLUT {
     ctx.putImageData(image, 0, 0);
     this.texture.needsUpdate = true;
   }
+
+  /**
+   * Direct factory helpers delegating to presets.
+   */
+  public static volcanic(): RampLUT {
+    return RampLUT.presets.volcanic();
+  }
+
+  public static infernal(): RampLUT {
+    return RampLUT.presets.infernal();
+  }
+
+  public static plasmaCyan(): RampLUT {
+    return RampLUT.presets.plasmaCyan();
+  }
+
+  public static toxicSlime(): RampLUT {
+    return RampLUT.presets.toxicSlime();
+  }
+
+  /**
+   * Pre-configured colour ramp presets for stylized liquids, lava, and plasma shaders.
+   */
+  public static readonly presets = {
+    /** Classic volcanic molten rock: deep basalt, cooling embers, vivid orange magma, incandescent white fissures. */
+    volcanic(): RampLUT {
+      return new RampLUT([
+        { t: 0.0, color: new Color(0.08, 0.04, 0.04) }, // Obsidian / Basalt
+        { t: 0.25, color: new Color(0.28, 0.07, 0.02) }, // Dark cooling embers
+        { t: 0.55, color: new Color(0.78, 0.18, 0.02) }, // Flowing fiery magma
+        { t: 0.78, color: new Color(1.0, 0.45, 0.0) }, // Radiant orange currents
+        { t: 0.92, color: new Color(1.0, 0.85, 0.1) }, // Intense yellow fissures
+        { t: 1.0, color: new Color(1.0, 1.0, 0.9) }, // Superheated white-hot vents
+      ]);
+    },
+
+    /** Blazing infernal firestorm: pitch black crust, violent crimson to scorching cadmium yellow. */
+    infernal(): RampLUT {
+      return new RampLUT([
+        { t: 0.0, color: new Color(0.04, 0.02, 0.02) },
+        { t: 0.35, color: new Color(0.55, 0.02, 0.02) },
+        { t: 0.7, color: new Color(0.95, 0.25, 0.01) },
+        { t: 0.9, color: new Color(1.0, 0.75, 0.05) },
+        { t: 1.0, color: new Color(1.0, 1.0, 0.8) },
+      ]);
+    },
+
+    /** Sci-Fi / Fantasy phlogiston: deep dark navy crust with radiant electric cyan and magenta-blue plasma. */
+    plasmaCyan(): RampLUT {
+      return new RampLUT([
+        { t: 0.0, color: new Color(0.02, 0.03, 0.08) },
+        { t: 0.3, color: new Color(0.05, 0.15, 0.45) },
+        { t: 0.65, color: new Color(0.0, 0.65, 0.95) },
+        { t: 0.88, color: new Color(0.2, 0.95, 1.0) },
+        { t: 1.0, color: new Color(0.9, 1.0, 1.0) },
+      ]);
+    },
+
+    /** Toxic cauldron / radioactive slime: murky olive crust with blazing neon acid green and radioactive lemon. */
+    toxicSlime(): RampLUT {
+      return new RampLUT([
+        { t: 0.0, color: new Color(0.03, 0.06, 0.02) },
+        { t: 0.3, color: new Color(0.12, 0.28, 0.05) },
+        { t: 0.65, color: new Color(0.35, 0.85, 0.08) },
+        { t: 0.88, color: new Color(0.75, 1.0, 0.15) },
+        { t: 1.0, color: new Color(1.0, 1.0, 0.75) },
+      ]);
+    },
+  };
 }

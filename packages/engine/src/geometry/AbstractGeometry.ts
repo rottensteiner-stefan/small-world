@@ -20,6 +20,8 @@ export abstract class AbstractGeometry implements Geometry {
   protected _tangents: Float32Array = new Float32Array();
   /** The UV coordinates of the geometry (u, v). */
   protected _uvs: Float32Array = new Float32Array();
+  /** Optional per-vertex color data (r, g, b, a). */
+  protected _colors?: Float32Array | undefined = undefined;
   /** Optional skinning joints (4 IDs per vertex). */
   protected _joints?: Float32Array | Uint16Array | undefined = undefined;
   /** Optional skinning weights (4 weights per vertex). */
@@ -63,6 +65,7 @@ export abstract class AbstractGeometry implements Geometry {
       normals: this._normals,
       tangents: this._tangents,
       uvs: this._uvs,
+      colors: this._colors,
       joints: this._joints,
       weights: this._weights,
       topology: this._isLineGeometry ? Topology.LINE_LIST : Topology.TRIANGLE_LIST,
@@ -400,5 +403,15 @@ export abstract class AbstractGeometry implements Geometry {
     this.applyMatrix4(m);
     MathPool.releaseMatrix(m);
     return this;
+  }
+
+  /** Gets the optional per-vertex colors array. */
+  public get colors(): Float32Array | undefined {
+    return this._colors;
+  }
+
+  /** Sets the per-vertex colors array. */
+  public set colors(val: Float32Array | undefined) {
+    this._colors = val;
   }
 }

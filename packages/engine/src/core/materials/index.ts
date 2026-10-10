@@ -20,4 +20,5 @@ export * from "./OpenWaterMaterial.js";
 export * from "./OpenWaterSurfaceProbe.js";
 export * from "./StylizedWaterMaterial.js";
 export * from "./LavaMaterial.js";
+export * from "./StylizedLavaMaterial.js";
 export * from "./SlimeMaterial.js";

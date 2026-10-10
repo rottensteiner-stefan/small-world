@@ -897,7 +897,21 @@ This document serves to record external sources, algorithms, mathematical deriva
   - Sparkle Modulation: $I = S(u, v) \cdot \text{step}(\tau, N(c, t_{\text{step}}))$
 - **Usage:** Generates crisp anime/Ghibli specular sparkle cross glints on wave crests animated at deliberate low framerates (on-twos / on-threes) to emulate hand-drawn traditional cel animation.
 
+### Stylized Lava Surface & Subtractive Fissure Shading
+
+- **File:** `packages/engine/src/core/materials/StylizedLavaMaterial.ts`, `packages/engine/src/core/materials/shaders/StylizedLava.vert.wgsl`, `packages/engine/src/core/materials/shaders/StylizedLava.frag.wgsl`
+- **Authors/Gurus:** Joyce / MinionsArt (Joyce[MinionsArt] on Patreon / Twitter / Bluesky)
+- **Source:**
+  - ["Stylized Lava Shader" (Patreon Post 32245619)](https://www.patreon.com/posts/stylized-lava-32245619)
+  - ["Shader Graph Stylized Lava" (Patreon Post 33388865)](https://www.patreon.com/posts/shader-graph-33388865)
+- **Formulas & Architecture:**
+  - Dual-Frequency Flow Distortion: $\mathbf{u}_{\text{distort}} = \mathbf{x}_{xz} \cdot s_{\text{dist}} + t \cdot \mathbf{v}_{\text{dist}}$, $\mathbf{u}_{\text{main}} = \mathbf{x}_{xz} \cdot s_{\text{main}} + t \cdot \mathbf{v}_{\text{main}} + \frac{d(\mathbf{u}_{\text{distort}}) + d(0.5 \mathbf{u}_{\text{distort}})}{2} \cdot w_{\text{dist}}$
+  - Diagonal Viscous Undulation: $\Delta y = \sin(t \cdot \omega + x \cdot z \cdot k) \cdot A \cdot v_{\text{color.r}}$
+  - Non-Overlapping Subtractive Isolation: $C_{\text{base}} \cdot (1 - M_{\text{edge}}) \cdot (1 - M_{\text{top}}) + M_{\text{edge}} C_{\text{edge}} I_{\text{edge}} + M_{\text{top}} C_{\text{top}} I_{\text{top}}$
+- **Usage:** A massive heartfelt thank-you to Joyce (MinionsArt) for pioneering this stylized NPR lava paradigm! Her step-by-step breakdown (dual-frequency noise UV perturbation, cellular Voronoi basalt crusts, Scene Depth edge subtraction for organic shoreline burns, and mathematically clean subtractive cutout algebra that eliminates HDR bloom blowout) serves as the primary artistic and mathematical foundation for Small World's `StylizedLavaMaterial`.
+
 ## AI Coding & Architecture Assistants
+
 
 ### Google Gemini (2.5 Pro)
 

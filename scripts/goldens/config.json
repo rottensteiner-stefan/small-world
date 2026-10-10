@@ -11,7 +11,11 @@
     "toxic-slime",
     "petroleum-oil",
     "wave-rider",
-    "dead-sea"
+    "dead-sea",
+    "lava-volcanic",
+    "lava-infernal",
+    "lava-plasma",
+    "lava-toxic"
   ],
   "views": ["top", "oblique"],
   "backends": {

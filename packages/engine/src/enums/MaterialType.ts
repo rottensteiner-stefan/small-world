@@ -28,6 +28,8 @@ export const MaterialType = {
   FLUID_SURFACE: "FluidSurfaceMaterial",
   /** Opaque, emissive flowing lava preset on FluidSurfaceMaterial. */
   LAVA: "LavaMaterial",
+  /** Specialized stylized NPR lava material with subtractive fissures and thermal LUT. */
+  STYLIZED_LAVA: "StylizedLavaMaterial",
   /** Translucent, low-emissive flowing slime preset on FluidSurfaceMaterial. */
   SLIME: "SlimeMaterial",
   /** Depth material for shadow mapping. */
