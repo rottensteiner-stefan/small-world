@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.101.0] - 2026-10-10
+
+### "Nothing endures but change." - Heraclitus
+
+- **Features:**
+  - *Stylized Lava, a lossless port of MinionsArt's "Simple Lava"*: [`StylizedLavaMaterial`](packages/engine/src/core/materials/StylizedLavaMaterial.ts) now follows the original Unity shader line by line (GLSL300, GLSL100 and WGSL): world-XZ projected `_MainTex` and `_DistortTex`, Unity's time bases (`_Time.x = t/20`, `_Time.z = 2t`), the red vertex colour as fade for texture, top layer, final colour, wave and UV offset, the two-colour tint lerp, depth edge and top layer. The first version replaced both textures with a procedural Voronoi web and had no vertex colours; that deviation is gone. `RampLUT` stays as an optional extension. Defaults are the Astro Kat settings. WebGL1 is supported (without scene depth, so no shore line).
+  - *Vertex colours in all three renderers*: `Geometry.colors` is uploaded and bound (flag `USE_VERTEX_COLOR`; WebGL attribute location 11, WebGPU vertex buffer slot 6, opaque white when a mesh has none; not combinable with instancing). New `Texture.dispose()` frees a texture's CPU-side pixel data.
+  - *Showcase 10*: the four stylized lava pools run on a horizontal `Ground` surface with a painted rim fade; "Volcanic" is the pure Unity reference (two-colour lerp), the others use thermal ramps. Replacement textures `lava_main.webp` and `lava_distort.webp` come from `scripts/gen-lava-textures.mjs` and can be swapped for the originals.
+  - *Xtractor*: Cmd+D / Esc deselect, arrow-key nudge (Shift = 10 px), Cmd+0 / Cmd+1 fit and 100 %, undoable image removal, Shift+Enter in the chat; the AI chat can be cancelled with Esc.
+- **Architecture & Bugfixes:**
+  - *Stylized Lava failed on two backends before*: the WebGL2 program did not link (interface block `int` precision differed between the stages) and the WebGPU shader did not compile without maps (`USE_*` constants). The wave also moved vertices sideways inside a vertical `Plane`.
+  - *WebGPU stylized water*: `StylizedWater.frag.wgsl` still read legacy uniform slots (`shininess`, `pad2`, `useReflectionMap`), which broke refraction and caustics on WebGPU for stylized, Noir and OilSlick water. New `LiquidUniformNameParity` test forbids legacy slots and checks every read field against what the manifest writes.
+  - *Water surface probe*: `OpenWaterSurfaceProbe` mirrors the splat ring and the wall reflection (clapotis) of the vertex shader and reads the lanes live; new `OpenWaterMaterial.poolHalfExtent` (default 4.0, 0 = off) replaces the hard-coded wall distance. `emitSplat` lives on `OpenWaterMaterial`.
+  - *Renderers*: the WebGL1 HDR target is no longer re-allocated on every bind; pipeline flags are sorted, de-duplicated and validated; the object ring buffer no longer leaks on a double grow and grows on overflow instead of reusing the last slot; pending destroys are drained on resize; `SmallWorld.step` fails fast after `destroy()` and on invalid `dt`; `World.frag.glsl100` matches GLSL300/WGSL (blend weights, sRGB).
+  - *Tools security and robustness*: zip and gzip ingest is size-limited before unpacking (zip bomb, zip slip); the Gemini key moves from the URL to a header; AI and error texts are no longer written with `innerHTML`; all AI requests have a timeout and can be cancelled; undo history has a 256 MB budget; `HttpVisionProvider` replaces four copies of the same request scaffold; OpenAI GPT-5 and o-series use `max_completion_tokens`.
+  - *Scripts*: `goldens/compare.js` can no longer report a green result without a current capture or with missing cells; `capture.js` retries only blank frames and fails hard on console errors; `webgpu-resize-stress.js` fails when WebGPU is not active; `ibl-bake` passes its options through.
+- **Housekeeping & Docs:**
+  - `Xtractor.ts` shrank from 1781 to 687 lines (`AiChatPanel`, `CanvasViewport`, `CanvasSelection`, styles), `showcase.ts` of Showcase 10 from 2766 to 797 lines (pool presets as data, textures, props, behaviours, golden capture in their own modules; pixel-identical on all 16 WebGL2 cells).
+  - About 9.5 MB of unused assets removed from showcases 10 and 12; steel and brass textures of showcases 12, 27, 28 and 30 now live once in `apps/showcases/shared/assets`.
+  - Placebo tests replaced: probe tests against independently computed values, lane scanner without false passes, zero-allocation test covers the flag array. ADR 0027 (512-byte `ObjectUniforms`), the liquid wave data model guide, `REFERENCES.md` and `lava.md` (correction note) updated; Showcase 10 has a `docs/log.md` and a concept dossier.
+  - Verified: 255 test files, 1611 tests, lint and `tsc` clean; 48 of 48 golden cells (16 pools on WebGL2, WebGL1 and WebGPU) render without console errors, WebGL2 and WebGPU match for the lava pools. The Xtractor refactor is covered by lint, types and a jsdom smoke test, not clicked through in a browser. `tsc -p packages/engine` still reports TS6059 because two engine tests import `liquid-extras`.
+
 ## [0.100.1] - 2026-10-09
 
 ### "Geometry is the archetype of the beauty of the world." - Johannes Kepler
