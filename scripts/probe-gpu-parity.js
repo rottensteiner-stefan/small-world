@@ -152,7 +152,9 @@ try {
     // error of 2^-11 (inside -PI..PI) per call, so each wave may add 2^-11 * amplitude on top of
     // the f32 rounding bound. Measured SwiftShader deviations (~1e-4 m) sit well inside it.
     const GPU_TRIG_ABS_ERROR = 2 ** -11;
-    const bound = (lanes, x, z, time) => {
+    // w4..w6 are derived from w1/w2 exactly like the vertex shader does it (the probe keeps its own
+    // copy private, so this is the single copy of the factors inside this script).
+    const deriveWaves = (lanes) => {
       const [w1, w2, w3] = [lanes.wave1, lanes.wave2, lanes.wave3];
       const w4 = [w1[1], -w1[0], w1[2] * 0.45, w1[3] * 0.42];
       const w5 = [-w2[1], w2[0], w2[2] * 0.35, w2[3] * 0.35];
@@ -162,8 +164,12 @@ try {
         w1[2] * 0.25,
         w1[3] * 0.22,
       ];
+      return [w1, w2, w3, w4, w5, w6];
+    };
+    const bound = (lanes, x, z, time) => {
+      const waves = deriveWaves(lanes);
       let sum = 0;
-      for (const w of [w1, w2, w3, w4, w5, w6]) {
+      for (const w of waves) {
         const k = 6.28318530718 / Math.max(w[3], 0.001);
         const a = Math.abs(w[2]) / Math.max(k, 0.001);
         const len = Math.hypot(w[0], w[1]);
@@ -180,19 +186,11 @@ try {
     // Lane sets with `worldQuery: false` are so steep (summed steepness ~2.2) that the surface is not
     // injective even where det > 0: Newton may land on another vertex above the same point.
     const jacobianDet = (lanes, x, z, time) => {
-      const [w1, w2, w3] = [lanes.wave1, lanes.wave2, lanes.wave3];
-      const w4 = [w1[1], -w1[0], w1[2] * 0.45, w1[3] * 0.42];
-      const w5 = [-w2[1], w2[0], w2[2] * 0.35, w2[3] * 0.35];
-      const w6 = [
-        w1[0] * 0.5 - w1[1] * 0.866,
-        w1[0] * 0.866 + w1[1] * 0.5,
-        w1[2] * 0.25,
-        w1[3] * 0.22,
-      ];
+      const waves = deriveWaves(lanes);
       let jxx = 1,
         jxz = 0,
         jzz = 1;
-      for (const w of [w1, w2, w3, w4, w5, w6]) {
+      for (const w of waves) {
         const k = 6.28318530718 / Math.max(w[3], 0.001);
         const len = Math.hypot(w[0], w[1]);
         const [nx, ny] = [w[0] / len, w[1] / len];
@@ -207,6 +205,7 @@ try {
     const FOLD_DET = 0.1;
 
     const rows = [];
+    let debug;
     const out = new Float32Array(positions.length);
     for (const lanes of laneSets) {
       const probe = new OpenWaterSurfaceProbe({
@@ -249,10 +248,10 @@ try {
           worstWorldRatio = Math.max(worstWorldRatio, folded ? 0 : dWorld / b);
         }
         if (lanes.name === "moderate" && time === 0) {
-          rows.debug = [];
+          debug = [];
           for (let i = 0; i < 6; i++) {
             const [rx, rz] = rest[i];
-            rows.debug.push({
+            debug.push({
               rest: [rx, rz],
               gpu: [out[i * 3], out[i * 3 + 1], out[i * 3 + 2]],
               probeY: probe.heightAt(rx, rz, time),
@@ -261,6 +260,7 @@ try {
         }
         rows.push({
           foldedSamples,
+          worldQuery: lanes.worldQuery,
           lanes: lanes.name,
           time,
           samples: rest.length,
@@ -271,7 +271,7 @@ try {
         });
       }
     }
-    return { renderer: gl.getParameter(gl.RENDERER), rows, debug: rows.debug };
+    return { renderer: gl.getParameter(gl.RENDERER), rows, debug };
   });
 
   if (report.error) throw new Error(report.error);
@@ -284,16 +284,22 @@ try {
     "max|dy| world".padStart(15),
     " ratio rest/world (<=1 ok)",
   );
+  // Folded samples are exempt from the world-point comparison; if too many are, a green run would
+  // prove almost nothing about it.
+  const MIN_WORLD_CHECKED_SHARE = 0.5;
   let failed = false;
   for (const r of report.rows) {
-    const ok = r.worstRestRatio <= 1 && r.worstWorldRatio <= 1;
+    const worldChecked = r.samples - r.foldedSamples;
+    const coverageOk =
+      r.worldQuery === false || worldChecked / r.samples >= MIN_WORLD_CHECKED_SHARE;
+    const ok = r.worstRestRatio <= 1 && r.worstWorldRatio <= 1 && coverageOk;
     failed ||= !ok;
     console.log(
       r.lanes.padEnd(28),
       String(r.time).padStart(5),
       r.worstRest.toExponential(2).padStart(14),
       r.worstWorld.toExponential(2).padStart(15),
-      ` ${r.worstRestRatio.toFixed(2)} / ${r.worstWorldRatio.toFixed(2)}  (${r.samples - r.foldedSamples}/${r.samples} world-checked)`,
+      ` ${r.worstRestRatio.toFixed(2)} / ${r.worstWorldRatio.toFixed(2)}  (${worldChecked}/${r.samples} world-checked)`,
       ok ? "" : "  <-- FAIL",
     );
   }

@@ -14,6 +14,12 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { createHash } from "crypto";
 import { PNG } from "pngjs";
+import {
+  PREVIEW_ARGS,
+  PREVIEW_ORIGIN,
+  detectBlankCanvas as measureBlank,
+  waitForServer,
+} from "../lib/preview-utils.js";
 import config from "./config.json" with { type: "json" };
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,7 +27,15 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.join(__dirname, "..", "..");
 
 function parseArgs(argv) {
-  const args = { matrix: "gl2", out: null, pool: null, view: null, frames: null, skipSpawn: false, allowNoGolden: false };
+  const args = {
+    matrix: "gl2",
+    out: null,
+    pool: null,
+    view: null,
+    frames: null,
+    skipSpawn: false,
+    allowNoGolden: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = argv[i + 1];
@@ -63,38 +77,8 @@ function parseArgs(argv) {
   return args;
 }
 
-async function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-// Copy of the blank-canvas heuristics from scripts/check-showcases.js (kept in sync manually):
-// a fully uniform canvas means nothing was actually rendered.
 function detectBlankCanvas(pngBuffer) {
-  const png = PNG.sync.read(Buffer.from(pngBuffer));
-  const { data, width, height } = png;
-  const sampleStep = 4;
-  const xStart = Math.round(width * 0.25);
-  const xEnd = Math.round(width * 0.75);
-  const yStart = Math.round(height * 0.25);
-  const yEnd = Math.round(height * 0.75);
-  let sum = 0;
-  let count = 0;
-  const luminances = [];
-  for (let y = yStart; y < yEnd; y += sampleStep) {
-    for (let x = xStart; x < xEnd; x += sampleStep) {
-      const idx = (width * y + x) * 4;
-      const luminance = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
-      luminances.push(luminance);
-      sum += luminance;
-      count++;
-    }
-  }
-  const mean = sum / count;
-  let variance = 0;
-  for (const l of luminances) variance += (l - mean) * (l - mean);
-  variance /= count;
-  const stddev = Math.sqrt(variance);
-  return { blank: stddev < config.blankStddevThreshold, stddev };
+  return measureBlank(pngBuffer, config.blankStddevThreshold);
 }
 
 function canvasRect(page) {
@@ -162,12 +146,15 @@ async function captureCell(browser, { poolKey, view }) {
   page.on("pageerror", (error) => errors.push(error.message));
 
   const query = `?rendererType=${backend}&__golden=${poolKey}&__goldenView=${view}&__goldenFrames=${frames}`;
-  const url = `https://localhost:4173/apps/showcases/10/index.html${query}`;
+  const url = `${PREVIEW_ORIGIN}/apps/showcases/10/index.html${query}`;
 
   try {
     await page.goto(url, { waitUntil: "load", timeout: 60000 });
     const ready = await page
-      .waitForFunction("window.__goldenReady === true || Boolean(window.__goldenMeta && window.__goldenMeta.error)", { timeout: 120000 })
+      .waitForFunction(
+        "window.__goldenReady === true || Boolean(window.__goldenMeta && window.__goldenMeta.error)",
+        { timeout: 120000 },
+      )
       .then(() =>
         // eslint-disable-next-line no-undef -- runs inside the page (browser context via Puppeteer), not Node
         page.evaluate(() => ({ __goldenMeta: window.__goldenMeta })),
@@ -176,7 +163,9 @@ async function captureCell(browser, { poolKey, view }) {
 
     if (!ready) {
       entry.ok = false;
-      entry.error = args.allowNoGolden ? "golden-ready not set (app-hook pending)" : "timeout waiting for window.__goldenReady";
+      entry.error = args.allowNoGolden
+        ? "golden-ready not set (app-hook pending)"
+        : "timeout waiting for window.__goldenReady";
       return entry;
     }
 
@@ -266,6 +255,10 @@ function stopServer(server) {
 
 const MAX_CELL_ATTEMPTS = 3;
 
+function isRetryable(entry) {
+  return !entry.ok && entry.blank === true && (entry.consoleErrors ?? []).length === 0;
+}
+
 async function main() {
   const cells = buildCells();
   if (0 === cells.length) throw new Error("Matrix is empty (check --pool/--view and config.json)");
@@ -274,11 +267,11 @@ async function main() {
   let server = null;
   if (!args.skipSpawn) {
     // detached: own process group, so the whole `npm -> vite preview` tree can be killed (see stopServer).
-    server = spawn("npm", ["run", "preview"], { cwd: ROOT, stdio: "pipe", detached: true });
+    server = spawn("npm", PREVIEW_ARGS, { cwd: ROOT, stdio: "pipe", detached: true });
     server.stdout.on("data", (d) => process.stdout.write(d.toString()));
     server.stderr.on("data", (d) => process.stderr.write(d.toString()));
-    await sleep(3000);
   }
+  await waitForServer(`${PREVIEW_ORIGIN}/`);
 
   const tmpDir = path.join(ROOT, ".agents", "scratches", "tmp_goldens_" + Date.now());
   fs.mkdirSync(tmpDir, { recursive: true });
@@ -312,9 +305,10 @@ async function main() {
     for (const cell of cells) {
       process.stdout.write(`Capturing ${cell.poolKey}/${cell.view} [${backend}] ... `);
       // A software-GL2 (SwiftShader) page occasionally comes up blank on a loaded CI runner (seen once in
-      // 24 cells on 2026-10-08). Retry the single cell; a real defect fails every attempt and still fails.
+      // 24 cells on 2026-10-08). Only a blank frame without console errors is retried; any console
+      // error fails the cell immediately so an intermittent real error is never retried away.
       let entry = await captureCell(browser, cell);
-      for (let attempt = 2; !entry.ok && attempt <= MAX_CELL_ATTEMPTS; attempt++) {
+      for (let attempt = 2; isRetryable(entry) && attempt <= MAX_CELL_ATTEMPTS; attempt++) {
         process.stdout.write(`FAIL (${entry.error}), retry ${attempt}/${MAX_CELL_ATTEMPTS} ... `);
         entry = await captureCell(browser, cell);
         entry.attempts = attempt;
@@ -333,7 +327,7 @@ async function main() {
       cellsTotal: manifest.length,
       cellsOk: okCount,
       ok: okCount === manifest.length,
-      isoformational: isInformational,
+      informational: isInformational,
       browser: await browser.version(),
       generatedAt: new Date().toISOString(),
     };

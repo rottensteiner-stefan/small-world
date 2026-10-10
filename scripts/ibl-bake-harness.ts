@@ -4,6 +4,7 @@
 // returns only PNG payloads — all hashing/manifest logic stays in Node.
 
 import { IBLBaker } from "../packages/engine/src/tools/ibl-gen.js";
+import type { IblGenDefaults } from "../packages/engine/src/tools/ibl-gen-core.js";
 
 export interface IblBakeOutput {
   name: string;
@@ -13,6 +14,8 @@ export interface IblBakeOutput {
 export interface IblBakeConfig {
   /** base64 (standard alphabet) PNG bytes of the equirectangular input image. */
   pngBase64: string;
+  /** Bake resolutions; the same values end up in the manifest, so they must be what is baked. */
+  options: IblGenDefaults;
 }
 
 declare global {
@@ -33,7 +36,8 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 window.__swIblBake = async (config: IblBakeConfig): Promise<{ outputs: IblBakeOutput[] }> => {
-  const baker = new IBLBaker();
+  const { options } = config;
+  const baker = new IBLBaker(options);
 
   const raw = atob(config.pngBase64);
   const pngBytes = new Uint8Array(raw.length);
@@ -42,34 +46,43 @@ window.__swIblBake = async (config: IblBakeConfig): Promise<{ outputs: IblBakeOu
   }
   const inputFile = new File([pngBytes], "input.png", { type: "image/png" });
 
-  await baker.generateBRDF("brdfCanvas");
-  const equiTex = await baker.loadEquirectangularImage(inputFile);
-  const envCube = await baker.generateEnvironmentCubemap(equiTex, "envCanvas");
-  const irrCube = await baker.generateIrradianceCubemap(envCube, "irradianceCanvas");
-  const prefCube = await baker.generatePrefilteredCubemap(envCube, "prefilterCanvas");
+  const outputs: IblBakeOutput[] = [];
+  try {
+    await baker.generateBRDF("brdfCanvas");
+    const equiTex = await baker.loadEquirectangularImage(inputFile);
+    const envCube = await baker.generateEnvironmentCubemap(equiTex, "envCanvas");
+    const irrCube = await baker.generateIrradianceCubemap(envCube, "irradianceCanvas");
+    const prefCube = await baker.generatePrefilteredCubemap(envCube, "prefilterCanvas");
 
-  const outputs: IblBakeOutput[] = [
-    {
-      name: "env.png",
-      base64: await blobToBase64(await baker.exportCubemapToCross(envCube, 512, 0)),
-    },
-    {
-      name: "irradiance.png",
-      base64: await blobToBase64(await baker.exportCubemapToCross(irrCube, 32, 0)),
-    },
-    {
-      name: "brdf_lut.png",
-      base64: await blobToBase64(await baker.exportBRDFToBlob("brdfCanvas")),
-    },
-  ];
+    outputs.push(
+      {
+        name: "env.png",
+        base64: await blobToBase64(
+          await baker.exportCubemapToCross(envCube, options.envResolution, 0),
+        ),
+      },
+      {
+        name: "irradiance.png",
+        base64: await blobToBase64(
+          await baker.exportCubemapToCross(irrCube, options.irradianceResolution, 0),
+        ),
+      },
+      {
+        name: "brdf_lut.png",
+        base64: await blobToBase64(await baker.exportBRDFToBlob("brdfCanvas")),
+      },
+    );
 
-  let prefilterSize = 128;
-  for (let mip = 0; mip < 5; mip++) {
-    outputs.push({
-      name: `prefilter/mip${mip}.png`,
-      base64: await blobToBase64(await baker.exportCubemapToCross(prefCube, prefilterSize, mip)),
-    });
-    prefilterSize = Math.floor(prefilterSize / 2);
+    let prefilterSize = options.prefilterResolution;
+    for (let mip = 0; mip < options.prefilterMips; mip++) {
+      outputs.push({
+        name: `prefilter/mip${mip}.png`,
+        base64: await blobToBase64(await baker.exportCubemapToCross(prefCube, prefilterSize, mip)),
+      });
+      prefilterSize = Math.floor(prefilterSize / 2);
+    }
+  } finally {
+    baker.dispose();
   }
 
   return { outputs };

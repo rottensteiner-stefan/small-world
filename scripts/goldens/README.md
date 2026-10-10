@@ -1,7 +1,7 @@
 # Liquid Goldens (M1)
 
 Deterministischer Rendering-Baseline-Schutz für Showcase 10 („Waterworld & Liquid Gallery“) —
-Teil von **M1** der Flüssigkeits-Roadmap (`/Users/srottensteiner/PhpstormProjects/small-world/.agents/collaborate/liquid-roadmap.md` §8.2).
+Teil von **M1** der Flüssigkeits-Roadmap (`.agents/collaborate/liquid-roadmap.md` §8.2).
 
 Jede ausgabeändernde Shader-Änderung darf das Wasserbild nicht unbemerkt verändern. Diese Tools
 fangen beides ab: **sichtbare Regressionen** (Bild weicht von der committeten Baseline ab) und
@@ -45,7 +45,8 @@ CI ruft Capture+Compare als blockierenden Job `liquid-goldens` auf (`ref: .githu
    Die Baseline daher aus dem CI-Artefakt `liquid-goldens` (Ordner `current/`) übernehmen:
    `gh run download <run-id> -n liquid-goldens -D <dir>` und die PNGs samt `manifest.json`/`summary.json` nach
    `.agents/goldens/liquid/baseline/` kopieren. Der Capture wiederholt eine leere Zelle bis zu dreimal (SwiftShader
-   liefert auf einem ausgelasteten Runner gelegentlich ein leeres Bild).
+   liefert auf einem ausgelasteten Runner gelegentlich ein leeres Bild); eine Zelle mit Konsolenfehlern wird nie wiederholt.
+   Der Preview-Port ist per `PREVIEW_PORT` (Default 4173) einstellbar.
 
 ## Drift zuordnen, bevor die Baseline neu aufgenommen wird
 
@@ -65,7 +66,7 @@ git worktree add --detach <dir> <baseline-commit>
 # auf die Pakete des WORKTREES zeigen lassen -- sonst lädt die Seite zwei Engine-Kopien.
 (cd <dir> && npx vite --host --port 4173 --strictPort) &
 (cd <dir> && node scripts/goldens/capture.js --matrix gl2 --out <out> --skip-spawn --pool clear-water)
-npm run goldens:compare -- --baseline .agents/goldens/liquid/baseline --current <out>
+npm run goldens:compare -- --baseline .agents/goldens/liquid/baseline --current <out> --pool clear-water
 ```
 
 Beispiel (2026-10-07): `9223d305` mit Chrome for Testing 152 → `clear-water` top und oblique
@@ -81,7 +82,8 @@ wurden: im selben Commit wie die Änderung, mit der neuen Browser-Version im `su
   - Schreibt `<dir>/<poolKey>__<view>.png` + `manifest.json` (Metadaten, Blank-Flag, sha256) + `summary.json`.
   - `gl1` = Smoke (`<dir>/smoke/*.png`, nur Load/Fehler/Blank-Asserts).
   - Exit 0 nur wenn alle Zellen ok.
-- `goldens:compare -- --baseline <dir> --current <dir> [--max-diff-ratio <f>] [--pixelmatch-threshold <f>] [--report <path>]`
+- `goldens:compare -- --baseline <dir> --current <dir> [--pool <key>] [--max-diff-ratio <f>] [--pixelmatch-threshold <f>] [--report <path>]`
+  - `--current` ist Pflicht. Baseline-Zellen, die im Current fehlen, sind ein technischer Fehler (`--pool` schränkt die Prüfung auf einen Pool ein).
   - Vergleicht jede Zelle per `pixelmatch`, `diffRatio` = abweichende Pixel / Gesamtpixel.
   - Exit **0** = alles ok, **1** = technischer Fehler (Bild fehlt/unlesbar/blank), **2** = Drift-Verletzung.
 

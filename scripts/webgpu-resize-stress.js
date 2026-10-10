@@ -1,12 +1,24 @@
 // Resize stress for the WebGPU renderer: resizes the Showcase 10 window repeatedly and counts WebGPU
 // validation errors (e.g. "used in submit while destroyed"). Needs the dev server (npm run dev).
-// Exit code 1 if any error shows up.
+// Exit code 1 if any error shows up or WebGPU is not actually active.
 import puppeteer from "puppeteer";
+
+// BASE_URL: dev server origin (default https://localhost:5173). CHROME_PATH: optional Chrome binary,
+// otherwise Puppeteer's own browser is used.
+const BASE_URL = process.env.BASE_URL || "https://localhost:5173";
 const browser = await puppeteer.launch({
-  executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  headless: false,
+  ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
+  headless: "new",
   acceptInsecureCerts: true,
-  args: ["--no-sandbox", "--enable-unsafe-webgpu", "--window-size=1400,900"],
+  args: [
+    "--no-sandbox",
+    "--enable-unsafe-webgpu",
+    "--enable-features=Vulkan",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader",
+    "--ignore-gpu-blocklist",
+    "--window-size=1400,900",
+  ],
 });
 const page = await browser.newPage();
 const errs = [];
@@ -17,10 +29,29 @@ page.on("console", (m) => {
 });
 page.on("pageerror", (e) => errs.push("pageerror: " + e.message.slice(0, 180)));
 await page.setViewport({ width: 1280, height: 800 });
-await page.goto("https://localhost:5173/apps/showcases/10/index.html?rendererType=WEB_GPU", {
+await page.goto(`${BASE_URL}/apps/showcases/10/index.html?rendererType=WEB_GPU`, {
   waitUntil: "load",
 });
 await new Promise((r) => setTimeout(r, 9000));
+
+// A run that silently fell back to WebGL (or has no WebGPU at all) would stay green forever, so
+// prove first that the page really renders through a WebGPU canvas context.
+const gpuState = await page.evaluate(() => {
+  /* eslint-disable no-undef -- runs inside the page (browser context via Puppeteer), not Node */
+  if (!navigator.gpu) return { ok: false, reason: "navigator.gpu is undefined" };
+  const canvas = document.querySelector("canvas");
+  if (!canvas) return { ok: false, reason: "no <canvas> on the page" };
+  if (canvas.getContext("webgpu") === null) {
+    return { ok: false, reason: "canvas has no WebGPU context (renderer fell back to WebGL)" };
+  }
+  return { ok: true, reason: "ok" };
+  /* eslint-enable no-undef */
+});
+if (!gpuState.ok) {
+  console.error(`WebGPU is not active: ${gpuState.reason}. Stress test cannot run.`);
+  await browser.close();
+  process.exit(1);
+}
 const sizes = [
   [900, 600],
   [1600, 900],

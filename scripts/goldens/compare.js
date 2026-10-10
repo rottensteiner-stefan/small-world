@@ -12,7 +12,14 @@ import pixelmatch from "pixelmatch";
 import config from "./config.json" with { type: "json" };
 
 function parseArgs(argv) {
-  const args = { baseline: null, current: null, maxDiffRatio: null, report: null, threshold: null };
+  const args = {
+    baseline: null,
+    current: null,
+    maxDiffRatio: null,
+    report: null,
+    threshold: null,
+    pool: null,
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = argv[i + 1];
@@ -33,6 +40,10 @@ function parseArgs(argv) {
         args.threshold = Number(value);
         i++;
         break;
+      case "--pool":
+        args.pool = value;
+        i++;
+        break;
       case "--report":
         args.report = value;
         i++;
@@ -45,9 +56,8 @@ function parseArgs(argv) {
     args.baseline = ".agents/goldens/liquid/baseline";
   }
   if (!args.current) {
-    args.current = fs.existsSync(".agents/goldens/liquid/current")
-      ? ".agents/goldens/liquid/current"
-      : ".agents/goldens/liquid/baseline";
+    // Defaulting to the baseline would compare it with itself and report a false green.
+    throw new Error("--current <dir> is required");
   }
   return args;
 }
@@ -62,7 +72,13 @@ function readPng(file) {
   return PNG.sync.read(fs.readFileSync(file));
 }
 
-const args = parseArgs(process.argv.slice(2));
+let args;
+try {
+  args = parseArgs(process.argv.slice(2));
+} catch (err) {
+  console.error(`Fatal error: ${err.message}`);
+  process.exit(1);
+}
 const maxDiffRatio = args.maxDiffRatio ?? config.maxDiffRatio;
 const pixelmatchThreshold = args.threshold ?? config.pixelmatchThreshold;
 
@@ -75,14 +91,21 @@ async function main() {
   }
 
   const manifest = await readManifest(args.current);
-  const cells = manifest ?? Object.keys(baselineFiles).map((f) => ({ file: f }));
+  const cells = manifest ? [...manifest] : [];
+  const cellFile = (cell) => cell.file ?? `${cell.poolKey}__${cell.view}.png`;
+  const knownFiles = new Set(cells.map(cellFile));
+  // A baseline cell the current run never produced must surface as an error, not vanish.
+  for (const f of Object.keys(baselineFiles)) {
+    if (args.pool && !f.startsWith(`${args.pool}__`)) continue;
+    if (!knownFiles.has(f)) cells.push({ file: f });
+  }
 
   const rows = [];
   let driftViolation = false;
   let technicalError = false;
 
   for (const cell of cells) {
-    const file = cell.file ?? `${cell.poolKey}__${cell.view}.png`;
+    const file = cellFile(cell);
     const label = file.replace(/\.png$/, "");
     const currentPath = path.join(args.current, file);
     const baselinePath = path.join(args.baseline, file);
@@ -126,14 +149,9 @@ async function main() {
     const width = img1.width;
     const height = img1.height;
     const diff = new PNG({ width, height });
-    const diffCount = pixelmatch(
-      img1.data,
-      img2.data,
-      diff.data,
-      width,
-      height,
-      { threshold: pixelmatchThreshold },
-    );
+    const diffCount = pixelmatch(img1.data, img2.data, diff.data, width, height, {
+      threshold: pixelmatchThreshold,
+    });
     const diffRatio = diffCount / (width * height);
 
     const poolKey = label.split("__")[0];
@@ -143,9 +161,19 @@ async function main() {
     if (diffCount === 0) {
       rows.push({ label, status: "OK", detail: "byte-identical", diffRatio });
     } else if (diffRatio <= allowed) {
-      rows.push({ label, status: "DIFF", detail: `within tolerance (${(diffRatio * 100).toFixed(4)}%)`, diffRatio });
+      rows.push({
+        label,
+        status: "DIFF",
+        detail: `within tolerance (${(diffRatio * 100).toFixed(4)}%)`,
+        diffRatio,
+      });
     } else {
-      rows.push({ label, status: "FAIL", detail: `drift ${(diffRatio * 100).toFixed(4)}% > ${(allowed * 100).toFixed(2)}%`, diffRatio });
+      rows.push({
+        label,
+        status: "FAIL",
+        detail: `drift ${(diffRatio * 100).toFixed(4)}% > ${(allowed * 100).toFixed(2)}%`,
+        diffRatio,
+      });
       driftViolation = true;
     }
   }
@@ -153,7 +181,10 @@ async function main() {
   let width = 12;
   for (const r of rows) width = Math.max(width, r.label.length + 1);
   for (const r of rows) {
-    const detail = "diffRatio" in r ? `  [${(r.diffRatio * 100).toFixed(4)}% diff] ${r.detail}` : `  ${r.detail}`;
+    const detail =
+      "diffRatio" in r
+        ? `  [${(r.diffRatio * 100).toFixed(4)}% diff] ${r.detail}`
+        : `  ${r.detail}`;
     console.log(`${r.status.padEnd(5)} ${r.label.padEnd(width)} ${detail}`);
   }
 
@@ -165,13 +196,19 @@ async function main() {
   const baselineBrowser = readBrowser(args.baseline);
   const currentBrowser = readBrowser(args.current);
   if (baselineBrowser === undefined) {
-    console.log("NOTE  baseline has no recorded browser version; drift cannot be attributed to a browser change.");
+    console.log(
+      "NOTE  baseline has no recorded browser version; drift cannot be attributed to a browser change.",
+    );
   } else if (currentBrowser !== undefined && baselineBrowser !== currentBrowser) {
-    console.log(`WARN  browser differs: baseline ${baselineBrowser}, current ${currentBrowser} -- drift may be browser-induced.`);
+    console.log(
+      `WARN  browser differs: baseline ${baselineBrowser}, current ${currentBrowser} -- drift may be browser-induced.`,
+    );
   }
 
   const okRows = rows.filter((r) => r.status === "OK" || r.status === "DIFF").length;
-  console.log(`\n${okRows}/${rows.length} cells within tolerance (threshold=${(maxDiffRatio * 100).toFixed(2)}%)`);
+  console.log(
+    `\n${okRows}/${rows.length} cells within tolerance (threshold=${(maxDiffRatio * 100).toFixed(2)}%)`,
+  );
 
   if (args.report) {
     const report = {

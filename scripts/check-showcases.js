@@ -3,7 +3,12 @@ import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { PNG } from "pngjs";
+import {
+  PREVIEW_ARGS,
+  PREVIEW_ORIGIN,
+  detectBlankCanvas as measureBlank,
+  waitForServer,
+} from "./lib/preview-utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,49 +20,8 @@ const SCREENSHOT_DIR = path.join(__dirname, "..", ".agents", "scratches", "scree
 // silent regression a pure error-listener check cannot catch).
 const BLANK_CANVAS_STDDEV_THRESHOLD = 2.0;
 
-/**
- * Decodes a screenshot PNG buffer and checks whether it looks like a blank/flat canvas.
- * Only samples the CENTER 50% of the image (both axes): the showcase layout always
- * overlays a title/nav header and a copyright footer on top of the fullscreen canvas,
- * and those always contain text/borders -- sampling the whole crop would mask a
- * genuinely blank 3D viewport by picking up that always-present chrome instead.
- * @param {Buffer} pngBuffer Raw PNG bytes of the cropped canvas screenshot.
- * @returns {{ blank: boolean, stddev: number }} Whether the canvas looks empty, and the measured stddev.
- */
 function detectBlankCanvas(pngBuffer) {
-  const png = PNG.sync.read(Buffer.from(pngBuffer));
-  const { data, width, height } = png;
-  const sampleStep = 4; // sample every 4th pixel for speed; still thousands of samples per showcase
-  const xStart = Math.round(width * 0.25);
-  const xEnd = Math.round(width * 0.75);
-  const yStart = Math.round(height * 0.25);
-  const yEnd = Math.round(height * 0.75);
-  let sum = 0;
-  let count = 0;
-  const luminances = [];
-
-  for (let y = yStart; y < yEnd; y += sampleStep) {
-    for (let x = xStart; x < xEnd; x += sampleStep) {
-      const idx = (width * y + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      luminances.push(luminance);
-      sum += luminance;
-      count++;
-    }
-  }
-
-  const mean = sum / count;
-  let variance = 0;
-  for (const l of luminances) {
-    variance += (l - mean) * (l - mean);
-  }
-  variance /= count;
-  const stddev = Math.sqrt(variance);
-
-  return { blank: stddev < BLANK_CANVAS_STDDEV_THRESHOLD, stddev };
+  return measureBlank(pngBuffer, BLANK_CANVAS_STDDEV_THRESHOLD);
 }
 
 const numberedShowcases = [
@@ -161,7 +125,7 @@ async function probeWebGpu(browser) {
   const page = await browser.newPage();
   try {
     // WebGPU needs a secure context; the preview server is served over https.
-    await page.goto("https://localhost:4173/", { waitUntil: "load", timeout: 20000 });
+    await page.goto(`${PREVIEW_ORIGIN}/`, { waitUntil: "load", timeout: 20000 });
     return await page.evaluate(async () => {
       const gpu = navigator.gpu;
       if (!gpu) return { usable: false, reason: "navigator.gpu is undefined" };
@@ -172,7 +136,7 @@ async function probeWebGpu(browser) {
       device.lost.then((info) => {
         lostInfo = info;
       });
-      device.createBuffer({ size: 16, usage: 0x8 /* GPUBufferUsage.UNIFORM */ });
+      device.createBuffer({ size: 16, usage: 0x40 /* GPUBufferUsage.UNIFORM */ });
       device.queue.submit([device.createCommandEncoder().finish()]);
       await device.queue.onSubmittedWorkDone();
       await new Promise((r) => setTimeout(r, 1000));
@@ -222,7 +186,7 @@ async function checkShowcase(browser, { showcase, rendererType }) {
     // both are workspace packages now, neither is at the old top-level showcases/ path.
     const basePath =
       showcase === "yad" ? `apps/sample-apps/${showcase}` : `apps/showcases/${showcase}`;
-    const url = `https://localhost:4173/${basePath}/index.html${query}`;
+    const url = `${PREVIEW_ORIGIN}/${basePath}/index.html${query}`;
 
     await page.goto(url, { waitUntil: "load", timeout: 20000 });
 
@@ -297,7 +261,7 @@ async function checkShowcase(browser, { showcase, rendererType }) {
 
 async function run() {
   console.log("Starting Vite preview server...");
-  const server = spawn("npm", ["run", "preview"], {
+  const server = spawn("npm", PREVIEW_ARGS, {
     stdio: "pipe", // we want to see output
     detached: true, // own process group so the whole `npm -> vite preview` tree can be killed below
   });
@@ -305,8 +269,7 @@ async function run() {
   server.stdout.on("data", (data) => console.log(data.toString()));
   server.stderr.on("data", (data) => console.error(data.toString()));
 
-  // Give the server a moment to start
-  await sleep(3000);
+  await waitForServer(`${PREVIEW_ORIGIN}/`);
 
   console.log("Launching Puppeteer...");
   // Use a strictly temporary user data dir that we clean up later

@@ -126,6 +126,7 @@ async function bundleHarness(): Promise<string> {
 async function runBakeInBrowser(
   bundleText: string,
   pngBase64: string,
+  options: IblGenOptions,
 ): Promise<Map<string, Buffer>> {
   const tmpUserDir = fs.mkdtempSync(path.join(os.tmpdir(), "sw-ibl-bake-"));
   const browser = await puppeteer.launch({
@@ -147,14 +148,24 @@ async function runBakeInBrowser(
   });
 
   try {
-    const pageUrl = await writeHarnessPage(bundleText);
+    const pageUrl = await writeHarnessPage(bundleText, options);
     const page = await browser.newPage();
     await page.goto(pageUrl, { waitUntil: "networkidle0" });
     await page.waitForFunction(() => typeof window.__swIblBake === "function");
-    const result = await page.evaluate(async (b64) => {
-      const { outputs } = await window.__swIblBake({ pngBase64: b64 });
-      return outputs;
-    }, pngBase64);
+    const result = await page.evaluate(
+      async (b64, bakeOptions) => {
+        const { outputs } = await window.__swIblBake({ pngBase64: b64, options: bakeOptions });
+        return outputs;
+      },
+      pngBase64,
+      {
+        envResolution: options.envResolution,
+        irradianceResolution: options.irradianceResolution,
+        prefilterResolution: options.prefilterResolution,
+        prefilterMips: options.prefilterMips,
+        brdfResolution: options.brdfResolution,
+      },
+    );
 
     const files = new Map<string, Buffer>();
     for (const output of result) {
@@ -167,15 +178,15 @@ async function runBakeInBrowser(
   }
 }
 
-async function writeHarnessPage(bundleText: string): Promise<string> {
+async function writeHarnessPage(bundleText: string, options: IblGenOptions): Promise<string> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sw-ibl-page-"));
   const html = `<!doctype html>
 <html><head><meta charset="utf-8" /></head>
 <body>
-  <canvas id="envCanvas" width="512" height="512" style="display:none"></canvas>
-  <canvas id="irradianceCanvas" width="32" height="32" style="display:none"></canvas>
-  <canvas id="prefilterCanvas" width="128" height="128" style="display:none"></canvas>
-  <canvas id="brdfCanvas" width="512" height="512" style="display:none"></canvas>
+  <canvas id="envCanvas" width="${options.envResolution}" height="${options.envResolution}" style="display:none"></canvas>
+  <canvas id="irradianceCanvas" width="${options.irradianceResolution}" height="${options.irradianceResolution}" style="display:none"></canvas>
+  <canvas id="prefilterCanvas" width="${options.prefilterResolution}" height="${options.prefilterResolution}" style="display:none"></canvas>
+  <canvas id="brdfCanvas" width="${options.brdfResolution}" height="${options.brdfResolution}" style="display:none"></canvas>
   <canvas id="previewCanvas" width="1" height="1" style="display:none"></canvas>
   <script>${bundleText}</script>
 </body></html>`;
@@ -205,11 +216,11 @@ async function main(): Promise<void> {
   const bundleText = await bundleHarness();
   if (args.dumpHtml) {
     const dump = path.join(args.out, "harness-debug.html");
-    fs.writeFileSync(dump, await writeHarnessPage(bundleText), "utf8");
+    fs.writeFileSync(dump, await writeHarnessPage(bundleText, options), "utf8");
     console.log(`[ibl-bake] harness dumped to ${dump}`);
   }
 
-  const files = await runBakeInBrowser(bundleText, inputPng.toString("base64"));
+  const files = await runBakeInBrowser(bundleText, inputPng.toString("base64"), options);
 
   const manifest: IblBakeManifest = {
     tool: "ibl-bake",
