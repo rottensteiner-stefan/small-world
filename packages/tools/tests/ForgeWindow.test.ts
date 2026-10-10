@@ -93,6 +93,18 @@ describe("ForgeWindow", () => {
     expect(win.isVisible).toBe(false);
   });
 
+  it("closes on a click of the close button, not on the mousedown", () => {
+    const win = new ForgeWindow("My Tool", parent);
+    win.toggleVisibility(true);
+    const closeBtn = win.getElement().querySelector(".swf-window-close") as HTMLElement;
+
+    closeBtn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(win.isVisible).toBe(true);
+
+    closeBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(win.isVisible).toBe(false);
+  });
+
   it("should unmount its tool and remove itself from the DOM on destroy", () => {
     const win = new ForgeWindow("My Tool", parent);
     const tool = new TestForgeTool();

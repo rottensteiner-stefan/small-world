@@ -43,7 +43,10 @@ export class ForgeWindow {
     const closeBtn = document.createElement("button");
     closeBtn.className = "swf-window-close";
     closeBtn.textContent = "✖";
-    closeBtn.addEventListener("mousedown", (e) => {
+    // Acts on click (releasing the button elsewhere cancels it); mousedown must not start a
+    // header drag or reach the window's focus handling.
+    closeBtn.addEventListener("mousedown", (e) => e.stopPropagation());
+    closeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.close();
     });

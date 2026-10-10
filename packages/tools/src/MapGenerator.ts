@@ -37,6 +37,14 @@ export class MapGenerator extends ForgeTool {
     ".": { color: "#1a1a1a", label: "Empty" },
   };
 
+  /** Ends the window-level listeners when the tool's window is torn down. */
+  private readonly _abortController = new AbortController();
+
+  public override unmount(): void {
+    super.unmount();
+    this._abortController.abort();
+  }
+
   constructor(options: ForgeToolOptions = {}) {
     super(options);
     this._initGrid();
@@ -266,7 +274,9 @@ export class MapGenerator extends ForgeTool {
       this._hoverY = -1;
       this._render();
     });
-    window.addEventListener("mouseup", this._onPointerUp.bind(this));
+    window.addEventListener("mouseup", this._onPointerUp.bind(this), {
+      signal: this._abortController.signal,
+    });
 
     const paletteBtns = this._container.querySelectorAll(".mapgen-palette-btn");
     paletteBtns.forEach((btn) => {

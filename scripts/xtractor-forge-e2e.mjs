@@ -263,6 +263,30 @@ check(
   !sameHashes(pixlerBefore, pixlerAfter),
 );
 
+// --- Pixler keeps its own keys: Cmd+Z / tool letters belong to the window that is on top
+const pixlerTool = () =>
+  page.evaluate(() => {
+    const win = [...document.querySelectorAll(".swf-window")].find(
+      (w) => w.querySelector(".swf-window-title")?.textContent.trim() === "Pixler Editor",
+    );
+    const active = win?.querySelector(
+      ".tool-btn.active, .pixler-tool-btn.active, [class*='active']",
+    );
+    return active
+      ? `${active.className}|${active.textContent.trim()}|${active.title ?? ""}`
+      : "none";
+  });
+const pixlerToolBefore = await pixlerTool();
+await focusWindow("Asset Extractor");
+await key("f");
+await key("z", ["Meta"]);
+await key("z", ["Meta", "Shift"]);
+check(
+  "Cmd+Z and tool letters with the Xtractor on top leave the Pixler alone",
+  sameHashes(pixlerAfter, await otherToolHashes()) && (await pixlerTool()) === pixlerToolBefore,
+  `tool ${pixlerToolBefore} -> ${await pixlerTool()}`,
+);
+
 // --- AI chat inside the window
 await ix((root) => {
   const input = root.querySelector("#chat-input");

@@ -73,9 +73,23 @@ describe("Forge", () => {
     win.toggleVisibility(true);
 
     const btn = document.querySelector(".swf-taskbar-btn") as HTMLElement;
-    btn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    btn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(win.isVisible).toBe(false);
+  });
+
+  it("does not toggle on mousedown alone and keeps the press away from the scene", () => {
+    const forge = new Forge();
+    const win = forge.openWindow("Tool A", new TestForgeTool());
+    win.toggleVisibility(true);
+    let reachedScene = false;
+    document.body.addEventListener("mousedown", () => (reachedScene = true), { once: true });
+
+    const btn = document.querySelector(".swf-taskbar-btn") as HTMLElement;
+    btn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+    expect(win.isVisible).toBe(true);
+    expect(reachedScene).toBe(false);
   });
 
   it("should refresh the taskbar (marking the button inactive) when a window closes", () => {

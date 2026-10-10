@@ -12,6 +12,7 @@ import {
   flipCanvas,
 } from "./common/dsp/CanvasOperations.js";
 import { UniversalIngestDropzone } from "./common/io/ui/UniversalIngestDropzone.js";
+import { isActiveToolHost } from "./common/io/ui/toolHost.js";
 import type { IngestResult } from "./common/io/UniversalIngestTypes.js";
 import {
   primaryPbrTexture,
@@ -769,6 +770,8 @@ export class Pixler extends ForgeTool {
     window.addEventListener(
       "keydown",
       (e) => {
+        // Window-level keys belong to the topmost tool window only
+        if (!isActiveToolHost(this._container)) return;
         // Don't intercept if typing in inputs / editable elements
         if (isEditingTextInput(e.target) || isEditingTextInput()) return;
 

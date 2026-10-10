@@ -126,7 +126,10 @@ export class Forge {
       const btn = document.createElement("div");
       btn.className = "swf-taskbar-btn" + (win.isVisible ? "" : " inactive");
       btn.textContent = win.title;
-      btn.addEventListener("mousedown", (e) => {
+      // Toggles on click (releasing elsewhere cancels it); mousedown only has to stay away from
+      // the scene underneath.
+      btn.addEventListener("mousedown", (e) => e.stopPropagation());
+      btn.addEventListener("click", (e) => {
         e.stopPropagation();
         win.toggleVisibility();
         this._updateTaskbar();
